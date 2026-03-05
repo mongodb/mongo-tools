@@ -11,52 +11,29 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/dumprestore"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSkipCollection(t *testing.T) {
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a mongodump that excludes collections 'test' and 'fake'"+
-		" and excludes prefixes 'pre-' and 'no'", t, func() {
-		md := &MongoDump{
-			OutputOptions: &OutputOptions{
-				ExcludedCollections:        []string{"test", "fake"},
-				ExcludedCollectionPrefixes: []string{"pre-", "no"},
-			},
-		}
+	md := &MongoDump{
+		OutputOptions: &OutputOptions{
+			ExcludedCollections:        []string{"test", "fake"},
+			ExcludedCollectionPrefixes: []string{"pre-", "no"},
+		},
+	}
 
-		Convey("collection 'pre-test' should be skipped", func() {
-			So(md.shouldSkipCollection("pre-test"), ShouldBeTrue)
-		})
+	assert.True(t, md.shouldSkipCollection("pre-test"), "skip 'pre-test'")
+	assert.True(t, md.shouldSkipCollection("notest"), "skip 'notest'")
+	assert.True(t, md.shouldSkipCollection("test"), "skip 'test'")
+	assert.True(t, md.shouldSkipCollection("fake"), "skip 'fake'")
 
-		Convey("collection 'notest' should be skipped", func() {
-			So(md.shouldSkipCollection("notest"), ShouldBeTrue)
-		})
-
-		Convey("collection 'test' should be skipped", func() {
-			So(md.shouldSkipCollection("test"), ShouldBeTrue)
-		})
-
-		Convey("collection 'fake' should be skipped", func() {
-			So(md.shouldSkipCollection("fake"), ShouldBeTrue)
-		})
-
-		Convey("collection 'fake222' should not be skipped", func() {
-			So(md.shouldSkipCollection("fake222"), ShouldBeFalse)
-		})
-
-		Convey("collection 'random' should not be skipped", func() {
-			So(md.shouldSkipCollection("random"), ShouldBeFalse)
-		})
-
-		Convey("collection 'mytest' should not be skipped", func() {
-			So(md.shouldSkipCollection("mytest"), ShouldBeFalse)
-		})
-	})
-
+	assert.False(t, md.shouldSkipCollection("fake222"), "do not skip 'fake222'")
+	assert.False(t, md.shouldSkipCollection("random"), "do not skip 'random'")
+	assert.False(t, md.shouldSkipCollection("mytest"), "do not skip 'mytest'")
+	assert.False(t, md.shouldSkipCollection("prefix"), "do not skip 'prefix'")
 }
 
 type testTable struct {

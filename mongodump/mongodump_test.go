@@ -640,37 +640,35 @@ func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
 func TestMongoDumpValidateOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a MongoDump instance", t, func() {
+	t.Run("no db", func(t *testing.T) {
 		md, err := simpleMongoDumpInstance()
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
+		md.ToolOptions.Collection = "some_collection"
+		md.ToolOptions.DB = ""
 
-		Convey("we cannot dump a collection when a database specified", func() {
-			md.ToolOptions.Collection = "some_collection"
-			md.ToolOptions.DB = ""
+		err = md.ValidateOptions()
+		require.Error(t, err)
+		assert.ErrorContains(
+			t,
+			err,
+			"cannot dump a collection without a specified database",
+		)
+	})
 
-			err := md.ValidateOptions()
-			So(err, ShouldNotBeNil)
-			So(
-				err.Error(),
-				ShouldContainSubstring,
-				"cannot dump a collection without a specified database",
-			)
-		})
+	t.Run("no collection name with query", func(t *testing.T) {
+		md, err := simpleMongoDumpInstance()
+		require.NoError(t, err)
 
-		Convey("we have to specify a collection name if using a query", func() {
-			md.ToolOptions.Collection = ""
-			md.OutputOptions.Out = ""
-			md.InputOptions.Query = "{_id:\"\"}"
+		md.ToolOptions.Collection = ""
+		md.InputOptions.Query = "{_id:\"\"}"
 
-			err := md.ValidateOptions()
-			So(err, ShouldNotBeNil)
-			So(
-				err.Error(),
-				ShouldContainSubstring,
-				"cannot dump using a query without a specified collection",
-			)
-		})
-
+		err = md.ValidateOptions()
+		require.Error(t, err)
+		assert.ErrorContains(
+			t,
+			err,
+			"cannot dump using a query without a specified collection",
+		)
 	})
 }
 
@@ -1708,83 +1706,84 @@ func TestMongoDumpViews(t *testing.T) {
 }
 
 func TestMongoDumpCollectionOutputPath(t *testing.T) {
-	// Disabled: see TOOLS-2658
-	t.Skip()
+	t.Skip("disabled: see TOOLS-2658")
 
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	log.SetWriter(io.Discard)
 
-	Convey("testing output paths for collection names of varying lengths", t, func() {
+	newDump := func() *MongoDump {
 		md, err := simpleMongoDumpInstance()
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
-		Convey("don't change a collection name that results in an output path <255 bytes", func() {
-			md.OutputOptions.Out = "dump"
+		md.OutputOptions.Out = "dump"
+		return md
+	}
 
-			// 26 bytes < 255 bytes
-			// (output path will be under 255 bytes, regardless of file extension)
-			colName := "abcdefghijklmnopqrstuvwxyz"
+	t.Run("paths less than 255 bytes", func(t *testing.T) {
+		md := newDump()
+
+		// 26 bytes < 255 bytes
+		// (output path will be under 255 bytes, regardless of file extension)
+		colName := "abcdefghijklmnopqrstuvwxyz"
+
+		fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+		assert.Len(t, fileComponents, 3)
+
+		filePath := fileComponents[len(fileComponents)-1]
+		assert.Equal(t, colName, filePath)
+		assert.NotContains(t, filePath, "%24")
+	})
+
+	t.Run("paths equal 255 bytes", func(t *testing.T) {
+		md := newDump()
+
+		// 17 bytes * 14 = 238 bytes
+		// (output would be exactly 255 bytes with longest possible file extension of .metadata.json.gz)
+		colName := strings.Repeat("abcdefghijklmnopq", 14)
+
+		fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+		assert.Len(t, fileComponents, 3)
+
+		filePath := fileComponents[len(fileComponents)-1]
+		assert.Equal(t, colName, filePath)
+		assert.NotContains(t, filePath, "%24")
+	})
+
+	t.Run("path longer than 255 bytes", func(t *testing.T) {
+		t.Run("without special characters", func(t *testing.T) {
+			md := newDump()
+
+			// 26 bytes * 10 = 260 bytes > 238 bytes
+			// (output path is already over the file name limit of 255, regardless of file extension)
+			colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz", 10)
 
 			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-			So(len(fileComponents), ShouldEqual, 3)
+			assert.Len(t, fileComponents, 3)
 
 			filePath := fileComponents[len(fileComponents)-1]
-			So(filePath, ShouldEqual, colName)
-			So(filePath, ShouldNotContainSubstring, "%24")
+			assert.Equal(t, colName[:208]+"%24", filePath[:211])
+
+			hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
+			hash := sha1.Sum([]byte(colName))
+			assert.Equal(t, hash[:], hashDecoded)
 		})
 
-		Convey(
-			"don't change a collection name that could result in an output path =255 bytes",
-			func() {
-				md.OutputOptions.Out = "dump"
+		t.Run("with special characters", func(t *testing.T) {
+			md := newDump()
 
-				// 17 bytes * 14 = 238 bytes
-				// (output would be exactly 255 bytes with longest possible file extension of .metadata.json.gz)
-				colName := strings.Repeat("abcdefghijklmnopq", 14)
+			// (26 bytes + 3 special bytes) * 8 = 232 bytes < 238 bytes
+			// (output path is under the limit, but will go over when we escape the special symbols)
+			colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz+/@", 8)
 
-				fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-				So(len(fileComponents), ShouldEqual, 3)
+			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
+			assert.Len(t, fileComponents, 3)
 
-				filePath := fileComponents[len(fileComponents)-1]
-				So(filePath, ShouldEqual, colName)
-				So(filePath, ShouldNotContainSubstring, "%24")
-			},
-		)
+			filePath := fileComponents[len(fileComponents)-1]
+			assert.Equal(t, util.EscapeCollectionName(colName)[:208]+"%24", filePath[:211])
 
-		Convey("truncate a collection name that results in an output path >255 bytes", func() {
-			md.OutputOptions.Out = "dump"
-
-			Convey("without special characters", func() {
-				// 26 bytes * 10 = 260 bytes > 238 bytes
-				// (output path is already over the file name limit of 255, regardless of file extension)
-				colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz", 10)
-
-				fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-				So(len(fileComponents), ShouldEqual, 3)
-
-				filePath := fileComponents[len(fileComponents)-1]
-				So(filePath[:211], ShouldEqual, colName[:208]+"%24")
-
-				hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
-				hash := sha1.Sum([]byte(colName))
-				So(bytes.Compare(hashDecoded, hash[:]), ShouldEqual, 0)
-			})
-
-			Convey("with special characters", func() {
-				// (26 bytes + 3 special bytes) * 8 = 232 bytes < 238 bytes
-				// (output path is under the limit, but will go over when we escape the special symbols)
-				colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz+/@", 8)
-
-				fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-				So(len(fileComponents), ShouldEqual, 3)
-
-				filePath := fileComponents[len(fileComponents)-1]
-				So(filePath[:211], ShouldEqual, util.EscapeCollectionName(colName)[:208]+"%24")
-
-				hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
-				hash := sha1.Sum([]byte(colName))
-				So(bytes.Compare(hashDecoded, hash[:]), ShouldEqual, 0)
-			})
+			hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
+			hash := sha1.Sum([]byte(colName))
+			assert.Equal(t, hash[:], hashDecoded)
 		})
 	})
 }

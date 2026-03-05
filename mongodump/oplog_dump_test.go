@@ -21,7 +21,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/samber/lo"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -31,14 +30,12 @@ import (
 
 func TestErrorOnImportCollection(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("An importCollection oplog entry should error", t, func() {
-		rawOp, err := os.ReadFile("./testdata/importCollection.bson")
-		So(err, ShouldBeNil)
+	rawOp, err := os.ReadFile("./testdata/importCollection.bson")
+	require.NoError(t, err)
 
-		err = oplogDocumentValidator(rawOp)
-		So(err, ShouldNotBeNil)
-		So(err.Error(), ShouldEqual, "cannot dump with oplog while importCollection occurs")
-	})
+	err = oplogDocumentValidator(rawOp)
+	require.Error(t, err)
+	assert.EqualError(t, err, "cannot dump with oplog while importCollection occurs")
 }
 
 // TestOplogDumpVectoredInsertsOplog tests dumping oplogs that are from vectored inserts.
