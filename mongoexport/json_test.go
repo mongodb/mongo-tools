@@ -12,90 +12,72 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestWriteJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a JSON export output", t, func() {
-		out := &bytes.Buffer{}
+	t.Run("ObjectId to extended JSON", func(t *testing.T) {
+		out := new(bytes.Buffer)
+		jsonExporter := NewJSONExportOutput(false, false, out, Relaxed)
+		objId := bson.NewObjectID()
+		err := jsonExporter.WriteHeader()
+		require.NoError(t, err)
+		err = jsonExporter.ExportDocument(bson.D{{"_id", objId}})
+		require.NoError(t, err)
+		err = jsonExporter.WriteFooter()
+		require.NoError(t, err)
+		assert.Equal(t, `{"_id":{"$oid":"`+objId.Hex()+`"}}`+"\n", out.String())
+	})
 
-		Convey("Special types should serialize as extended JSON", func() {
+	t.Run("canonical format", func(t *testing.T) {
+		out := new(bytes.Buffer)
+		exporter := NewJSONExportOutput(false, false, out, Canonical)
 
-			Convey("ObjectId should have an extended JSON format", func() {
-				jsonExporter := NewJSONExportOutput(false, false, out, Relaxed)
-				objId := bson.NewObjectID()
-				err := jsonExporter.WriteHeader()
-				So(err, ShouldBeNil)
-				err = jsonExporter.ExportDocument(bson.D{{"_id", objId}})
-				So(err, ShouldBeNil)
-				err = jsonExporter.WriteFooter()
-				So(err, ShouldBeNil)
-				So(out.String(), ShouldEqual, `{"_id":{"$oid":"`+objId.Hex()+`"}}`+"\n")
-			})
+		err := exporter.WriteHeader()
+		require.NoError(t, err)
 
-			Convey("Canonical format should be outputted if canonical is specified", func() {
-				exporter := NewJSONExportOutput(false, false, out, Canonical)
+		err = exporter.ExportDocument(bson.D{{"x", int32(1)}})
+		require.NoError(t, err)
 
-				err := exporter.WriteHeader()
-				So(err, ShouldBeNil)
+		err = exporter.WriteFooter()
+		require.NoError(t, err)
 
-				err = exporter.ExportDocument(bson.D{{"x", int32(1)}})
-				So(err, ShouldBeNil)
-
-				err = exporter.WriteFooter()
-				So(err, ShouldBeNil)
-
-				So(out.String(), ShouldEqual, `{"x":{"$numberInt":"1"}}`+"\n")
-			})
-
-			Reset(func() {
-				out.Reset()
-			})
-		})
-
+		assert.Equal(t, `{"x":{"$numberInt":"1"}}`+"\n", out.String())
 	})
 }
 
 func TestJSONArray(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a JSON export output in array mode", t, func() {
-		out := &bytes.Buffer{}
-		Convey("exporting a bunch of documents should produce valid json", func() {
-			jsonExporter := NewJSONExportOutput(true, false, out, Relaxed)
-			err := jsonExporter.WriteHeader()
-			So(err, ShouldBeNil)
+	out := new(bytes.Buffer)
 
-			// Export a few docs of various types
+	jsonExporter := NewJSONExportOutput(true, false, out, Relaxed)
+	err := jsonExporter.WriteHeader()
+	require.NoError(t, err)
 
-			testObjs := []any{
-				bson.NewObjectID(),
-				"asd",
-				12345,
-				3.14159,
-				bson.D{{"A", 1}},
-			}
-			for _, obj := range testObjs {
-				err = jsonExporter.ExportDocument(bson.D{{"_id", obj}})
-				So(err, ShouldBeNil)
-			}
+	// Export a few docs of various types
+	testObjs := []any{
+		bson.NewObjectID(),
+		"asd",
+		12345,
+		3.14159,
+		bson.D{{"A", 1}},
+	}
+	for _, obj := range testObjs {
+		err := jsonExporter.ExportDocument(bson.D{{"_id", obj}})
+		require.NoError(t, err)
+	}
 
-			err = jsonExporter.WriteFooter()
-			So(err, ShouldBeNil)
-			// Unmarshal the whole thing, it should be valid json
-			fromJSON := []map[string]any{}
-			err = json.Unmarshal(out.Bytes(), &fromJSON)
-			So(err, ShouldBeNil)
-			So(len(fromJSON), ShouldEqual, len(testObjs))
+	err = jsonExporter.WriteFooter()
+	require.NoError(t, err)
 
-		})
-
-		Reset(func() {
-			out.Reset()
-		})
-
-	})
+	// Unmarshal the whole thing, it should be valid json
+	fromJSON := []map[string]any{}
+	err = json.Unmarshal(out.Bytes(), &fromJSON)
+	require.NoError(t, err)
+	assert.Len(t, fromJSON, len(testObjs))
 }

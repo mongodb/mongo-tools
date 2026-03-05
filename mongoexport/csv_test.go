@@ -14,146 +14,141 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestWriteCSV(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a CSV export output", t, func() {
-		fields := []string{"_id", "x", " y", "z.1.a"}
-		out := &bytes.Buffer{}
+	fields := []string{"_id", "x", " y", "z.1.a"}
 
-		Convey("Headers should be written correctly", func() {
-			csvExporter := NewCSVExportOutput(fields, false, out)
-			err := csvExporter.WriteHeader()
-			So(err, ShouldBeNil)
-			err = csvExporter.ExportDocument(bson.D{{"_id", "12345"}})
-			So(err, ShouldBeNil)
-			err = csvExporter.WriteFooter()
-			So(err, ShouldBeNil)
-			err = csvExporter.Flush()
-			So(err, ShouldBeNil)
-			rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
-			So(err, ShouldBeNil)
-			So(rec, ShouldResemble, []string{"_id", "x", " y", "z.1.a"})
-		})
+	t.Run("with header", func(t *testing.T) {
+		out := new(bytes.Buffer)
+		csvExporter := NewCSVExportOutput(fields, false, out)
+		err := csvExporter.WriteHeader()
+		require.NoError(t, err)
+		err = csvExporter.ExportDocument(bson.D{{"_id", "12345"}})
+		require.NoError(t, err)
+		err = csvExporter.WriteFooter()
+		require.NoError(t, err)
+		err = csvExporter.Flush()
+		require.NoError(t, err)
+		rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
+		require.NoError(t, err)
+		assert.Equal(t, []string{"_id", "x", " y", "z.1.a"}, rec)
+	})
 
-		Convey("Headers should not be written", func() {
-			csvExporter := NewCSVExportOutput(fields, true, out)
-			err := csvExporter.WriteHeader()
-			So(err, ShouldBeNil)
-			err = csvExporter.ExportDocument(bson.D{{"_id", "12345"}})
-			So(err, ShouldBeNil)
-			err = csvExporter.WriteFooter()
-			So(err, ShouldBeNil)
-			err = csvExporter.Flush()
-			So(err, ShouldBeNil)
-			rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
-			So(err, ShouldBeNil)
-			So(rec, ShouldResemble, []string{"12345", "", "", ""})
-		})
+	t.Run("without header", func(t *testing.T) {
+		out := new(bytes.Buffer)
+		csvExporter := NewCSVExportOutput(fields, true, out)
+		err := csvExporter.WriteHeader()
+		require.NoError(t, err)
+		err = csvExporter.ExportDocument(bson.D{{"_id", "12345"}})
+		require.NoError(t, err)
+		err = csvExporter.WriteFooter()
+		require.NoError(t, err)
+		err = csvExporter.Flush()
+		require.NoError(t, err)
+		rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
+		require.NoError(t, err)
+		assert.Equal(t, []string{"12345", "", "", ""}, rec)
+	})
 
-		Convey("Exported document with missing fields should print as blank", func() {
-			csvExporter := NewCSVExportOutput(fields, true, out)
-			err := csvExporter.ExportDocument(bson.D{{"_id", "12345"}})
-			So(err, ShouldBeNil)
-			err = csvExporter.WriteFooter()
-			So(err, ShouldBeNil)
-			err = csvExporter.Flush()
-			So(err, ShouldBeNil)
-			rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
-			So(err, ShouldBeNil)
-			So(rec, ShouldResemble, []string{"12345", "", "", ""})
-		})
+	t.Run("missing fields", func(t *testing.T) {
+		out := new(bytes.Buffer)
+		csvExporter := NewCSVExportOutput(fields, true, out)
+		err := csvExporter.ExportDocument(bson.D{{"_id", "12345"}})
+		require.NoError(t, err)
+		err = csvExporter.WriteFooter()
+		require.NoError(t, err)
+		err = csvExporter.Flush()
+		require.NoError(t, err)
+		rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
+		require.NoError(t, err)
+		assert.Equal(t, []string{"12345", "", "", ""}, rec)
+	})
 
-		Convey("Exported document with index into nested objects should print correctly", func() {
-			csvExporter := NewCSVExportOutput(fields, true, out)
-			z := []any{"x", bson.D{{"a", "T"}, {"B", 1}}}
-			err := csvExporter.ExportDocument(bson.D{{Key: "z", Value: z}})
-			So(err, ShouldBeNil)
-			err = csvExporter.WriteFooter()
-			So(err, ShouldBeNil)
-			err = csvExporter.Flush()
-			So(err, ShouldBeNil)
-			rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
-			So(err, ShouldBeNil)
-			So(rec, ShouldResemble, []string{"", "", "", "T"})
-		})
-
-		Reset(func() {
-			out.Reset()
-		})
-
+	t.Run("index into nested object", func(t *testing.T) {
+		out := new(bytes.Buffer)
+		csvExporter := NewCSVExportOutput(fields, true, out)
+		z := []any{"x", bson.D{{"a", "T"}, {"B", 1}}}
+		err := csvExporter.ExportDocument(bson.D{{Key: "z", Value: z}})
+		require.NoError(t, err)
+		err = csvExporter.WriteFooter()
+		require.NoError(t, err)
+		err = csvExporter.Flush()
+		require.NoError(t, err)
+		rec, err := csv.NewReader(strings.NewReader(out.String())).Read()
+		require.NoError(t, err)
+		assert.Equal(t, []string{"", "", "", "T"}, rec)
 	})
 }
 
 func TestExtractDField(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("With a test bson.D", t, func() {
-		b := []any{"inner", bsonutil.MarshalD{{"inner2", 1}}}
-		c := bsonutil.MarshalD{{"x", 5}}
-		d := bsonutil.MarshalD{{"z", nil}}
-		testD := bsonutil.MarshalD{
-			{"a", "string"},
-			{"b", b},
-			{"c", c},
-			{"d", d},
-		}
 
-		Convey("regular fields should be extracted by name", func() {
-			val := extractFieldByName("a", testD)
-			So(val, ShouldEqual, "string")
-		})
+	b := []any{"inner", bsonutil.MarshalD{{"inner2", 1}}}
+	c := bsonutil.MarshalD{{"x", 5}}
+	d := bsonutil.MarshalD{{"z", nil}}
+	testD := bsonutil.MarshalD{
+		{"a", "string"},
+		{"b", b},
+		{"c", c},
+		{"d", d},
+	}
 
-		Convey("array fields should be extracted by name", func() {
-			val := extractFieldByName("b.1", testD)
-			So(val, ShouldResemble, bsonutil.MarshalD{{"inner2", 1}})
-			val = extractFieldByName("b.1.inner2", testD)
-			So(val, ShouldEqual, 1)
-			val = extractFieldByName("b.0", testD)
-			So(val, ShouldEqual, "inner")
-		})
-
-		Convey("subdocument fields should be extracted by name", func() {
-			val := extractFieldByName("c", testD)
-			So(val, ShouldResemble, bsonutil.MarshalD{{"x", 5}})
-			val = extractFieldByName("c.x", testD)
-			So(val, ShouldEqual, 5)
-
-			Convey("even if they contain null values", func() {
-				val := extractFieldByName("d", testD)
-				So(val, ShouldResemble, bsonutil.MarshalD{{"z", nil}})
-				val = extractFieldByName("d.z", testD)
-				So(val, ShouldEqual, nil)
-				val = extractFieldByName("d.z.nope", testD)
-				So(val, ShouldEqual, "")
-			})
-		})
-
-		Convey(`non-existing fields should return ""`, func() {
-			val := extractFieldByName("f", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("c.nope", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("c.nope.NOPE", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("b.1000", testD)
-			So(val, ShouldEqual, "")
-			val = extractFieldByName("b.1.nada", testD)
-			So(val, ShouldEqual, "")
-		})
-
+	t.Run("regular fields", func(t *testing.T) {
+		val := extractFieldByName("a", testD)
+		assert.Equal(t, "string", val)
 	})
 
-	Convey(`Extraction of a non-document should return ""`, t, func() {
+	t.Run("array fields", func(t *testing.T) {
+		val := extractFieldByName("b.1", testD)
+		assert.Equal(t, bsonutil.MarshalD{{"inner2", 1}}, val)
+		val = extractFieldByName("b.1.inner2", testD)
+		assert.Equal(t, 1, val)
+		val = extractFieldByName("b.0", testD)
+		assert.Equal(t, "inner", val)
+	})
+
+	t.Run("subdocument fields", func(t *testing.T) {
+		val := extractFieldByName("c", testD)
+		assert.Equal(t, bsonutil.MarshalD{{"x", 5}}, val)
+		val = extractFieldByName("c.x", testD)
+		assert.Equal(t, 5, val)
+
+		t.Run("with null values", func(t *testing.T) {
+			val := extractFieldByName("d", testD)
+			assert.Equal(t, bsonutil.MarshalD{{"z", nil}}, val)
+			val = extractFieldByName("d.z", testD)
+			assert.Equal(t, nil, val)
+			val = extractFieldByName("d.z.nope", testD)
+			assert.Empty(t, val)
+		})
+	})
+
+	t.Run("non-existing fields", func(t *testing.T) {
+		val := extractFieldByName("f", testD)
+		assert.Empty(t, val)
+		val = extractFieldByName("c.nope", testD)
+		assert.Empty(t, val)
+		val = extractFieldByName("c.nope.NOPE", testD)
+		assert.Empty(t, val)
+		val = extractFieldByName("b.1000", testD)
+		assert.Empty(t, val)
+		val = extractFieldByName("b.1.nada", testD)
+		assert.Empty(t, val)
+	})
+
+	t.Run("non-document", func(t *testing.T) {
 		val := extractFieldByName("meh", []any{"meh"})
-		So(val, ShouldEqual, "")
+		assert.Empty(t, val)
 	})
 
-	Convey(`Extraction of a nil document should return ""`, t, func() {
+	t.Run("nil document", func(t *testing.T) {
 		val := extractFieldByName("a", nil)
-		So(val, ShouldEqual, "")
+		assert.Empty(t, val)
 	})
 }

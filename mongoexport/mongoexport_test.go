@@ -22,7 +22,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -63,35 +63,31 @@ func simpleMongoExportOpts() (Options, error) {
 func TestExtendedJSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Serializing a doc to extended JSON should work", t, func() {
-		x := bson.M{
-			"_id": bson.NewObjectID(),
-			"hey": "sup",
-			"subdoc": bson.M{
-				"subid": bson.NewObjectID(),
-			},
-			"array": []any{
-				bson.NewObjectID(),
-				bson.Undefined{},
-			},
-		}
-		out, err := bsonutil.ConvertBSONValueToLegacyExtJSON(x)
-		So(err, ShouldBeNil)
+	x := bson.M{
+		"_id": bson.NewObjectID(),
+		"hey": "sup",
+		"subdoc": bson.M{
+			"subid": bson.NewObjectID(),
+		},
+		"array": []any{
+			bson.NewObjectID(),
+			bson.Undefined{},
+		},
+	}
+	out, err := bsonutil.ConvertBSONValueToLegacyExtJSON(x)
+	require.NoError(t, err)
 
-		jsonEncoder := json.NewEncoder(os.Stdout)
-		err = jsonEncoder.Encode(out)
-		So(err, ShouldBeNil)
-	})
+	jsonEncoder := json.NewEncoder(os.Stdout)
+	err = jsonEncoder.Encode(out)
+	require.NoError(t, err)
 }
 
 func TestFieldSelect(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Using makeFieldSelector should return correct projection doc", t, func() {
-		So(makeFieldSelector("a,b"), ShouldResemble, bson.M{"_id": 1, "a": 1, "b": 1})
-		So(makeFieldSelector(""), ShouldResemble, bson.M{"_id": 1})
-		So(makeFieldSelector("x,foo.baz"), ShouldResemble, bson.M{"_id": 1, "foo": 1, "x": 1})
-	})
+	assert.Equal(t, bson.M{"_id": 1, "a": 1, "b": 1}, makeFieldSelector("a,b"))
+	assert.Equal(t, bson.M{"_id": 1}, makeFieldSelector(""))
+	assert.Equal(t, bson.M{"_id": 1, "foo": 1, "x": 1}, makeFieldSelector("x,foo.baz"))
 }
 
 // Test exporting a collection with autoIndexId:false.  As of MongoDB 4.0,
@@ -101,14 +97,11 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "no cluster available")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
-	if err != nil {
-		t.Fatalf("Could not get Server version: %v", err)
-	}
+	require.NoError(t, err, "could not get server version")
+
 	if serverVersion.GTE(db.Version{8, 2, 0}) {
 		t.Skipf(
 			"createCollection no longer accepts autoIndexID as of Server version 8.2.0; testing with %s",
@@ -134,23 +127,21 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	}
 	var r2 bson.M
 	err = sessionProvider.Run(createCmd, &r2, dbName)
-	if err != nil {
-		t.Fatalf("Error creating capped, no-autoIndexId collection: %v", err)
-	}
+	require.NoError(t, err, "error creating capped, no-autoIndexId collection")
 
-	Convey("testing dumping a capped, autoIndexId:false collection", t, func() {
+	t.Run("dumping a capped, autoIndexId:false collection", func(t *testing.T) {
 		opts, err := simpleMongoExportOpts()
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		opts.Collection = collName
 		opts.DB = dbName
 
 		me, err := New(opts)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 		defer me.Close()
 		out := &bytes.Buffer{}
 		_, err = me.Export(out)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 	})
 }
 
@@ -161,14 +152,10 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "no cluster available")
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "failed to get session")
 
 	collName := "tools-1952-export"
 	dbName := "test"
@@ -191,9 +178,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 
 	var r2 bson.M
 	err = sessionProvider.Run(createCmd, &r2, dbName)
-	if err != nil {
-		t.Fatalf("Error creating collection: %v", err)
-	}
+	require.NoError(t, err, "error creating collection")
 
 	// Turn on profiling.
 	profileCmd := bson.D{
@@ -201,25 +186,23 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	}
 
 	err = sessionProvider.Run(profileCmd, &r2, dbName)
-	if err != nil {
-		t.Fatalf("Failed to turn on profiling: %v", err)
-	}
+	require.NoError(t, err, "failed to turn on profiling")
 
 	profileCollection := dbStruct.Collection("system.profile")
 
-	Convey("testing exporting a collection", t, func() {
+	t.Run("export collection", func(t *testing.T) {
 		opts, err := simpleMongoExportOpts()
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		opts.Collection = collName
 		opts.DB = dbName
 
 		me, err := New(opts)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 		defer me.Close()
 		out := &bytes.Buffer{}
 		_, err = me.Export(out)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		count, err := profileCollection.CountDocuments(t.Context(),
 			bson.D{
@@ -238,11 +221,11 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 				}},
 			},
 		)
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		// In modern storage engines, there should be no hints, so there
 		// should be 0 matches.
-		So(count, ShouldEqual, 0)
+		assert.Zero(t, count)
 	})
 }
 
