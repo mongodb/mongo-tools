@@ -19,3 +19,28 @@ globalThis.ShardingTest = ShardingTest
 // Change it here specifically when running from 8.1 shell.
 var __origRawMongoProgramOutput = rawMongoProgramOutput;
 rawMongoProgramOutput = function() { return __origRawMongoProgramOutput('.*') };
+
+ToolTest.prototype.runTool = function () {
+    let a = ["mongo" + arguments[0]];
+
+    let hasdbpath = false;
+    let hasDialTimeout = false;
+
+    for (let i = 1; i < arguments.length; i++) {
+        a.push(arguments[i]);
+        if (arguments[i] === "--dbpath") hasdbpath = true;
+        if (arguments[i] === "--dialTimeout") hasDialTimeout = true;
+    }
+
+    if (!hasdbpath) {
+        a.push("--host");
+        a.push("127.0.0.1:" + this.port);
+    }
+
+    if (!hasDialTimeout) {
+        a.push("--dialTimeout");
+        a.push("30");
+    }
+
+    return runMongoProgram.apply(null, a);
+};
