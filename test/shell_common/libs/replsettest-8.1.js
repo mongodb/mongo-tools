@@ -2633,12 +2633,19 @@ export class ReplSetTest {
             options.setParameter.featureFlagTransitionToCatalogShard = true;
         }
 
+        const olderThan83 =
+            MongoRunner.compareBinVersions(MongoRunner.getBinVersionFor(options.binVersion),
+                                           MongoRunner.getBinVersionFor('8.3')) === -1;
+
         // Disable a check in reconfig that will prevent certain configs with arbiters from
         // spinning up. We will re-enable this check after the replica set has finished initiating.
         if (jsTestOptions().enableTestCommands) {
             options.setParameter.enableReconfigRollbackCommittedWritesCheck = false;
-            options.setParameter.disableTransitionFromLatestToLastContinuous =
-                options.setParameter.disableTransitionFromLatestToLastContinuous || false;
+            // This parameter was removed in 8.3; see SERVER-109560.
+            if (olderThan83) {
+                options.setParameter.disableTransitionFromLatestToLastContinuous =
+                    options.setParameter.disableTransitionFromLatestToLastContinuous || false;
+            }
         }
 
         if (jsTestOptions().performTimeseriesCompressionIntermediateDataIntegrityCheckOnInsert) {
