@@ -11,123 +11,124 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestDecodeBsonD(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON into a bson.D", t, func() {
-		Convey("a document should be stored with keys in the same order", func() {
-			data := `{"a":1, "b":2, "c":3, "d":4, "e":5, "f":6}`
-			out := bson.D{}
-			err := Unmarshal([]byte(data), &out)
-			So(err, ShouldBeNil)
-			So(len(out), ShouldEqual, 6)
-			So(out[0].Key, ShouldEqual, "a")
-			So(out[1].Key, ShouldEqual, "b")
-			So(out[2].Key, ShouldEqual, "c")
-			So(out[3].Key, ShouldEqual, "d")
-			So(out[4].Key, ShouldEqual, "e")
-			So(out[5].Key, ShouldEqual, "f")
-
-		})
-
-		Convey("a nested bson.D should be parsed", func() {
-			data := `{"a": 17, "b":{"foo":"bar", "baz":"boo"}, c:"wow" }`
-			out := struct {
-				A int    `json:"a"`
-				B bson.D `json:"b"`
-				C string `json:"c"`
-			}{}
-			err := Unmarshal([]byte(data), &out)
-			So(err, ShouldBeNil)
-			So(out.A, ShouldEqual, 17)
-			So(out.C, ShouldEqual, "wow")
-			So(len(out.B), ShouldEqual, 2)
-			So(out.B[0].Key, ShouldEqual, "foo")
-			So(out.B[0].Value, ShouldEqual, "bar")
-			So(out.B[1].Key, ShouldEqual, "baz")
-			So(out.B[1].Value, ShouldEqual, "boo")
-		})
-
-		Convey("objects nested within DocElems should still be parsed", func() {
-			data := `{"a":["x", "y","z"], "b":{"foo":"bar", "baz":"boo"}}`
-			out := bson.D{}
-			err := Unmarshal([]byte(data), &out)
-			So(err, ShouldBeNil)
-			So(len(out), ShouldEqual, 2)
-			So(out[0].Key, ShouldEqual, "a")
-			So(out[1].Key, ShouldEqual, "b")
-			So(out[0].Value, ShouldResemble, []any{"x", "y", "z"})
-			So(out[1].Value, ShouldResemble, bson.D{{"foo", "bar"}, {"baz", "boo"}})
-		})
-
-		Convey("only subdocuments inside a bson.D should be parsed into a bson.D", func() {
-			data := `{subA: {a:{b:{c:9}}}, subB:{a:{b:{c:9}}}}`
-			out := struct {
-				A any    `json:"subA"`
-				B bson.D `json:"subB"`
-			}{}
-			err := Unmarshal([]byte(data), &out)
-			So(err, ShouldBeNil)
-			//nolint:errcheck // this will always be a map[string]any
-			aMap := out.A.(map[string]any)
-			So(len(aMap), ShouldEqual, 1)
-			//nolint:errcheck // this will always be a map[string]any
-			aMapSub := aMap["a"].(map[string]any)
-			So(len(aMapSub), ShouldEqual, 1)
-			//nolint:errcheck // this will always be a map[string]any
-			aMapSubSub := aMapSub["b"].(map[string]any)
-			So(aMapSubSub["c"], ShouldEqual, 9)
-			So(len(out.B), ShouldEqual, 1)
-			// using string comparison for simplicity
-			c := bson.D{{Key: "c", Value: 9}}
-			b := bson.D{{Key: "b", Value: c}}
-			a := bson.D{{Key: "a", Value: b}}
-			So(fmt.Sprintf("%v", out.B), ShouldEqual, fmt.Sprintf("%v", a))
-		})
-
-		Convey("subdocuments inside arrays inside bson.D should be parsed into a bson.D", func() {
-			data := `{"a":[1,2,{b:"inner"}]}`
-			out := bson.D{}
-			err := Unmarshal([]byte(data), &out)
-			So(err, ShouldBeNil)
-			So(len(out), ShouldEqual, 1)
-			So(out[0].Value, ShouldHaveSameTypeAs, []any{})
-			//nolint:errcheck // this will always be a []any
-			innerArray := out[0].Value.([]any)
-			So(len(innerArray), ShouldEqual, 3)
-			So(innerArray[0], ShouldEqual, 1)
-			So(innerArray[1], ShouldEqual, 2)
-			So(innerArray[2], ShouldHaveSameTypeAs, bson.D{})
-			//nolint:errcheck // this will always be a bson.D
-			innerD := innerArray[2].(bson.D)
-			So(len(innerD), ShouldEqual, 1)
-			So(innerD[0].Key, ShouldEqual, "b")
-			So(innerD[0].Value, ShouldEqual, "inner")
-		})
-
-		Convey("null should be a valid value", func() {
-			data := `{"a":true, "b":null, "c": 5}`
-			out := bson.D{}
-			err := Unmarshal([]byte(data), &out)
-			So(err, ShouldBeNil)
-			So(len(out), ShouldEqual, 3)
-			So(out[0].Key, ShouldEqual, "a")
-			So(out[0].Value, ShouldEqual, true)
-			So(out[1].Key, ShouldEqual, "b")
-			So(out[1].Value, ShouldBeNil)
-			So(out[2].Key, ShouldEqual, "c")
-			So(out[2].Value, ShouldEqual, 5)
-		})
+	t.Run("order preservation", func(t *testing.T) {
+		data := `{"a":1, "b":2, "c":3, "d":4, "e":5, "f":6}`
+		out := bson.D{}
+		err := Unmarshal([]byte(data), &out)
+		require.NoError(t, err)
+		assert.Len(t, out, 6)
+		assert.Equal(t, "a", out[0].Key)
+		assert.Equal(t, "b", out[1].Key)
+		assert.Equal(t, "c", out[2].Key)
+		assert.Equal(t, "d", out[3].Key)
+		assert.Equal(t, "e", out[4].Key)
+		assert.Equal(t, "f", out[5].Key)
 
 	})
-	Convey("Unmarshalling to a non-bson.D slice types should fail", t, func() {
+
+	t.Run("nested documents", func(t *testing.T) {
+		data := `{"a": 17, "b":{"foo":"bar", "baz":"boo"}, c:"wow" }`
+		out := struct {
+			A int    `json:"a"`
+			B bson.D `json:"b"`
+			C string `json:"c"`
+		}{}
+		err := Unmarshal([]byte(data), &out)
+		require.NoError(t, err)
+		assert.Equal(t, 17, out.A)
+		assert.Equal(t, "wow", out.C)
+		assert.Len(t, out.B, 2)
+		assert.Equal(t, "foo", out.B[0].Key)
+		assert.Equal(t, "bar", out.B[0].Value)
+		assert.Equal(t, "baz", out.B[1].Key)
+		assert.Equal(t, "boo", out.B[1].Value)
+	})
+
+	t.Run("nested in DocElems", func(t *testing.T) {
+		data := `{"a":["x", "y","z"], "b":{"foo":"bar", "baz":"boo"}}`
+		out := bson.D{}
+		err := Unmarshal([]byte(data), &out)
+		require.NoError(t, err)
+		assert.Len(t, out, 2)
+		assert.Equal(t, "a", out[0].Key)
+		assert.Equal(t, "b", out[1].Key)
+		assert.Equal(t, []any{"x", "y", "z"}, out[0].Value)
+		assert.Equal(t, bson.D{{"foo", "bar"}, {"baz", "boo"}}, out[1].Value)
+	})
+
+	t.Run("subdocuments inside bson.D", func(t *testing.T) {
+		data := `{subA: {a:{b:{c:9}}}, subB:{a:{b:{c:9}}}}`
+		out := struct {
+			A any    `json:"subA"`
+			B bson.D `json:"subB"`
+		}{}
+		err := Unmarshal([]byte(data), &out)
+		require.NoError(t, err)
+		//nolint:errcheck // this will always be a map[string]any
+		aMap := out.A.(map[string]any)
+		assert.Len(t, aMap, 1)
+		//nolint:errcheck // this will always be a map[string]any
+		aMapSub := aMap["a"].(map[string]any)
+		assert.Len(t, aMapSub, 1)
+		//nolint:errcheck // this will always be a map[string]any
+		aMapSubSub := aMapSub["b"].(map[string]any)
+		assert.EqualValues(t, 9, aMapSubSub["c"])
+		assert.Len(t, out.B, 1)
+		// using string comparison for simplicity
+		c := bson.D{{Key: "c", Value: 9}}
+		b := bson.D{{Key: "b", Value: c}}
+		a := bson.D{{Key: "a", Value: b}}
+		assert.Equal(t, fmt.Sprintf("%v", a), fmt.Sprintf("%v", out.B))
+	})
+
+	t.Run("subdocuments inside arrays", func(t *testing.T) {
+		data := `{"a":[1,2,{b:"inner"}]}`
+		out := bson.D{}
+		err := Unmarshal([]byte(data), &out)
+		require.NoError(t, err)
+		assert.Len(t, out, 1)
+
+		innerArray, ok := out[0].Value.([]any)
+		require.True(t, ok)
+
+		assert.Len(t, innerArray, 3)
+		assert.EqualValues(t, 1, innerArray[0])
+		assert.EqualValues(t, 2, innerArray[1])
+
+		innerD, ok := innerArray[2].(bson.D)
+		require.True(t, ok)
+
+		assert.Len(t, innerD, 1)
+		assert.Equal(t, "b", innerD[0].Key)
+		assert.Equal(t, "inner", innerD[0].Value)
+	})
+
+	t.Run("null is valid", func(t *testing.T) {
+		data := `{"a":true, "b":null, "c": 5}`
+		out := bson.D{}
+		err := Unmarshal([]byte(data), &out)
+		require.NoError(t, err)
+		assert.Len(t, out, 3)
+		assert.Equal(t, "a", out[0].Key)
+		assert.Equal(t, true, out[0].Value)
+		assert.Equal(t, "b", out[1].Key)
+		assert.Nil(t, out[1].Value)
+		assert.Equal(t, "c", out[2].Key)
+		assert.EqualValues(t, 5, out[2].Value)
+	})
+
+	t.Run("non-bson.D slice types", func(t *testing.T) {
 		data := `{"a":["x", "y","z"], "b":{"foo":"bar", "baz":"boo"}}`
 		out := []any{}
 		err := Unmarshal([]byte(data), &out)
-		So(err, ShouldNotBeNil)
+		require.Error(t, err)
 	})
 }

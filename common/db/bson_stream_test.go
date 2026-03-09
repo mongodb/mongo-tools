@@ -12,7 +12,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -24,28 +25,26 @@ func TestBufferlessBSONSource(t *testing.T) {
 		{"_": bson.Binary{Subtype: 0x80, Data: []byte("bananas")}},
 		{"_": bson.Binary{Subtype: 0x80, Data: []byte("cherries")}},
 	}
-	Convey("with a buffer containing several bson documents with binary fields", t, func() {
-		writeBuf := bytes.NewBuffer(make([]byte, 0, 1024))
-		for _, tv := range testValues {
-			data, err := bson.Marshal(&tv)
-			So(err, ShouldBeNil)
-			_, err = writeBuf.Write(data)
-			So(err, ShouldBeNil)
-		}
-		Convey("that we parse correctly with a BufferlessBSONSource", func() {
-			bsonSource := NewDecodedBSONSource(
-				NewBufferlessBSONSource(io.NopCloser(writeBuf)))
-			docs := []bson.M{}
-			count := 0
-			doc := &bson.M{}
-			for bsonSource.Next(doc) {
-				count++
-				docs = append(docs, *doc)
-				doc = &bson.M{}
-			}
-			So(bsonSource.Err(), ShouldBeNil)
-			So(count, ShouldEqual, len(testValues))
-			So(docs, ShouldResemble, testValues)
-		})
-	})
+
+	writeBuf := bytes.NewBuffer(make([]byte, 0, 1024))
+	for _, tv := range testValues {
+		data, err := bson.Marshal(&tv)
+		require.NoError(t, err)
+		_, err = writeBuf.Write(data)
+		require.NoError(t, err)
+	}
+
+	// Now, parse that buffer.
+	bsonSource := NewDecodedBSONSource(NewBufferlessBSONSource(io.NopCloser(writeBuf)))
+	docs := []bson.M{}
+	count := 0
+	doc := &bson.M{}
+	for bsonSource.Next(doc) {
+		count++
+		docs = append(docs, *doc)
+		doc = &bson.M{}
+	}
+	require.NoError(t, bsonSource.Err())
+	assert.Equal(t, len(testValues), count)
+	assert.Equal(t, testValues, docs)
 }

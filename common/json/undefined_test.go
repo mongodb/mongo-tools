@@ -11,88 +11,86 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUndefinedValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON with undefined values", t, func() {
+	t.Run("single key", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for a single key", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "undefined"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "undefined"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(Undefined)
+		require.True(t, ok)
+		assert.Equal(t, Undefined{}, jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(Undefined)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, Undefined{})
-		})
+	t.Run("multiple keys", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works for multiple keys", func() {
-			var jsonMap map[string]any
+		key1, key2, key3 := "key1", "key2", "key3"
+		value := "undefined"
+		data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
+			key1, value, key2, value, key3, value)
 
-			key1, key2, key3 := "key1", "key2", "key3"
-			value := "undefined"
-			data := fmt.Sprintf(`{"%v":%v,"%v":%v,"%v":%v}`,
-				key1, value, key2, value, key3, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue1, ok := jsonMap[key1].(Undefined)
+		require.True(t, ok)
+		assert.Equal(t, Undefined{}, jsonValue1)
 
-			jsonValue1, ok := jsonMap[key1].(Undefined)
-			So(ok, ShouldBeTrue)
-			So(jsonValue1, ShouldResemble, Undefined{})
+		jsonValue2, ok := jsonMap[key2].(Undefined)
+		require.True(t, ok)
+		assert.Equal(t, Undefined{}, jsonValue2)
 
-			jsonValue2, ok := jsonMap[key2].(Undefined)
-			So(ok, ShouldBeTrue)
-			So(jsonValue2, ShouldResemble, Undefined{})
+		jsonValue3, ok := jsonMap[key3].(Undefined)
+		require.True(t, ok)
+		assert.Equal(t, Undefined{}, jsonValue3)
+	})
 
-			jsonValue3, ok := jsonMap[key3].(Undefined)
-			So(ok, ShouldBeTrue)
-			So(jsonValue3, ShouldResemble, Undefined{})
-		})
+	t.Run("in array", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("works in an array", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "undefined"
+		data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
+			key, value, value, value)
 
-			key := "key"
-			value := "undefined"
-			data := fmt.Sprintf(`{"%v":[%v,%v,%v]}`,
-				key, value, value, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonArray, ok := jsonMap[key].([]any)
+		require.True(t, ok)
 
-			jsonArray, ok := jsonMap[key].([]any)
-			So(ok, ShouldBeTrue)
+		for _, _jsonValue := range jsonArray {
+			jsonValue, ok := _jsonValue.(Undefined)
+			require.True(t, ok)
+			assert.Equal(t, Undefined{}, jsonValue)
+		}
+	})
 
-			for _, _jsonValue := range jsonArray {
-				jsonValue, ok := _jsonValue.(Undefined)
-				So(ok, ShouldBeTrue)
-				So(jsonValue, ShouldResemble, Undefined{})
-			}
-		})
+	t.Run("with signs", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("cannot have a sign ('+' or '-')", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "undefined"
+		data := fmt.Sprintf(`{"%v":+%v}`, key, value)
 
-			key := "key"
-			value := "undefined"
-			data := fmt.Sprintf(`{"%v":+%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
+		data = fmt.Sprintf(`{"%v":-%v}`, key, value)
 
-			data = fmt.Sprintf(`{"%v":-%v}`, key, value)
-
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
-		})
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
 	})
 }

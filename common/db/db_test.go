@@ -12,7 +12,8 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
@@ -75,67 +76,47 @@ func TestNewSessionProvider(t *testing.T) {
 
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
-	Convey("When initializing a session provider", t, func() {
 
-		Convey("with the standard options, a provider with a standard"+
-			" connector should be returned", func() {
-			opts := options.ToolOptions{
-				Connection: &options.Connection{
-					Port: DefaultTestPort,
-				},
-				URI:  DBGetConnString(),
-				SSL:  &ssl,
-				Auth: &auth,
-			}
-			provider, err := NewSessionProvider(opts)
-			So(err, ShouldBeNil)
+	opts := options.ToolOptions{
+		Connection: &options.Connection{
+			Port: DefaultTestPort,
+		},
+		URI:  DBGetConnString(),
+		SSL:  &ssl,
+		Auth: &auth,
+	}
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err)
 
-			Convey("and should be closeable", func() {
-				provider.Close()
-			})
-		})
+	require.NoError(
+		t,
+		provider.client.Ping(t.Context(), nil),
+		"master session successfully initialized",
+	)
 
-		Convey("the master session should be successfully "+
-			" initialized", func() {
-			opts := options.ToolOptions{
-				Connection: &options.Connection{
-					Port: DefaultTestPort,
-				},
-				URI:  DBGetConnString(),
-				SSL:  &ssl,
-				Auth: &auth,
-			}
-			provider, err := NewSessionProvider(opts)
-			So(err, ShouldBeNil)
-			So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
-		})
-
-	})
+	provider.Close()
 }
 
 func TestConfigureClientForSRV(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	Convey("Configuring options with a URI with invalid auth should succeed", t, func() {
-		enabled := options.EnabledOptions{
-			Auth:       true,
-			Connection: true,
-			Namespace:  true,
-			URI:        true,
-		}
+	enabled := options.EnabledOptions{
+		Auth:       true,
+		Connection: true,
+		Namespace:  true,
+		URI:        true,
+	}
 
-		toolOptions := options.New("test", "", "", "", true, enabled)
-		// AuthSource without a username is invalid, we want to check the URI does not get
-		// validated as part of client configuration
-		_, err := toolOptions.ParseArgs(
-			[]string{"--uri", "mongodb://foo/?authSource=admin", "--username", "bar"},
-		)
-		So(err, ShouldBeNil)
+	// AuthSource without a username is invalid, we want to check the URI does not get
+	// validated as part of client configuration
+	toolOptions := options.New("test", "", "", "", true, enabled)
+	_, err := toolOptions.ParseArgs(
+		[]string{"--uri", "mongodb://foo/?authSource=admin", "--username", "bar"},
+	)
+	require.NoError(t, err)
 
-		_, err = configureClient(*toolOptions)
-		So(err, ShouldBeNil)
-	})
-
+	_, err = configureClient(*toolOptions)
+	require.NoError(t, err)
 }
 
 func TestDatabaseNames(t *testing.T) {
@@ -144,39 +125,35 @@ func TestDatabaseNames(t *testing.T) {
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
 
-	Convey("With a valid session provider", t, func() {
-		opts := options.ToolOptions{
-			Connection: &options.Connection{
-				Port: DefaultTestPort,
-			},
-			URI:  DBGetConnString(),
-			SSL:  &ssl,
-			Auth: &auth,
-		}
-		provider, err := NewSessionProvider(opts)
-		So(err, ShouldBeNil)
+	opts := options.ToolOptions{
+		Connection: &options.Connection{
+			Port: DefaultTestPort,
+		},
+		URI:  DBGetConnString(),
+		SSL:  &ssl,
+		Auth: &auth,
+	}
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err)
 
-		err = provider.DropDatabase("exists")
-		So(err, ShouldBeNil)
-		err = provider.CreateCollection("exists", "collection")
-		So(err, ShouldBeNil)
-		err = provider.DropDatabase("missingDB")
-		So(err, ShouldBeNil)
+	err = provider.DropDatabase("exists")
+	require.NoError(t, err)
+	err = provider.CreateCollection("exists", "collection")
+	require.NoError(t, err)
+	err = provider.DropDatabase("missingDB")
+	require.NoError(t, err)
 
-		Convey("When DatabaseNames is called", func() {
-			names, err := provider.DatabaseNames()
-			So(err, ShouldBeNil)
-			So(len(names), ShouldBeGreaterThan, 0)
+	names, err := provider.DatabaseNames()
+	require.NoError(t, err)
+	assert.NotEmpty(t, names)
 
-			m := make(map[string]bool)
-			for _, v := range names {
-				m[v] = true
-			}
+	m := make(map[string]bool)
+	for _, v := range names {
+		m[v] = true
+	}
 
-			So(m["exists"], ShouldBeTrue)
-			So(m["misssingDB"], ShouldBeFalse)
-		})
-	})
+	assert.True(t, m["exists"])
+	assert.False(t, m["missingDB"])
 }
 
 func TestFindOne(t *testing.T) {
@@ -185,34 +162,30 @@ func TestFindOne(t *testing.T) {
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
 
-	Convey("With a valid session provider", t, func() {
-		opts := options.ToolOptions{
-			Connection: &options.Connection{
-				Port: DefaultTestPort,
-			},
-			URI:  DBGetConnString(),
-			SSL:  &ssl,
-			Auth: &auth,
-		}
-		provider, err := NewSessionProvider(opts)
-		So(err, ShouldBeNil)
+	opts := options.ToolOptions{
+		Connection: &options.Connection{
+			Port: DefaultTestPort,
+		},
+		URI:  DBGetConnString(),
+		SSL:  &ssl,
+		Auth: &auth,
+	}
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err)
 
-		err = provider.DropDatabase("exists")
-		So(err, ShouldBeNil)
-		err = provider.CreateCollection("exists", "collection")
-		So(err, ShouldBeNil)
-		client, err := provider.GetSession()
-		So(err, ShouldBeNil)
-		coll := client.Database("exists").Collection("collection")
-		_, err = coll.InsertOne(t.Context(), bson.D{})
-		So(err, ShouldBeNil)
+	err = provider.DropDatabase("exists")
+	require.NoError(t, err)
+	err = provider.CreateCollection("exists", "collection")
+	require.NoError(t, err)
+	client, err := provider.GetSession()
+	require.NoError(t, err)
+	coll := client.Database("exists").Collection("collection")
+	_, err = coll.InsertOne(t.Context(), bson.D{})
+	require.NoError(t, err)
 
-		Convey("When FindOneis called", func() {
-			res := bson.D{}
-			err := provider.FindOne("exists", "collection", 0, nil, nil, &res, 0)
-			So(err, ShouldBeNil)
-		})
-	})
+	res := bson.D{}
+	err = provider.FindOne("exists", "collection", 0, nil, nil, &res, 0)
+	require.NoError(t, err)
 }
 
 func TestGetIndexes(t *testing.T) {
@@ -220,68 +193,53 @@ func TestGetIndexes(t *testing.T) {
 
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
-	Convey("With a valid session", t, func() {
-		opts := options.ToolOptions{
-			Connection: &options.Connection{
-				Port: DefaultTestPort,
-			},
-			URI:  DBGetConnString(),
-			SSL:  &ssl,
-			Auth: &auth,
+	opts := options.ToolOptions{
+		Connection: &options.Connection{
+			Port: DefaultTestPort,
+		},
+		URI:  DBGetConnString(),
+		SSL:  &ssl,
+		Auth: &auth,
+	}
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err)
+	session, err := provider.GetSession()
+	require.NoError(t, err)
+
+	existing := session.Database("exists").Collection("collection")
+	missing := session.Database("exists").Collection("missing")
+	missingDB := session.Database("missingDB").Collection("missingCollection")
+
+	err = provider.DropDatabase("exists")
+	require.NoError(t, err)
+	err = provider.CreateCollection("exists", "collection")
+	require.NoError(t, err)
+	err = provider.DropDatabase("missingDB")
+	require.NoError(t, err)
+
+	t.Run("on existing collection", func(t *testing.T) {
+		indexesIter, err := GetIndexes(existing)
+		require.NoError(t, err)
+
+		require.NotNil(t, indexesIter)
+		ctx := t.Context()
+		counter := 0
+		for indexesIter.Next(ctx) {
+			counter++
 		}
-		provider, err := NewSessionProvider(opts)
-		So(err, ShouldBeNil)
-		session, err := provider.GetSession()
-		So(err, ShouldBeNil)
+		assert.NotZero(t, counter)
+	})
 
-		existing := session.Database("exists").Collection("collection")
-		missing := session.Database("exists").Collection("missing")
-		missingDB := session.Database("missingDB").Collection("missingCollection")
+	t.Run("on missing collection", func(t *testing.T) {
+		indexesIter, err := GetIndexes(missing)
+		require.NoError(t, err)
+		assert.False(t, indexesIter.Next(t.Context()))
+	})
 
-		err = provider.DropDatabase("exists")
-		So(err, ShouldBeNil)
-		err = provider.CreateCollection("exists", "collection")
-		So(err, ShouldBeNil)
-		err = provider.DropDatabase("missingDB")
-		So(err, ShouldBeNil)
-
-		Convey("When GetIndexes is called on", func() {
-			Convey("an existing collection there should be no error", func() {
-				indexesIter, err := GetIndexes(existing)
-				So(err, ShouldBeNil)
-				Convey("and indexes should be returned", func() {
-					So(indexesIter, ShouldNotBeNil)
-					ctx := t.Context()
-					counter := 0
-					for indexesIter.Next(ctx) {
-						counter++
-					}
-					So(counter, ShouldBeGreaterThan, 0)
-				})
-			})
-
-			Convey("a missing collection there should be no error", func() {
-				indexesIter, err := GetIndexes(missing)
-				So(err, ShouldBeNil)
-				Convey("and there should be no indexes", func() {
-					So(indexesIter.Next(t.Context()), ShouldBeFalse)
-				})
-			})
-
-			Convey("a missing database there should be no error", func() {
-				indexesIter, err := GetIndexes(missingDB)
-				So(err, ShouldBeNil)
-				Convey("and there should be no indexes", func() {
-					So(indexesIter.Next(t.Context()), ShouldBeFalse)
-				})
-			})
-		})
-
-		Reset(func() {
-			err = provider.DropDatabase("exists")
-			So(err, ShouldBeNil)
-			provider.Close()
-		})
+	t.Run("on missing database", func(t *testing.T) {
+		indexesIter, err := GetIndexes(missingDB)
+		require.NoError(t, err)
+		assert.False(t, indexesIter.Next(t.Context()))
 	})
 }
 
@@ -291,23 +249,21 @@ func TestServerVersionArray(t *testing.T) {
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
 
-	Convey("With a valid session provider", t, func() {
-		opts := options.ToolOptions{
-			Connection: &options.Connection{
-				Port: DefaultTestPort,
-				Host: "localhost",
-			},
-			URI:  DBGetConnString(),
-			SSL:  &ssl,
-			Auth: &auth,
-		}
-		provider, err := NewSessionProvider(opts)
-		So(err, ShouldBeNil)
+	opts := options.ToolOptions{
+		Connection: &options.Connection{
+			Port: DefaultTestPort,
+			Host: "localhost",
+		},
+		URI:  DBGetConnString(),
+		SSL:  &ssl,
+		Auth: &auth,
+	}
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err)
 
-		version, err := provider.ServerVersionArray()
-		So(err, ShouldBeNil)
-		So(version.GT(Version{}), ShouldBeTrue)
-	})
+	version, err := provider.ServerVersionArray()
+	require.NoError(t, err)
+	assert.True(t, version.GT(Version{}))
 }
 
 func TestServerCertificateVerification(t *testing.T) {
@@ -316,84 +272,73 @@ func TestServerCertificateVerification(t *testing.T) {
 
 	auth := DBGetAuthOptions()
 	sslOrigin := DBGetSSLOptions()
-	Convey("When initializing a session provider", t, func() {
-		Convey(
-			"connection shall succeed if provided with intermediate certificate only as well",
-			func() {
-				ssl := sslOrigin
-				ssl.SSLCAFile = "../db/testdata/ia.pem"
-				opts := options.ToolOptions{
-					Connection: &options.Connection{
-						Port:    DefaultTestPort,
-						Timeout: 10,
-					},
-					URI:  DBGetConnString(),
-					SSL:  &ssl,
-					Auth: &auth,
-				}
-				opts.ConnString.SSLCaFile = "../db/testdata/ia.pem"
-				provider, err := NewSessionProvider(opts)
-				So(err, ShouldBeNil)
-				So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
-				Convey("and should be closeable", func() {
-					provider.Close()
-				})
-			},
-		)
-	})
+
+	// intermediate certs only
+	ssl := sslOrigin
+	ssl.SSLCAFile = "../db/testdata/ia.pem"
+	opts := options.ToolOptions{
+		Connection: &options.Connection{
+			Port:    DefaultTestPort,
+			Timeout: 10,
+		},
+		URI:  DBGetConnString(),
+		SSL:  &ssl,
+		Auth: &auth,
+	}
+
+	opts.ConnString.SSLCaFile = "../db/testdata/ia.pem"
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err)
+	require.NoError(t, provider.client.Ping(t.Context(), nil))
+
+	provider.Close()
 }
 
 func TestServerPKCS8Verification(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
 
-	Convey("when initializing a session provider, connection succeeds", t, func() {
-		auth := DBGetAuthOptions()
-		ssl := options.SSL{
-			UseSSL:    true,
-			SSLCAFile: "../db/testdata/ca-ia.pem",
+	auth := DBGetAuthOptions()
+	ssl := options.SSL{
+		UseSSL:    true,
+		SSLCAFile: "../db/testdata/ca-ia.pem",
+	}
+
+	t.Run("with unencrypted password", func(t *testing.T) {
+		ssl.SSLPEMKeyFile = "../db/testdata/test-client-pkcs8-unencrypted.pem"
+		opts := options.ToolOptions{
+			Connection: &options.Connection{
+				Port:    DefaultTestPort,
+				Timeout: 10,
+			},
+			URI:  DBGetConnString(),
+			SSL:  &ssl,
+			Auth: &auth,
 		}
+		opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
+		provider, err := NewSessionProvider(opts)
+		require.NoError(t, err)
+		require.NoError(t, provider.client.Ping(t.Context(), nil))
+		provider.Close()
+	})
 
-		Convey("if provided with PEM file in PKCS#8 format with unencrypted password", func() {
-			ssl.SSLPEMKeyFile = "../db/testdata/test-client-pkcs8-unencrypted.pem"
-			opts := options.ToolOptions{
-				Connection: &options.Connection{
-					Port:    DefaultTestPort,
-					Timeout: 10,
-				},
-				URI:  DBGetConnString(),
-				SSL:  &ssl,
-				Auth: &auth,
-			}
-			opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
-			provider, err := NewSessionProvider(opts)
-			So(err, ShouldBeNil)
-			So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
-			Convey("and should be closeable", func() {
-				provider.Close()
-			})
-		})
-
-		Convey("if provided with PEM file in PKCS#8 format with encrypted password", func() {
-			ssl.SSLPEMKeyFile = "../db/testdata/test-client-pkcs8-encrypted.pem"
-			ssl.SSLPEMKeyPassword = os.Getenv(PKCS8Password)
-			opts := options.ToolOptions{
-				Connection: &options.Connection{
-					Port:    DefaultTestPort,
-					Timeout: 10,
-				},
-				URI:  DBGetConnString(),
-				SSL:  &ssl,
-				Auth: &auth,
-			}
-			opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
-			provider, err := NewSessionProvider(opts)
-			So(err, ShouldBeNil)
-			So(provider.client.Ping(t.Context(), nil), ShouldBeNil)
-			Convey("and should be closeable", func() {
-				provider.Close()
-			})
-		})
+	t.Run("with encrypted password", func(t *testing.T) {
+		ssl.SSLPEMKeyFile = "../db/testdata/test-client-pkcs8-encrypted.pem"
+		ssl.SSLPEMKeyPassword = os.Getenv(PKCS8Password)
+		opts := options.ToolOptions{
+			Connection: &options.Connection{
+				Port:    DefaultTestPort,
+				Timeout: 10,
+			},
+			URI:  DBGetConnString(),
+			SSL:  &ssl,
+			Auth: &auth,
+		}
+		opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
+		provider, err := NewSessionProvider(opts)
+		require.NoError(t, err)
+		require.NoError(t, provider.client.Ping(t.Context(), nil))
+		provider.Close()
 	})
 }
 
@@ -402,123 +347,103 @@ func TestAuthConnection(t *testing.T) {
 		!testtype.HasTestType(testtype.KerberosTestType) {
 		t.SkipNow()
 	}
-	Convey("With an AWS or Keberos auth URI", t, func() {
-		enabled := options.EnabledOptions{URI: true}
+	enabled := options.EnabledOptions{URI: true}
 
-		var uri string
-		if testtype.HasTestType(testtype.AWSAuthTestType) {
-			uriBytes, err := os.ReadFile("../testdata/lib/MONGOD_URI")
-			if err != nil {
-				panic("Could not read MONGOD_URI file")
-			}
-			uri = string(uriBytes)
-		} else {
-			uri = "mongodb://" + kerberosUsername + "@" + kerberosConnection + "/kerberos?authSource=$external&authMechanism=GSSAPI"
-		}
-
-		fakeArgs := []string{"--uri=" + uri}
-		toolOptions := options.New("test", "", "", "", true, enabled)
-		_, err := toolOptions.ParseArgs(fakeArgs)
+	var uri string
+	if testtype.HasTestType(testtype.AWSAuthTestType) {
+		uriBytes, err := os.ReadFile("../testdata/lib/MONGOD_URI")
 		if err != nil {
-			panic("Could not parse MONGODB_URI file contents")
+			panic("Could not read MONGOD_URI file")
 		}
+		uri = string(uriBytes)
+	} else {
+		uri = "mongodb://" + kerberosUsername + "@" + kerberosConnection + "/kerberos?authSource=$external&authMechanism=GSSAPI"
+	}
 
-		Convey("a connection should succeed", func() {
-			_, err = NewSessionProvider(*toolOptions)
-			So(err, ShouldBeNil)
-		})
-	})
+	fakeArgs := []string{"--uri=" + uri}
+	toolOptions := options.New("test", "", "", "", true, enabled)
+	_, err := toolOptions.ParseArgs(fakeArgs)
+	if err != nil {
+		panic("Could not parse MONGODB_URI file contents")
+	}
+
+	_, err = NewSessionProvider(*toolOptions)
+	require.NoError(t, err, "connection succeeds")
 }
 
 func TestConfigureClientMultipleHosts(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Configuring options with a URI with multiple hosts should succeed", t, func() {
-		enabled := options.EnabledOptions{
-			Auth:       false,
-			Connection: true,
-			Namespace:  true,
-			URI:        true,
-		}
+	enabled := options.EnabledOptions{
+		Auth:       false,
+		Connection: true,
+		Namespace:  true,
+		URI:        true,
+	}
 
-		toolOptions := options.New("test", "", "", "", true, enabled)
-		_, err := toolOptions.ParseArgs(
-			[]string{"--uri", "mongodb://localhost:27017,localhost:27018/test"},
-		)
-		So(err, ShouldBeNil)
+	toolOptions := options.New("test", "", "", "", true, enabled)
+	_, err := toolOptions.ParseArgs(
+		[]string{"--uri", "mongodb://localhost:27017,localhost:27018/test"},
+	)
+	require.NoError(t, err)
 
-		_, err = configureClient(*toolOptions)
-		So(err, ShouldBeNil)
-	})
+	_, err = configureClient(*toolOptions)
+	require.NoError(t, err)
 }
 
 func TestConfigureClientAKS(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey(
-		"Configuring options with azure ENVIRONMENT and proper OS environments set should use the AKSCallback",
-		t,
-		func() {
-			enabled := options.EnabledOptions{
-				Auth:       true,
-				Connection: true,
-				Namespace:  true,
-				URI:        true,
-			}
 
-			os.Setenv("AZURE_APP_CLIENT_ID", "test")
-			os.Setenv("AZURE_IDENTITY_CLIENT_ID", "test")
-			os.Setenv("AZURE_TENANT_ID", "test")
-			os.Setenv("AZURE_FEDERATED_TOKEN_FILE", "test")
-			toolOptions := options.New("test", "", "", "", true, enabled)
-			_, err := toolOptions.ParseArgs(
-				[]string{
-					"--uri",
-					"mongodb://test.net/?directConnection=true&tls=true&authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:azure",
-				},
-			)
-			So(err, ShouldBeNil)
+	// With Azure environment variables
 
-			_, err = configureClient(*toolOptions)
-			So(err, ShouldBeNil)
-			So(toolOptions.Mechanism, ShouldEqual, "MONGODB-OIDC")
-			os.Unsetenv("AZURE_APP_CLIENT_ID")
-			os.Unsetenv("AZURE_IDENTITY_CLIENT_ID")
-			os.Unsetenv("AZURE_TENANT_ID")
-			os.Unsetenv("AZURE_FEDERATED_TOKEN_FILE")
+	enabled := options.EnabledOptions{
+		Auth:       true,
+		Connection: true,
+		Namespace:  true,
+		URI:        true,
+	}
+
+	t.Setenv("AZURE_APP_CLIENT_ID", "test")
+	t.Setenv("AZURE_IDENTITY_CLIENT_ID", "test")
+	t.Setenv("AZURE_TENANT_ID", "test")
+	t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "test")
+	toolOptions := options.New("test", "", "", "", true, enabled)
+	_, err := toolOptions.ParseArgs(
+		[]string{
+			"--uri",
+			"mongodb://test.net/?directConnection=true&tls=true&authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:azure",
 		},
 	)
+	require.NoError(t, err)
+
+	_, err = configureClient(*toolOptions)
+	require.NoError(t, err)
+	assert.Equal(t, "MONGODB-OIDC", toolOptions.Mechanism)
 }
 
-func TestMissConfigureClientAKS(t *testing.T) {
+func TestMisconfigureClientAKS(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey(
-		"Configuring options with azure ENVIRONMENT and strict subset of OS environments set should be an error",
-		t,
-		func() {
-			enabled := options.EnabledOptions{
-				Auth:       true,
-				Connection: true,
-				Namespace:  true,
-				URI:        true,
-			}
 
-			os.Setenv("AZURE_APP_CLIENT_ID", "test")
-			os.Setenv("AZURE_IDENTITY_CLIENT_ID", "test")
-			os.Setenv("AZURE_TENANT_ID", "test")
-			toolOptions := options.New("test", "", "", "", true, enabled)
-			_, err := toolOptions.ParseArgs(
-				[]string{
-					"--uri",
-					"mongodb://test.net/?directConnection=true&tls=true&authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:azure",
-				},
-			)
-			So(err, ShouldBeNil)
+	enabled := options.EnabledOptions{
+		Auth:       true,
+		Connection: true,
+		Namespace:  true,
+		URI:        true,
+	}
 
-			_, err = configureClient(*toolOptions)
-			So(err, ShouldNotBeNil)
-			os.Unsetenv("AZURE_APP_CLIENT_ID")
-			os.Unsetenv("AZURE_IDENTITY_CLIENT_ID")
-			os.Unsetenv("AZURE_TENANT_ID")
+	// We don't set AZURE_FEDERATED_TOKEN_FILE here
+	t.Setenv("AZURE_APP_CLIENT_ID", "test")
+	t.Setenv("AZURE_IDENTITY_CLIENT_ID", "test")
+	t.Setenv("AZURE_TENANT_ID", "test")
+	toolOptions := options.New("test", "", "", "", true, enabled)
+	_, err := toolOptions.ParseArgs(
+		[]string{
+			"--uri",
+			"mongodb://test.net/?directConnection=true&tls=true&authMechanism=MONGODB-OIDC&authMechanismProperties=ENVIRONMENT:azure",
 		},
 	)
+	require.NoError(t, err)
+
+	_, err = configureClient(*toolOptions)
+	require.Error(t, err)
 }

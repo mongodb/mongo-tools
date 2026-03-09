@@ -11,197 +11,195 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewKeyword(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("When unmarshalling JSON using the new keyword", t, func() {
+	t.Run("BinData", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with BinData constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `new BinData(1, "xyz")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `new BinData(1, "xyz")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, BinData{1, "xyz"}, jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, BinData{1, "xyz"})
-		})
+	t.Run("Boolean", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with Boolean constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `new Boolean(1)`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `new Boolean(1)`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.True(t, jsonValue)
 
-			jsonValue, ok := jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, true)
+		key = "key"
+		value = `new Boolean(0)`
+		data = fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key = "key"
-			value = `new Boolean(0)`
-			data = fmt.Sprintf(`{"%v":%v}`, key, value)
+		err = Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err = Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok = jsonMap[key].(bool)
+		require.True(t, ok)
+		assert.False(t, jsonValue)
+	})
 
-			jsonValue, ok = jsonMap[key].(bool)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, false)
-		})
+	t.Run("Date", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with Date constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "new Date(123)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "new Date(123)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(Date)
+		require.True(t, ok)
+		assert.Equal(t, Date(123), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(Date)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, Date(123))
-		})
+	t.Run("DBRef", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with DBRef constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `new BinData(1, "xyz")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `new BinData(1, "xyz")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(BinData)
+		require.True(t, ok)
+		assert.Equal(t, BinData{1, "xyz"}, jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(BinData)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, BinData{1, "xyz"})
-		})
+	t.Run("NumberInt", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with NumberInt constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "new NumberInt(123)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "new NumberInt(123)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(NumberInt)
+		require.True(t, ok)
+		assert.Equal(t, NumberInt(123), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(NumberInt)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, NumberInt(123))
-		})
+	t.Run("NumberLong", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with NumberLong constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "new NumberLong(123)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "new NumberLong(123)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(NumberLong)
+		require.True(t, ok)
+		assert.Equal(t, NumberLong(123), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(NumberLong)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, NumberLong(123))
-		})
+	t.Run("ObjectId", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with ObjectId constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `new ObjectId("123")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `new ObjectId("123")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(ObjectId)
+		require.True(t, ok)
+		assert.Equal(t, ObjectId("123"), jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(ObjectId)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldEqual, ObjectId("123"))
-		})
+	t.Run("RegExp", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with RegExp constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := `new RegExp("foo", "i")`
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := `new RegExp("foo", "i")`
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(RegExp)
+		require.True(t, ok)
+		assert.Equal(t, RegExp{"foo", "i"}, jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(RegExp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, RegExp{"foo", "i"})
-		})
+	t.Run("Timestamp", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("can be used with Timestamp constructor", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "new Timestamp(123, 321)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "new Timestamp(123, 321)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.NoError(t, err)
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldBeNil)
+		jsonValue, ok := jsonMap[key].(Timestamp)
+		require.True(t, ok)
+		assert.Equal(t, Timestamp{123, 321}, jsonValue)
+	})
 
-			jsonValue, ok := jsonMap[key].(Timestamp)
-			So(ok, ShouldBeTrue)
-			So(jsonValue, ShouldResemble, Timestamp{123, 321})
-		})
+	t.Run("fail with literal", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("cannot be used with literals", func() {
-			var jsonMap map[string]any
+		key := "key"
+		literals := []string{"null", "true", "false", "undefined",
+			"NaN", "Infinity", "MinKey", "MaxKey"}
 
-			key := "key"
-			literals := []string{"null", "true", "false", "undefined",
-				"NaN", "Infinity", "MinKey", "MaxKey"}
+		for _, value := range literals {
+			data := fmt.Sprintf(`{"%v":new %v}`, key, value)
+			t.Run(value, func(t *testing.T) {
+				err := Unmarshal([]byte(data), &jsonMap)
+				require.Error(t, err)
+			})
+		}
+	})
 
-			for _, value := range literals {
-				data := fmt.Sprintf(`{"%v":new %v}`, key, value)
-				Convey(value, func() {
-					err := Unmarshal([]byte(data), &jsonMap)
-					So(err, ShouldNotBeNil)
-				})
-			}
-		})
+	t.Run("must have space", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("must be followed by a space", func() {
-			var jsonMap map[string]any
+		key := "key"
+		value := "newDate(123)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			value := "newDate(123)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
+	})
 
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
-		})
+	t.Run("cannot be chained", func(t *testing.T) {
+		var jsonMap map[string]any
 
-		Convey("cannot be chained togther (`new new ...`)", func() {
-			var jsonMap map[string]any
+		key := "key"
+		//nolint:dupword
+		value := "new new Date(123)"
+		data := fmt.Sprintf(`{"%v":%v}`, key, value)
 
-			key := "key"
-			//nolint:dupword
-			value := "new new Date(123)"
-			data := fmt.Sprintf(`{"%v":%v}`, key, value)
-
-			err := Unmarshal([]byte(data), &jsonMap)
-			So(err, ShouldNotBeNil)
-		})
+		err := Unmarshal([]byte(data), &jsonMap)
+		require.Error(t, err)
 	})
 }

@@ -136,7 +136,7 @@ func vectoredInsert(ctx context.Context) error {
 	return nil
 }
 
-func TestOplogDumpCollModPrepareUnique(t *testing.T) {
+func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
@@ -157,6 +157,9 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 
 	testCollName := testCollectionNames[0]
 
+	err = session.Database(testDB).Collection(testCollName).Drop(ctx)
+	require.NoError(t, err)
+
 	err = session.Database(testDB).CreateCollection(ctx, testCollName)
 	require.NoError(t, err)
 	//nolint:errcheck
@@ -167,7 +170,7 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 
 	md.ToolOptions.DB = ""
 	md.OutputOptions.Oplog = true
-	md.OutputOptions.Out = "collMod_prepareUnique"
+	md.OutputOptions.Out = "collMod_indexUniqueness"
 
 	require.NoError(t, md.Init())
 
@@ -176,7 +179,7 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 	defer failpoint.Reset()
 
 	go func() {
-		require.NoError(t, createIndexesAndRunCollModPrepareUnique(ctx))
+		require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
 	}()
 
 	//nolint:errcheck
@@ -187,7 +190,7 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, "collMod_prepareUnique"))
+	dumpDir := util.ToUniversalPath(filepath.Join(path, "collMod_indexUniqueness"))
 	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
 	oplogFilePath := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
 	require.True(t, fileDirExists(dumpDir))
@@ -203,6 +206,7 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 	bsonSrc := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(oplogFile))
 	prepareUniqueTrueCount := 0
 	prepareUniqueFalseCount := 0
+	forceNonUniqueCount := 0
 
 	var oplog db.Oplog
 	for bsonSrc.Next(&oplog) {
@@ -210,11 +214,14 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 
 		if oplog.Namespace == testDB+".$cmd" {
 			indexDoc, ok := bsonutil.ToMap(oplog.Object)["index"].(bson.D)
+			indexDocMap := bsonutil.ToMap(indexDoc)
 			if ok {
-				if bsonutil.ToMap(indexDoc)["prepareUnique"] == true {
+				if indexDocMap["prepareUnique"] == true {
 					prepareUniqueTrueCount++
-				} else {
+				} else if indexDocMap["prepareUnique"] == false {
 					prepareUniqueFalseCount++
+				} else if indexDocMap["forceNonUnique"] == true {
+					forceNonUniqueCount++
 				}
 			}
 		}
@@ -222,9 +229,10 @@ func TestOplogDumpCollModPrepareUnique(t *testing.T) {
 	require.NoError(t, oplogFile.Close())
 	require.Equal(t, 8, prepareUniqueTrueCount)
 	require.Equal(t, 4, prepareUniqueFalseCount)
+	require.Equal(t, 4, forceNonUniqueCount)
 }
 
-func createIndexesAndRunCollModPrepareUnique(ctx context.Context) error {
+func createIndexesAndCollModIndexUniqueness(ctx context.Context) error {
 	client, err := testutil.GetBareSession()
 	if err != nil {
 		return err
@@ -267,6 +275,22 @@ func createIndexesAndRunCollModPrepareUnique(ctx context.Context) error {
 					{"index", bson.D{
 						{"keyPattern", index.Keys},
 						{"prepareUnique", prepareUnique},
+					}},
+				},
+			)
+			if res.Err() != nil {
+				return res.Err()
+			}
+		}
+
+		for _, option := range []string{"unique", "forceNonUnique"} {
+			res := client.Database(testDB).RunCommand(
+				ctx,
+				bson.D{
+					{"collMod", testCollName},
+					{"index", bson.D{
+						{"keyPattern", index.Keys},
+						{option, true},
 					}},
 				},
 			)

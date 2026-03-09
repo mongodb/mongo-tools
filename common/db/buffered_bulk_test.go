@@ -11,155 +11,142 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestBufferedBulkInserterInserts(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	var bufBulk *BufferedBulkInserter
-
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
-	Convey("With a valid session", t, func() {
-		opts := options.ToolOptions{
-			Connection: &options.Connection{
-				Port: DefaultTestPort,
-			},
-			URI:  &options.URI{},
-			SSL:  &ssl,
-			Auth: &auth,
+	opts := options.ToolOptions{
+		Connection: &options.Connection{
+			Port: DefaultTestPort,
+		},
+		URI:  &options.URI{},
+		SSL:  &ssl,
+		Auth: &auth,
+	}
+	err := opts.NormalizeOptionsAndURI()
+	require.NoError(t, err)
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err)
+	require.NotNil(t, provider)
+
+	defer provider.Close()
+
+	session, err := provider.GetSession()
+	require.NoError(t, err)
+	require.NotNil(t, session)
+
+	serverVersion, err := provider.ServerVersionArray()
+	require.NoError(t, err)
+
+	defer func() {
+		require.NoError(t, provider.DropDatabase("tools-test"))
+	}()
+
+	t.Run("doc limit 3", func(t *testing.T) {
+		testCol := session.Database("tools-test").Collection("bulk1")
+		bufBulk := NewUnorderedBufferedBulkInserter(testCol, 3, serverVersion)
+		require.NotNil(t, bufBulk)
+
+		flushCount := 0
+		for i := 0; i < 10; i++ {
+			result, err := bufBulk.Insert(t.Context(), bson.D{})
+			require.NoError(t, err)
+			if bufBulk.docCount%3 == 0 {
+				flushCount++
+				require.NotNil(t, result)
+				assert.EqualValues(t, 3, result.InsertedCount)
+			} else {
+				assert.Nil(t, result)
+			}
 		}
-		err := opts.NormalizeOptionsAndURI()
-		So(err, ShouldBeNil)
-		provider, err := NewSessionProvider(opts)
-		So(provider, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-		session, err := provider.GetSession()
-		So(session, ShouldNotBeNil)
-		So(err, ShouldBeNil)
 
-		serverVersion, err := provider.ServerVersionArray()
-		So(err, ShouldBeNil)
+		assert.Equal(t, 3, flushCount)
+		assert.Equal(t, 1, bufBulk.docCount)
+	})
 
-		Convey("using a test collection and a doc limit of 3", func() {
-			testCol := session.Database("tools-test").Collection("bulk1")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 3, serverVersion)
-			So(bufBulk, ShouldNotBeNil)
+	t.Run("doc limit 1", func(t *testing.T) {
+		testCol := session.Database("tools-test").Collection("bulk2")
+		bufBulk := NewUnorderedBufferedBulkInserter(testCol, 1, serverVersion)
+		require.NotNil(t, bufBulk)
 
-			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
-				flushCount := 0
-				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(t.Context(), bson.D{})
-					So(err, ShouldBeNil)
-					if bufBulk.docCount%3 == 0 {
-						flushCount++
-						So(result, ShouldNotBeNil)
-						So(result.InsertedCount, ShouldEqual, 3)
-					} else {
-						So(result, ShouldBeNil)
-					}
-				}
+		for i := 0; i < 10; i++ {
+			result, err := bufBulk.Insert(t.Context(), bson.D{})
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.EqualValues(t, 1, result.InsertedCount)
+		}
+		result, err := bufBulk.Flush(t.Context())
+		require.NoError(t, err)
+		assert.Nil(t, result)
 
-				Convey("should have flushed 3 times with one doc still buffered", func() {
-					So(flushCount, ShouldEqual, 3)
-					So(bufBulk.docCount, ShouldEqual, 1)
-				})
-			})
+		assert.Zero(t, bufBulk.docCount)
+	})
+
+	t.Run("doc limit 1000", func(t *testing.T) {
+		require.NoError(t, provider.DropDatabase("tools-test"))
+
+		testCol := session.Database("tools-test").Collection("bulk3")
+		bufBulk := NewUnorderedBufferedBulkInserter(testCol, 100, serverVersion)
+		require.NotNil(t, bufBulk)
+
+		errCnt := 0
+		for i := 0; i < 1_000_000; i++ {
+			result, err := bufBulk.Insert(t.Context(), bson.M{"_id": i})
+			if err != nil {
+				errCnt++
+			}
+			if (i+1)%10000 == 0 {
+				require.NotNil(t, result)
+				assert.EqualValues(t, 100, result.InsertedCount)
+			}
+		}
+		require.Zero(t, errCnt)
+
+		_, err := bufBulk.Flush(t.Context())
+		require.NoError(t, err)
+
+		t.Run("check docs", func(t *testing.T) {
+			count, err := testCol.CountDocuments(t.Context(), bson.M{})
+			require.NoError(t, err)
+			assert.EqualValues(t, 1_000_000, count)
+
+			// test values
+			testDoc := bson.M{}
+			result := testCol.FindOne(t.Context(), bson.M{"_id": 477232})
+			err = result.Decode(&testDoc)
+			require.NoError(t, err)
+			assert.EqualValues(t, 477232, testDoc["_id"])
+
+			result = testCol.FindOne(t.Context(), bson.M{"_id": 999999})
+			err = result.Decode(&testDoc)
+			require.NoError(t, err)
+			assert.EqualValues(t, 999999, testDoc["_id"])
+
+			result = testCol.FindOne(t.Context(), bson.M{"_id": 1})
+			err = result.Decode(&testDoc)
+			require.NoError(t, err)
+			assert.EqualValues(t, 1, testDoc["_id"])
 		})
+	})
 
-		Convey("using a test collection and a doc limit of 1", func() {
-			testCol := session.Database("tools-test").Collection("bulk2")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 1, serverVersion)
-			So(bufBulk, ShouldNotBeNil)
+	t.Run("byte limit 1", func(t *testing.T) {
+		testCol := session.Database("tools-test").Collection("bulk4")
+		bufBulk := NewUnorderedBufferedBulkInserter(testCol, 1000, serverVersion)
+		require.NotNil(t, bufBulk)
+		bufBulk.byteLimit = 1
 
-			Convey("inserting 10 documents into the BufferedBulkInserter and flushing", func() {
-				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(t.Context(), bson.D{})
-					So(err, ShouldBeNil)
-					So(result, ShouldNotBeNil)
-					So(result.InsertedCount, ShouldEqual, 1)
-				}
-				result, err := bufBulk.Flush(t.Context())
-				So(err, ShouldBeNil)
-				So(result, ShouldBeNil)
-
-				Convey("should have no docs buffered", func() {
-					So(bufBulk.docCount, ShouldEqual, 0)
-				})
-			})
-		})
-
-		Convey("using a test collection and a doc limit of 1000", func() {
-			testCol := session.Database("tools-test").Collection("bulk3")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 100, serverVersion)
-			So(bufBulk, ShouldNotBeNil)
-
-			Convey(
-				"inserting 1,000,000 documents into the BufferedBulkInserter and flushing",
-				func() {
-
-					errCnt := 0
-					for i := 0; i < 1000000; i++ {
-						result, err := bufBulk.Insert(t.Context(), bson.M{"_id": i})
-						if err != nil {
-							errCnt++
-						}
-						if (i+1)%10000 == 0 {
-							So(result, ShouldNotBeNil)
-							So(result.InsertedCount, ShouldEqual, 100)
-						}
-					}
-					So(errCnt, ShouldEqual, 0)
-					_, err := bufBulk.Flush(t.Context())
-					So(err, ShouldBeNil)
-
-					Convey("should have inserted all of the documents", func() {
-						count, err := testCol.CountDocuments(t.Context(), bson.M{})
-						So(err, ShouldBeNil)
-						So(count, ShouldEqual, 1000000)
-
-						// test values
-						testDoc := bson.M{}
-						result := testCol.FindOne(t.Context(), bson.M{"_id": 477232})
-						err = result.Decode(&testDoc)
-						So(err, ShouldBeNil)
-						So(testDoc["_id"], ShouldEqual, 477232)
-						result = testCol.FindOne(t.Context(), bson.M{"_id": 999999})
-						err = result.Decode(&testDoc)
-						So(err, ShouldBeNil)
-						So(testDoc["_id"], ShouldEqual, 999999)
-						result = testCol.FindOne(t.Context(), bson.M{"_id": 1})
-						err = result.Decode(&testDoc)
-						So(err, ShouldBeNil)
-						So(testDoc["_id"], ShouldEqual, 1)
-
-					})
-				},
-			)
-		})
-
-		Convey("using a test collection and a byte limit of 1", func() {
-			testCol := session.Database("tools-test").Collection("bulk4")
-			bufBulk = NewUnorderedBufferedBulkInserter(testCol, 1000, serverVersion)
-			So(bufBulk, ShouldNotBeNil)
-			bufBulk.byteLimit = 1
-
-			Convey("inserting 10 documents into the BufferedBulkInserter", func() {
-				for i := 0; i < 10; i++ {
-					result, err := bufBulk.Insert(t.Context(), bson.D{{"foo", "bar"}})
-					So(err, ShouldBeNil)
-					So(result, ShouldNotBeNil)
-					So(result.InsertedCount, ShouldEqual, 1)
-				}
-			})
-		})
-
-		Reset(func() {
-			So(provider.DropDatabase("tools-test"), ShouldBeNil)
-			provider.Close()
-		})
+		for i := 0; i < 10; i++ {
+			result, err := bufBulk.Insert(t.Context(), bson.D{{"foo", "bar"}})
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.EqualValues(t, 1, result.InsertedCount)
+		}
 	})
 
 }

@@ -769,7 +769,7 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 	require.Equal(t, len(expectedDocs), i)
 }
 
-func TestOplogRestoreCollModPrepareUnique(t *testing.T) {
+func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	ctx := t.Context()
@@ -793,7 +793,7 @@ func TestOplogRestoreCollModPrepareUnique(t *testing.T) {
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
 	require.NoError(t, session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"))
 
-	oplogFileName := "testdata/oplogs/bson/collMod_prepareUnique.bson"
+	oplogFileName := "testdata/oplogs/bson/collMod_indexUniqueness.bson"
 
 	args := []string{
 		DirectoryOption, "testdata/coll_without_index",
