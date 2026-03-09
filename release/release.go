@@ -1501,7 +1501,9 @@ func downloadBinaries(url string) {
 	tempDir, err := os.MkdirTemp("bin", "")
 	check(err, "create temp dir")
 
-	filename := filepath.Base(url)
+	// Strip off query for the filename
+	base, _, _ := strings.Cut(url, "?")
+	filename := filepath.Base(base)
 	tempPath := filepath.Join(tempDir, filename)
 	packageFile, err := os.Create(tempPath)
 	check(err, "create the server package file")
