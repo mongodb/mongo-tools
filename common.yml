@@ -1371,7 +1371,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.2.0-rc1"
+          mongo_version: "8.2.0"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
