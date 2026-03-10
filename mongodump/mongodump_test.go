@@ -1005,7 +1005,7 @@ func testPreludeMetadata(md *MongoDump, dir string, serverVersion string) {
 	}
 	contents, err := io.ReadAll(reader)
 	So(err, ShouldBeNil)
-	var jsonResult map[string]string
+	var jsonResult map[string]any
 	err = json.Unmarshal(contents, &jsonResult)
 	So(err, ShouldBeNil)
 	So(jsonResult["ServerVersion"], ShouldEqual, serverVersion)

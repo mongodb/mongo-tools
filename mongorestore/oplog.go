@@ -162,6 +162,12 @@ func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error
 		return nil
 	}
 
+	// These ops are seen when replicated record IDs are enabled. They are related to internal
+	// bookkeeping for the cluster and do not need to be replicated on restore.
+	if op.Operation == "cd" || op.Operation == "ci" || op.Operation == "km" {
+		return nil
+	}
+
 	if op.Operation == "c" && len(op.Object) > 0 {
 		entryName := op.Object[0].Key
 		if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
@@ -207,6 +213,8 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 	if err != nil {
 		return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
 	}
+
+	op = restore.filterRecordIdsReplicated(op)
 
 	if op.Operation == "c" {
 		if len(op.Object) == 0 {
@@ -538,6 +546,19 @@ func (restore *MongoRestore) filterUUIDs(op db.Oplog) (db.Oplog, error) {
 	}
 
 	return op, nil
+}
+
+// filterRecordIdsReplicated removes the 'recordIdsReplicated' collection option from command
+// objects.
+func (restore *MongoRestore) filterRecordIdsReplicated(op db.Oplog) db.Oplog {
+	// Remove recordIdsReplicated option from command objects (e.g. create commands).  This allows
+	// oplog replay across cluster types regardless of whether the source cluster had the
+	// `replicatedRecordIds` feature enabled.
+	if op.Operation == "c" && len(op.Object) > 0 && op.Object[0].Key == "create" {
+		_, _ = bsonutil.RemoveKey("recordIdsReplicated", &op.Object)
+	}
+
+	return op
 }
 
 // convertCreateIndexToIndexInsert converts from new-style create indexes

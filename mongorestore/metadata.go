@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -310,6 +311,7 @@ func (restore *MongoRestore) createCollectionWithCommand(
 	options bson.D,
 ) error {
 	options = restore.UpdateAutoIndexId(options)
+	options = removeCollectionOption(options, "recordIdsReplicated")
 
 	command := createCollectionCommand(intent, options)
 
@@ -340,6 +342,7 @@ func (restore *MongoRestore) createCollectionWithApplyOps(
 	uuidHex string,
 ) error {
 	options = restore.UpdateAutoIndexId(options)
+	options = removeCollectionOption(options, "recordIdsReplicated")
 
 	command := createCollectionCommand(intent, options)
 	uuid, err := hex.DecodeString(uuidHex)
@@ -359,6 +362,13 @@ func (restore *MongoRestore) createCollectionWithApplyOps(
 
 func createCollectionCommand(intent *intents.Intent, options bson.D) bson.D {
 	return append(bson.D{{"create", intent.C}}, options...)
+}
+
+// removeCollectionOption removes a key from a collection-options bson.D,
+// returning the (possibly modified) slice.
+func removeCollectionOption(options bson.D, key string) bson.D {
+	_, _ = bsonutil.RemoveKey(key, &options)
+	return options
 }
 
 // RestoreUsersOrRoles accepts a users intent and a roles intent, and restores
