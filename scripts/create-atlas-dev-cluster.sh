@@ -29,10 +29,14 @@ GROUP_ID="673e58327d4f1a7610a14faf"
 NODE_COUNT="${3:-2}"
 API_CREDENTIALS="$ATLAS_PUBLIC_KEY:$ATLAS_PRIVATE_KEY"
 
+if [ -n "$CLUSTER_TYPE" ]; then
+    TYPE="\"clusterType\": \"$CLUSTER_TYPE\","
+fi
+
 JSON_BODY=$(cat <<EOF
 {
   "name": "$CLUSTER_ID",
-  "clusterType": "$CLUSTER_TYPE",
+  $TYPE
   "replicationSpecs": [
     {
       "regionConfigs": [
