@@ -2484,7 +2484,7 @@ buildvariants:
   - name: windows
     display_name: "# Windows 64-bit"
     run_on:
-      - windows-vsCurrent-large
+      - windows-2022-latest-large
     expansions:
       <<:
         [
