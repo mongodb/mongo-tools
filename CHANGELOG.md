@@ -1,5 +1,52 @@
 # Database Tools Changelog
 
+## 100.15.0
+
+_Released 2026-03-11_
+
+We are pleased to announce version 100.15.0 of the MongoDB Database Tools.
+
+This release includes dependency and Golang updates for security fixes, as well as some bug fixes
+and support for a new MongoDB Server feature being tested internally.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the [/r/mongodb subreddit](https://www.reddit.com/r/mongodb/). Bugs and feature
+requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a
+list of current issues can be found.
+
+<h2>        Bug
+</h2>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4105'>TOOLS-4105</a>] -         Mongorestore crashes when applying a collMod oplog event with forceNonUnique
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4068'>TOOLS-4068</a>] -         QA test fails with MongoDB Server 7.0.28, but passed with 7.0.26
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4070'>TOOLS-4070</a>] -         Mongorestore --bypassDocumentValidation does not bypass document validation during oplog restore
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4071'>TOOLS-4071</a>] -         Mongorestore crashes when applying a collMod oplog event which does not specify expireAfterSeconds or hidden 
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4075'>TOOLS-4075</a>] -         Mongorestore crashes when applying a collMod oplog event that converts an index to a TTL index
+</li>
+</ul>
+                
+<h2>        Task
+</h2>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3968'>TOOLS-3968</a>] -         Update tools to driver v2
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4073'>TOOLS-4073</a>] -         Add mongorestore support for restoring dumps from clusters with recordIdsReplicated enabled into clusters without this feature enabled
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4074'>TOOLS-4074</a>] -         Add a manual test program to test dump/restore between clusters w/ and w/o replicated record IDs
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4091'>TOOLS-4091</a>] -         Fix unsafe file extraction in the release code
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4118'>TOOLS-4118</a>] -         Update to Go 1.25.7 to address some CVEs in 1.25.0
+</li>
+</ul>
+
 ## 100.14.1
 
 _Released 2026-01-29_
