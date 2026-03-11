@@ -152,19 +152,23 @@ func (restore *MongoRestore) RestoreOplog() error {
 
 }
 
+var ignoredOps = map[string]struct{}{
+	// This is a no-op op.
+	"n": struct{}{},
+	// These ops are seen when replicated record IDs are enabled. They are related to internal
+	// bookkeeping for the cluster and do not need to be replicated on restore.
+	"cd": struct{}{},
+	"ci": struct{}{},
+	"cu": struct{}{},
+	"km": struct{}{},
+}
+
 func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error {
 	if shouldIgnoreNamespace(op.Namespace) {
 		return nil
 	}
 
-	if op.Operation == "n" {
-		//skip no-ops
-		return nil
-	}
-
-	// These ops are seen when replicated record IDs are enabled. They are related to internal
-	// bookkeeping for the cluster and do not need to be replicated on restore.
-	if op.Operation == "cd" || op.Operation == "ci" || op.Operation == "km" {
+	if _, exists := ignoredOps[op.Operation]; exists {
 		return nil
 	}
 
