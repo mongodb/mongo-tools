@@ -624,7 +624,12 @@ func TimeseriesBucketNeedsMixedSchema(err error) bool {
 }
 
 // GetTimeseriesCollNameFromBucket returns a timeseries collection name from its bucket collection name.
-func GetTimeseriesCollNameFromBucket(bucketCollName string) (string, error) {
+func GetTimeseriesCollNameFromBucket(version Version, bucketCollName string) (string, error) {
+	if version.GTE(Version{8, 3, 0}) {
+		// 8.3+ uses viewless timeseries
+		return bucketCollName, nil
+	}
+
 	collName := strings.TrimPrefix(bucketCollName, "system.buckets.")
 	if collName == bucketCollName || collName == "" {
 		return "", errors.New("invalid timeseries bucket name: " + bucketCollName)
