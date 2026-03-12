@@ -51,17 +51,18 @@ type MongoDump struct {
 	ProgressManager progress.Manager
 
 	// useful internals that we don't directly expose as options
-	SessionProvider *db.SessionProvider
-	manager         *intents.Manager
-	query           bson.D
-	oplogCollection string
-	oplogStart      bson.Timestamp
-	oplogEnd        bson.Timestamp
-	isMongos        bool
-	isAtlasProxy    bool
-	serverVersion   string
-	authVersion     int
-	archive         *archive.Writer
+	SessionProvider    *db.SessionProvider
+	manager            *intents.Manager
+	query              bson.D
+	oplogCollection    string
+	oplogStart         bson.Timestamp
+	oplogEnd           bson.Timestamp
+	isMongos           bool
+	isAtlasProxy       bool
+	serverVersion      string
+	serverVersionArray db.Version
+	authVersion        int
+	archive            *archive.Writer
 	// shutdownIntentsNotifier is provided to the multiplexer
 	// as well as the signal handler, and allows them to notify
 	// the intent dumpers that they should shutdown
@@ -380,6 +381,11 @@ func (dump *MongoDump) Dump() (err error) {
 	if err != nil {
 		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
 		dump.serverVersion = common.ServerVersionUnknown
+	}
+
+	dump.serverVersionArray, err = db.StrToVersion(dump.serverVersion)
+	if err != nil {
+		log.Logvf(log.Always, "warning, couldn't parse version information from server: %v", err)
 	}
 
 	if dump.OutputOptions.Archive != "" {

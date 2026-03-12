@@ -341,9 +341,10 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
 					log.Logv(log.DebugLow, "found oplog.bson file to replay")
 				}
 				oplogIntent := &intents.Intent{
-					C:        "oplog",
-					Size:     entry.Size(),
-					Location: entry.Path(),
+					ServerVersion: restore.serverVersion,
+					C:             "oplog",
+					Size:          entry.Size(),
+					Location:      entry.Path(),
 				}
 				if !restore.InputOptions.OplogReplay {
 					if restore.InputOptions.Archive != "" {
@@ -399,10 +400,11 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 
 	// Then create its intent.
 	intent := &intents.Intent{
-		DB:       db,
-		C:        collection,
-		Size:     target.Size(),
-		Location: target.Path(),
+		ServerVersion: restore.serverVersion,
+		DB:            db,
+		C:             collection,
+		Size:          target.Size(),
+		Location:      target.Path(),
 	}
 	intent.BSONFile = &realBSONFile{
 		path:   target.Path(),
@@ -477,9 +479,10 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				destDB, destC := util.SplitNamespace(destNS)
 				destC = strings.TrimPrefix(destC, "system.buckets.")
 				intent := &intents.Intent{
-					DB:   destDB,
-					C:    destC,
-					Size: entry.Size(),
+					ServerVersion: restore.serverVersion,
+					DB:            destDB,
+					C:             destC,
+					Size:          entry.Size(),
 				}
 				if restore.InputOptions.Archive != "" {
 					if restore.InputOptions.Archive == "-" {
@@ -537,8 +540,9 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				destNS := restore.renamer.Get(sourceNS)
 				rnDB, rnC := util.SplitNamespace(destNS)
 				intent := &intents.Intent{
-					DB: rnDB,
-					C:  rnC,
+					ServerVersion: restore.serverVersion,
+					DB:            rnDB,
+					C:             rnC,
 				}
 
 				if restore.InputOptions.Archive != "" {
@@ -570,9 +574,10 @@ func (restore *MongoRestore) CreateStdinIntentForCollection(db string, collectio
 	log.Logvf(log.DebugLow, "reading collection %v for database %v from standard input",
 		collection, db)
 	intent := &intents.Intent{
-		DB:       db,
-		C:        collection,
-		Location: "-",
+		ServerVersion: restore.serverVersion,
+		DB:            db,
+		C:             collection,
+		Location:      "-",
 	}
 	intent.BSONFile = &stdinFile{Reader: restore.InputReader}
 	restore.manager.Put(intent)
@@ -617,10 +622,11 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	}
 	// Create the intent using the bson file.
 	intent := &intents.Intent{
-		DB:       db,
-		C:        collection,
-		Size:     bsonFile.Size(),
-		Location: bsonFile.Path(),
+		ServerVersion: restore.serverVersion,
+		DB:            db,
+		C:             collection,
+		Size:          bsonFile.Size(),
+		Location:      bsonFile.Path(),
 	}
 	if isTimeseries {
 		intent.Type = "timeseries"
