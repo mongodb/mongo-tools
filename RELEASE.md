@@ -131,7 +131,7 @@ Ensure that the build you are releasing is passing the tests on the evergreen wa
 completely green build is not mandatory, since we do have flaky tests; however, failing tasks should
 be manually investigated to ensure they are not actual test failures.
 
-#### Complete the Release in JIRA
+#### Check the Release in JIRA for Incomplete Tickets and Update Ticket `fixVersion` Fields
 
 Go to the
 [Tools releases page](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased),
@@ -226,7 +226,7 @@ new release is available there. Download the package for your OS and confirm tha
 In order to make the latest release available via our Homebrew tap, submit a pull request to
 [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew/blob/bb5b57095a892daeb2700f1a9440550f8e87505b/Formula/mongodb-database-tools.rb#L7-L13)
 for both `x86` and `arm64`. You can get the sha256 sum locally using
-`shasum -a 256 <tools zip file>`. Add 10gen/devprod-correctness as a reviewer or tag them in the PR.
+`shasum -a 256 <tools zip file>`. Tag mongodb/devprod-correctness in a comment on the PR asking them to review this.
 
 #### Update the changelog
 
@@ -287,7 +287,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 - Submit a PR with your changes under the release ticket number, request reviews from the TAR Team
   Leads and the DB Tools Product Manager. Merge once approved.
 
-#### Close Release Ticket
+#### Mark the JIRA Release as "released" and Close Release Ticket
 
 Close the [release on JIRA](https://jira.mongodb.org/projects/TOOLS/versions), adding the current
 date (you may need to ask the TOOLS project manager to do this). Once this is done, move the JIRA
@@ -317,7 +317,6 @@ automatically to set the "Security Level" to None once the Fix Version is marked
 
 #### Announce the release
 
-Copy your entry from CHANGELOG.md and post it to the
-[MongoDB Community Forums](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools)
-in the "Developer Tools" section with the tag `database-tools`. Also post it in the #mongo-tools
+Copy your entry from CHANGELOG.md and post it to 
+[/r/mongodb](https://www.reddit.com/r/mongodb/). Also post it in the #mongo-tools
 slack channel to announce it internally.
