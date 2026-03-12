@@ -58,6 +58,13 @@ func newBufferedBulkInserter(
 		}
 	}
 
+	if serverVersion.GTE(Version{8, 3, 0}) {
+		err := xoptions.SetInternalBulkWriteOptions(bulkOpts, "rawData", true)
+		if err != nil {
+			panic("SetInternalBulkWriteOptions failed: " + err.Error())
+		}
+	}
+
 	bb := &BufferedBulkInserter{
 		collection:    collection,
 		bulkWriteOpts: bulkOpts,

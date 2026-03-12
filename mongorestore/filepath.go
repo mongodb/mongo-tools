@@ -523,8 +523,8 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				}
 
 				checkSourceNS := sourceNS
-				if strings.HasPrefix(collection, "system.buckets.") {
-					checkSourceNS = db + "." + strings.TrimPrefix(collection, "system.buckets.")
+				if trimmedColl, ok := strings.CutPrefix(collection, "system.buckets."); ok {
+					checkSourceNS = db + "." + trimmedColl
 				}
 
 				if !restore.includer.Has(checkSourceNS) {
