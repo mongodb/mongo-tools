@@ -315,6 +315,17 @@ func (dump *MongoDump) Dump() (err error) {
 		return fmt.Errorf("error connecting to host: %v", err)
 	}
 
+	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
+	if err != nil {
+		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
+		dump.serverVersion = common.ServerVersionUnknown
+	}
+
+	dump.serverVersionArray, err = db.StrToVersion(dump.serverVersion)
+	if err != nil {
+		log.Logvf(log.Always, "warning, couldn't parse version information from server: %v", err)
+	}
+
 	// If oplog capturing is enabled, we first check the most recent
 	// oplog entry and save its timestamp, this will let us later
 	// copy all oplog entries that occurred while dumping, creating
@@ -375,17 +386,6 @@ func (dump *MongoDump) Dump() (err error) {
 	err = dump.DumpMetadata()
 	if err != nil {
 		return fmt.Errorf("error dumping metadata: %v", err)
-	}
-
-	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
-	if err != nil {
-		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
-		dump.serverVersion = common.ServerVersionUnknown
-	}
-
-	dump.serverVersionArray, err = db.StrToVersion(dump.serverVersion)
-	if err != nil {
-		log.Logvf(log.Always, "warning, couldn't parse version information from server: %v", err)
 	}
 
 	if dump.OutputOptions.Archive != "" {
@@ -599,7 +599,8 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	}
 	intendedDB := session.Database(intent.DB)
 	var coll *mongo.Collection
-	if intent.IsTimeseries() {
+	if intent.IsTimeseries() && intent.ServerVersion.LT(db.Version{8, 3, 0}) {
+		// 8.3+ uses viewless timeseries.
 		coll = intendedDB.Collection("system.buckets." + intent.C)
 	} else {
 		coll = intendedDB.Collection(intent.C)
@@ -775,7 +776,7 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 		}()
 	}
 
-	cursor, err := query.Iter()
+	cursor, err := query.Iter(dump.serverVersionArray)
 	if err != nil {
 		return
 	}
