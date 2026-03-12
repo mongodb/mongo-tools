@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 // DeferredQuery represents a deferred query.
@@ -43,7 +44,7 @@ func (q *DeferredQuery) Count(isView bool) (int, error) {
 }
 
 // Iter executes a find query and returns a cursor.
-func (q *DeferredQuery) Iter() (*mongo.Cursor, error) {
+func (q *DeferredQuery) Iter(version Version) (*mongo.Cursor, error) {
 	opts := mopt.Find()
 	if q.Hint != nil {
 		opts.SetHint(q.Hint)
@@ -51,6 +52,14 @@ func (q *DeferredQuery) Iter() (*mongo.Cursor, error) {
 	if q.LogReplay {
 		opts.SetOplogReplay(true)
 	}
+
+	if version.GTE(Version{8, 3, 0}) {
+		err := xoptions.SetInternalFindOptions(opts, "rawData", true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	filter := q.Filter
 	if filter == nil {
 		filter = bson.D{}
