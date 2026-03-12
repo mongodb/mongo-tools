@@ -140,6 +140,8 @@ func TestGetDumpAuthVersion(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	restore := &MongoRestore{}
 
+	version := db.Version{8, 0, 0}
+
 	Convey("With a test mongorestore", t, func() {
 		Convey("and no --restoreDbUsersAndRoles", func() {
 			restore = &MongoRestore{
@@ -157,9 +159,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 			Convey("auth version 3 should be detected", func() {
 				restore.manager = intents.NewIntentManager()
 				intent := &intents.Intent{
-					DB:       "admin",
-					C:        "system.version",
-					Location: "testdata/auth_version_3.bson",
+					ServerVersion: version,
+					DB:            "admin",
+					C:             "system.version",
+					Location:      "testdata/auth_version_3.bson",
 				}
 				intent.BSONFile = &realBSONFile{
 					path:   "testdata/auth_version_3.bson",
@@ -174,9 +177,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 			Convey("auth version 5 should be detected", func() {
 				restore.manager = intents.NewIntentManager()
 				intent := &intents.Intent{
-					DB:       "admin",
-					C:        "system.version",
-					Location: "testdata/auth_version_5.bson",
+					ServerVersion: version,
+					DB:            "admin",
+					C:             "system.version",
+					Location:      "testdata/auth_version_5.bson",
 				}
 				intent.BSONFile = &realBSONFile{
 					path:   "testdata/auth_version_5.bson",
@@ -211,9 +215,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 			Convey("auth version 3 should be detected when a version 3 file exists", func() {
 				restore.manager = intents.NewIntentManager()
 				intent := &intents.Intent{
-					DB:       "admin",
-					C:        "system.version",
-					Location: "testdata/auth_version_3.bson",
+					ServerVersion: version,
+					DB:            "admin",
+					C:             "system.version",
+					Location:      "testdata/auth_version_3.bson",
 				}
 				intent.BSONFile = &realBSONFile{
 					path:   "testdata/auth_version_3.bson",
@@ -228,9 +233,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 			Convey("auth version 5 should be detected", func() {
 				restore.manager = intents.NewIntentManager()
 				intent := &intents.Intent{
-					DB:       "admin",
-					C:        "system.version",
-					Location: "testdata/auth_version_5.bson",
+					ServerVersion: version,
+					DB:            "admin",
+					C:             "system.version",
+					Location:      "testdata/auth_version_5.bson",
 				}
 				intent.BSONFile = &realBSONFile{
 					path:   "testdata/auth_version_5.bson",
@@ -247,9 +253,10 @@ func TestGetDumpAuthVersion(t *testing.T) {
 					restore.dumpServerVersion = db.Version{8, 0, 0}
 					restore.manager = intents.NewIntentManager()
 					intent := &intents.Intent{
-						DB:       "admin",
-						C:        "system.version",
-						Location: "testdata/system.version.no_auth_schema.bson",
+						ServerVersion: version,
+						DB:            "admin",
+						C:             "system.version",
+						Location:      "testdata/system.version.no_auth_schema.bson",
 					}
 					intent.BSONFile = &realBSONFile{
 						path:   "testdata/system.version.no_auth_schema.bson",

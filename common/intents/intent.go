@@ -12,6 +12,7 @@ import (
 	"io"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -45,6 +46,7 @@ type FileNeedsIOBuffer interface {
 // mongorestore first scans the directory to generate a list
 // of all files to restore and what they map to. TODO comments.
 type Intent struct {
+	ServerVersion db.Version
 	// Destination namespace info
 	DB string
 	C  string
