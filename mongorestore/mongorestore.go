@@ -459,6 +459,7 @@ func (restore *MongoRestore) Restore() Result {
 	// to register themselves with the demux directly
 	if restore.InputOptions.Archive != "" {
 		restore.archive.Demux = archive.CreateDemux(
+			restore.serverVersion,
 			restore.archive.Prelude.NamespaceMetadatas,
 			restore.archive.In,
 			restore.isAtlasProxy,

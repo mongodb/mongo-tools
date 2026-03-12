@@ -57,6 +57,7 @@ type Demultiplexer struct {
 }
 
 func CreateDemux(
+	version db.Version,
 	namespaceMetadatas []*CollectionMetadata,
 	in io.Reader,
 	isAtlasProxy bool,
@@ -73,7 +74,8 @@ func CreateDemux(
 		}
 
 		var ns string
-		if cm.Type == "timeseries" {
+		// For 8.3+, timeseries collections use the normal collection name.
+		if cm.Type == "timeseries" && version.LT(db.Version{8, 3, 0}) {
 			ns = cm.Database + ".system.buckets." + cm.Collection
 		} else {
 			ns = cm.Database + "." + cm.Collection
