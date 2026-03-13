@@ -269,11 +269,9 @@ func setUpMongoDumpTestData(t *testing.T) error {
 	return nil
 }
 
-func setUpTimeseries(t *testing.T, dbName string, colName string) error {
+func setUpTimeseries(t *testing.T, dbName string, colName string) {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "get session provider")
 
 	timeseriesOptions := bson.D{
 		{"timeField", "ts"},
@@ -285,9 +283,7 @@ func setUpTimeseries(t *testing.T, dbName string, colName string) error {
 	}
 	var r2 bson.D
 	err = sessionProvider.Run(createCmd, &r2, dbName)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "create timeseries coll")
 
 	coll := sessionProvider.DB(dbName).Collection(colName)
 
@@ -295,19 +291,15 @@ func setUpTimeseries(t *testing.T, dbName string, colName string) error {
 		Keys: bson.D{{"my_meta.device", 1}},
 	}
 	_, err = coll.Indexes().CreateOne(t.Context(), idx)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "create index 1")
 
 	idx = mongo.IndexModel{
 		Keys: bson.D{{"ts", 1}, {"my_meta.device", 1}},
 	}
 	_, err = coll.Indexes().CreateOne(t.Context(), idx)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "create index 2")
 
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		metadata := bson.M{
 			"device": i % 10,
 		}
@@ -319,28 +311,20 @@ func setUpTimeseries(t *testing.T, dbName string, colName string) error {
 				"measurement": i,
 			},
 		)
-		if err != nil {
-			return err
-		}
-	}
 
-	return nil
+		require.NoError(t, err, "insert ts data (%d)", i)
+	}
 }
 
-func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) error {
+func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "get session provider")
 
 	client, err := sessionProvider.GetSession()
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "get session")
 
-	if err := client.Database(dbName).Collection(collName).Drop(t.Context()); err != nil {
-		return err
-	}
+	err = client.Database(dbName).Collection(collName).Drop(t.Context())
+	require.NoError(t, err, "drop existing coll")
 
 	createCmd := bson.D{
 		{"create", collName},
@@ -351,9 +335,7 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 	}
 
 	createRes := sessionProvider.DB(dbName).RunCommand(t.Context(), createCmd)
-	if createRes.Err() != nil {
-		return createRes.Err()
-	}
+	require.NoError(t, createRes.Err(), "create timeseries coll")
 
 	// SERVER-84531 was only backported to 7.3.
 	// TODO: Run collMod command on 6.0 and 7.0 (TOOLS-3597).
@@ -362,36 +344,30 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 	shouldAccommodateMixedSchema := clientFCV == "6.0" || clientFCV == "7.0"
 	if !shouldAccommodateMixedSchema {
 		cmp, err := testutil.CompareFCV(clientFCV, "7.3")
-		if err != nil {
-			return errors.Wrapf(err, "failed to compare client FCV (%s)", clientFCV)
-		}
+		require.NoError(t, err, "compare client fcv (%s)", clientFCV)
 
 		shouldAccommodateMixedSchema = cmp >= 0
 	}
 
 	if shouldAccommodateMixedSchema {
-		if res := sessionProvider.DB(dbName).RunCommand(t.Context(), bson.D{
+		res := sessionProvider.DB(dbName).RunCommand(t.Context(), bson.D{
 			{"collMod", collName},
 			{"timeseriesBucketsMayHaveMixedSchemaData", true},
-		}); res.Err() != nil {
-			return res.Err()
-		}
+		})
+		require.NoError(t, res.Err(), "set mixed schema data")
 	}
 
 	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
 	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
 	var bucketMap map[string]any
-	if err := json.Unmarshal([]byte(bucketJSON), &bucketMap); err != nil {
-		return err
-	}
-	if err := bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap); err != nil {
-		return err
-	}
-	if _, err := bucketColl.InsertOne(t.Context(), bucketMap); err != nil {
-		return err
-	}
+	err = json.Unmarshal([]byte(bucketJSON), &bucketMap)
+	require.NoError(t, err, "unmarshal json")
 
-	return nil
+	err = bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap)
+	require.NoError(t, err, "convert extjson to bson")
+
+	_, err = bucketColl.InsertOne(t.Context(), bucketMap)
+	require.NoError(t, err, "insert bucket doc")
 }
 
 func setUpDBView(dbName string, colName string) error {
@@ -1840,9 +1816,8 @@ func TestTimeseriesCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "get session")
+
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
 		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
@@ -1850,367 +1825,382 @@ func TestTimeseriesCollections(t *testing.T) {
 
 	colName := "timeseriesColl"
 	dbName := "timeseries_test_DB"
-	err = setUpTimeseries(t, dbName, colName)
-	if err != nil {
-		t.Fatalf("Failed to set up timeseries collection: %v", err)
-	}
+	setUpTimeseries(t, dbName, colName)
 
-	Convey("With a MongoDump instance", t, func() {
+	defer func() {
+		err := dropDB(t, dbName)
+		require.NoError(t, err, "drop timeseries coll")
+	}()
 
+	setup := func(kind string) *MongoDump {
 		md, err := simpleMongoDumpInstance()
-		So(err, ShouldBeNil)
+		require.NoError(t, err)
 
 		md.ToolOptions.DB = dbName
-		md.OutputOptions.Out = "dump"
 
-		Convey("a timeseries collection should produce a well-formatted dump", func() {
-			Convey("to an archive", func() {
+		switch kind {
+		case "archive":
+			md.OutputOptions.Out = ""
+			md.OutputOptions.Archive = "dump.archive"
+		case "dir":
+			md.OutputOptions.Out = "dump"
+		default:
+			panic("unknown setup kind " + kind)
+		}
 
-				md.OutputOptions.Out = ""
-				md.OutputOptions.Archive = "dump.archive"
+		return md
+	}
 
-				Convey("when dumping the whole database", func() {
-					// This is the default test of "to an archive".
-					// It's meant to be a noop, do not delete.
-				})
-
-				Convey("when the collection is specified in --collection", func() {
-					md.ToolOptions.DB = dbName
-					md.ToolOptions.Collection = colName
-				})
-
-				Convey("even when the system.buckets collection is excluded", func() {
-					Convey("by --excludeCollections", func() {
-						md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
-					})
-
-					Convey("by --excludeCollectionsWithPrefix", func() {
-						md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
-					})
-				})
-
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				err = md.Dump()
-				So(err, ShouldBeNil)
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
-
-				archiveFile, err := os.Open(archiveFilePath)
-				So(err, ShouldBeNil)
-				archiveReader := &archive.Reader{
-					In:      archiveFile,
-					Prelude: &archive.Prelude{},
-				}
-
-				err = archiveReader.Prelude.Read(archiveReader.In)
-				So(err, ShouldBeNil)
-
-				collectionMetadatas, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
-				So(ok, ShouldBeTrue)
-
-				So(len(collectionMetadatas), ShouldEqual, 1)
-				So(collectionMetadatas[0].Collection, ShouldEqual, colName)
-
-				pe, err := archiveReader.Prelude.NewPreludeExplorer()
-				So(err, ShouldBeNil)
-
-				archiveContents, err := pe.ReadDir()
-				So(err, ShouldBeNil)
-
-				for _, dirlike := range archiveContents {
-					if dirlike.IsDir() && dirlike.Name() == dbName {
-						dbContents, err := dirlike.ReadDir()
-						So(err, ShouldBeNil)
-
-						So(len(dbContents), ShouldEqual, 2)
-
-						for _, file := range dbContents {
-							So(
-								file.Name(),
-								ShouldBeIn,
-								[]string{
-									colName + ".metadata.json",
-									"system.buckets." + colName + ".bson",
-								},
-							)
-						}
-					}
-				}
-
-				So(archiveFile.Close(), ShouldBeNil)
-				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
-			})
-
-			Convey("to a directory", func() {
-
-				Convey("when dumping the whole database", func() {
-					// This is the default test of "to a directory".
-					// It's meant to be a noop, do not delete.
-				})
-
-				Convey("when the collection is specified in --collection", func() {
-					md.ToolOptions.DB = dbName
-					md.ToolOptions.Collection = colName
-				})
-
-				Convey("even when the system.buckets collection is excluded", func() {
-					Convey("by --excludeCollections", func() {
-						md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
-					})
-
-					Convey("by --excludeCollectionsWithPrefix", func() {
-						md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
-					})
-				})
-
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				err = md.Dump()
-				So(err, ShouldBeNil)
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
-				metadataFile := util.ToUniversalPath(
-					filepath.Join(dumpDBDir, colName+".metadata.json"),
-				)
-				bsonFile := util.ToUniversalPath(
-					filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
-				)
-				So(fileDirExists(dumpDir), ShouldBeTrue)
-				So(fileDirExists(dumpDBDir), ShouldBeTrue)
-				So(fileDirExists(metadataFile), ShouldBeTrue)
-				So(fileDirExists(bsonFile), ShouldBeTrue)
-
-				allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
-				So(err, ShouldBeNil)
-				So(len(allFiles), ShouldEqual, 2)
-
-				info, err := os.Stat(bsonFile)
-				So(err, ShouldBeNil)
-				So(info.Size(), ShouldBeGreaterThan, 0)
-
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
-
-			})
-
-		})
-
-		Convey("a timeseries collection should not be dumped", func() {
-			Convey("to an archive", func() {
-
-				md.OutputOptions.Out = ""
-				md.OutputOptions.Archive = "dump.archive"
-
-				Convey("when the collection is excluded", func() {
-					Convey("by --excludeCollections", func() {
-						md.ToolOptions.DB = dbName
-						md.OutputOptions.ExcludedCollections = []string{colName}
-					})
-
-					Convey("by --excludeCollectionsWithPrefix", func() {
-						md.ToolOptions.DB = dbName
-						md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
-					})
-				})
-
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				err = md.Dump()
-				So(err, ShouldBeNil)
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
-
-				archiveFile, err := os.Open(archiveFilePath)
-				So(err, ShouldBeNil)
-				archiveReader := &archive.Reader{
-					In:      archiveFile,
-					Prelude: &archive.Prelude{},
-				}
-
-				err = archiveReader.Prelude.Read(archiveReader.In)
-				So(err, ShouldBeNil)
-
-				_, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
-				So(ok, ShouldBeFalse)
-
-				So(archiveFile.Close(), ShouldBeNil)
-				So(os.RemoveAll(archiveFilePath), ShouldBeNil)
-			})
-
-			Convey("to a directory", func() {
-				Convey("when the collection is excluded", func() {
-					Convey("by --excludeCollections", func() {
-						md.ToolOptions.DB = dbName
-						md.OutputOptions.ExcludedCollections = []string{colName}
-					})
-
-					Convey("by --excludeCollectionsWithPrefix", func() {
-						md.ToolOptions.DB = dbName
-						md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
-					})
-				})
-
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				err = md.Dump()
-				So(err, ShouldBeNil)
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-				So(fileDirExists(dumpDir), ShouldBeFalse)
-
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
-			})
-		})
-
-		Convey("specifying the buckets collection in --collection should fail", func() {
-			md.ToolOptions.DB = dbName
-			md.ToolOptions.Collection = "system.buckets." + colName
-
+	t.Run("dump to archive", func(t *testing.T) {
+		runArchiveTest := func(t *testing.T, md *MongoDump) {
 			err = md.Init()
-			So(err, ShouldNotBeNil)
-			So(
-				err.Error(),
-				ShouldEndWith,
-				"cannot specify a system.buckets collection in --collection. "+
-					"Specifying the timeseries collection will dump the system.buckets collection",
-			)
-		})
-
-		Convey("querying the timeseries collection", func() {
-
-			Convey("by a metadata field", func() {
-
-				Convey("with the --query option", func() {
-					md.ToolOptions.DB = dbName
-					md.ToolOptions.Collection = colName
-					md.InputOptions.Query = "{\"my_meta.device\": 1}"
-				})
-
-				Convey("with the --queryFile option", func() {
-					err = os.WriteFile("ts_query.json", []byte("{\"my_meta.device\": 1}"), 0777)
-					So(err, ShouldBeNil)
-					md.ToolOptions.DB = dbName
-					md.ToolOptions.Collection = colName
-					md.InputOptions.QueryFile = "ts_query.json"
-				})
-
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				err = md.Dump()
-				So(err, ShouldBeNil)
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-				dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
-				metadataFile := util.ToUniversalPath(
-					filepath.Join(dumpDBDir, colName+".metadata.json"),
-				)
-				bsonFile := util.ToUniversalPath(
-					filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
-				)
-				So(fileDirExists(dumpDir), ShouldBeTrue)
-				So(fileDirExists(dumpDBDir), ShouldBeTrue)
-				So(fileDirExists(metadataFile), ShouldBeTrue)
-				So(fileDirExists(bsonFile), ShouldBeTrue)
-
-				allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
-				So(err, ShouldBeNil)
-				So(len(allFiles), ShouldEqual, 2)
-
-				info, err := os.Stat(bsonFile)
-				So(err, ShouldBeNil)
-				So(info.Size(), ShouldBeGreaterThan, 0)
-
-				fd, err := os.Open(bsonFile)
-				So(err, ShouldBeNil)
-
-				bsonSource := db.NewBSONSource(fd)
-
-				matchedDoc := bson.Raw(bsonSource.LoadNext())
-				rawVal, err := matchedDoc.LookupErr("meta", "device")
-				So(err, ShouldBeNil)
-
-				val, ok := rawVal.Int32OK()
-				So(ok, ShouldBeTrue)
-				So(val, ShouldEqual, 1)
-
-				// only one bucket document should be matched
-				So(bsonSource.LoadNext(), ShouldBeNil)
-
-				So(fd.Close(), ShouldBeNil)
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
-				os.Remove("ts_query.json")
-
-			})
-
-		})
-
-		Convey("by a non-metadata field", func() {
-
-			Convey("with the --query option", func() {
-				md.ToolOptions.DB = dbName
-				md.ToolOptions.Collection = colName
-				md.InputOptions.Query = "{\"wrong.device\": 1}"
-			})
-
-			Convey("with the --queryFile option", func() {
-				err = os.WriteFile("ts_query.json", []byte("{\"wrong.device\": 1}"), 0777)
-				So(err, ShouldBeNil)
-				md.ToolOptions.DB = dbName
-				md.ToolOptions.Collection = colName
-				md.InputOptions.QueryFile = "ts_query.json"
-			})
-
-			err = md.Init()
-			So(err, ShouldBeNil)
+			require.NoError(t, err)
 
 			err = md.Dump()
-			So(err, ShouldNotBeNil)
-			So(
-				err.Error(),
-				ShouldContainSubstring,
+			require.NoError(t, err)
+
+			path, err := os.Getwd()
+			require.NoError(t, err)
+
+			archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+
+			archiveFile, err := os.Open(archiveFilePath)
+			require.NoError(t, err)
+
+			archiveReader := &archive.Reader{
+				In:      archiveFile,
+				Prelude: &archive.Prelude{},
+			}
+
+			err = archiveReader.Prelude.Read(archiveReader.In)
+			require.NoError(t, err)
+
+			collectionMetadatas, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
+			assert.True(t, ok)
+
+			require.Len(t, collectionMetadatas, 1)
+			assert.Equal(t, colName, collectionMetadatas[0].Collection)
+
+			pe, err := archiveReader.Prelude.NewPreludeExplorer()
+			require.NoError(t, err)
+
+			archiveContents, err := pe.ReadDir()
+			require.NoError(t, err)
+
+			for _, dirlike := range archiveContents {
+				if !dirlike.IsDir() || dirlike.Name() != dbName {
+					continue
+				}
+
+				dbContents, err := dirlike.ReadDir()
+				require.NoError(t, err)
+
+				assert.Len(t, dbContents, 2)
+
+				for _, file := range dbContents {
+					assert.Contains(
+						t,
+						[]string{
+							colName + ".metadata.json",
+							"system.buckets." + colName + ".bson",
+						},
+						file.Name(),
+					)
+				}
+			}
+
+			require.NoError(t, archiveFile.Close())
+			require.NoError(t, os.RemoveAll(archiveFilePath))
+		}
+
+		t.Run("whole db", func(t *testing.T) {
+			md := setup("archive")
+			runArchiveTest(t, md)
+		})
+
+		t.Run("specified collection", func(t *testing.T) {
+			md := setup("archive")
+			md.ToolOptions.DB = dbName
+			md.ToolOptions.Collection = colName
+			runArchiveTest(t, md)
+		})
+
+		t.Run("exclude system.buckets.coll", func(t *testing.T) {
+			md := setup("archive")
+			md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+			runArchiveTest(t, md)
+		})
+
+		t.Run("exclude system.buckets prefix", func(t *testing.T) {
+			md := setup("archive")
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+			runArchiveTest(t, md)
+		})
+	})
+
+	t.Run("dump to directory", func(t *testing.T) {
+		runDirTest := func(t *testing.T, md *MongoDump) {
+			err = md.Init()
+			require.NoError(t, err)
+
+			err = md.Dump()
+			require.NoError(t, err)
+
+			path, err := os.Getwd()
+			require.NoError(t, err)
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
+			metadataFile := util.ToUniversalPath(
+				filepath.Join(dumpDBDir, colName+".metadata.json"),
+			)
+			bsonFile := util.ToUniversalPath(
+				filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
+			)
+			assert.True(t, fileDirExists(dumpDir))
+			assert.True(t, fileDirExists(dumpDBDir))
+			assert.True(t, fileDirExists(metadataFile))
+			assert.True(t, fileDirExists(bsonFile))
+
+			allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
+			require.NoError(t, err)
+			assert.Len(t, allFiles, 2)
+
+			info, err := os.Stat(bsonFile)
+			require.NoError(t, err)
+			assert.NotZero(t, info.Size())
+
+			require.NoError(t, os.RemoveAll(dumpDir))
+		}
+
+		t.Run("whole db", func(t *testing.T) {
+			md := setup("dir")
+			runDirTest(t, md)
+		})
+
+		t.Run("specified collection", func(t *testing.T) {
+			md := setup("dir")
+			md.ToolOptions.DB = dbName
+			md.ToolOptions.Collection = colName
+			runDirTest(t, md)
+		})
+
+		t.Run("exclude system.buckets.coll", func(t *testing.T) {
+			md := setup("dir")
+			md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+			runDirTest(t, md)
+		})
+
+		t.Run("exclude system.buckets prefix", func(t *testing.T) {
+			md := setup("dir")
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+			runDirTest(t, md)
+		})
+	})
+
+	t.Run("exclude to archive", func(t *testing.T) {
+		runArchiveTest := func(t *testing.T, md *MongoDump) {
+			err = md.Init()
+			require.NoError(t, err)
+
+			err = md.Dump()
+			require.NoError(t, err)
+
+			path, err := os.Getwd()
+			require.NoError(t, err)
+
+			archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+
+			archiveFile, err := os.Open(archiveFilePath)
+			require.NoError(t, err)
+			archiveReader := &archive.Reader{
+				In:      archiveFile,
+				Prelude: &archive.Prelude{},
+			}
+
+			err = archiveReader.Prelude.Read(archiveReader.In)
+			require.NoError(t, err)
+
+			_, ok := archiveReader.Prelude.NamespaceMetadatasByDB[dbName]
+			assert.False(t, ok)
+
+			require.NoError(t, archiveFile.Close())
+			require.NoError(t, os.RemoveAll(archiveFilePath))
+		}
+
+		t.Run("explicit exclude", func(t *testing.T) {
+			md := setup("archive")
+			md.OutputOptions.ExcludedCollections = []string{colName}
+			runArchiveTest(t, md)
+		})
+
+		t.Run("exclude by prefix", func(t *testing.T) {
+			md := setup("archive")
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
+			runArchiveTest(t, md)
+		})
+	})
+
+	t.Run("exclude to directory", func(t *testing.T) {
+		runDirTest := func(t *testing.T, md *MongoDump) {
+			err = md.Init()
+			require.NoError(t, err)
+
+			err = md.Dump()
+			require.NoError(t, err)
+
+			path, err := os.Getwd()
+			require.NoError(t, err)
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			assert.False(t, fileDirExists(dumpDir))
+
+			require.NoError(t, os.RemoveAll(dumpDir))
+		}
+
+		t.Run("explicit exclude", func(t *testing.T) {
+			md := setup("dir")
+			md.OutputOptions.ExcludedCollections = []string{colName}
+			runDirTest(t, md)
+		})
+
+		t.Run("exclude by prefix", func(t *testing.T) {
+			md := setup("dir")
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{colName[:5]}
+			runDirTest(t, md)
+		})
+	})
+
+	t.Run("specify buckets collection explicitly", func(t *testing.T) {
+		md := setup("dir")
+		md.ToolOptions.DB = dbName
+		md.ToolOptions.Collection = "system.buckets." + colName
+
+		err = md.Init()
+		require.Error(t, err)
+		assert.ErrorContains(
+			t,
+			err,
+			"cannot specify a system.buckets collection in --collection. "+
+				"Specifying the timeseries collection will dump the system.buckets collection",
+		)
+	})
+
+	t.Run("query by metadata field", func(t *testing.T) {
+		runQueryTest := func(t *testing.T, md *MongoDump) {
+			err = md.Init()
+			require.NoError(t, err)
+
+			err = md.Dump()
+			require.NoError(t, err)
+
+			path, err := os.Getwd()
+			require.NoError(t, err)
+
+			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
+			metadataFile := util.ToUniversalPath(
+				filepath.Join(dumpDBDir, colName+".metadata.json"),
+			)
+			bsonFile := util.ToUniversalPath(
+				filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
+			)
+			assert.True(t, fileDirExists(dumpDir))
+			assert.True(t, fileDirExists(dumpDBDir))
+			assert.True(t, fileDirExists(metadataFile))
+			assert.True(t, fileDirExists(bsonFile))
+
+			allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
+			require.NoError(t, err)
+			assert.Len(t, allFiles, 2)
+
+			info, err := os.Stat(bsonFile)
+			require.NoError(t, err)
+			assert.NotZero(t, info.Size())
+
+			fd, err := os.Open(bsonFile)
+			require.NoError(t, err)
+
+			bsonSource := db.NewBSONSource(fd)
+
+			matchedDoc := bson.Raw(bsonSource.LoadNext())
+			rawVal, err := matchedDoc.LookupErr("meta", "device")
+			require.NoError(t, err)
+
+			val, ok := rawVal.Int32OK()
+			require.True(t, ok)
+			assert.EqualValues(t, 1, val)
+
+			// only one bucket document should be matched
+			require.Nil(t, bsonSource.LoadNext())
+
+			require.NoError(t, fd.Close())
+			require.NoError(t, os.RemoveAll(dumpDir))
+			os.Remove("ts_query.json")
+		}
+
+		t.Run("query", func(t *testing.T) {
+			md := setup("dir")
+			md.ToolOptions.Collection = colName
+			md.InputOptions.Query = "{\"my_meta.device\": 1}"
+			runQueryTest(t, md)
+		})
+
+		t.Run("queryFile", func(t *testing.T) {
+			md := setup("dir")
+			md.ToolOptions.Collection = colName
+
+			err = os.WriteFile("ts_query.json", []byte("{\"my_meta.device\": 1}"), 0777)
+			require.NoError(t, err)
+
+			md.InputOptions.QueryFile = "ts_query.json"
+			runQueryTest(t, md)
+		})
+	})
+
+	t.Run("query by non-metadata field", func(t *testing.T) {
+		runQueryTest := func(t *testing.T, md *MongoDump) {
+			err = md.Init()
+			require.NoError(t, err)
+
+			err = md.Dump()
+			require.Error(t, err)
+			assert.ErrorContains(
+				t,
+				err,
 				"mongodump only processes queries on metadata fields for timeseries collections",
 			)
 
 			os.Remove("ts_query.json")
+		}
 
+		t.Run("query", func(t *testing.T) {
+			md := setup("dir")
+			md.ToolOptions.Collection = colName
+			md.InputOptions.Query = "{\"wrong.device\": 1}"
+			runQueryTest(t, md)
 		})
 
+		t.Run("queryFile", func(t *testing.T) {
+			md := setup("dir")
+			md.ToolOptions.Collection = colName
+
+			err = os.WriteFile("ts_query.json", []byte("{\"wrong.device\": 1}"), 0777)
+			require.NoError(t, err)
+
+			md.InputOptions.QueryFile = "ts_query.json"
+			runQueryTest(t, md)
+		})
 	})
 
-	err = dropDB(t, dbName)
-	if err != nil {
-		t.Logf("Failed to drop timeseries collection: %v", err)
-	}
 }
 
 func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "get session")
+
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
 		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
@@ -2219,7 +2209,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	colName := "timeseries_mixed_schema"
 	dbName := "timeseries_test_DB"
 
-	require.NoError(t, setupTimeseriesWithMixedSchema(t, dbName, colName))
+	setupTimeseriesWithMixedSchema(t, dbName, colName)
 
 	md, err := simpleMongoDumpInstance()
 	require.NoError(t, err)
