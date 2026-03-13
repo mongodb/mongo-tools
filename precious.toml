@@ -6,7 +6,10 @@
 # for example from editors on save. Slower tidiers should only be invoked manually, either by
 # running the relevant mage command or by explicitly running `precious` from the CLI.
 
-exclude = "vendor/**/*"
+exclude = [
+  ".ai-plans/**/*",
+  "vendor/**/*",
+]
 
 [commands.golangci-lint]
 type = "both"
@@ -96,6 +99,7 @@ invoke = "once"
 working-dir = "root"
 path-args = "file"
 include = [ "*.md" ]
+exclude = [ "docs/superpowers/**/*.md" ]
 cmd = [
     "$PRECIOUS_ROOT/node_modules/.bin/prettier",
     "--print-width", "100",
