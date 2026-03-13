@@ -66,6 +66,10 @@ func init() {
 		Description("runs all integration tests").
 		OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology", "race").
 		Do(buildscript.TestIntegration)
+	taskRegistry.Declare("test:sharded-integration").
+		Description("runs tests requiring a sharded cluster topology").
+		OptionalArgs("pkgs", "ssl", "race").
+		Do(buildscript.TestShardedIntegration)
 	taskRegistry.Declare("test:kerberos").
 		Description("runs all kerberos tests").
 		OptionalArgs("race").
