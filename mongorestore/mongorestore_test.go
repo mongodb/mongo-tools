@@ -3467,8 +3467,6 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 			curCase.Label,
 			func(t *testing.T) {
 				for attemptNum := range [20]any{} {
-					attemptNum := attemptNum
-
 					t.Run(
 						fmt.Sprintf("attempt %d", attemptNum),
 						func(t *testing.T) {
@@ -3803,8 +3801,6 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 			variant.label,
 			func(t *testing.T) {
 				for _, dbname := range myAllNames {
-					dbname := dbname
-
 					t.Run(
 						fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
 						func(t *testing.T) {
