@@ -11,7 +11,8 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
@@ -24,118 +25,117 @@ type PositionalArgumentTestCase struct {
 
 func TestPositionalArgumentParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("Testing parsing positional arguments", t, func() {
-		positionalArgumentTestCases := []PositionalArgumentTestCase{
-			{
-				InputArgs: []string{"mongodb://foo"},
-				ExpectedOpts: Options{
-					ToolOptions: &options.ToolOptions{
-						URI: &options.URI{
-							ConnectionString: "mongodb://foo",
-						},
-					},
-				},
-			},
-			{
-				InputArgs: []string{
-					"mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
-				},
-				ExpectedOpts: Options{
-					ToolOptions: &options.ToolOptions{
-						URI: &options.URI{
-							ConnectionString: "mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
-							ConnString: &connstring.ConnString{
-								AuthMechanismProperties: map[string]string{
-									"AWS_SESSION_TOKEN": "token",
-								},
-							},
-						},
-						Auth: &options.Auth{
-							Username:        "user",
-							Password:        "pass",
-							AWSSessionToken: "token",
-							Mechanism:       "MONGODB-AWS",
-						},
-					},
-				},
-				AuthType: "aws",
-			},
-			{
-				InputArgs: []string{
-					"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
-				},
-				ExpectedOpts: Options{
-					ToolOptions: &options.ToolOptions{
-						URI: &options.URI{
-							ConnectionString: "mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
-							ConnString: &connstring.ConnString{
-								AuthMechanismProperties: map[string]string{
-									"SERVICE_NAME":           "service",
-									"CANONICALIZE_HOST_NAME": "host",
-									"SERVICE_REALM":          "realm",
-								},
-							},
-						},
-						Auth: &options.Auth{
-							Username:  "user",
-							Source:    "$external",
-							Mechanism: "GSSAPI",
-						},
-						Kerberos: &options.Kerberos{
-							Service: "service",
-						},
-					},
-				},
-				AuthType: "kerberos",
-			},
-			{
-				InputArgs: []string{"mongodb://foo", "mongodb://bar"},
-				ExpectErr: "too many URIs found in positional arguments: only one URI can be set as a positional argument",
-			},
-			{
-				InputArgs: []string{"foo"},
-				ExpectErr: "error parsing positional arguments: " +
-					"provide only one MongoDB connection string. " +
-					"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
-			},
-			{
-				InputArgs: []string{"foo", "mongodb://foo"},
-				ExpectErr: "error parsing positional arguments: " +
-					"provide only one MongoDB connection string. " +
-					"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
-			},
-			{
-				InputArgs: []string{"mongodb://foo", "--uri=mongodb://bar"},
-				ExpectErr: "illegal argument combination: cannot specify a URI in a positional argument and --uri",
-			},
-		}
 
-		for _, tc := range positionalArgumentTestCases {
-			t.Logf("Testing: %s", tc.InputArgs)
-			opts, err := ParseOptions(tc.InputArgs, "", "")
-			if tc.ExpectErr != "" {
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldEqual, tc.ExpectErr)
-			} else {
-				So(err, ShouldBeNil)
-				So(opts.ConnectionString, ShouldEqual, tc.ExpectedOpts.ConnectionString)
-				switch tc.AuthType {
-				case "aws":
-					So(opts.Username, ShouldEqual, tc.ExpectedOpts.Username)
-					So(opts.Password, ShouldEqual, tc.ExpectedOpts.Password)
-					So(opts.Mechanism, ShouldEqual, tc.ExpectedOpts.Mechanism)
-					So(opts.AWSSessionToken, ShouldEqual, tc.ExpectedOpts.AWSSessionToken)
-					So(opts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"], ShouldEqual, tc.ExpectedOpts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"])
-				case "kerberos":
-					So(opts.Username, ShouldEqual, tc.ExpectedOpts.Username)
-					So(opts.Mechanism, ShouldEqual, tc.ExpectedOpts.Mechanism)
-					So(opts.Source, ShouldEqual, tc.ExpectedOpts.Source)
-					So(opts.ConnString.AuthMechanismProperties["SERVICE_NAME"], ShouldEqual, tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_NAME"])
-					So(opts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"], ShouldEqual, tc.ExpectedOpts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"])
-					So(opts.ConnString.AuthMechanismProperties["SERVICE_REALM"], ShouldEqual, tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_REALM"])
-					So(opts.Service, ShouldEqual, tc.ExpectedOpts.Service)
-				}
+	positionalArgumentTestCases := []PositionalArgumentTestCase{
+		{
+			InputArgs: []string{"mongodb://foo"},
+			ExpectedOpts: Options{
+				ToolOptions: &options.ToolOptions{
+					URI: &options.URI{
+						ConnectionString: "mongodb://foo",
+					},
+				},
+			},
+		},
+		{
+			InputArgs: []string{
+				"mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+			},
+			ExpectedOpts: Options{
+				ToolOptions: &options.ToolOptions{
+					URI: &options.URI{
+						ConnectionString: "mongodb://user:pass@localhost/aws?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:token",
+						ConnString: &connstring.ConnString{
+							AuthMechanismProperties: map[string]string{
+								"AWS_SESSION_TOKEN": "token",
+							},
+						},
+					},
+					Auth: &options.Auth{
+						Username:        "user",
+						Password:        "pass",
+						AWSSessionToken: "token",
+						Mechanism:       "MONGODB-AWS",
+					},
+				},
+			},
+			AuthType: "aws",
+		},
+		{
+			InputArgs: []string{
+				"mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
+			},
+			ExpectedOpts: Options{
+				ToolOptions: &options.ToolOptions{
+					URI: &options.URI{
+						ConnectionString: "mongodb://user@localhost/kerberos?authSource=$external&authMechanism=GSSAPI&authMechanismProperties=SERVICE_NAME:service,CANONICALIZE_HOST_NAME:host,SERVICE_REALM:realm",
+						ConnString: &connstring.ConnString{
+							AuthMechanismProperties: map[string]string{
+								"SERVICE_NAME":           "service",
+								"CANONICALIZE_HOST_NAME": "host",
+								"SERVICE_REALM":          "realm",
+							},
+						},
+					},
+					Auth: &options.Auth{
+						Username:  "user",
+						Source:    "$external",
+						Mechanism: "GSSAPI",
+					},
+					Kerberos: &options.Kerberos{
+						Service: "service",
+					},
+				},
+			},
+			AuthType: "kerberos",
+		},
+		{
+			InputArgs: []string{"mongodb://foo", "mongodb://bar"},
+			ExpectErr: "too many URIs found in positional arguments: only one URI can be set as a positional argument",
+		},
+		{
+			InputArgs: []string{"foo"},
+			ExpectErr: "error parsing positional arguments: " +
+				"provide only one MongoDB connection string. " +
+				"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
+		},
+		{
+			InputArgs: []string{"foo", "mongodb://foo"},
+			ExpectErr: "error parsing positional arguments: " +
+				"provide only one MongoDB connection string. " +
+				"Connection strings must begin with mongodb:// or mongodb+srv:// schemes",
+		},
+		{
+			InputArgs: []string{"mongodb://foo", "--uri=mongodb://bar"},
+			ExpectErr: "illegal argument combination: cannot specify a URI in a positional argument and --uri",
+		},
+	}
+
+	for _, tc := range positionalArgumentTestCases {
+		t.Logf("Testing: %s", tc.InputArgs)
+		opts, err := ParseOptions(tc.InputArgs, "", "")
+		if tc.ExpectErr != "" {
+			require.Error(t, err)
+			assert.EqualError(t, err, tc.ExpectErr)
+		} else {
+			require.NoError(t, err)
+			assert.Equal(t, tc.ExpectedOpts.ConnectionString, opts.ConnectionString)
+			switch tc.AuthType {
+			case "aws":
+				assert.Equal(t, tc.ExpectedOpts.Username, opts.Username)
+				assert.Equal(t, tc.ExpectedOpts.Password, opts.Password)
+				assert.Equal(t, tc.ExpectedOpts.Mechanism, opts.Mechanism)
+				assert.Equal(t, tc.ExpectedOpts.AWSSessionToken, opts.AWSSessionToken)
+				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"], opts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"])
+			case "kerberos":
+				assert.Equal(t, tc.ExpectedOpts.Username, opts.Username)
+				assert.Equal(t, tc.ExpectedOpts.Mechanism, opts.Mechanism)
+				assert.Equal(t, tc.ExpectedOpts.Source, opts.Source)
+				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_NAME"], opts.ConnString.AuthMechanismProperties["SERVICE_NAME"])
+				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"], opts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"])
+				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_REALM"], opts.ConnString.AuthMechanismProperties["SERVICE_REALM"])
+				assert.Equal(t, tc.ExpectedOpts.Service, opts.Service)
 			}
 		}
-	})
+	}
 }
