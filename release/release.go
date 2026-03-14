@@ -1613,7 +1613,15 @@ func untargz(src, dst string) {
 
 		check(err, "read from tar file")
 
-		path := filepath.Join(dst, header.Name)
+		cleanedName := filepath.Clean(header.Name)
+		if strings.HasPrefix(cleanedName, "..") || filepath.IsAbs(cleanedName) {
+			log.Fatalf("invalid file path in tar archive: %v", header.Name)
+		}
+
+		path := filepath.Join(dst, cleanedName)
+		if !strings.HasPrefix(path, filepath.Clean(dst)+string(os.PathSeparator)) {
+			log.Fatalf("extraction path escapes destination directory: %v", path)
+		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
