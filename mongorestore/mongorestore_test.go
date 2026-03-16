@@ -1986,16 +1986,15 @@ func TestUnversionedIndexes(t *testing.T) {
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "no cluster available")
 
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
+	require.NoError(t, err, "no client available")
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get cluster version")
 
 	dbName := t.Name()
 	collName := "coll"
@@ -2026,6 +2025,9 @@ func TestUnversionedIndexes(t *testing.T) {
 	require.NoError(t, err, "should marshal metadata to extJSON")
 
 	archive := archive.SimpleArchive{
+		Header: archive.Header{
+			ServerVersion: serverVersion.String(),
+		},
 		CollectionMetadata: []archive.CollectionMetadata{
 			{
 				Database:   dbName,
