@@ -456,6 +456,8 @@ func (dump *MongoDump) GetValidDbs() ([]string, error) {
 		return nil, fmt.Errorf("error getting database names: %v", err)
 	}
 
+	// The server should never send an invalid DB name, but this is here to
+	// guard against path-traversal MITM attacks.
 	for _, dbName := range dbs {
 		if err := util.ValidateDBName(dbName); err != nil {
 			return nil, fmt.Errorf("validating database name %#q: %w", dbName, err)
