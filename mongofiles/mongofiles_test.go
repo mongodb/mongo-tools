@@ -704,150 +704,153 @@ func TestMongoFilesCommands(t *testing.T) {
 			)
 		})
 
-		Convey("Testing the 'get_regex' command with forward slash path separators on Windows should", func() {
-			// Only run this specific scenario on Windows
-			if runtime.GOOS != "windows" {
-				_, _ = Printf("Skipping Windows-only test on %s\n", runtime.GOOS)
-				return
-			}
-
-			tmpdir, err := os.MkdirTemp("", "")
-			So(err, ShouldBeNil)
-
-			err = os.WriteFile(
-				filepath.Join(tmpdir, "hi.txt"),
-				[]byte("hi"),
-				0o644,
-			)
-			So(err, ShouldBeNil)
-
-			subdir := filepath.Join(tmpdir, "subdir")
-
-			err = os.Mkdir(subdir, 0o755)
-			So(err, ShouldBeNil)
-
-			cwd, err := os.Getwd()
-			So(err, ShouldBeNil)
-
-			err = os.Chdir(subdir)
-			So(err, ShouldBeNil)
-			defer func() {
-				So(os.Chdir(cwd), ShouldBeNil)
-			}()
-
-			err = os.Mkdir("deepdir", 0o755)
-			So(err, ShouldBeNil)
-
-			err = os.WriteFile(
-				filepath.Join("deepdir", "deep-hi.txt"),
-				[]byte("deep-hi"),
-				0o644,
-			)
-			So(err, ShouldBeNil)
-
-			sessionProvider, err := db.NewSessionProvider(*toolOptions)
-			So(err, ShouldBeNil)
-
-			// MODIFICATION: Hardcode forward slashes instead of using filepath.Join
-			paths := []string{
-				"../hi.txt",
-				"deepdir/deep-hi.txt",
-			}
-
-			for _, path := range paths {
-				putMF := MongoFiles{
-					ToolOptions:     toolOptions,
-					InputOptions:    &InputOptions{},
-					StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-					SessionProvider: sessionProvider,
-					Command:         "put",
-					FileName:        path,
+		Convey(
+			"Testing the 'get_regex' command with forward slash path separators on Windows should",
+			func() {
+				// Only run this specific scenario on Windows
+				if runtime.GOOS != "windows" {
+					_, _ = Printf("Skipping Windows-only test on %s\n", runtime.GOOS)
+					return
 				}
-				out, err := putMF.Run(false)
+
+				tmpdir, err := os.MkdirTemp("", "")
 				So(err, ShouldBeNil)
-				So(out, ShouldBeEmpty)
 
-				So(os.Remove(path), ShouldBeNil)
-			}
+				err = os.WriteFile(
+					filepath.Join(tmpdir, "hi.txt"),
+					[]byte("hi"),
+					0o644,
+				)
+				So(err, ShouldBeNil)
 
-			Convey(
-				"forbid unsafe traversals by default",
-				func() {
-					getMF := MongoFiles{
+				subdir := filepath.Join(tmpdir, "subdir")
+
+				err = os.Mkdir(subdir, 0o755)
+				So(err, ShouldBeNil)
+
+				cwd, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				err = os.Chdir(subdir)
+				So(err, ShouldBeNil)
+				defer func() {
+					So(os.Chdir(cwd), ShouldBeNil)
+				}()
+
+				err = os.Mkdir("deepdir", 0o755)
+				So(err, ShouldBeNil)
+
+				err = os.WriteFile(
+					filepath.Join("deepdir", "deep-hi.txt"),
+					[]byte("deep-hi"),
+					0o644,
+				)
+				So(err, ShouldBeNil)
+
+				sessionProvider, err := db.NewSessionProvider(*toolOptions)
+				So(err, ShouldBeNil)
+
+				// MODIFICATION: Hardcode forward slashes instead of using filepath.Join
+				paths := []string{
+					"../hi.txt",
+					"deepdir/deep-hi.txt",
+				}
+
+				for _, path := range paths {
+					putMF := MongoFiles{
 						ToolOptions:     toolOptions,
 						InputOptions:    &InputOptions{},
 						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
 						SessionProvider: sessionProvider,
-						Command:         "get_regex",
-						FileNameRegex:   ".*",
+						Command:         "put",
+						FileName:        path,
 					}
-
-					_, err := getMF.Run(false)
-					So(err, ShouldNotBeNil)
-					So(fmt.Sprint(err), ShouldContainSubstring, "--allowUnsafeTraversal")
-
-					for _, path := range paths {
-						_, err := os.Stat(path)
-						So(err, ShouldNotBeNil)
-						So(err, ShouldWrap, os.ErrNotExist)
-					}
-				},
-			)
-
-			Convey(
-				"allow deep restores under the current directory",
-				func() {
-					defer So(os.RemoveAll(paths[1]), ShouldBeNil)
-
-					getMF := MongoFiles{
-						ToolOptions:     toolOptions,
-						InputOptions:    &InputOptions{},
-						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-						SessionProvider: sessionProvider,
-						Command:         "get_regex",
-						FileNameRegex:   "deep*",
-					}
-					out, err := getMF.Run(false)
+					out, err := putMF.Run(false)
 					So(err, ShouldBeNil)
 					So(out, ShouldBeEmpty)
 
-					_, err = os.Stat(paths[1])
-					So(err, ShouldBeNil)
-				},
-			)
+					So(os.Remove(path), ShouldBeNil)
+				}
 
-			Convey(
-				"allow unsafe traversals by opt-in",
-				func() {
-					defer func() {
-						for _, path := range paths {
-							So(os.RemoveAll(path), ShouldBeNil)
+				Convey(
+					"forbid unsafe traversals by default",
+					func() {
+						getMF := MongoFiles{
+							ToolOptions:     toolOptions,
+							InputOptions:    &InputOptions{},
+							StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+							SessionProvider: sessionProvider,
+							Command:         "get_regex",
+							FileNameRegex:   ".*",
 						}
-					}()
-					getMF := MongoFiles{
-						ToolOptions:  toolOptions,
-						InputOptions: &InputOptions{},
-						StorageOptions: &StorageOptions{
-							GridFSPrefix:         "fs",
-							DB:                   testDB,
-							AllowUnsafeTraversal: true,
-						},
-						SessionProvider: sessionProvider,
-						Command:         "get_regex",
-						FileNameRegex:   ".*",
-					}
 
-					out, err := getMF.Run(false)
-					So(err, ShouldBeNil)
-					So(out, ShouldBeEmpty)
+						_, err := getMF.Run(false)
+						So(err, ShouldNotBeNil)
+						So(fmt.Sprint(err), ShouldContainSubstring, "--allowUnsafeTraversal")
 
-					for _, path := range paths {
-						_, err := os.Stat(path)
+						for _, path := range paths {
+							_, err := os.Stat(path)
+							So(err, ShouldNotBeNil)
+							So(err, ShouldWrap, os.ErrNotExist)
+						}
+					},
+				)
+
+				Convey(
+					"allow deep restores under the current directory",
+					func() {
+						defer So(os.RemoveAll(paths[1]), ShouldBeNil)
+
+						getMF := MongoFiles{
+							ToolOptions:     toolOptions,
+							InputOptions:    &InputOptions{},
+							StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+							SessionProvider: sessionProvider,
+							Command:         "get_regex",
+							FileNameRegex:   "deep*",
+						}
+						out, err := getMF.Run(false)
 						So(err, ShouldBeNil)
-					}
-				},
-			)
-		})
+						So(out, ShouldBeEmpty)
+
+						_, err = os.Stat(paths[1])
+						So(err, ShouldBeNil)
+					},
+				)
+
+				Convey(
+					"allow unsafe traversals by opt-in",
+					func() {
+						defer func() {
+							for _, path := range paths {
+								So(os.RemoveAll(path), ShouldBeNil)
+							}
+						}()
+						getMF := MongoFiles{
+							ToolOptions:  toolOptions,
+							InputOptions: &InputOptions{},
+							StorageOptions: &StorageOptions{
+								GridFSPrefix:         "fs",
+								DB:                   testDB,
+								AllowUnsafeTraversal: true,
+							},
+							SessionProvider: sessionProvider,
+							Command:         "get_regex",
+							FileNameRegex:   ".*",
+						}
+
+						out, err := getMF.Run(false)
+						So(err, ShouldBeNil)
+						So(out, ShouldBeEmpty)
+
+						for _, path := range paths {
+							_, err := os.Stat(path)
+							So(err, ShouldBeNil)
+						}
+					},
+				)
+			},
+		)
 
 		Convey("Testing case insensitivity for path traversals should", func() {
 			// Case insensitivity test is only relevant on Windows and macOS by default
