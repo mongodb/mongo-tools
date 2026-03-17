@@ -27,8 +27,8 @@ func devBinFile(filename string) (string, error) {
 
 // getDirExeName returns the full path to the file in a subdirectory of the repo
 // root. For example: getDirExeName("dev-bin", "precious") returns
-// /path/to/mongosync/dev-bin/precious on unix-like systems and
-// C:\path\to\mongosync\dev-bin\precious.exe on Windows.
+// /path/to/repo/dev-bin/precious on unix-like systems and
+// C:\path\to\repo\dev-bin\precious.exe on Windows.
 func getDirExeName(dirname, filename string) (string, error) {
 	dir, err := getRepoRootSubdir(dirname)
 	if err != nil {
