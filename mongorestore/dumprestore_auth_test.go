@@ -76,6 +76,11 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 		"listIndexes",
 	}
 
+	if serverVersion.GTE(db.Version{8, 3, 0}) {
+		backupActions = append(backupActions, "performRawDataOperations")
+		restoreActions = append(restoreActions, "performRawDataOperations")
+	}
+
 	mustCreateUser(t, adminDB, backupUser, "password", bson.A{adminRole("backup")})
 	mustCreateUser(t, adminDB, restoreUser, "password", bson.A{adminRole("restore")})
 	mustCreateRole(t, testDB, "backupFoo", bson.A{
