@@ -2227,7 +2227,7 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 }
 
 func timeseriesCollName(version db.Version, base string) string {
-	if version.GTE(db.Version{8, 3, 0}) {
+	if version.SupportsRawData() {
 		// viewless timeseries
 		return base
 	}

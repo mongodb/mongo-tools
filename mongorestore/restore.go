@@ -755,7 +755,7 @@ func insertDocWithEmptyTimestamps(
 	}
 
 	opts := mopt.InsertOne()
-	if serverVersion.GTE(db.Version{8, 3, 0}) {
+	if serverVersion.SupportsRawData() {
 		err := xoptions.SetInternalInsertOneOptions(opts, "rawData", true)
 		if err != nil {
 			return err

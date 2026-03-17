@@ -74,8 +74,8 @@ func CreateDemux(
 		}
 
 		var ns string
-		// For 8.3+, timeseries collections use the normal collection name.
-		if cm.Type == "timeseries" && version.LT(db.Version{8, 3, 0}) {
+		if cm.Type == "timeseries" && !version.SupportsRawData() {
+			// 8.3+ uses viewless timeseries.
 			ns = cm.Database + ".system.buckets." + cm.Collection
 		} else {
 			ns = cm.Database + "." + cm.Collection

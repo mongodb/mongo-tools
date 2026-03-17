@@ -599,7 +599,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	}
 	intendedDB := session.Database(intent.DB)
 	var coll *mongo.Collection
-	if intent.IsTimeseries() && intent.ServerVersion.LT(db.Version{8, 3, 0}) {
+	if intent.IsTimeseries() && !intent.ServerVersion.SupportsRawData() {
 		// 8.3+ uses viewless timeseries.
 		coll = intendedDB.Collection("system.buckets." + intent.C)
 	} else {

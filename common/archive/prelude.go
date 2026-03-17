@@ -330,7 +330,7 @@ func (pe *PreludeExplorer) ReadDir() ([]DirLike, error) {
 		}
 		for _, namespaceMetadata := range namespaceMetadatas {
 			dataCollection := namespaceMetadata.Collection
-			if namespaceMetadata.Type == "timeseries" && serverVersion.LT(db.Version{8, 3, 0}) {
+			if namespaceMetadata.Type == "timeseries" && !serverVersion.SupportsRawData() {
 				dataCollection = "system.buckets." + namespaceMetadata.Collection
 			}
 			pes = append(pes, &PreludeExplorer{

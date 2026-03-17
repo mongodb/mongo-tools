@@ -53,6 +53,11 @@ func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v[0], v[1], v[2])
 }
 
+// SupportsRawData returns true if the version supports the rawData CRUD API.
+func (v Version) SupportsRawData() bool {
+	return v.GTE(Version{8, 3, 0})
+}
+
 func StrToVersion(v string) (Version, error) {
 	// get rid of build strings
 	v = strings.SplitN(v, "-", 2)[0]
