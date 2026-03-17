@@ -76,7 +76,7 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 		"listIndexes",
 	}
 
-	if serverVersion.GTE(db.Version{8, 3, 0}) {
+	if serverVersion.SupportsRawData() {
 		backupActions = append(backupActions, "performRawDataOperations")
 		restoreActions = append(restoreActions, "performRawDataOperations")
 	}

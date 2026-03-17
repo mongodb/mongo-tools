@@ -373,7 +373,7 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 	require.NoError(t, err, "convert extjson to bson")
 
 	opts := mopt.InsertOne()
-	if serverVersion.GTE(db.Version{8, 3, 0}) {
+	if serverVersion.SupportsRawData() {
 		err := xoptions.SetInternalInsertOneOptions(opts, "rawData", true)
 		require.NoError(t, err)
 	}
@@ -383,7 +383,7 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 }
 
 func timeseriesCollName(version db.Version, base string) string {
-	if version.GTE(db.Version{8, 3, 0}) {
+	if version.SupportsRawData() {
 		// viewless timeseries
 		return base
 	}

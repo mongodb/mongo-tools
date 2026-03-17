@@ -625,8 +625,8 @@ func TimeseriesBucketNeedsMixedSchema(err error) bool {
 
 // GetTimeseriesCollNameFromBucket returns a timeseries collection name from its bucket collection name.
 func GetTimeseriesCollNameFromBucket(version Version, bucketCollName string) (string, error) {
-	if version.GTE(Version{8, 3, 0}) {
-		// 8.3+ uses viewless timeseries
+	if version.SupportsRawData() {
+		// 8.3+ uses viewless timeseries.
 		return bucketCollName, nil
 	}
 

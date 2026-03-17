@@ -333,8 +333,8 @@ func (dump *MongoDump) NewIntentFromOptions(
 			} else {
 				intent.Location = fmt.Sprintf("archive '%v'", dump.OutputOptions.Archive)
 			}
-		} else if ci.IsTimeseries() && dump.serverVersionArray.LT(db.Version{8, 3, 0}) {
-			// 8.3+ uses viewless timesersies, so they end up in the final else block as a normal
+		} else if ci.IsTimeseries() && !dump.serverVersionArray.SupportsRawData() {
+			// 8.3+ uses viewless timeseries, so they end up in the final else block as a normal
 			// collection.
 			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, "system.buckets."+ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
