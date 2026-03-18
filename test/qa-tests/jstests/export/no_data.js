@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongoExportTOOLS2174 covers empty collection export but no Go test covers --assertExists flag; goes in mongoexport/mongoexport_test.go
 (function() {
 
   // Tests running mongoexport with no data in the target collection.

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — add to TestBsondump in bsondump_test.go
 // This test checks reasonable and unreasonable option configurations for bsondump
 (function() {
   load('jstests/libs/extended_assert.js');

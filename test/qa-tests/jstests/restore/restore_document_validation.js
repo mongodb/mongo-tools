@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test creates a validated collection and tests restore rejection, --bypassDocumentValidation, --stopOnError, or --maintainInsertionOrder with validation errors; goes in mongorestore/mongorestore_qa_test.go
 /**
  * restore_document_validation.js
  *

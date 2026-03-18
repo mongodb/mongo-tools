@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — --stopOnError covered by mongoimport_test.go
 (function() {
   jsTest.log('Testing running import with upserts');
   if (typeof getToolTest === 'undefined') {

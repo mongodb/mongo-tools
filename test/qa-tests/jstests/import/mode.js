@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests cover --mode=upsert and --mode=delete but not --mode=merge (preserving pre-existing fields), --upsertFields with compound non-_id fields, or legacy --upsert flag; goes in mongoimport/mongoimport_test.go
 (function() {
   jsTest.log('Testing running import with modes');
 

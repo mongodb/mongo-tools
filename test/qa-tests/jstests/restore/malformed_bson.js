@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test restores from a malformed BSON file and verifies failure; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongofiles_test.go
 // mongofiles_replace.js; ensure that after putting a file once multiple times,
 // on using --replace, any and all occurrences of the given file is replaced in
 // the GridFS collection - all other files are left as is

@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies mongoexport writes correct JSON to stdout when no --out is specified; goes in mongoexport/mongoexport_test.go
 // Tests running mongoexport writing to stdout.
 (function() {
   load('jstests/libs/extended_assert.js');

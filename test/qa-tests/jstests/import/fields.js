@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests cover --fields and --ignoreBlanks for CSV but not --fieldFile, nested dotted field names, or extra-fields-beyond-header in end-to-end import; goes in mongoimport/mongoimport_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — shell mkdir utility, not relevant to Go migration
 // Test the shell's mkdir utility.
 
 (function() {

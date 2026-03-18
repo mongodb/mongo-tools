@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — broken pipe is OS-signal-level, not testable in Go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestDumpRestoreEnforcesAuthRoles covers backup/restore roles but does not verify system.profile is included in the dump; goes in mongorestore/dumprestore_auth_test.go
 // dumpauth.js
 // test mongodump with authentication
 

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestRestoreUsersOrRoles covers cleanup of temp collections but not the case where admin.tempusers already contains data before restore begins; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

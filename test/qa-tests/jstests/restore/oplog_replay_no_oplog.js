@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in oplog_test.go (ReplSetTestType)
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

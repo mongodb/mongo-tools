@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongorestoreArchiveWithOplog restores a pre-existing archive but no Go test covers pipe-based dump --archive | restore --archive with special characters in collection names; goes in mongorestore/mongorestore_qa_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

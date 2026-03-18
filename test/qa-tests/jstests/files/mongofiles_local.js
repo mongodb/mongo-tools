@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests cover --local for get but not --local for put, empty --local string, or --local with nonexistent file; goes in mongofiles/mongofiles_test.go
 // mongofiles_local.js; ensure that when --local is passed:
 // a. for puts, the supplied argument is read and stored using the gridfs filename
 // b. for gets, the supplied argument is used to store the retrieved file

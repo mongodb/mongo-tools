@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — add to TestMongoDumpOplog in mongodump_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/replset_28.config.js');

@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies --drop on a nonexistent DB succeeds without error; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

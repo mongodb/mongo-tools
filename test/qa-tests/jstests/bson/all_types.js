@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers --type=debug output or verifies BSON type numbers; goes in bsondump/bsondump_test.go
 // This test runs bsondump on a .bson file containing non-deprecated BSON types
 // and makes sure their debug type values exist in the output.
 (function() {

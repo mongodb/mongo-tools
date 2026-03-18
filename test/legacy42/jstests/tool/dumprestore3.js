@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongorestore_test.go (ReplSetTestType)
 // mongodump/mongoexport from primary should succeed.  mongorestore and mongoimport to a
 // secondary node should fail.
 

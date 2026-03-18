@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — csv_test.go covers CSV export variants
 // csvexport2.js
 
 t = new ToolTest("csvexport2");

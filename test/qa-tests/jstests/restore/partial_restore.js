@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests cover --nsInclude for single-collection restore but not the --db path with a subdirectory target; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

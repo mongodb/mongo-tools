@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in oplog_test.go (ReplSetTestType)
 /**
  * oplog_replay_conflict.js
  *

@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — broken pipe is OS-signal-level, not testable in Go
 (function() {
   var bsondumpArgs = ['bsondump', '--failpoints', 'SlowBSONDump', '--type=json', 'jstests/bson/testdata/all_types.bson'];
   var ddArgs = ['dd', 'count=1000000', 'bs=1024', 'of=/dev/null'];

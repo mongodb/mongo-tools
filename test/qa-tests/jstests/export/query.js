@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test inserts data and verifies --query or --queryFile correctly filter export output; goes in mongoexport/mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === "undefined") {

@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongorestore_test.go (ShardedIntegrationTestType)
 // Test disabled until SERVER-3853 is finished
 if (0) {
     (function() {

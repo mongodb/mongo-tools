@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestDumpRestoreSingleDBWithDBUsersAndRoles covers main scenario but missing "no users exist" error and --dumpDbUsersAndRoles without --db error; goes in mongorestore/dumprestore_auth_test.go
 if (typeof getToolTest === 'undefined') {
   load('jstests/configs/plain_28.config.js');
 }

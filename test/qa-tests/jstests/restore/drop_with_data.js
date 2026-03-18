@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — --drop is exercised in several Go tests but none specifically insert different pre-existing data and verify it is fully replaced by the restored data; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

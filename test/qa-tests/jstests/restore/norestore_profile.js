@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test specifically verifies system.profile is not restored; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

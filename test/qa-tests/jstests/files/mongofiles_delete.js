@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — delete command covered by mongofiles_test.go
 // mongofiles_delete.js; ensure that delete command works as expected
 var testName = 'mongofiles_delete';
 load('jstests/files/util/mongofiles_common.js');

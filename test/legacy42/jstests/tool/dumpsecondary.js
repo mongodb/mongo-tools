@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongodump_test.go (ReplSetTestType)
 (function() {
 // Skip this test if running with --nojournal and WiredTiger.
 if (jsTest.options().noJournal &&

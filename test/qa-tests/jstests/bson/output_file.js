@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — TestBsondump in bsondump_test.go covers file output variants
 /**
  * output_file.js
  *
