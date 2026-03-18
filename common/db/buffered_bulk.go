@@ -25,6 +25,7 @@ const MAX_MESSAGE_SIZE_BYTES = 48000000
 // message size) is reached. Must be flushed at the end to ensure that all
 // documents are written.
 type BufferedBulkInserter struct {
+	serverVersion      Version
 	collection         *mongo.Collection
 	writeModels        []mongo.WriteModel
 	docLimit           int
@@ -66,6 +67,7 @@ func newBufferedBulkInserter(
 	}
 
 	bb := &BufferedBulkInserter{
+		serverVersion: serverVersion,
 		collection:    collection,
 		bulkWriteOpts: bulkOpts,
 		docLimit:      docLimit,
@@ -104,6 +106,20 @@ func (bb *BufferedBulkInserter) SetBypassDocumentValidation(bypass bool) *Buffer
 
 func (bb *BufferedBulkInserter) SetUpsert(upsert bool) *BufferedBulkInserter {
 	bb.upsert = upsert
+	return bb
+}
+
+// Mongoimport needs to remove the rawData param because it explicitly operates on logical
+// timeseries documents and not the underlying storage documents.
+func (bb *BufferedBulkInserter) SetWithoutRawData() *BufferedBulkInserter {
+	if !bb.serverVersion.SupportsRawData() {
+		return bb
+	}
+
+	err := xoptions.SetInternalBulkWriteOptions(bb.bulkWriteOpts, "rawData", false)
+	if err != nil {
+		panic("SetInternalBulkWriteOptions failed: " + err.Error())
+	}
 	return bb
 }
 
