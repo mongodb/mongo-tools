@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -114,12 +115,15 @@ func tearDownGridFSTestData(t *testing.T) error {
 
 	return nil
 }
+
 func simpleMongoFilesInstanceWithID(command, ID string) (*MongoFiles, error) {
 	return simpleMongoFilesInstanceWithFilenameAndID(command, "", ID)
 }
+
 func simpleMongoFilesInstanceWithFilename(command, fname string) (*MongoFiles, error) {
 	return simpleMongoFilesInstanceWithFilenameAndID(command, fname, "")
 }
+
 func simpleMongoFilesInstanceCommandOnly(command string) (*MongoFiles, error) {
 	return simpleMongoFilesInstanceWithFilenameAndID(command, "", "")
 }
@@ -212,7 +216,6 @@ func fileContentsCompare(file1, file2 *os.File, t *testing.T) (bool, error) {
 
 	isContentSame := bytes.Equal(file1ContentsBytes, file2ContentsBytes)
 	return isContentSame, nil
-
 }
 
 // get an id of an existing file, for _id access.
@@ -374,7 +377,6 @@ func TestMongoFilesCommands(t *testing.T) {
 
 	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
 		"with a MongoDump instance", t, func() {
-
 		bytesExpected, err := setUpGridFSTestData()
 		So(err, ShouldBeNil)
 
@@ -457,7 +459,6 @@ func TestMongoFilesCommands(t *testing.T) {
 
 			// cleanup file we just copied to the local FS
 			Reset(func() {
-
 				// remove 'testfile1' or 'testfile1copy'
 				if fileExists("testfile1") {
 					err = os.Remove("testfile1")
@@ -468,7 +469,6 @@ func TestMongoFilesCommands(t *testing.T) {
 					err = os.Remove("testfile1copy")
 				}
 				So(err, ShouldBeNil)
-
 			})
 		})
 
@@ -704,6 +704,236 @@ func TestMongoFilesCommands(t *testing.T) {
 			)
 		})
 
+		Convey(
+			"Testing the 'get_regex' command with forward slash path separators on Windows should",
+			func() {
+				// Only run this specific scenario on Windows
+				if runtime.GOOS != "windows" {
+					_, _ = Printf("Skipping Windows-only test on %s\n", runtime.GOOS)
+					return
+				}
+
+				tmpdir, err := os.MkdirTemp("", "")
+				So(err, ShouldBeNil)
+
+				err = os.WriteFile(
+					filepath.Join(tmpdir, "hi.txt"),
+					[]byte("hi"),
+					0o644,
+				)
+				So(err, ShouldBeNil)
+
+				subdir := filepath.Join(tmpdir, "subdir")
+
+				err = os.Mkdir(subdir, 0o755)
+				So(err, ShouldBeNil)
+
+				cwd, err := os.Getwd()
+				So(err, ShouldBeNil)
+
+				err = os.Chdir(subdir)
+				So(err, ShouldBeNil)
+				defer func() {
+					So(os.Chdir(cwd), ShouldBeNil)
+				}()
+
+				err = os.Mkdir("deepdir", 0o755)
+				So(err, ShouldBeNil)
+
+				err = os.WriteFile(
+					filepath.Join("deepdir", "deep-hi.txt"),
+					[]byte("deep-hi"),
+					0o644,
+				)
+				So(err, ShouldBeNil)
+
+				sessionProvider, err := db.NewSessionProvider(*toolOptions)
+				So(err, ShouldBeNil)
+
+				// MODIFICATION: Hardcode forward slashes instead of using filepath.Join
+				paths := []string{
+					"../hi.txt",
+					"deepdir/deep-hi.txt",
+				}
+
+				for _, path := range paths {
+					putMF := MongoFiles{
+						ToolOptions:     toolOptions,
+						InputOptions:    &InputOptions{},
+						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+						SessionProvider: sessionProvider,
+						Command:         "put",
+						FileName:        path,
+					}
+					out, err := putMF.Run(false)
+					So(err, ShouldBeNil)
+					So(out, ShouldBeEmpty)
+
+					So(os.Remove(path), ShouldBeNil)
+				}
+
+				Convey(
+					"forbid unsafe traversals by default",
+					func() {
+						getMF := MongoFiles{
+							ToolOptions:     toolOptions,
+							InputOptions:    &InputOptions{},
+							StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+							SessionProvider: sessionProvider,
+							Command:         "get_regex",
+							FileNameRegex:   ".*",
+						}
+
+						_, err := getMF.Run(false)
+						So(err, ShouldNotBeNil)
+						So(fmt.Sprint(err), ShouldContainSubstring, "--allowUnsafeTraversal")
+
+						for _, path := range paths {
+							_, err := os.Stat(path)
+							So(err, ShouldNotBeNil)
+							So(err, ShouldWrap, os.ErrNotExist)
+						}
+					},
+				)
+
+				Convey(
+					"allow deep restores under the current directory",
+					func() {
+						defer So(os.RemoveAll(paths[1]), ShouldBeNil)
+
+						getMF := MongoFiles{
+							ToolOptions:     toolOptions,
+							InputOptions:    &InputOptions{},
+							StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+							SessionProvider: sessionProvider,
+							Command:         "get_regex",
+							FileNameRegex:   "deep*",
+						}
+						out, err := getMF.Run(false)
+						So(err, ShouldBeNil)
+						So(out, ShouldBeEmpty)
+
+						_, err = os.Stat(paths[1])
+						So(err, ShouldBeNil)
+					},
+				)
+
+				Convey(
+					"allow unsafe traversals by opt-in",
+					func() {
+						defer func() {
+							for _, path := range paths {
+								So(os.RemoveAll(path), ShouldBeNil)
+							}
+						}()
+						getMF := MongoFiles{
+							ToolOptions:  toolOptions,
+							InputOptions: &InputOptions{},
+							StorageOptions: &StorageOptions{
+								GridFSPrefix:         "fs",
+								DB:                   testDB,
+								AllowUnsafeTraversal: true,
+							},
+							SessionProvider: sessionProvider,
+							Command:         "get_regex",
+							FileNameRegex:   ".*",
+						}
+
+						out, err := getMF.Run(false)
+						So(err, ShouldBeNil)
+						So(out, ShouldBeEmpty)
+
+						for _, path := range paths {
+							_, err := os.Stat(path)
+							So(err, ShouldBeNil)
+						}
+					},
+				)
+			},
+		)
+
+		Convey("Testing case insensitivity for path traversals should", func() {
+			// Case insensitivity test is only relevant on Windows and macOS by default
+			if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+				_, _ = Printf("Skipping case-sensitivity test on %s\n", runtime.GOOS)
+				return
+			}
+
+			tmpdir, err := os.MkdirTemp("", "CaseTest")
+			So(err, ShouldBeNil)
+
+			// 1. Create a directory with explicit mixed casing
+			subdir := filepath.Join(tmpdir, "MixedCaseSubDir")
+			err = os.Mkdir(subdir, 0o755)
+			So(err, ShouldBeNil)
+
+			cwd, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			err = os.Chdir(subdir)
+			So(err, ShouldBeNil)
+			defer func() {
+				So(os.Chdir(cwd), ShouldBeNil)
+			}()
+
+			sessionProvider, err := db.NewSessionProvider(*toolOptions)
+			So(err, ShouldBeNil)
+
+			// 2. Get the actual working directory
+			currentDir, err := os.Getwd()
+			So(err, ShouldBeNil)
+
+			// 3. Create a severely case-mismatched version of the absolute path.
+			mismatchedDir := strings.ToLower(currentDir)
+			if mismatchedDir == currentDir {
+				// Fallback just in case the temp dir was already 100% lowercase
+				mismatchedDir = strings.ToUpper(currentDir)
+			}
+
+			actualFilePath := filepath.Join(currentDir, "casetest.txt")
+			mismatchedFilePath := filepath.Join(mismatchedDir, "casetest.txt")
+
+			// 4. Create the local file
+			err = os.WriteFile(actualFilePath, []byte("case-insensitivity test"), 0o644)
+			So(err, ShouldBeNil)
+
+			// 5. Upload it using the severely mismatched path
+			putMF := MongoFiles{
+				ToolOptions:     toolOptions,
+				InputOptions:    &InputOptions{},
+				StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+				SessionProvider: sessionProvider,
+				Command:         "put",
+				FileName:        mismatchedFilePath,
+			}
+			out, err := putMF.Run(false)
+			So(err, ShouldBeNil)
+			So(out, ShouldBeEmpty)
+
+			// 6. Delete the local file so get_regex has to restore it
+			So(os.Remove(actualFilePath), ShouldBeNil)
+
+			Convey("restore the file without requiring --allowUnsafeTraversal", func() {
+				getMF := MongoFiles{
+					ToolOptions:     toolOptions,
+					InputOptions:    &InputOptions{},
+					StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+					SessionProvider: sessionProvider,
+					Command:         "get_regex",
+					FileNameRegex:   "casetest.*",
+				}
+
+				out, err := getMF.Run(false)
+
+				So(err, ShouldBeNil)
+				So(out, ShouldBeEmpty)
+
+				// Verify the tool successfully wrote the file back to disk
+				_, err = os.Stat(actualFilePath)
+				So(err, ShouldBeNil)
+			})
+		})
+
 		Convey("Testing the 'get_regex' command should", func() {
 			mf, err := simpleMongoFilesInstanceCommandOnly(GetRegex)
 			So(err, ShouldBeNil)
@@ -869,7 +1099,6 @@ func TestMongoFilesCommands(t *testing.T) {
 						err = os.Remove(localFileName)
 						So(err, ShouldBeNil)
 					})
-
 				},
 			)
 		})
@@ -941,7 +1170,6 @@ func TestMongoFilesCommands(t *testing.T) {
 			err = os.Remove("lorem_ipsum_copy.txt")
 		})
 	})
-
 }
 
 // Test that when no write concern is specified, a majority write concern is set.

@@ -263,7 +263,7 @@ func (mf *MongoFiles) findGFSFiles(query bson.M) (files []*gfsFile, err error) {
 // Gets the GridFS file the options specify. Use this for the get family of commands.
 func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	var query bson.M
-	var minimumExpectedDocs = 1
+	minimumExpectedDocs := 1
 	var minimumExpectedDocsError error
 
 	if len(mf.FileNameList) > 0 {
@@ -305,28 +305,32 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 	if len(mf.FileNameList) == 0 {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return nil, errors.Wrapf(err, "getting working directory")
+			return nil, errors.Wrap(err, "getting working directory")
 		}
 
-		dirPrefix := cwd + string(filepath.Separator)
-
 		for _, gf := range gridFiles {
-			if strings.ContainsRune(gf.Name, filepath.Separator) {
-				absPath, err := filepath.Abs(gf.Name)
-				if err != nil {
-					return nil, errors.Wrapf(err, "determining %#q’s absolute path", gf.Name)
-				}
+			absPath, err := filepath.Abs(gf.Name)
+			if err != nil {
+				return nil, errors.Wrapf(err, "determining %#q’s absolute path", gf.Name)
+			}
 
-				if !strings.HasPrefix(absPath, dirPrefix) {
-					if mf.StorageOptions.AllowUnsafeTraversal {
-						log.Logvf(
-							log.Always,
-							"WARNING: %#q lies outside the current directory. Restoring anyway per configuration.",
-							gf.Name,
-						)
-					} else {
-						return nil, fmt.Errorf("%#q lies outside the current directory; set --allowUnsafeTraversal if you really want to write to that path", gf.Name)
-					}
+			// 1. Find the relative path from the current directory to the file
+			rel, err := filepath.Rel(cwd, absPath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "calculating relative path for %#q", gf.Name)
+			}
+
+			// 2. IsLocal guarantees the relative path doesn't escape the cwd
+			//    and isn't a malicious Windows device name.
+			if !filepath.IsLocal(rel) {
+				if mf.StorageOptions.AllowUnsafeTraversal {
+					log.Logvf(
+						log.Always,
+						"WARNING: %#q lies outside the current directory. Restoring anyway per configuration.",
+						gf.Name,
+					)
+				} else {
+					return nil, fmt.Errorf("%#q lies outside the current directory; set --allowUnsafeTraversal if you really want to write to that path", gf.Name)
 				}
 			}
 		}
