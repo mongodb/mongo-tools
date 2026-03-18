@@ -27,6 +27,8 @@ import (
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 	"golang.org/x/exp/maps"
 )
 
@@ -651,6 +653,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 						ctx, cancel := restore.writeContext()
 						err := insertDocWithEmptyTimestamps(
 							ctx,
+							restore.serverVersion,
 							collection,
 							rawDoc,
 						)
@@ -685,7 +688,10 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 
 			if db.TimeseriesBucketNeedsMixedSchema(bwErr) {
 				// Modify the timeseries collection and retry flushing the bulk writer.
-				logicalColName, nameErr := db.GetTimeseriesCollNameFromBucket(colName)
+				logicalColName, nameErr := db.GetTimeseriesCollNameFromBucket(
+					restore.serverVersion,
+					colName,
+				)
 				if nameErr != nil {
 					resultChan <- result.withErr(nameErr)
 					return
@@ -734,6 +740,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 // lack the `bypassEmptyTsReplacement` insert/update flag.
 func insertDocWithEmptyTimestamps(
 	ctx context.Context,
+	serverVersion db.Version,
 	collection *mongo.Collection,
 	rawDoc bson.Raw,
 ) error {
@@ -747,10 +754,19 @@ func insertDocWithEmptyTimestamps(
 		return errors.Wrap(err, "failed to unmarshal document with empty timestamp")
 	}
 
+	opts := mopt.InsertOne()
+	if serverVersion.SupportsRawData() {
+		err := xoptions.SetInternalInsertOneOptions(opts, "rawData", true)
+		if err != nil {
+			return err
+		}
+	}
+
 	// NB: insert preserves empty-timestamp _id.
 	_, err = collection.InsertOne(
 		ctx,
 		rawDoc,
+		opts,
 	)
 	if err != nil {
 		return errors.Wrapf(

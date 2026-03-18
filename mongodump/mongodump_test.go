@@ -37,6 +37,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 var (
@@ -320,6 +322,9 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	require.NoError(t, err, "get session provider")
 
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get server version")
+
 	client, err := sessionProvider.GetSession()
 	require.NoError(t, err, "get session")
 
@@ -357,7 +362,8 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 		require.NoError(t, res.Err(), "set mixed schema data")
 	}
 
-	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
+	bucketName := timeseriesCollName(serverVersion, collName)
+	bucketColl := sessionProvider.DB(dbName).Collection(bucketName)
 	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
 	var bucketMap map[string]any
 	err = json.Unmarshal([]byte(bucketJSON), &bucketMap)
@@ -366,8 +372,23 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 	err = bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap)
 	require.NoError(t, err, "convert extjson to bson")
 
-	_, err = bucketColl.InsertOne(t.Context(), bucketMap)
+	opts := mopt.InsertOne()
+	if serverVersion.SupportsRawData() {
+		err := xoptions.SetInternalInsertOneOptions(opts, "rawData", true)
+		require.NoError(t, err)
+	}
+
+	_, err = bucketColl.InsertOne(t.Context(), bucketMap, opts)
 	require.NoError(t, err, "insert bucket doc")
+}
+
+func timeseriesCollName(version db.Version, base string) string {
+	if version.SupportsRawData() {
+		// viewless timeseries
+		return base
+	}
+
+	return "system.buckets." + base
 }
 
 func setUpDBView(dbName string, colName string) error {
@@ -1823,6 +1844,12 @@ func TestTimeseriesCollections(t *testing.T) {
 		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
 	}
 
+	sp, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "get session provider")
+
+	serverVersion, err := sp.ServerVersionArray()
+	require.NoError(t, err, "get server version")
+
 	colName := "timeseriesColl"
 	dbName := "timeseries_test_DB"
 	setUpTimeseries(t, dbName, colName)
@@ -1887,6 +1914,8 @@ func TestTimeseriesCollections(t *testing.T) {
 			archiveContents, err := pe.ReadDir()
 			require.NoError(t, err)
 
+			expectedCollFile := timeseriesCollName(serverVersion, colName) + ".bson"
+
 			for _, dirlike := range archiveContents {
 				if !dirlike.IsDir() || dirlike.Name() != dbName {
 					continue
@@ -1902,7 +1931,7 @@ func TestTimeseriesCollections(t *testing.T) {
 						t,
 						[]string{
 							colName + ".metadata.json",
-							"system.buckets." + colName + ".bson",
+							expectedCollFile,
 						},
 						file.Name(),
 					)
@@ -1954,13 +1983,15 @@ func TestTimeseriesCollections(t *testing.T) {
 			metadataFile := util.ToUniversalPath(
 				filepath.Join(dumpDBDir, colName+".metadata.json"),
 			)
+
+			expectedCollFile := timeseriesCollName(serverVersion, colName)
 			bsonFile := util.ToUniversalPath(
-				filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
+				filepath.Join(dumpDBDir, expectedCollFile+".bson"),
 			)
 			assert.True(t, fileDirExists(dumpDir))
 			assert.True(t, fileDirExists(dumpDBDir))
 			assert.True(t, fileDirExists(metadataFile))
-			assert.True(t, fileDirExists(bsonFile))
+			assert.True(t, fileDirExists(bsonFile), bsonFile)
 
 			allFiles, err := getMatchingFiles(dumpDBDir, ".*"+colName+".*")
 			require.NoError(t, err)
@@ -2103,7 +2134,7 @@ func TestTimeseriesCollections(t *testing.T) {
 				filepath.Join(dumpDBDir, colName+".metadata.json"),
 			)
 			bsonFile := util.ToUniversalPath(
-				filepath.Join(dumpDBDir, "system.buckets."+colName+".bson"),
+				filepath.Join(dumpDBDir, timeseriesCollName(serverVersion, colName)+".bson"),
 			)
 			assert.True(t, fileDirExists(dumpDir))
 			assert.True(t, fileDirExists(dumpDBDir))
@@ -2206,6 +2237,12 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
 	}
 
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "get session provider")
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get server version from session provider")
+
 	colName := "timeseries_mixed_schema"
 	dbName := "timeseries_test_DB"
 
@@ -2249,6 +2286,8 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	archiveContents, err := pe.ReadDir()
 	require.NoError(t, err)
 
+	expectedCollFile := timeseriesCollName(serverVersion, colName) + ".bson"
+
 	for _, dirlike := range archiveContents {
 		if dirlike.IsDir() && dirlike.Name() == dbName {
 			dbContents, err := dirlike.ReadDir()
@@ -2259,7 +2298,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 			for _, file := range dbContents {
 				require.Contains(
 					t,
-					[]string{colName + ".metadata.json", "system.buckets." + colName + ".bson"},
+					[]string{colName + ".metadata.json", expectedCollFile},
 					file.Name(),
 				)
 			}

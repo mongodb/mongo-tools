@@ -15,6 +15,7 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -310,5 +311,120 @@ func TestBadOptions(t *testing.T) {
 		if testCase.errorTestFunc != nil {
 			testCase.errorTestFunc(t, err)
 		}
+	}
+}
+
+func TestMongoExportTimeseries(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "no cluster available")
+
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err, "no client available")
+
+	fcv := testutil.GetFCV(client)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
+	}
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get server version")
+
+	dbName := "test_ts"
+	collName := "tscoll"
+
+	db := client.Database(dbName)
+	err = db.Drop(t.Context())
+	require.NoError(t, err)
+
+	setUpTimeseries(t, dbName, collName)
+
+	t.Run("export logical documents", func(t *testing.T) {
+		opts, err := simpleMongoExportOpts()
+		require.NoError(t, err)
+
+		opts.Collection = collName
+		opts.DB = dbName
+
+		me, err := New(opts)
+		require.NoError(t, err)
+		defer me.Close()
+		out := new(bytes.Buffer)
+		count, err := me.Export(out)
+		require.NoError(t, err)
+		assert.EqualValues(t, 1000, count)
+	})
+
+	t.Run("export bucket documents", func(t *testing.T) {
+		opts, err := simpleMongoExportOpts()
+		require.NoError(t, err)
+
+		opts.Collection = "system.buckets." + collName
+		opts.DB = dbName
+
+		me, err := New(opts)
+		require.NoError(t, err)
+		defer me.Close()
+
+		out := new(bytes.Buffer)
+		count, err := me.Export(out)
+
+		if serverVersion.SupportsRawData() {
+			assert.Zero(t, count)
+			require.Error(t, err)
+			require.ErrorContains(t, err, "does not support exporting system.buckets collections")
+		} else {
+			require.NoError(t, err)
+			assert.EqualValues(t, 10, count)
+		}
+	})
+}
+
+func setUpTimeseries(t *testing.T, dbName string, collName string) {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "get session provider")
+
+	timeseriesOptions := bson.D{
+		{"timeField", "ts"},
+		{"metaField", "my_meta"},
+	}
+	createCmd := bson.D{
+		{"create", collName},
+		{"timeseries", timeseriesOptions},
+	}
+	var r2 bson.D
+	err = sessionProvider.Run(createCmd, &r2, dbName)
+	require.NoError(t, err, "create timeseries coll")
+
+	coll := sessionProvider.DB(dbName).Collection(collName)
+
+	idx := mongo.IndexModel{
+		Keys: bson.D{{"my_meta.device", 1}},
+	}
+	_, err = coll.Indexes().CreateOne(t.Context(), idx)
+	require.NoError(t, err, "create index 1")
+
+	idx = mongo.IndexModel{
+		Keys: bson.D{{"ts", 1}, {"my_meta.device", 1}},
+	}
+	_, err = coll.Indexes().CreateOne(t.Context(), idx)
+	require.NoError(t, err, "create index 2")
+
+	for i := range 1000 {
+		metadata := bson.M{
+			"device": i % 10,
+		}
+		_, err = coll.InsertOne(
+			t.Context(),
+			bson.M{
+				"ts":          bson.NewDateTimeFromTime(time.Now()),
+				"my_meta":     metadata,
+				"measurement": i,
+			},
+		)
+
+		require.NoError(t, err, "insert ts data (%d)", i)
 	}
 }

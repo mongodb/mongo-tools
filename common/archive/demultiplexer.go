@@ -57,6 +57,7 @@ type Demultiplexer struct {
 }
 
 func CreateDemux(
+	version db.Version,
 	namespaceMetadatas []*CollectionMetadata,
 	in io.Reader,
 	isAtlasProxy bool,
@@ -73,7 +74,8 @@ func CreateDemux(
 		}
 
 		var ns string
-		if cm.Type == "timeseries" {
+		if cm.Type == "timeseries" && !version.SupportsRawData() {
+			// 8.3+ uses viewless timeseries.
 			ns = cm.Database + ".system.buckets." + cm.Collection
 		} else {
 			ns = cm.Database + "." + cm.Collection
