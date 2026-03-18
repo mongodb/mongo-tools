@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — --nsFrom/--nsTo path is covered in Go but the --db dest path restoring a subdirectory is not; goes in mongorestore/mongorestore_qa_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

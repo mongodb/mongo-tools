@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers --excludeCollection and --excludeCollectionsWithPrefix for mongodump including error cases; goes in mongodump/mongodump_qa_test.go
 // Tests for mongodump options for excluding collections
 
 var testBaseName = "jstests_tool_dumprestore_excludecollections";

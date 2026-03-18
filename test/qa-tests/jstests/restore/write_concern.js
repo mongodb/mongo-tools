@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongorestore_test.go (ReplSetTestType)
 /* TODO: fix and re-enable test, see TOOLS-3017
 (function() {
 

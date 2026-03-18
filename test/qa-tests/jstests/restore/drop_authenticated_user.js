@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestDumpRestorePreservesAdminUsersAndRoles covers admin user/role preservation with --drop but does not verify the restoring user itself survives the drop; goes in mongorestore/dumprestore_auth_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

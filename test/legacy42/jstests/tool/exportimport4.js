@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers export/import with NaN values and query filters; goes in mongoexport/mongoexport_test.go
 // exportimport4.js
 
 t = new ToolTest("exportimport4");

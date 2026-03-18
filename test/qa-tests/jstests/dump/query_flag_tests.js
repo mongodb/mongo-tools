@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongoDumpOrderedQuery and TestMongoDumpBSON cover --query/--queryFile success paths but missing error cases (without --db, without --collection, nonexistent --queryFile); goes in mongodump/mongodump_qa_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

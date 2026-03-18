@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in dumprestore_auth_test.go (ReplSetTestType)
 // simple test to ensure write concern functions as expected
 (function() {
 // Skip this test if running with --nojournal and WiredTiger.

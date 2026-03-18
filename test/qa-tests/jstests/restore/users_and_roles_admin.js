@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestDumpRestorePreservesAdminUsersAndRoles covers many scenarios under AuthTestType but missing dump-without-flag and --drop-override cases; goes in mongorestore/dumprestore_auth_test.go
 // Tests that mongodump and mongorestore properly handle access control information when doing
 // single-db dumps and restores. Tests proper handling of dumping and restoring the admin database.
 // This test is derived from legacy30 test dumprestore_auth3.js

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongorestoreMIOSOE covers dup key with stopOnError but not the batch size iteration behavior; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

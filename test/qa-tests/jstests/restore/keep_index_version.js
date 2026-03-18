@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers --keepIndexVersion for index version preservation (targets old server versions); goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load('jstests/common/check_version.js');

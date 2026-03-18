@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test exercises the --limit flag; goes in mongoexport/mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === "undefined") {

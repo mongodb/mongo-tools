@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — csv_test.go covers unit-level CSV parsing but no Go test covers end-to-end CSV export then re-import with --headerline; goes in mongoexport/mongoexport_test.go
 // csv1.js
 
 t = new ToolTest("csv1");

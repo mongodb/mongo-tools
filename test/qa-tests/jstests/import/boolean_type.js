@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test imports a JSON file with Boolean() objects and verifies round-trip fidelity; goes in mongoimport/mongoimport_test.go
 /**
  * boolean_type.js
  *

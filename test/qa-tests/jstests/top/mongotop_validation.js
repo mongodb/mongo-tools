@@ -1,3 +1,4 @@
+// MIGRATION: NEW — options_test.go only tests positional argument parsing; no Go test covers invalid port, invalid rowcount, negative sleep time errors; goes in mongotop/mongotop_test.go
 // mongotop_validation.js; ensure that running mongotop using invalid arguments
 // fail as expected
 var testName = 'mongotop_validation';

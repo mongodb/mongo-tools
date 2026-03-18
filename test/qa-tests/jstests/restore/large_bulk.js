@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test creates 32 x ~1MB documents to verify bulk API respects 16MB BSON limit; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   // this test tests that the bulk api doesn't create BSON documents greater then the

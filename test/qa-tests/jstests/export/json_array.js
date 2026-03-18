@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — json_test.go TestJSONArray covers basic jsonArray format but not round-trip or that import without --jsonArray fails; goes in mongoexport/mongoexport_test.go
 (function() {
 
   // Tests running mongoexport with the --jsonArray output option.

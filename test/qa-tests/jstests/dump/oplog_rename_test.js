@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in oplog_dump_test.go (ReplSetTestType)
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/replset_28.config.js');

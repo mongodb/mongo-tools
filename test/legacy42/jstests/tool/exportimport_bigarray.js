@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers --jsonArray export/import above 16MB BSON size limit; goes in mongoexport/mongoexport_test.go
 // Test importing collections represented as a single line array above the maximum document size
 var tt = new ToolTest('exportimport_bigarray_test');
 

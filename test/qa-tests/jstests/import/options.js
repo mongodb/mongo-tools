@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongoImportValidateSettings covers some option validation but not invalid DB/collection names, --jsonArray with non-array input, type mismatches, or conflicting positional args; goes in mongoimport/mongoimport_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test validates --port behavior (valid port succeeds, wrong/non-numeric port fails); goes in mongofiles/mongofiles_test.go
 // mongofiles_port.js; ensure that supplying valid/invalid port addresses
 // succeeds/fails as expected
 var testName = 'mongofiles_port';

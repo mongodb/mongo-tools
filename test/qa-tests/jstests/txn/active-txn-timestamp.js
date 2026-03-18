@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — test is disabled per TOOLS-2660
 // Verifies that mongodump --oplog will start the oplog dump from the active
 // transaction timestamp instead of the last entry in the oplog, if a transaction
 // is in progress.

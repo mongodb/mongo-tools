@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestValidArguments covers invalid command but not invalid CLI option (--invalid); goes in mongofiles/mongofiles_test.go
 // mongofiles_invalid.js; runs mongofiles with an invalid command and
 // option - ensures it fails in all cases
 var testName = 'mongofiles_invalid';

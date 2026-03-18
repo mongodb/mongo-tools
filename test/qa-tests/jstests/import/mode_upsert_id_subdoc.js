@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — add to mongoimport_test.go for upsert with ID in subdoc
 (function() {
   // This test creates a collection with a subdocument _id field. We export the collection,
   // replace the existing documents with a pre-made dataset and --mode=upsert, then overwrite

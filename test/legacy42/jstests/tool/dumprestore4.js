@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongorestore covers nsFrom/nsTo rename and TestCreateIndexes covers index restoration separately, but no Go test restores to a renamed database and then verifies the index count on the renamed target; goes in mongorestore/mongorestore_qa_test.go
 // dumprestore4.js -- see SERVER-2186
 
 // The point of this test is to ensure that mongorestore successfully

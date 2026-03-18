@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers round-trip export/import of diverse BSON types (int, float, string, subdoc, array, BinData, ISODate, Timestamp, Regex); goes in mongoexport/mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

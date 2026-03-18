@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongorestore restores from testdata/testdirs (db1+db2) but does not explicitly verify per-collection document counts across both databases; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

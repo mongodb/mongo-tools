@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test creates capped collections, dumps, restores, and verifies capped behavior is preserved; goes in mongorestore/mongorestore_qa_test.go
 // dumprestore8.js
 
 // This file tests that indexes and capped collection options get properly dumped and restored.

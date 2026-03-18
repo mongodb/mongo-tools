@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in appropriate tool test file (ReplSetTestType)
 /*
  * Test to ensure that (dump/restore/export/import/oplog) works with a replica set connection string
  * 1. Start a replica set.

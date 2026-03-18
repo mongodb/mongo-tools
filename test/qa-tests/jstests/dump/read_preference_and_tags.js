@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongodump_test.go (ReplSetTestType)
 (function() {
   jsTest.log('Testing that dump utilizes read preferences and tags');
   var TOOLS_TEST_CONFIG = {};

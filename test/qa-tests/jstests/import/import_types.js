@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test imports a legacy Extended JSON file containing all BSON types and verifies each field's $type in the database; goes in mongoimport/mongoimport_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

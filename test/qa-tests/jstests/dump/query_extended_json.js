@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies extended JSON types ($date, $regex, $oid, $minKey, $maxKey) in --query; goes in mongodump/mongodump_qa_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

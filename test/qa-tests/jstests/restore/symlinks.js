@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test exercises restoring from a dump directory containing symlinked files; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   // Tests using mongorestore on a dump directory containing symlinks

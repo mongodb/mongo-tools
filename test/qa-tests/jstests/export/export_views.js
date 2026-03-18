@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test creates or exports from a MongoDB view; goes in mongoexport/mongoexport_test.go
 // @tags: [requires_min_mongo_34](
 (function() {
   if (typeof getToolTest === 'undefined') {
