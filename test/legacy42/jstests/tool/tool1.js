@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — basic dump/restore and export/import round-trips are partially covered in Go but this is a comprehensive smoke test; low priority; goes in mongodump/mongodump_qa_test.go
 // mongo tool tests, very basic to start with
 
 baseName = "jstests_tool_tool1";

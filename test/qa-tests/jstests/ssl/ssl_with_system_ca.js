@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in new SSL integration test
 // On OSX this test assumes that jstests/libs/trusted-ca.pem has been added as a trusted
 // certificate to the login keychain of the evergreen user. See,
 // https://github.com/10gen/buildslave-cookbooks/commit/af7cabe5b6e0885902ebd4902f7f974b64cc8961

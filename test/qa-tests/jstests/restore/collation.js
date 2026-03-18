@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestIndexGetsSimpleCollation covers index collation but no Go test verifies collection-level collation round-trip through dump/restore; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

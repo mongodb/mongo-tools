@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test restores with malformed metadata.json and verifies failure; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

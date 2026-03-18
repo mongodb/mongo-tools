@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies --collection dumps only the named collection excluding other DBs; goes in mongodump/mongodump_qa_test.go
 if (typeof getToolTest === 'undefined') {
   load('jstests/configs/plain_28.config.js');
 }

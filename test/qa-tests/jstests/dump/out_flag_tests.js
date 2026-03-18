@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers --out - error cases (without --db/--collection) or --out to custom directory with restore; goes in mongodump/mongodump_qa_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

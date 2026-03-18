@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — --stopOnError covered by mongorestore_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

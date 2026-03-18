@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests cover basic put and content verification but not large multi-chunk files (40MB+) or put-of-a-directory-fails; goes in mongofiles/mongofiles_test.go
 // mongofiles_put.js; ensure that put works with very large files.
 // NOTE: this test uses mongodump to create a large file
 var testName = 'mongofiles_put';

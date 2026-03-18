@@ -1,3 +1,4 @@
+// MIGRATION: NEW — mongostat_test.go only has unit tests for StatLine; no Go integration test runs mongostat with auth (correct/wrong password); goes in mongostat/mongostat_test.go
 // stat1.js
 // test mongostat with authentication SERVER-3875
 baseName = "tool_stat1";

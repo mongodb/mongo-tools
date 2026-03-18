@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers export/import with undefined array elements and --jsonArray round-trip; goes in mongoexport/mongoexport_test.go
 // exportimport1.js
 
 t = new ToolTest("exportimport1");

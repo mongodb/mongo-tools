@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongofiles_test.go (ShardedIntegrationTestType)
 // tests gridfs with a sharded fs.chunks collection.
 // @tags: [requires_sharding]
 

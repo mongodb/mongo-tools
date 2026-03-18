@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies --version output; goes in common/options/options_test.go (covers all tools)
 // mongofiles_version.js; ensure that getting the version works without error
 var testName = 'mongofiles_version';
 load('jstests/files/util/mongofiles_common.js');

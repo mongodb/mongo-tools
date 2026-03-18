@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies --fields limits which fields appear in JSON export output; goes in mongoexport/mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === "undefined") {

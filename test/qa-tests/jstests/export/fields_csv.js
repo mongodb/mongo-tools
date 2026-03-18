@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — csv_test.go covers unit-level CSV field extraction but no Go test covers end-to-end --fields filtering with --csv against a real server; goes in mongoexport/mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === "undefined") {

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests use --noOptionsRestore only in timeseries context; no Go test verifies capped collections become non-capped or validators are stripped; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

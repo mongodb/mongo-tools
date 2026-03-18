@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test restores from a blank .bson file with missing/blank metadata; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

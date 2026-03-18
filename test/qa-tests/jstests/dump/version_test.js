@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies that mongorestore with -vvv on an archive dump prints archive format version, server version, and tool version; goes in mongorestore/mongorestore_qa_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

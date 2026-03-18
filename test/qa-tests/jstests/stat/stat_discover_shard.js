@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongostat_test.go (ShardedIntegrationTestType)
 (function() {
   load("jstests/libs/output.js");
 

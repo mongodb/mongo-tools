@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests use --noOptionsRestore only in timeseries context; no Go test verifies capped collections become non-capped across full/single-DB/single-collection restore; goes in mongorestore/mongorestore_qa_test.go
 // SERVER-6366
 // relates to SERVER-808
 //

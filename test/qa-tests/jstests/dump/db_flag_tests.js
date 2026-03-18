@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test inserts into two DBs, dumps one with --db, and verifies the other is excluded; goes in mongodump/mongodump_qa_test.go
 if (typeof getToolTest === 'undefined') {
   load('jstests/configs/plain_28.config.js');
 }

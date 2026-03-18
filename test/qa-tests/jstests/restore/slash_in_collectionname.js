@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — special characters in collection names covered by mongorestore_test.go
 // Tests using mongodump/mongorestore to dump/restore data from/to a collection with a slash in its name
 
 (function() {

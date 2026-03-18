@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — add to TestBsondump in bsondump_test.go
 // This test makes sure that certain invalid BSON succeeds or fails
 // with both JSON and debug output types AND --objcheck
 (function() {

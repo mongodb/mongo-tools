@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongoexport_test.go (ReplSetTestType)
 (function() {
   // Tests running mongoexport with --slaveOk.
 

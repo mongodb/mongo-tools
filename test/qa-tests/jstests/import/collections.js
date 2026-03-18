@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongoImportValidateSettings covers basic --file to collection name derivation but not multi-dot filenames, positional args, or --db with positional arg; goes in mongoimport/mongoimport_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

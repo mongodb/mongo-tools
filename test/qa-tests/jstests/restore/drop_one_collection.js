@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies --drop --db --collection only drops the specified collection leaving others untouched; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

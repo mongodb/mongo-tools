@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test does a round-trip with --keepIndexVersion verifying index version values; goes in mongorestore/mongorestore_qa_test.go
 // @tags: [requires_min_mongo_34](
 (function() {
 

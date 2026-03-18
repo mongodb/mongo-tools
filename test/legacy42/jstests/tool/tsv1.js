@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — tsv_test.go covers unit-level TSV parsing but no Go test covers end-to-end TSV import with -f fields and --headerline; goes in mongoimport/mongoimport_test.go
 // tsv1.js
 
 t = new ToolTest("tsv1");

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestMongorestore covers nsFrom/nsTo same-DB rename but not: (1) cross-database restore with --db/--collection, (2) different-DB different-collection, (3) --db/--collection with a direct .bson file path; goes in mongorestore/mongorestore_qa_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

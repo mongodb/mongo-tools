@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test passes invalid targets (file instead of dir, file with --db, dir with --collection) and checks for errors; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

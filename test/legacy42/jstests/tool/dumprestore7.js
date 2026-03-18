@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongorestore_test.go (ReplSetTestType)
 (function() {
 "use strict";
 

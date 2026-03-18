@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies restore of a collection with invalid indexes in metadata.json fails; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

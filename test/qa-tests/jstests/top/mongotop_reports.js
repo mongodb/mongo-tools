@@ -1,3 +1,4 @@
+// MIGRATION: NEW — options_test.go only tests argument parsing; no Go test runs mongotop and verifies namespace activity reporting; goes in mongotop/mongotop_test.go
 // mongotop_reports.js; ensure that running mongotop reports accurately on operations
 // going on in namespaces
 var testName = 'mongotop_reports';

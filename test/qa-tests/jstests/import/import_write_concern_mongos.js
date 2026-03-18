@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongoimport_test.go (ShardedIntegrationTestType)
 // (function() {
 
 //   load("jstests/configs/replset_28.config.js");

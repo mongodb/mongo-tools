@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongofiles_test.go
 // mongofiles_search.js; ensures that the search command returns any and all
 // files that match the regex supplied
 var testName = 'mongofiles_search';

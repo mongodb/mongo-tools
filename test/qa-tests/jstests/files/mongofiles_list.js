@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — list command covered by mongofiles_test.go
 // mongofiles_list.js; tests the mongofiles list option by doing the following:
 //
 // 1. Inserts the mongod/mongo binaries using mongofiles put

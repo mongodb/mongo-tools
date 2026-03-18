@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in common/util test or tool-specific test
 jsTest.log("Testing spaces in mongodump command-line options...");
 
 /**
