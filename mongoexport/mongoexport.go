@@ -67,6 +67,7 @@ type MongoExport struct {
 	ExportOutput    ExportOutput
 
 	ProgressManager progress.Manager
+	version         db.Version
 
 	// Cached version of the collection info
 	collInfo *db.CollectionInfo
@@ -118,6 +119,14 @@ func New(opts Options) (*MongoExport, error) {
 	if err != nil {
 		provider.Close()
 		return nil, util.SetupError{Err: err}
+	}
+
+	exporter.version, err = provider.ServerVersionArray()
+	if err != nil {
+		return nil, util.SetupError{
+			Err:     err,
+			Message: "failed to get server version",
+		}
 	}
 
 	// warn if we are trying to export from a secondary in a sharded cluster
@@ -397,6 +406,14 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	exists, err := exp.verifyCollectionExists()
 	if err != nil || !exists {
 		return 0, err
+	}
+
+	if exp.version.SupportsRawData() &&
+		strings.HasPrefix(exp.ToolOptions.Collection, "system.buckets.") {
+		return 0, fmt.Errorf(
+			"mongoexport does not support exporting system.buckets collections with server versions 8.3+ (detected version: %s)",
+			exp.version,
+		)
 	}
 
 	max, err := exp.getCount()
