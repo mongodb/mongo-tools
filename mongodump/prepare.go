@@ -242,7 +242,6 @@ func (dump *MongoDump) CreateOplogIntents() error {
 // database folder, for the users, roles and version admin database collections
 // And then it adds the intents in to the manager.
 func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
-
 	outDir := dump.outputPath(db, "")
 
 	usersIntent := &intents.Intent{
@@ -347,7 +346,7 @@ func (dump *MongoDump) NewIntentFromOptions(
 			bsonutil.RemoveKey("viewOn", &intent.Options)
 			bsonutil.RemoveKey("pipeline", &intent.Options)
 		}
-		//Set the MetadataFile path.
+		// Set the MetadataFile path.
 		if dump.OutputOptions.Archive != "" {
 			intent.MetadataFile = &archive.MetadataFile{
 				Intent: intent,
@@ -455,6 +454,14 @@ func (dump *MongoDump) GetValidDbs() ([]string, error) {
 	dbs, err := dump.SessionProvider.DatabaseNames()
 	if err != nil {
 		return nil, fmt.Errorf("error getting database names: %v", err)
+	}
+
+	// The server should never send an invalid DB name, but this is here to
+	// guard against path-traversal MITM attacks.
+	for _, dbName := range dbs {
+		if err := util.ValidateDBName(dbName); err != nil {
+			return nil, fmt.Errorf("validating database name %#q: %w", dbName, err)
+		}
 	}
 
 	internalDBs := lo.Filter(
