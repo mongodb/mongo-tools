@@ -15,7 +15,6 @@ import (
 	"os"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -336,7 +335,7 @@ func TestMongoExportTimeseries(t *testing.T) {
 	err = db.Drop(t.Context())
 	require.NoError(t, err)
 
-	setUpTimeseries(t, dbName, collName)
+	testutil.SetUpTimeseries(t, dbName, collName)
 
 	t.Run("export logical documents", func(t *testing.T) {
 		opts, err := simpleMongoExportOpts()
@@ -371,51 +370,4 @@ func TestMongoExportTimeseries(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 10, count)
 	})
-}
-
-func setUpTimeseries(t *testing.T, dbName string, collName string) {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err, "get session provider")
-
-	timeseriesOptions := bson.D{
-		{"timeField", "ts"},
-		{"metaField", "my_meta"},
-	}
-	createCmd := bson.D{
-		{"create", collName},
-		{"timeseries", timeseriesOptions},
-	}
-	var r2 bson.D
-	err = sessionProvider.Run(createCmd, &r2, dbName)
-	require.NoError(t, err, "create timeseries coll")
-
-	coll := sessionProvider.DB(dbName).Collection(collName)
-
-	idx := mongo.IndexModel{
-		Keys: bson.D{{"my_meta.device", 1}},
-	}
-	_, err = coll.Indexes().CreateOne(t.Context(), idx)
-	require.NoError(t, err, "create index 1")
-
-	idx = mongo.IndexModel{
-		Keys: bson.D{{"ts", 1}, {"my_meta.device", 1}},
-	}
-	_, err = coll.Indexes().CreateOne(t.Context(), idx)
-	require.NoError(t, err, "create index 2")
-
-	for i := range 1000 {
-		metadata := bson.M{
-			"device": i % 10,
-		}
-		_, err = coll.InsertOne(
-			t.Context(),
-			bson.M{
-				"ts":          bson.NewDateTimeFromTime(time.Now()),
-				"my_meta":     metadata,
-				"measurement": i,
-			},
-		)
-
-		require.NoError(t, err, "insert ts data (%d)", i)
-	}
 }
