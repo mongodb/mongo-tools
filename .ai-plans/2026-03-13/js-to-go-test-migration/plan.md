@@ -165,21 +165,21 @@ First, read `bsondump/bsondump_test.go` in full to understand existing coverage.
 
 The bsondump tool is invoked as: `bsondump [options] <file>` — call the library: `bsondump.New(opts)` / `bsondump.Dump(writer)`.
 
-- [ ] **Step 1: Convert `all_types.js`** (NEW) — Add `TestBSONDumpAllTypesDebug`. Insert a document with every BSON type into a collection, dump it to a temp file, run bsondump on it, verify output contains the correct `--type=debug` format type labels and BSON type numbers.
+- [x] **Step 1: Convert `all_types.js`** (NEW) — Add `TestBSONDumpAllTypesDebug`. Insert a document with every BSON type into a collection, dump it to a temp file, run bsondump on it, verify output contains the correct `--type=debug` format type labels and BSON type numbers.
 
-- [ ] **Step 2: Convert `all_types_json.js`** (NEW) — Add `TestBSONDumpAllTypesJSON`. Same setup, verify JSON output mode produces correct Extended JSON for all types including binary, regex, decimal128, etc.
+- [x] **Step 2: Convert `all_types_json.js`** (NEW) — Add `TestBSONDumpAllTypesJSON`. Same setup, verify JSON output mode produces correct Extended JSON for all types including binary, regex, decimal128, etc.
 
-- [ ] **Step 3: Convert `bad_files.js`** (EXTEND) — Add sub-cases to `TestBsondump` in `bsondump_test.go`. Write temp files containing: random bytes, truncated BSON, bad cstring, unsupported type byte. Verify bsondump returns an error or continues with `--objcheck` as appropriate.
+- [x] **Step 3: Convert `bad_files.js`** (EXTEND) — Add sub-cases to `TestBsondump` in `bsondump_test.go`. Write temp files containing: random bytes, truncated BSON, bad cstring, unsupported type byte. Verify bsondump returns an error or continues with `--objcheck` as appropriate.
 
-- [ ] **Step 4: Convert `deep_nested.js`** (NEW) — Add `TestBSONDumpDeepNested`. Create a deeply nested document (100+ levels), dump it, bsondump it, verify no stack overflow or error.
+- [x] **Step 4: Convert `deep_nested.js`** (NEW) — Add `TestBSONDumpDeepNested`. Create a deeply nested document (100+ levels), dump it, bsondump it, verify no stack overflow or error.
 
-- [ ] **Step 5: Convert `bsondump_options.js`** (EXTEND) — Add cases to `TestBsondump`. Verify invalid flag combinations return errors; `--type`, `--help`, `--version` flags behave as expected.
+- [x] **Step 5: Convert `bsondump_options.js`** (EXTEND) — Add cases to `TestBsondump`. Verify invalid flag combinations return errors; `--type`, `--help`, `--version` flags behave as expected.
 
-- [ ] **Step 6: Skip `output_file.js`** — Already covered by `TestBsondump` (file output variants).
+- [x] **Step 6: Skip `output_file.js`** — Already covered by `TestBsondump` (file output variants).
 
-- [ ] **Step 7: Skip `bsondump_broken_pipe.js`** — Broken pipe is OS-signal-level, not testable in Go.
+- [x] **Step 7: Skip `bsondump_broken_pipe.js`** — Broken pipe is OS-signal-level, not testable in Go.
 
-- [ ] **Step 8: Run the new tests**
+- [x] **Step 8: Run the new tests**
 
 ```bash
 TOOLS_TESTING_TYPE=integration go test ./bsondump/... -v -run "TestBSONDump" -count=1
@@ -187,7 +187,7 @@ TOOLS_TESTING_TYPE=integration go test ./bsondump/... -v -run "TestBSONDump" -co
 
 Expected: all new tests PASS.
 
-- [ ] **Step 9: Delete the converted JS files**
+- [x] **Step 9: Delete the converted JS files**
 
 ```bash
 rm test/qa-tests/jstests/bson/all_types.js
@@ -199,7 +199,7 @@ rm test/qa-tests/jstests/bson/output_file.js
 rm test/qa-tests/jstests/bson/bsondump_broken_pipe.js
 ```
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add bsondump/bsondump_test.go test/qa-tests/jstests/bson/
