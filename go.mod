@@ -11,7 +11,7 @@ require (
 	github.com/nsf/termbox-go v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	golang.org/x/crypto v0.45.0 // indirect
