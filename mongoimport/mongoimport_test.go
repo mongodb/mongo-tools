@@ -24,6 +24,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -422,6 +424,15 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.ToolOptions.Collection = ""
 			So(imp.validateSettings(), ShouldBeNil)
 			So(imp.ToolOptions.Collection, ShouldEqual, "input")
+		})
+
+		Convey("an error should be thrown with a system. collection", func() {
+			imp := NewMockMongoImport()
+			imp.InputOptions.File = "input"
+			imp.InputOptions.HeaderLine = true
+			imp.InputOptions.Type = CSV
+			imp.ToolOptions.Collection = "system.buckets.foo"
+			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 
 		Convey(
@@ -1522,4 +1533,52 @@ func TestImportMIOSOE(t *testing.T) {
 	})
 
 	_ = database.Drop(t.Context())
+}
+
+func TestTimeseriesImport(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "no cluster available")
+
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err, "no client available")
+
+	fcv := testutil.GetFCV(client)
+	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
+		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
+	}
+
+	db := client.Database(testDb)
+	cleanup := func() {
+		err := db.Drop(t.Context())
+		require.NoError(t, err)
+	}
+
+	cleanup()
+	defer cleanup()
+
+	collName := "tscoll"
+
+	createCmd := bson.D{
+		{"create", collName},
+		{"timeseries", bson.D{
+			{"timeField", "ts"},
+			{"metaField", "my_meta"},
+		}},
+	}
+	var r2 bson.D
+	err = sessionProvider.Run(createCmd, &r2, testDb)
+	require.NoError(t, err, "create timeseries coll")
+
+	imp, err := NewMongoImport()
+	require.NoError(t, err)
+	imp.IngestOptions.Mode = modeInsert
+	imp.InputOptions.File = "testdata/test_timeseries.json"
+	imp.ToolOptions.DB = testDb
+	imp.ToolOptions.Collection = collName
+
+	numProcessed, _, err := imp.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, numProcessed)
 }
