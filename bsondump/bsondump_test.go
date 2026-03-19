@@ -9,14 +9,17 @@ package bsondump
 import (
 	"bytes"
 	"crypto/rand"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -258,6 +261,197 @@ func testFromFileWithPositionalArgumentToFile(t *testing.T) {
 	bufDumpStr := bufDump.String()
 
 	require.Equal(bufRefStr, bufDumpStr)
+}
+
+// TestBsondumpAllTypesDebug verifies that bsondump --type=debug outputs the correct BSON type
+// numbers for all non-deprecated BSON types.
+func TestBsondumpAllTypesDebug(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	out, err := runBsondump("--type=debug", "testdata/all_types.bson")
+	require.NoError(t, err, "bsondump should exit successfully with --type=debug")
+
+	assert.Equal(
+		t,
+		22,
+		strings.Count(out, "--- new object ---"),
+		"should find all 22 documents in all_types.bson",
+	)
+
+	for _, typeNum := range []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 18, -1, 127} {
+		re := regexp.MustCompile(fmt.Sprintf(`type:\s+%d`, typeNum))
+		assert.Regexp(t, re, out, "expected type %d in debug output", typeNum)
+	}
+}
+
+// TestBsondumpAllTypesJSON verifies that bsondump --type=json correctly serializes all
+// non-deprecated BSON types to Extended JSON.
+func TestBsondumpAllTypesJSON(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	oid, err := bson.ObjectIDFromHex("507f1f77bcf86cd799439011")
+	require.NoError(t, err)
+	dec, err := bson.ParseDecimal128("1.2E+10")
+	require.NoError(t, err)
+
+	doc := bson.D{
+		{"double", 2.0},
+		{"string", "hi"},
+		{"doc", bson.D{{"x", int32(1)}}},
+		{"arr", bson.A{int32(1), int32(2)}},
+		{"binary", bson.Binary{Subtype: 0x00, Data: []byte{0xff, 0xff}}},
+		{"oid", oid},
+		{"bool", true},
+		{"date", bson.DateTime(978312200000)},
+		{"code", bson.CodeWithScope{Code: "hi", Scope: bson.D{{"x", int32(1)}}}},
+		{"ts", bson.Timestamp{T: 1, I: 2}},
+		{"int32", int32(5)},
+		{"int64", int64(6)},
+		{"dec", dec},
+		{"minkey", bson.MinKey{}},
+		{"maxkey", bson.MaxKey{}},
+		{"regex", bson.Regex{Pattern: "^abc", Options: "imx"}},
+		{"symbol", bson.Symbol("i am a symbol")},
+		{"undefined", bson.Undefined{}},
+		{"dbpointer", bson.DBPointer{DB: "some.namespace", Pointer: oid}},
+		{"null", bson.Null{}},
+	}
+
+	bsonData, err := bson.Marshal(doc)
+	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(t.TempDir(), "all_types_*.bson")
+	require.NoError(t, err)
+	_, err = tmpFile.Write(bsonData)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	expectedJSON, err := bson.MarshalExtJSON(doc, true, false)
+	require.NoError(t, err)
+
+	out, err := runBsondump("--type=json", tmpFile.Name())
+	require.NoError(t, err, "bsondump should exit successfully with 0")
+
+	assert.Contains(
+		t,
+		out,
+		"1 objects found",
+		"should print out all top-level documents from the test data",
+	)
+
+	var jsonLine string
+	for line := range strings.Lines(out) {
+		if strings.Contains(line, "$oid") {
+			jsonLine = line
+			break
+		}
+	}
+	require.NotEmpty(t, jsonLine, "should find a JSON output line containing Extended JSON")
+	assert.JSONEq(t, string(expectedJSON), jsonLine)
+}
+
+// TestBsondumpDeepNested verifies bsondump handles deeply nested BSON
+// documents without error in both JSON and debug modes.
+func TestBsondumpDeepNested(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	_, err := runBsondump("--type=json", "testdata/deep_nested.bson")
+	assert.NoError(t, err, "bsondump should handle deeply nested documents in JSON mode")
+
+	_, err = runBsondump("--type=debug", "testdata/deep_nested.bson")
+	assert.NoError(t, err, "bsondump should handle deeply nested documents in debug mode")
+}
+
+// TestBsondumpBadFiles verifies bsondump error handling for malformed BSON
+// input with and without --objcheck.
+func TestBsondumpBadFiles(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	badFiles := []string{
+		"testdata/bad_cstring.bson",
+		"testdata/bad_type.bson",
+		"testdata/invalid_field_name.bson",
+		"testdata/partial_file.bson",
+		"testdata/random_bytes.bson",
+	}
+	for _, f := range badFiles {
+		_, err := runBsondump("--objcheck", f)
+		assert.Error(t, err, "--objcheck %s should exit with error", f)
+
+		_, err = runBsondump("--objcheck", "--type=debug", f)
+		assert.Error(t, err, "--objcheck --type=debug %s should exit with error", f)
+	}
+
+	_, err := runBsondump("--objcheck", "testdata/broken_array.bson")
+	assert.NoError(t, err, "--objcheck broken_array.bson should succeed")
+
+	_, err = runBsondump("--objcheck", "--type=debug", "testdata/broken_array.bson")
+	assert.NoError(t, err, "--objcheck --type=debug broken_array.bson should succeed")
+
+	out, err := runBsondump("testdata/bad_cstring.bson")
+	assert.NoError(t, err, "bad_cstring.bson without --objcheck should not error")
+	assert.Contains(
+		t,
+		out,
+		"unable to dump document",
+		"bad_cstring.bson should report a corrupted document in output",
+	)
+}
+
+// TestBsondumpOptionValidation verifies bsondump accepts valid options and
+// rejects invalid ones.
+func TestBsondumpOptionValidation(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	t.Run("invalid --type fails", func(t *testing.T) {
+		_, err := runBsondump("--type=fake", "testdata/sample.bson")
+		assert.Error(t, err)
+	})
+	t.Run("nonexistent file fails", func(t *testing.T) {
+		_, err := runBsondump("testdata/does_not_exist.bson")
+		assert.Error(t, err)
+	})
+	t.Run("--noobjcheck fails", func(t *testing.T) {
+		_, err := runBsondump("--noobjcheck", "testdata/sample.bson")
+		assert.Error(t, err)
+	})
+	t.Run("--collection fails", func(t *testing.T) {
+		_, err := runBsondump("--collection", "testdata/sample.bson")
+		assert.Error(t, err)
+	})
+	t.Run("multiple positional args fails", func(t *testing.T) {
+		_, err := runBsondump("testdata/sample.bson", "testdata/sample.bson")
+		assert.Error(t, err)
+	})
+	t.Run("--bsonFile with extra positional arg fails", func(t *testing.T) {
+		_, err := runBsondump("--bsonFile", "testdata/sample.bson", "testdata/sample.bson")
+		assert.Error(t, err)
+	})
+	t.Run("-vvvv succeeds", func(t *testing.T) {
+		_, err := runBsondump("-vvvv", "testdata/sample.bson")
+		assert.NoError(t, err)
+	})
+	t.Run("--verbose succeeds", func(t *testing.T) {
+		_, err := runBsondump("--verbose", "testdata/sample.bson")
+		assert.NoError(t, err)
+	})
+	t.Run("--quiet suppresses status but still outputs data", func(t *testing.T) {
+		out, err := runBsondump("--quiet", "testdata/sample.bson")
+		assert.NoError(t, err)
+		assert.Contains(t, out, "I am a string",
+			"JSON content should still be output with --quiet")
+		assert.NotContains(t, out, "objects found",
+			"status line should be suppressed by --quiet")
+	})
+	t.Run("--help succeeds and prints usage", func(t *testing.T) {
+		out, err := runBsondump("--help")
+		assert.NoError(t, err)
+		assert.Contains(t, out, "Usage")
+	})
+	t.Run("--version succeeds and prints version", func(t *testing.T) {
+		out, err := runBsondump("--version")
+		assert.NoError(t, err)
+		assert.Contains(t, out, "version")
+	})
 }
 
 func bsondumpCommand(args ...string) *exec.Cmd {
