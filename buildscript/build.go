@@ -29,6 +29,7 @@ var pkgNames = []string{
 	"mongofiles",
 	"common",
 	"release",
+	"integration",
 }
 
 func getMinimumGoVersion(ctx *task.Context) (string, error) {
@@ -96,7 +97,7 @@ func CheckMinimumGoVersion(ctx *task.Context) error {
 // BuildTools is an Executor that builds the tools.
 func BuildTools(ctx *task.Context) error {
 	for _, pkg := range selectedPkgs(ctx) {
-		if pkg != "common" && pkg != "release" {
+		if pkg != "common" && pkg != "release" && pkg != "integration" {
 			err := buildToolBinary(ctx, pkg, "bin")
 			if err != nil {
 				return err
