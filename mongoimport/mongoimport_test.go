@@ -9,6 +9,7 @@ package mongoimport
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -23,7 +24,10 @@ import (
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
+	"github.com/mongodb/mongo-tools/mongoexport"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -1522,4 +1526,77 @@ func TestImportMIOSOE(t *testing.T) {
 	})
 
 	_ = database.Drop(t.Context())
+}
+
+// TestRoundTripBasicData verifies that data exported by mongoexport can be
+// fully restored by mongoimport with all documents intact (from basic_data.js).
+func TestRoundTripBasicData(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_basic_test"
+	const collName = "data"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	var docs []bson.D
+	for i := range 50 {
+		docs = append(docs, bson.D{{"_id", int32(i)}})
+	}
+	_, err = coll.InsertMany(t.Context(), docs)
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	require.NoError(t, coll.Drop(t.Context()))
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &InputOptions{File: tmpFile.Name()},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 50, imported, "should import all 50 documents")
+
+	count, err := coll.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 50, count, "collection should have all 50 documents after round-trip")
+
+	for i := range int32(50) {
+		c, err := coll.CountDocuments(t.Context(), bson.D{{"_id", i}})
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, c, "document with _id %d should exist after round-trip", i)
+	}
 }
