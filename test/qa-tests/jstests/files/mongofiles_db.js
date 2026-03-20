@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies --db routes files to the correct non-default database; goes in mongofiles/mongofiles_test.go
 // mongofiles_db.js; ensure that running mongofiles using the db flag works as
 // expected
 var testName = 'mongofiles_db';

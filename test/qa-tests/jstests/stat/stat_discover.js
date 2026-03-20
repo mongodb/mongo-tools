@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — test is disabled per TOOLS-3018
 /* TODO: fix and re-enable test, see TOOLS-3018
 (function() {
   if (typeof getToolTest === 'undefined') {

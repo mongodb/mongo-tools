@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies round-trip export-then-import of Decimal128 through Extended JSON; goes in mongoimport/mongoimport_test.go
 (function() {
   // skip this test where NumberDecimal is unsupported (3.2 and earlier)
   if (typeof NumberDecimal === 'undefined') {

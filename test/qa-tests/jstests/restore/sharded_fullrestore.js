@@ -1,3 +1,4 @@
+// MIGRATION: NEW — requires sharded cluster; goes in mongorestore/mongorestore_qa_test.go (ShardedIntegrationTestType)
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/sharding_28.config.js');

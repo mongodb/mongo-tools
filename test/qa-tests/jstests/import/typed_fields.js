@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — typed_fields_test.go covers header parsing and field parsers at unit level but no Go test covers end-to-end --columnsHaveTypes import verifying actual database contents; goes in mongoimport/mongoimport_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

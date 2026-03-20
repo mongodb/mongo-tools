@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — dumprestore_auth_test.go covers auth restore
 /* SERVER-4972
  * Test for mongorestore on server with --auth allows restore without credentials of colls
  * with no index

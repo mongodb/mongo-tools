@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies JSON serialization of all BSON types (binary, regex, decimal128, etc.); goes in bsondump/bsondump_test.go
 // This test runs bsondump on a .bson file containing non-deprecated BSON types
 // and makes sure their JSON type representations exist in the output.
 (function() {

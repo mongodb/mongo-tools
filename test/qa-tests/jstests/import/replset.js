@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongoimport_test.go (ReplSetTestType)
 (function() {
   jsTest.log('Testing running import with upserts');
 

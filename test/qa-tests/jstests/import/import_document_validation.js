@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test creates a validated collection and tests import rejection, --bypassDocumentValidation, or --stopOnError with validation errors; goes in mongoimport/mongoimport_test.go
 /**
  * import_document_validation.js
  *

@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestRestoreUsersOrRoles covers tempusers cleanup but no Go test exercises --tempUsersColl and --tempRolesColl custom temp collection name options; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

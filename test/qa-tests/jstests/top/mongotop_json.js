@@ -1,3 +1,4 @@
+// MIGRATION: NEW — options_test.go only tests argument parsing; no Go test runs mongotop and verifies JSON output; goes in mongotop/mongotop_test.go
 // mongotop_json.js; ensure that running mongotop using the --json flag works as
 // expected
 var testName = 'mongotop_json';

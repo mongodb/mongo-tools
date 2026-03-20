@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test exports various BSON types (ObjectId, BinData, ISODate, Timestamp, Regex, function) to CSV and verifies formatting; goes in mongoexport/mongoexport_test.go
 // csvexport1.js
 
 t = new ToolTest("csvexport1");

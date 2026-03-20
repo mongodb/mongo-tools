@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — test is disabled per TOOLS-2661
 /* Disabled: see TOOLS-2661
 (function() {
   // This test makes sure that mongodump does not do secondary reads when talking to a mongos.

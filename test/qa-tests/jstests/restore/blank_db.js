@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test restores from an empty directory with --db; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

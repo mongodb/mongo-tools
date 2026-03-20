@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers end-to-end export-then-import round-trip of basic data; goes in mongoexport/mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

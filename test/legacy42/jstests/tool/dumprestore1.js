@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — basic dump/restore covered but missing --collection without --db error (SERVER-7721) and --dir - without --db --collection error; goes in mongodump/mongodump_qa_test.go
 // dumprestore1.js
 
 t = new ToolTest("dumprestore1");

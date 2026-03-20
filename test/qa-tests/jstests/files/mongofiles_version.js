@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — standard --version flag, not mongo-specific
 // mongofiles_version.js; ensure that getting the version works without error
 var testName = 'mongofiles_version';
 load('jstests/files/util/mongofiles_common.js');

@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in new stress test file in mongotop package
 // mongotop_stress.js; ensure that running mongotop, even when the server is
 // under heavy load, works as expected
 var testName = 'mongotop_stress';

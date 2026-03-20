@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test passes nonexistent paths (directory, with --db, with --collection) and verifies error; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies --sort and --skip correctly affect export output; goes in mongoexport/mongoexport_test.go
 (function() {
 
   if (typeof getToolTest === "undefined") {

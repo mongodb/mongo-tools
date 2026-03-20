@@ -1,3 +1,4 @@
+// MIGRATION: SKIP — --drop flag covered by mongoimport_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

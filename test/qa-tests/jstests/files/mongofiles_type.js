@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongofiles_test.go
 // mongofiles_type.js; ensure that the given content type is stored when passed
 // as the --type argument. If no argument is passed, it should be omitted in the
 // database.

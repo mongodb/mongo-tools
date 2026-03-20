@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — json_test.go TestJSONArray covers format but no Go test covers end-to-end --jsonArray export/import with 5 documents; goes in mongoexport/mongoexport_test.go
 // exportimport3.js
 
 t = new ToolTest("exportimport3");

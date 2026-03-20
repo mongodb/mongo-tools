@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test validates --prefix routing files to a custom GridFS collection; goes in mongofiles/mongofiles_test.go
 // mongofiles_prefix.js; ensure that passing --prefix works as expected - the
 // provided prefix is used as the collection name prefix
 var testName = 'mongofiles_prefix';

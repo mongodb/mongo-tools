@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests cover --nsExclude, --nsInclude, --nsFrom/--nsTo but not --excludeCollectionsWithPrefix or complex pattern variables; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

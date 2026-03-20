@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test verifies round-trip export-then-import preserving all BSON types (BinData, Boolean, Array, embedded doc, NumberLong, MinKey, MaxKey, ISODate, DBRef, etc.); goes in mongoimport/mongoimport_test.go
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

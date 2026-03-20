@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — every Go restore test uses valid BSON implicitly, but no Go test explicitly passes --objcheck and verifies the flag is accepted and restore succeeds; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   load("jstests/configs/standard_dump_targets.config.js");

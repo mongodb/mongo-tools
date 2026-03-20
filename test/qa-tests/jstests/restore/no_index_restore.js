@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests use --noIndexRestore only in timeseries context; no Go test verifies the general case on normal collections; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

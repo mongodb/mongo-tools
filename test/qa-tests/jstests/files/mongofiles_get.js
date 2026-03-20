@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — Go tests cover get and get_id to file but not get-to-stdout (--local -); goes in mongofiles/mongofiles_test.go
 // mongofiles_get.js; ensure that get command works as expected
 var testName = 'mongofiles_get';
 (function() {

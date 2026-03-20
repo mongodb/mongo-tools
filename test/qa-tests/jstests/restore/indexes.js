@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestCreateIndexes tests hashed indexes but no Go test creates and round-trips sparse, unique, compound, text, and 2dsphere indexes; goes in mongorestore/mongorestore_qa_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {

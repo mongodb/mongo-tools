@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — add to csv_test.go for nested field handling
 (function() {
 
   if (typeof getToolTest === "undefined") {

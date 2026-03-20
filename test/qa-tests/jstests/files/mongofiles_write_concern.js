@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongofiles_test.go (ReplSetTestType)
 (function() {
   if (typeof getToolTest === 'undefined') {
     load('jstests/configs/plain_28.config.js');

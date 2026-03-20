@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go coverage, goes in mongotop package integration test (ShardedIntegrationTestType)
 // mongotop_sharded.js; ensure that running mongotop against a sharded cluster
 // fails with a useful error message
 var testName = 'mongotop_sharded';

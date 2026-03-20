@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestUnversionedIndexes covers v:0 index restoration but --keepIndexVersion scenario is commented out per TOOLS-3020; verify TestUnversionedIndexes covers this test's assertions before deleting; goes in mongorestore/mongorestore_qa_test.go
 // Test restoring from a dump with v:0 indexes.
 // mongodump strips the 'v' property from the index specification by default.  When using
 // --keepIndexVersion, the 'v' property is not stripped, but index creation will fail.

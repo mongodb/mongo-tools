@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers --sort, --skip, --limit on export against real data; goes in mongoexport/mongoexport_test.go
 // exportimport6.js
 // test export with skip, limit and sort
 

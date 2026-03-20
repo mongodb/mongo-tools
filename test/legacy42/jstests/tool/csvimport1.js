@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — csv_test.go covers parsing but no Go test covers end-to-end import of multiline CSV with embedded quotes, empty strings, and leading/trailing whitespace; goes in mongoimport/mongoimport_test.go
 // csvimport1.js
 
 t = new ToolTest("csvimport1");

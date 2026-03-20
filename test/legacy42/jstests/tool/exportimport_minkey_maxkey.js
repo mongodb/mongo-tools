@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test covers MinKey/MaxKey as _id values surviving export/import round-trip; goes in mongoexport/mongoexport_test.go
 var tt = new ToolTest('exportimport_minkey_maxkey_test');
 
 var exportimport_db = tt.startDB();

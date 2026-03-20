@@ -1,3 +1,4 @@
+// MIGRATION: NEW — no Go test validates --host behavior (valid hosts succeed, invalid hosts fail); goes in mongofiles/mongofiles_test.go
 // mongofiles_host.js; ensure that running mongofiles using valid and invalid
 // host names or IP addresses succeeds/fails as expected
 var testName = 'mongofiles_host';

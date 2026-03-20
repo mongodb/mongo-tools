@@ -1,3 +1,4 @@
+// MIGRATION: EXTEND — TestDumpRestoreSingleDBWithDBUsersAndRoles covers the main round-trip but TestRestoreUsersOrRoles only covers tempusers cleanup; goes in mongorestore/dumprestore_auth_test.go
 (function() {
 
   if (typeof getToolTest === 'undefined') {
