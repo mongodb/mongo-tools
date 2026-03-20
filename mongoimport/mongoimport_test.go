@@ -424,6 +424,15 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			So(imp.ToolOptions.Collection, ShouldEqual, "input")
 		})
 
+		Convey("an error should be thrown with a system. collection", func() {
+			imp := NewMockMongoImport()
+			imp.InputOptions.File = "input"
+			imp.InputOptions.HeaderLine = true
+			imp.InputOptions.Type = CSV
+			imp.ToolOptions.Collection = "system.buckets.foo"
+			So(imp.validateSettings(), ShouldNotBeNil)
+		})
+
 		Convey(
 			"error should be thrown if --legacy is specified and input type is not JSON",
 			func() {

@@ -10,6 +10,7 @@ package testutil
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
@@ -291,4 +292,20 @@ func SkipForAtlasCluster(t *testing.T, reason string) {
 			)
 		}
 	}
+}
+
+// WriteTempFile writes the contents of r to a tempfile, then hands you back the (closed) file.
+func WriteTempFile(t *testing.T, r io.Reader) *os.File {
+	file, err := os.CreateTemp("", "toolstest_")
+	require.NoError(t, err)
+
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+
+	n, err := file.Write(data)
+	require.NoError(t, err, "write file")
+	require.Equal(t, len(data), n, "write all data to file")
+	require.NoError(t, file.Close())
+
+	return file
 }

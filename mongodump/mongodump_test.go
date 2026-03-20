@@ -269,53 +269,6 @@ func setUpMongoDumpTestData(t *testing.T) error {
 	return nil
 }
 
-func setUpTimeseries(t *testing.T, dbName string, colName string) {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err, "get session provider")
-
-	timeseriesOptions := bson.D{
-		{"timeField", "ts"},
-		{"metaField", "my_meta"},
-	}
-	createCmd := bson.D{
-		{"create", colName},
-		{"timeseries", timeseriesOptions},
-	}
-	var r2 bson.D
-	err = sessionProvider.Run(createCmd, &r2, dbName)
-	require.NoError(t, err, "create timeseries coll")
-
-	coll := sessionProvider.DB(dbName).Collection(colName)
-
-	idx := mongo.IndexModel{
-		Keys: bson.D{{"my_meta.device", 1}},
-	}
-	_, err = coll.Indexes().CreateOne(t.Context(), idx)
-	require.NoError(t, err, "create index 1")
-
-	idx = mongo.IndexModel{
-		Keys: bson.D{{"ts", 1}, {"my_meta.device", 1}},
-	}
-	_, err = coll.Indexes().CreateOne(t.Context(), idx)
-	require.NoError(t, err, "create index 2")
-
-	for i := range 1000 {
-		metadata := bson.M{
-			"device": i % 10,
-		}
-		_, err = coll.InsertOne(
-			t.Context(),
-			bson.M{
-				"ts":          bson.NewDateTimeFromTime(time.Now()),
-				"my_meta":     metadata,
-				"measurement": i,
-			},
-		)
-
-		require.NoError(t, err, "insert ts data (%d)", i)
-	}
-}
-
 func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	require.NoError(t, err, "get session provider")
@@ -1825,7 +1778,7 @@ func TestTimeseriesCollections(t *testing.T) {
 
 	colName := "timeseriesColl"
 	dbName := "timeseries_test_DB"
-	setUpTimeseries(t, dbName, colName)
+	testutil.SetUpTimeseries(t, dbName, colName)
 
 	defer func() {
 		err := dropDB(t, dbName)
