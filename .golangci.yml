@@ -49,7 +49,7 @@ linters:
         path: \.go$
         text: is deprecated
       - path: (.+)\.go$
-        text: "composites: .+(primitive.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
+        text: "composites: .+(bson.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
     paths:
       - third_party$
       - builtin$
