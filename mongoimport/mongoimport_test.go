@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -1598,5 +1599,97 @@ func TestRoundTripBasicData(t *testing.T) {
 		c, err := coll.CountDocuments(t.Context(), bson.D{{"_id", i}})
 		require.NoError(t, err)
 		assert.EqualValues(t, 1, c, "document with _id %d should exist after round-trip", i)
+	}
+}
+
+// TestRoundTripDataTypes verifies that documents with diverse BSON types
+// survive an export-then-import round-trip intact (from data_types.js).
+func TestRoundTripDataTypes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_datatypes_test"
+	const collName = "data"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	docs := []any{
+		bson.D{{"num", int32(1)}},
+		bson.D{{"flt", 1.0}},
+		bson.D{{"str", "1"}},
+		bson.D{{"obj", bson.D{{"a", int32(1)}}}},
+		bson.D{{"arr", bson.A{int32(0), int32(1)}}},
+		bson.D{{"bd", bson.Binary{Subtype: 0x00, Data: []byte{0xd7, 0x6d, 0xf8}}}},
+		bson.D{
+			{
+				"date",
+				bson.NewDateTimeFromTime(time.Date(2009, 8, 27, 12, 34, 56, 789000000, time.UTC)),
+			},
+		},
+		bson.D{{"ts", bson.Timestamp{T: 1234, I: 5678}}},
+		bson.D{{"rx", bson.Regex{Pattern: `foo*"bar"`, Options: "i"}}},
+	}
+	_, err = coll.InsertMany(t.Context(), docs)
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	require.NoError(t, coll.Drop(t.Context()))
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &InputOptions{File: tmpFile.Name()},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 9, imported, "should import all 9 documents")
+
+	count, err := coll.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 9, count, "collection should have all 9 documents after round-trip")
+
+	for _, q := range []bson.D{
+		{{"num", int32(1)}},
+		{{"flt", 1.0}},
+		{{"str", "1"}},
+		{{"obj", bson.D{{"a", int32(1)}}}},
+		{{"arr", bson.A{int32(0), int32(1)}}},
+		{{"rx", bson.D{{"$exists", true}}}},
+	} {
+		c, err := coll.CountDocuments(t.Context(), q)
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, c, "document matching %v should exist after round-trip", q)
 	}
 }
