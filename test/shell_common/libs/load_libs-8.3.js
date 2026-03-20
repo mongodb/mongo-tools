@@ -20,6 +20,8 @@ globalThis.ShardingTest = ShardingTest
 var __origRawMongoProgramOutput = rawMongoProgramOutput;
 rawMongoProgramOutput = function() { return __origRawMongoProgramOutput('.*') };
 
+// This function is copied from an earlier version of the server JS tests; it was
+// removed in SERVER-109431 as dead code because nothing in the server was using it.
 ToolTest.prototype.runTool = function () {
     let a = ["mongo" + arguments[0]];
 
