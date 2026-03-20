@@ -8,6 +8,16 @@
 
 **Tech Stack:** Go, `github.com/stretchr/testify`, `go.mongodb.org/mongo-driver/v2`, `github.com/mongodb/mongo-tools/common/testtype`, `github.com/mongodb/mongo-tools/common/testutil`
 
+**Conversion process (one file at a time):**
+1. Convert one JS file to Go
+2. Explain how the new test covers the same behavior as the JS test
+3. Prompt for review before deleting the JS file
+4. Delete the JS file
+5. Mark the file as done in this plan (check the box)
+6. Round-trip tests (export+import or dump+restore) go in the **mongoimport** or **mongorestore** package respectively, not in mongoexport/mongodump
+
+**Round-trip test requirement:** The collection/database MUST be dropped between the export/dump and the import/restore steps. Without this, the verification queries against both the original and restored data, making it impossible to detect a broken import/restore.
+
 ---
 
 ## Reference: Go Integration Test Pattern
@@ -240,7 +250,7 @@ Read the existing `mongoexport_test.go` (331 lines — relatively short), `csv_t
 
 The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, then call `export.ExpManager.Open()` and `export.Export(writer)`.
 
-- [ ] **Step 1: Convert `basic_data.js`** (NEW) — `TestExportImportBasicRoundtrip`: insert documents, export to buffer, import back, verify document count and values match.
+- [x] **Step 1: Convert `basic_data.js`** (NEW) — `TestRoundTripBasicData` in `mongoimport/mongoimport_test.go`: inserts 50 `{_id: N}` docs, exports to a temp file via mongoexport, drops the collection, imports via mongoimport, then verifies count == 50 and each `_id 0..49` exists.
 
 - [ ] **Step 2: Convert `data_types.js`** (NEW) — `TestExportDataTypes`: insert documents with int, float, string, subdoc, array, BinData, ISODate, Timestamp, Regex; verify export contains correct Extended JSON representations.
 
