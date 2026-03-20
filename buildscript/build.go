@@ -121,6 +121,13 @@ func TestIntegration(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
 }
 
+// TestShardedIntegration runs tests that require a sharded cluster (mongos) topology.
+// It sets only ShardedIntegrationTestType, intentionally not setting IntegrationTestType,
+// so regular integration tests (which expect a standalone mongod) are not run against mongos.
+func TestShardedIntegration(ctx *task.Context) error {
+	return runTests(ctx, selectedPkgs(ctx), testtype.ShardedIntegrationTestType)
+}
+
 // TestAWSAuth is an Executor that runs all AWS auth tests for the provided packages.
 func TestAWSAuth(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.AWSAuthTestType)
@@ -189,6 +196,9 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 		}
 		if ctx.Get("topology") == "replSet" {
 			env = append(env, testtype.ReplSetTestType+"=true")
+		}
+		if ctx.Get("topology") == "sharded" {
+			env = append(env, testtype.ShardedIntegrationTestType+"=true")
 		}
 
 		if ctx.Get("race") == "true" {
