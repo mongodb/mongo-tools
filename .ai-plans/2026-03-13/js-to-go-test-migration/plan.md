@@ -252,7 +252,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 1: Convert `basic_data.js`** (NEW) — `TestRoundTripBasicData` in `mongoimport/mongoimport_test.go`: inserts 50 `{_id: N}` docs, exports to a temp file via mongoexport, drops the collection, imports via mongoimport, then verifies count == 50 and each `_id 0..49` exists.
 
-- [ ] **Step 2: Convert `data_types.js`** (NEW) — `TestExportDataTypes`: insert documents with int, float, string, subdoc, array, BinData, ISODate, Timestamp, Regex; verify export contains correct Extended JSON representations.
+- [x] **Step 2: Convert `data_types.js`** (NEW) — `TestRoundTripDataTypes` in `mongoimport/mongoimport_test.go`: inserts 9 documents covering int, float, string, subdocument, array, BinData, ISODate, Timestamp, and Regex; exports to temp file; drops collection; imports via mongoimport; asserts count == 9 and each typed document can be found by value (Regex via `$exists`).
 
 - [ ] **Step 3: Convert `export_views.js`** (NEW) — `TestExportViews`: create a MongoDB view with a pipeline, export it, verify exported data matches the view's pipeline output.
 
