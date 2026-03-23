@@ -2272,8 +2272,7 @@ func TestRoundTripLimit(t *testing.T) {
 }
 
 // TestRoundTripNestedFieldsCSV verifies that mongoexport correctly exports
-// nested dotted field paths to CSV and that mongoimport restores them
-// (from nested_fields_csv.js).
+// nested dotted field paths to CSV and that mongoimport restores them.
 func TestRoundTripNestedFieldsCSV(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
