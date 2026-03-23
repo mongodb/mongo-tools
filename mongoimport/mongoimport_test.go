@@ -2551,3 +2551,78 @@ func TestRoundTripSortAndSkip(t *testing.T) {
 		assert.EqualValues(t, 1, c, "document with a=%d should exist", i+20)
 	}
 }
+
+// TestImportBooleanType verifies that mongoimport correctly imports legacy
+// JSON with Boolean() constructor syntax using --legacy (from boolean_type.js).
+func TestImportBooleanType(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_booleantype_test"
+	const collName = "testcollbool"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	entries := []struct{ key, expr string }{
+		{"a", "Boolean(1)"},
+		{"b", "Boolean(0)"},
+		{"c", "Boolean(140)"},
+		{"d", "Boolean(-140.5)"},
+		{"e", "Boolean(Boolean(1))"},
+		{"f", "Boolean(Boolean(0))"},
+		{"g", "Boolean('')"},
+		{"h", "Boolean('f')"},
+		{"i", "Boolean(null)"},
+		{"j", "Boolean(undefined)"},
+		{"k", "Boolean(true)"},
+		{"l", "Boolean(false)"},
+		{"m", "Boolean(true, false)"},
+		{"n", "Boolean(false, true)"},
+		{"o", "[ Boolean(1), Boolean(0), Date(23) ]"},
+		{"p", "Boolean(Date(15))"},
+		{"q", "Boolean(0x585)"},
+		{"r", "Boolean(0x0)"},
+		{"s", "Boolean()"},
+	}
+
+	// This isn't actually valid JSON that we're generating. It's a JSON-ish format that the legacy
+	// shell generated and that mongoimport supports with the `--legacy` flag.
+	tmpFile, err := os.CreateTemp(t.TempDir(), "boolean-*.json")
+	require.NoError(t, err)
+	for _, e := range entries {
+		_, err = fmt.Fprintf(tmpFile, "{ key: '%s', bool: %s }\n", e.key, e.expr)
+		require.NoError(t, err)
+	}
+	require.NoError(t, tmpFile.Close())
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions: importToolOptions,
+		InputOptions: &InputOptions{
+			File:       tmpFile.Name(),
+			ParseGrace: "stop",
+			Legacy:     true,
+		},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, len(entries), imported, "should import all documents")
+
+	coll := client.Database(dbName).Collection(collName)
+	for _, e := range entries {
+		n, err := coll.CountDocuments(t.Context(), bson.D{{"key", e.key}})
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, n, "document with key=%q should exist", e.key)
+	}
+}

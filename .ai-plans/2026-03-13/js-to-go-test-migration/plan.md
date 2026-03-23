@@ -337,7 +337,7 @@ Read `mongoimport_test.go` (1525 lines), `csv_test.go`, `json_test.go`, `tsv_tes
 
 The mongoimport API: `mongoimport.MongoImport{ToolOptions: opts, IngestOptions: ingestOpts, InputOptions: inputOpts}`, then `mi.ImportDocuments()`.
 
-- [ ] **Step 1: Convert `boolean_type.js`** (NEW) — `TestImportBooleanType`: import a JSON file with `Boolean()` objects, verify they round-trip as BSON booleans.
+- [x] **Step 1: Convert `boolean_type.js`** (NEW) — `TestImportBooleanType` in `mongoimport/mongoimport_test.go`: generates 19 legacy JSON lines with `Boolean()` expressions, imports with `--legacy`, verifies each keyed document exists.
 
 - [ ] **Step 2: Convert `collections.js`** (EXTEND) — Add cases to `TestMongoImportValidateSettings` covering: multi-dot filenames, positional arguments for collection name, `--db` combined with positional arg.
 
