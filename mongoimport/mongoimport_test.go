@@ -1997,3 +1997,113 @@ func exportCSVAndImport(t *testing.T, dbName, exportFields string, db *mongo.Dat
 	_, _, err = mi.ImportDocuments()
 	require.NoError(t, err)
 }
+
+// TestRoundTripFieldsJSON verifies that mongoexport --fields limits which fields
+// appear in JSON export output, and that _id is included (unlike CSV).
+func TestRoundTripFieldsJSON(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_fieldsjson_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	db := client.Database(dbName)
+	_, err = db.Collection("source").InsertMany(t.Context(), []any{
+		bson.D{{"a", 1}},
+		bson.D{{"a", 1}, {"b", 1}},
+		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
+	})
+	require.NoError(t, err)
+
+	exportJSONAndImport(t, dbName, "a", db)
+	dest := db.Collection("dest")
+	n, err := dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, n, "3 documents should have a=1")
+	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, n, "b=1 should not have been exported")
+	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, n, "b=2 should not have been exported")
+	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, n, "c=3 should not have been exported")
+
+	exportJSONAndImport(t, dbName, "a,b,c", db)
+	n, err = dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, n, "3 documents should have a=1")
+	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "1 document should have b=1")
+	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "1 document should have b=2")
+	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "1 document should have c=3")
+
+	var fromSource, fromDest bson.M
+	q := bson.D{{"a", 1}, {"b", 1}}
+	err = db.Collection("source").FindOne(t.Context(), q).Decode(&fromSource)
+	require.NoError(t, err)
+	err = dest.FindOne(t.Context(), q).Decode(&fromDest)
+	require.NoError(t, err)
+	assert.Equal(
+		t, fromSource["_id"], fromDest["_id"],
+		"_id should have been exported in JSON mode",
+	)
+}
+
+func exportJSONAndImport(t *testing.T, dbName, fields string, db *mongo.Database) {
+	t.Helper()
+	require.NoError(t, db.Collection("dest").Drop(t.Context()))
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+			Fields:     fields,
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	f, err := os.OpenFile(tmpFile.Name(), os.O_WRONLY, 0o644)
+	require.NoError(t, err)
+	_, err = me.Export(f)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
+	mi, err := New(Options{
+		ToolOptions: importToolOptions,
+		InputOptions: &InputOptions{
+			File:       tmpFile.Name(),
+			ParseGrace: "stop",
+		},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err)
+}
