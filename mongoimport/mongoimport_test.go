@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"reflect"
 	"runtime"
@@ -2478,4 +2479,78 @@ func exportAndImportWithQuery(
 	n, err := db.Collection("dest").CountDocuments(t.Context(), bson.D{})
 	require.NoError(t, err)
 	return n
+}
+
+// TestRoundTripSortAndSkip verifies that mongoexport --sort and --skip
+// correctly affect which documents are exported.
+func TestRoundTripSortAndSkip(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_sortskip_test"
+	const collName = "data"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	docs := make([]any, 50)
+	for i := range 50 {
+		docs[i] = bson.D{{"a", int32(i)}}
+	}
+	rand.Shuffle(len(docs), func(i, j int) {
+		docs[i], docs[j] = docs[j], docs[i]
+	})
+
+	_, err = coll.InsertMany(t.Context(), docs)
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type: "json", JSONFormat: "relaxed",
+		},
+		InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Skip: 20},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+	n, err := me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+	assert.EqualValues(t, 30, n, "should export 30 documents after skipping 20")
+
+	require.NoError(t, coll.Drop(t.Context()))
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 30, imported, "should import all 30 exported documents")
+
+	count, err := coll.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 30, count, "collection should have 30 documents")
+	for i := range int32(30) {
+		c, err := coll.CountDocuments(t.Context(), bson.D{{"a", i + 20}})
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, c, "document with a=%d should exist", i+20)
+	}
 }
