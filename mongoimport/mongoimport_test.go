@@ -2356,3 +2356,128 @@ func TestRoundTripNestedFieldsCSV(t *testing.T) {
 		assert.EqualValues(t, tc.count, n, tc.msg)
 	}
 }
+
+// TestRoundTripQuery verifies that mongoexport --query and --queryFile filter
+// export output correctly across multiple query types (from query.js).
+func TestRoundTripQuery(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_query_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	db := client.Database(dbName)
+
+	basicDocs := []any{
+		bson.D{{"a", int32(1)}, {"x", bson.D{{"b", "1"}}}},
+		bson.D{{"a", int32(2)}, {"x", bson.D{{"b", "1"}, {"c", "2"}}}},
+		bson.D{{"a", int32(1)}, {"c", "1"}},
+		bson.D{{"a", int32(2)}, {"c", "2"}},
+	}
+
+	n := exportAndImportWithQuery(t, db, basicDocs, `{"a":3}`, "")
+	assert.EqualValues(t, 0, n, "query matching nothing should export 0 docs")
+
+	n = exportAndImportWithQuery(t, db, basicDocs, `{"a":1,"c":"1"}`, "")
+	assert.EqualValues(t, 1, n, "query matching one doc should export 1 doc")
+
+	queryFile, err := os.CreateTemp(t.TempDir(), "query-*.json")
+	require.NoError(t, err)
+	_, err = queryFile.WriteString(`{"a":1,"c":"1"}`)
+	require.NoError(t, err)
+	require.NoError(t, queryFile.Close())
+	n = exportAndImportWithQuery(t, db, basicDocs, "", queryFile.Name())
+	assert.EqualValues(t, 1, n, "queryFile matching one doc should export 1 doc")
+
+	n = exportAndImportWithQuery(t, db, basicDocs, `{"a":2,"x.c":"2"}`, "")
+	assert.EqualValues(t, 1, n, "query on embedded doc field should export 1 doc")
+
+	n = exportAndImportWithQuery(t, db, basicDocs, `{}`, "")
+	assert.EqualValues(t, 4, n, "empty query should export all 4 docs")
+
+	// TOOLS-469: extended JSON date query with $numberLong
+	dateDocs := []any{bson.D{
+		{"a", int32(1)},
+		{"x", bson.NewDateTimeFromTime(time.Date(2014, 12, 11, 13, 52, 39, 498000000, time.UTC))},
+		{"y", bson.NewDateTimeFromTime(time.Date(2014, 12, 13, 13, 52, 39, 498000000, time.UTC))},
+	}}
+	dateQueryNumberLong := `{
+		"x": {
+			"$gt": {"$date": {"$numberLong": "1418305949498"}},
+			"$lt": {"$date": {"$numberLong": "1418305979498"}}
+		},
+		"y": {
+			"$gt": {"$date": {"$numberLong": "1418478749498"}},
+			"$lt": {"$date": {"$numberLong": "1418478769498"}}
+		}
+	}`
+	n = exportAndImportWithQuery(t, db, dateDocs, dateQueryNumberLong, "")
+	assert.EqualValues(t, 1, n, "extended JSON date query should export 1 doc")
+
+	// TOOLS-530: date query with ISO string format
+	n = exportAndImportWithQuery(
+		t,
+		db,
+		dateDocs,
+		`{"x":{"$gt":{"$date":"2014-12-11T13:52:39.3Z"},"$lt":{"$date":"2014-12-11T13:52:39.5Z"}}}`,
+		"",
+	)
+	assert.EqualValues(t, 1, n, "ISO date string query should export 1 doc")
+}
+
+func exportAndImportWithQuery(
+	t *testing.T,
+	db *mongo.Database,
+	sourceDocs []any,
+	query, queryFile string,
+) int64 {
+	t.Helper()
+	dbName := db.Name()
+	require.NoError(t, db.Collection("source").Drop(t.Context()))
+	require.NoError(t, db.Collection("dest").Drop(t.Context()))
+	if len(sourceDocs) > 0 {
+		_, err := db.Collection("source").InsertMany(t.Context(), sourceDocs)
+		require.NoError(t, err)
+	}
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type: "json", JSONFormat: "relaxed",
+		},
+		InputOptions: &mongoexport.InputOptions{Query: query, QueryFile: queryFile},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
+	mi, err := New(Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err)
+
+	n, err := db.Collection("dest").CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	return n
+}

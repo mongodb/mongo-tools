@@ -276,7 +276,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 13: Convert `pretty.js`** (NEW) — `TestExportPretty` in `mongoexport/mongoexport_test.go`: inserts 3 docs, exports with `--pretty --jsonArray` (relaxed format), parses the JSON array, asserts correct field values for all 3 documents.
 
-- [ ] **Step 14: Convert `query.js`** (NEW) — `TestExportQuery`: insert 10 docs, export with `--query '{"x": {"$gt": 5}}'` and with `--queryFile`, verify only matching docs appear.
+- [x] **Step 14: Convert `query.js`** (NEW) — `TestRoundTripQuery` in `mongoimport/mongoimport_test.go`: 7 scenarios via `exportAndImportWithQuery`: no-match query, single-match query, queryFile, embedded doc query, empty query, TOOLS-469 extended JSON date query ($numberLong), TOOLS-530 ISO date string query.
 
 - [ ] **Step 15: Convert `sort_and_skip.js`** (NEW) — `TestExportSortAndSkip`: insert ordered docs, export with `--sort` and `--skip`, verify ordering and offset.
 
