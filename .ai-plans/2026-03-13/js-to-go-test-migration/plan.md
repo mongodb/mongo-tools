@@ -258,7 +258,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 4: Convert `field_file.js`** (NEW) — `TestRoundTripFieldFile` in `mongoimport/mongoimport_test.go`: inserts 3 docs, exports to CSV using a fieldFile containing `a` and `b`, imports with `--fields a,b,c`, asserts `count({a:1})==3`, `count({b:1})==1`, `count({b:2})==1`, `count({c:3})==0`.
 
-- [ ] **Step 5: Convert `fields_json.js`** (NEW) — `TestExportFieldsJSON`: verify `--fields` limits which fields appear in JSON export output.
+- [x] **Step 5: Convert `fields_json.js`** (NEW) — `TestRoundTripFieldsJSON` in `mongoimport/mongoimport_test.go`: two scenarios with `--fields a` (verifies b,c excluded) and `--fields a,b,c` (verifies all included and `_id` matches source, confirming JSON exports include `_id` unlike CSV).
 
 - [x] **Step 6: Convert `fields_csv.js`** (EXTEND) — `TestRoundTripFieldsCSV` in `mongoimport/mongoimport_test.go`: round-trip with `--fields a` (verifies b,c excluded) and `--fields a,b,c` (verifies all included, `_id` not exported). `TestExportNestedFieldsCSV` in `mongoexport/mongoexport_test.go`: 6 nested field/projection cases checking CSV output directly.
 
