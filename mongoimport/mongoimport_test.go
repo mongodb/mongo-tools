@@ -2108,3 +2108,95 @@ func exportJSONAndImport(t *testing.T, dbName, fields string, db *mongo.Database
 	_, _, err = mi.ImportDocuments()
 	require.NoError(t, err)
 }
+
+// TestRoundTripJSONArray verifies that mongoexport --jsonArray produces a JSON
+// array, that mongoimport rejects it without --jsonArray, and accepts it with
+// --jsonArray (from json_array.js).
+func TestRoundTripJSONArray(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_jsonarray_test"
+	const collName = "data"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	docs := make([]any, 20)
+	for i := range 20 {
+		docs[i] = bson.D{{"_id", int32(i)}}
+	}
+	_, err = coll.InsertMany(t.Context(), docs)
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+			JSONArray:  true,
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	require.NoError(t, coll.Drop(t.Context()))
+
+	importWithoutFlagOpts, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importWithoutFlagOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions:   importWithoutFlagOpts,
+		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	assert.Error(t, err, "import without --jsonArray should fail on jsonArray output")
+
+	n, err := coll.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, n, "nothing should have been imported without --jsonArray")
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err = New(Options{
+		ToolOptions: importToolOptions,
+		InputOptions: &InputOptions{
+			File:       tmpFile.Name(),
+			ParseGrace: "stop",
+			JSONArray:  true,
+		},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 20, imported, "should import all 20 documents with --jsonArray")
+
+	n, err = coll.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 20, n, "all 20 documents should be present after import")
+	for i := range int32(20) {
+		c, err := coll.CountDocuments(t.Context(), bson.D{{"_id", i}})
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, c, "document with _id %d should exist", i)
+	}
+}

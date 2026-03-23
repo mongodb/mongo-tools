@@ -264,7 +264,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [ ] **Step 7: Convert `nested_fields_csv.js`** (EXTEND) — Add to `csv_test.go`: export with dotted field paths in `--fields`, verify CSV flattening behavior.
 
-- [ ] **Step 8: Convert `json_array.js`** (EXTEND) — Add to `mongoexport_test.go`: verify `--jsonArray` wraps output in `[...]`, and that importing without `--jsonArray` fails on that output.
+- [x] **Step 8: Convert `json_array.js`** (EXTEND) — `TestRoundTripJSONArray` in `mongoimport/mongoimport_test.go`: exports 20 docs with `--jsonArray`, asserts import without `--jsonArray` fails and leaves 0 docs, then asserts import with `--jsonArray` restores all 20 docs with correct `_id` values.
 
 - [x] **Step 9: Skip `force_table_scan.js`** — `--forceTableScan` was deprecated when WiredTiger became the default (MongoDB 3.0) and mmapv1 was removed in 4.2. On 4.2+ the flag is a no-op and the profiling assertions are trivially true. Not worth converting.
 
