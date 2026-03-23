@@ -268,7 +268,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 9: Skip `force_table_scan.js`** — `--forceTableScan` was deprecated when WiredTiger became the default (MongoDB 3.0) and mmapv1 was removed in 4.2. On 4.2+ the flag is a no-op and the profiling assertions are trivially true. Not worth converting.
 
-- [ ] **Step 10: Convert `limit.js`** (NEW) — `TestExportLimit`: insert 20 docs, export with `--limit 5`, verify exactly 5 docs in output.
+- [x] **Step 10: Convert `limit.js`** (NEW) — `TestRoundTripLimit` in `mongoimport/mongoimport_test.go`: inserts 50 docs, exports with `--sort {a:1} --limit 20`, drops, imports, asserts count == 20 and each `a=0..19` exists.
 
 - [ ] **Step 11: Convert `namespace_validation.js`** (NEW) — `TestExportNamespaceValidation`: verify that invalid namespace combinations (no `--db`, `--collection` without `--db`, etc.) return appropriate errors.
 
