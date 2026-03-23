@@ -278,7 +278,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 14: Convert `query.js`** (NEW) — `TestRoundTripQuery` in `mongoimport/mongoimport_test.go`: 7 scenarios via `exportAndImportWithQuery`: no-match query, single-match query, queryFile, embedded doc query, empty query, TOOLS-469 extended JSON date query ($numberLong), TOOLS-530 ISO date string query.
 
-- [ ] **Step 15: Convert `sort_and_skip.js`** (NEW) — `TestExportSortAndSkip`: insert ordered docs, export with `--sort` and `--skip`, verify ordering and offset.
+- [x] **Step 15: Convert `sort_and_skip.js`** (NEW) — `TestRoundTripSortAndSkip` in `mongoimport/mongoimport_test.go`: inserts 50 docs, exports with `--sort {a:1} --skip 20`, drops, imports, asserts count == 30 and each `a=20..49` exists.
 
 - [ ] **Step 16: Convert `stdout.js`** (NEW) — `TestExportStdout`: verify export writes correct JSON to stdout when no `--out` is specified.
 
