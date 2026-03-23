@@ -484,3 +484,35 @@ func TestExportNamespaceValidation(t *testing.T) {
 		me.Close()
 	}
 }
+
+// TestExportNoData verifies that exporting an empty collection succeeds, but
+// fails with --assertExists (from no_data.js).
+func TestExportNoData(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = &options.Namespace{DB: "test", Collection: "mongoexport_no_data_test"}
+
+	me, err := New(Options{
+		ToolOptions:         toolOptions,
+		OutputFormatOptions: &OutputFormatOptions{Type: "json", JSONFormat: "canonical"},
+		InputOptions:        &InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	var buf bytes.Buffer
+	_, err = me.Export(&buf)
+	assert.NoError(t, err, "export from empty collection should succeed")
+
+	me2, err := New(Options{
+		ToolOptions:         toolOptions,
+		OutputFormatOptions: &OutputFormatOptions{Type: "json", JSONFormat: "canonical"},
+		InputOptions:        &InputOptions{AssertExists: true},
+	})
+	require.NoError(t, err)
+	defer me2.Close()
+	_, err = me2.Export(&buf)
+	assert.Error(t, err, "export with --assertExists should fail on nonexistent collection")
+}

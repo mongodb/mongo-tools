@@ -272,7 +272,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 11: Convert `namespace_validation.js`** (NEW) — `TestExportNamespaceValidation` in `mongoexport/mongoexport_test.go`: asserts `New()` errors on `test.bar` and `test"bar` as DB names, and succeeds on `system.foobar` as a collection name.
 
-- [ ] **Step 12: Convert `no_data.js`** (EXTEND) — Add to `TestMongoExportTOOLS2174` or a new case: verify `--assertExists` flag returns an error for a collection that does not exist.
+- [x] **Step 12: Convert `no_data.js`** (EXTEND) — `TestExportNoData` in `mongoexport/mongoexport_test.go`: asserts export from nonexistent collection succeeds, and fails with `AssertExists: true`.
 
 - [ ] **Step 13: Convert `pretty.js`** (NEW) — `TestExportPretty`: verify `--pretty` flag produces indented JSON output.
 
