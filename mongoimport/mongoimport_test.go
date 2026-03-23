@@ -2270,3 +2270,88 @@ func TestRoundTripLimit(t *testing.T) {
 		assert.EqualValues(t, 1, c, "document with a=%d should exist (first 20 by sort)", i)
 	}
 }
+
+// TestRoundTripNestedFieldsCSV verifies that mongoexport correctly exports
+// nested dotted field paths to CSV and that mongoimport restores them
+// (from nested_fields_csv.js).
+func TestRoundTripNestedFieldsCSV(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_nestedcsv_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	db := client.Database(dbName)
+	_, err = db.Collection("source").InsertMany(t.Context(), []any{
+		bson.D{{"a", 1}},
+		bson.D{{"a", 2}, {"b", bson.D{{"c", 2}}}},
+		bson.D{{"a", 3}, {"b", bson.D{{"c", 3}, {"d", bson.D{{"e", 3}}}}}},
+		bson.D{{"a", 4}, {"x", nil}},
+	})
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "csv",
+			JSONFormat: "canonical",
+			Fields:     "a,b.d.e,x.y",
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.csv")
+	require.NoError(t, err)
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
+	mi, err := New(Options{
+		ToolOptions: importToolOptions,
+		InputOptions: &InputOptions{
+			File:       tmpFile.Name(),
+			Type:       "csv",
+			HeaderLine: true,
+			ParseGrace: "stop",
+		},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err)
+
+	dest := db.Collection("dest")
+	for _, tc := range []struct {
+		filter bson.D
+		count  int64
+		msg    string
+	}{
+		{bson.D{{"b.c", 2}}, 0, "b.c should not have been exported"},
+		{bson.D{{"b.c", 3}}, 0, "b.c should not have been exported"},
+		{bson.D{{"b.d.e", 3}}, 1, "b.d.e=3 should be present"},
+		{bson.D{{"b.d.e", ""}}, 3, "b.d.e should be empty string for 3 docs"},
+		{bson.D{{"a", 1}}, 1, "a=1 should be present"},
+		{bson.D{{"a", 2}}, 1, "a=2 should be present"},
+		{bson.D{{"a", 3}}, 1, "a=3 should be present"},
+		{bson.D{{"x.y", ""}}, 4, "x.y should be empty string for all 4 docs"},
+	} {
+		n, err := dest.CountDocuments(t.Context(), tc.filter)
+		require.NoError(t, err)
+		assert.EqualValues(t, tc.count, n, tc.msg)
+	}
+}
