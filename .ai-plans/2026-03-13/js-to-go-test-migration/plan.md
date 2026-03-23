@@ -286,7 +286,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 18: Skip `slave_ok.js`** — `--slaveOk` is a hidden deprecated flag that simply sets `readPreference=nearest`. Requires a 3-node replica set. Not worth converting.
 
-- [ ] **Step 19: Skip `export_broken_pipe.js`** — OS-signal-level, not testable in Go.
+- [x] **Step 19: Skip `export_broken_pipe.js`** — OS-signal-level, not testable in Go. This test was deleted.
 
 - [ ] **Step 20: Run the new tests**
 
