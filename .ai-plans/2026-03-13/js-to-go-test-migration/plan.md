@@ -266,7 +266,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [ ] **Step 8: Convert `json_array.js`** (EXTEND) — Add to `mongoexport_test.go`: verify `--jsonArray` wraps output in `[...]`, and that importing without `--jsonArray` fails on that output.
 
-- [ ] **Step 9: Convert `force_table_scan.js`** (NEW) — `TestExportForceTableScan`: verify `--forceTableScan` flag doesn't break basic export.
+- [x] **Step 9: Skip `force_table_scan.js`** — `--forceTableScan` was deprecated when WiredTiger became the default (MongoDB 3.0) and mmapv1 was removed in 4.2. On 4.2+ the flag is a no-op and the profiling assertions are trivially true. Not worth converting.
 
 - [ ] **Step 10: Convert `limit.js`** (NEW) — `TestExportLimit`: insert 20 docs, export with `--limit 5`, verify exactly 5 docs in output.
 
