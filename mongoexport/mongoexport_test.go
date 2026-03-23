@@ -8,12 +8,15 @@ package mongoexport
 
 import (
 	"bytes"
+	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -227,6 +230,143 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 		// should be 0 matches.
 		assert.Zero(t, count)
 	})
+}
+
+// TestExportNestedFieldsCSV verifies that mongoexport correctly handles nested
+// field paths and $ projection in --fields with --csv output.
+// Covers the nested field and projection scenarios of fields_csv.js.
+func TestExportNestedFieldsCSV(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	const dbName = "mongoexport_nestedfieldscsv_test"
+	const collName = "source"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	_, err = coll.InsertMany(t.Context(), []any{
+		bson.D{{"a", bson.A{1, 2, 3, 4, 5}}, {"b", bson.D{{"c", bson.A{-1, -2, -3, -4}}}}},
+		bson.D{
+			{"a", int32(1)},
+			{"b", int32(2)},
+			{"c", int32(3)},
+			{"d", bson.D{{"e", bson.A{4, 5, 6}}}},
+		},
+		bson.D{
+			{"a", int32(1)},
+			{"b", int32(2)},
+			{"c", int32(3)},
+			{"d", int32(5)},
+			{"e", bson.D{{"0", bson.A{"foo", "bar", "baz"}}}},
+		},
+		bson.D{
+			{"a", int32(1)},
+			{"b", int32(2)},
+			{"c", int32(3)},
+			{"d", bson.A{4, 5, 6}},
+			{"e", bson.A{bson.D{{"0", 0}, {"1", 1}}, bson.D{{"2", 2}, {"3", 3}}}},
+		},
+	})
+	require.NoError(t, err)
+
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+
+	rows := parseCSVRows(t, exportNestedCSV(t, toolOptions, "d.e.2", ""))
+	assert.True(
+		t, rowsContainValue(rows, "d.e.2", "6"),
+		"d.e.2 should select the third element of d.e array",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "e.0.0", ""))
+	assert.True(
+		t, rowsContainValue(rows, "e.0.0", "foo"),
+		"e.0.0 should select nested numeric array value",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "b,d.1,e.1.3", ""))
+	assert.True(t, rowsContainValue(rows, "b", "2"), "b column should contain 2")
+	assert.True(t, rowsContainValue(rows, "d.1", "5"), "d.1 column should contain 5")
+	assert.True(t, rowsContainValue(rows, "e.1.3", "3"), "e.1.3 column should contain 3")
+
+	// $ projection strips the trailing .$ from the header name and wraps the result in [].
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "d.$", `{"d": 4}`))
+	assert.True(
+		t, rowsContainValue(rows, "d", "[4]"),
+		"d.$ with query {d:4} should select matching element",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "a.$", `{"a": {"$gt": 1}}`))
+	assert.True(
+		t, rowsContainValue(rows, "a", "[2]"),
+		"a.$ with query {a:{$gt:1}} should select matching element",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "b.c.$", `{"b.c": -1}`))
+	assert.True(
+		t, rowsContainValue(rows, "b.c", "[-1]"),
+		"b.c.$ with query {b.c:-1} should select matching element",
+	)
+}
+
+func exportNestedCSV(t *testing.T, toolOptions *options.ToolOptions, fields, query string) string {
+	t.Helper()
+	me, err := New(Options{
+		ToolOptions: toolOptions,
+		OutputFormatOptions: &OutputFormatOptions{
+			Type:       "csv",
+			JSONFormat: "canonical",
+			Fields:     fields,
+		},
+		InputOptions: &InputOptions{Query: query},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	var buf bytes.Buffer
+	_, err = me.Export(&buf)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+func parseCSVRows(t *testing.T, output string) []map[string]string {
+	t.Helper()
+	r := csv.NewReader(strings.NewReader(output))
+	records, err := r.ReadAll()
+	require.NoError(t, err)
+	if len(records) == 0 {
+		return nil
+	}
+	headers := records[0]
+	rows := make([]map[string]string, 0, len(records)-1)
+	for _, record := range records[1:] {
+		row := make(map[string]string, len(headers))
+		for i, h := range headers {
+			if i < len(record) {
+				row[h] = record[i]
+			}
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func rowsContainValue(rows []map[string]string, col, val string) bool {
+	for _, row := range rows {
+		if row[col] == val {
+			return true
+		}
+	}
+	return false
 }
 
 func TestBadOptions(t *testing.T) {

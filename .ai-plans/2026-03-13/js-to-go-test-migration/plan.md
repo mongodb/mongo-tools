@@ -260,7 +260,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [ ] **Step 5: Convert `fields_json.js`** (NEW) — `TestExportFieldsJSON`: verify `--fields` limits which fields appear in JSON export output.
 
-- [ ] **Step 6: Convert `fields_csv.js`** (EXTEND) — Add end-to-end case to `mongoexport_test.go`: insert docs, export with `--fields` and `--csv` against a real server, verify only the specified fields appear in CSV output.
+- [x] **Step 6: Convert `fields_csv.js`** (EXTEND) — `TestRoundTripFieldsCSV` in `mongoimport/mongoimport_test.go`: round-trip with `--fields a` (verifies b,c excluded) and `--fields a,b,c` (verifies all included, `_id` not exported). `TestExportNestedFieldsCSV` in `mongoexport/mongoexport_test.go`: 6 nested field/projection cases checking CSV output directly.
 
 - [ ] **Step 7: Convert `nested_fields_csv.js`** (EXTEND) — Add to `csv_test.go`: export with dotted field paths in `--fields`, verify CSV flattening behavior.
 
