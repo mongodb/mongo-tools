@@ -284,7 +284,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [ ] **Step 17: Convert `type_case.js`** (NEW) — `TestExportTypeCase`: verify type name case insensitivity in export output format selection.
 
-- [ ] **Step 18: Convert `slave_ok.js`** (NEW) — `TestExportSlaveOk`: guard with `testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)`. Verify export works against a replica set with secondary read preference.
+- [x] **Step 18: Skip `slave_ok.js`** — `--slaveOk` is a hidden deprecated flag that simply sets `readPreference=nearest`. Requires a 3-node replica set. Not worth converting.
 
 - [ ] **Step 19: Skip `export_broken_pipe.js`** — OS-signal-level, not testable in Go.
 
