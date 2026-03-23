@@ -282,7 +282,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 16: Convert `stdout.js`** (NEW) — `TestExportWritesToStdout` in `mongoexport/mongoexport_test.go`: runs the CLI via `go run ./main` without `--out`, captures stdout, asserts each `"_id":N` for N=0..19 appears.
 
-- [ ] **Step 17: Convert `type_case.js`** (NEW) — `TestExportTypeCase`: verify type name case insensitivity in export output format selection.
+- [x] **Step 17: Convert `type_case.js`** (NEW) — `TestExportTypeCase` in `mongoexport/mongoexport_test.go`: invalid type rejected; `csv`/`CSV`/`cSv` produce identical output; `json`/`JSON` produce identical output; CSV ≠ JSON.
 
 - [x] **Step 18: Skip `slave_ok.js`** — `--slaveOk` is a hidden deprecated flag that simply sets `readPreference=nearest`. Requires a 3-node replica set. Not worth converting.
 
