@@ -16,13 +16,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
-python="python3"
-if [ "Windows_NT" = "$OS" ]; then
-    python="py.exe -3"
-fi
+python="${python_binary:-python3}"
+
 $python -m venv venv
-pip3 install pymongo==3.12.1 pyyaml
+$python -m pip install pymongo==3.12.1 pyyaml
 if [ "Windows_NT" = "$OS" ]; then
-    pip3 install pywin32
+    $python -m pip install pywin32
 fi
 $python buildscripts/resmoke.py --suite=native_cert_ssl  --continueOnFailure --log=buildlogger --reportFile=../../report.json ${resmoke_args} --excludeWithAnyTags="${excludes}"
