@@ -1703,3 +1703,97 @@ func TestRoundTripDataTypes(t *testing.T) {
 		assert.EqualValues(t, 1, c, "document matching %v should exist after round-trip", q)
 	}
 }
+
+// TestRoundTripViewExport verifies that mongoexport correctly exports documents
+// from a MongoDB view, and that mongoimport can restore them (from export_views.js).
+func TestRoundTripViewExport(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_views_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	db := client.Database(dbName)
+
+	cities := []any{
+		bson.D{{"city", "Boise"}, {"state", "ID"}},
+		bson.D{{"city", "Pocatello"}, {"state", "ID"}},
+		bson.D{{"city", "Nampa"}, {"state", "ID"}},
+		bson.D{{"city", "Albany"}, {"state", "NY"}},
+		bson.D{{"city", "New York"}, {"state", "NY"}},
+		bson.D{{"city", "Los Angeles"}, {"state", "CA"}},
+		bson.D{{"city", "San Jose"}, {"state", "CA"}},
+		bson.D{{"city", "Cupertino"}, {"state", "CA"}},
+		bson.D{{"city", "San Francisco"}, {"state", "CA"}},
+	}
+	_, err = db.Collection("cities").InsertMany(t.Context(), cities)
+	require.NoError(t, err)
+
+	for _, view := range []struct{ name, state string }{
+		{"citiesID", "ID"},
+		{"citiesNY", "NY"},
+		{"citiesCA", "CA"},
+	} {
+		pipeline := bson.A{bson.D{{"$match", bson.D{{"state", view.state}}}}}
+		err = db.CreateView(t.Context(), view.name, "cities", pipeline)
+		require.NoError(t, err)
+	}
+
+	n, err := db.Collection("citiesID").CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, n, "should have 3 cities in Idaho view")
+	n, err = db.Collection("citiesNY").CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, n, "should have 2 cities in New York view")
+	n, err = db.Collection("citiesCA").CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, n, "should have 4 cities in California view")
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "citiesCA"}
+
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	require.NoError(t, db.Drop(t.Context()))
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "CACities"}
+	mi, err := New(Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &InputOptions{File: tmpFile.Name()},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, imported, "export should succeed")
+
+	n, err = db.Collection("CACities").CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, n, "restored view should have correct number of rows")
+}
