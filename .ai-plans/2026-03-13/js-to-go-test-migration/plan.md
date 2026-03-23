@@ -254,7 +254,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 2: Convert `data_types.js`** (NEW) — `TestRoundTripDataTypes` in `mongoimport/mongoimport_test.go`: inserts 9 documents covering int, float, string, subdocument, array, BinData, ISODate, Timestamp, and Regex; exports to temp file; drops collection; imports via mongoimport; asserts count == 9 and each typed document can be found by value (Regex via `$exists`).
 
-- [ ] **Step 3: Convert `export_views.js`** (NEW) — `TestExportViews`: create a MongoDB view with a pipeline, export it, verify exported data matches the view's pipeline output.
+- [x] **Step 3: Convert `export_views.js`** (NEW) — `TestRoundTripViewExport` in `mongoimport/mongoimport_test.go`: inserts 9 cities, creates 3 state-based views, exports the CA view (4 docs) to a temp file, drops the DB, imports into `CACities`, asserts count == 4.
 
 - [ ] **Step 4: Convert `field_file.js`** (NEW) — `TestExportFieldFile`: verify `--fieldFile` reads field names from a file and limits export output accordingly.
 
