@@ -606,3 +606,42 @@ func TestExportPretty(t *testing.T) {
 	assert.Equal(t, float64(2), docs[2]["b"], "docs[2].b should be 2")
 	assert.Equal(t, float64(3), docs[2]["c"], "docs[2].c should be 3")
 }
+
+// TestExportWritesToStdout verifies that the mongoexport CLI writes all
+// documents to stdout when no --out flag is given.
+func TestExportWritesToStdout(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	const dbName = "mongoexport_stdout_test"
+	const collName = "data"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	docs := make([]any, 20)
+	for i := range 20 {
+		docs[i] = bson.D{{"_id", i}}
+	}
+	_, err = client.Database(dbName).Collection(collName).InsertMany(t.Context(), docs)
+	require.NoError(t, err)
+
+	args := []string{"go", "run", "./main"}
+	args = append(args, testutil.GetBareArgs()...)
+	args = append(args, "--db", dbName, "--collection", collName)
+	cmd := exec.Command(args[0], args[1:]...)
+	stdout, err := cmd.Output()
+	require.NoError(t, err, "mongoexport should exit 0 when writing to stdout")
+
+	output := string(stdout)
+	for i := range 20 {
+		assert.Contains(t, output, fmt.Sprintf(`"_id":%d`, i), "stdout should contain _id=%d", i)
+	}
+}
