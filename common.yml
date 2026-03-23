@@ -2496,6 +2496,7 @@ buildvariants:
       mongo_os: "windows-64"
       mongo_edition: "enterprise"
       mongo_target: "windows"
+      python_binary: "/cygdrive/c/python/Python311/python"
       resmoke_args: --jobs 4
       resmoke_use_tls: _tls
       excludes: requires_large_ram,requires_mongo_24
