@@ -274,7 +274,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 12: Convert `no_data.js`** (EXTEND) — `TestExportNoData` in `mongoexport/mongoexport_test.go`: asserts export from nonexistent collection succeeds, and fails with `AssertExists: true`.
 
-- [ ] **Step 13: Convert `pretty.js`** (NEW) — `TestExportPretty`: verify `--pretty` flag produces indented JSON output.
+- [x] **Step 13: Convert `pretty.js`** (NEW) — `TestExportPretty` in `mongoexport/mongoexport_test.go`: inserts 3 docs, exports with `--pretty --jsonArray` (relaxed format), parses the JSON array, asserts correct field values for all 3 documents.
 
 - [ ] **Step 14: Convert `query.js`** (NEW) — `TestExportQuery`: insert 10 docs, export with `--query '{"x": {"$gt": 5}}'` and with `--queryFile`, verify only matching docs appear.
 
