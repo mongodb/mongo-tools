@@ -262,7 +262,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 6: Convert `fields_csv.js`** (EXTEND) — `TestRoundTripFieldsCSV` in `mongoimport/mongoimport_test.go`: round-trip with `--fields a` (verifies b,c excluded) and `--fields a,b,c` (verifies all included, `_id` not exported). `TestExportNestedFieldsCSV` in `mongoexport/mongoexport_test.go`: 6 nested field/projection cases checking CSV output directly.
 
-- [ ] **Step 7: Convert `nested_fields_csv.js`** (EXTEND) — Add to `csv_test.go`: export with dotted field paths in `--fields`, verify CSV flattening behavior.
+- [x] **Step 7: Convert `nested_fields_csv.js`** (EXTEND) — `TestRoundTripNestedFieldsCSV` in `mongoimport/mongoimport_test.go`: exports 4 docs with `--fields a,b.d.e,x.y`, imports with `--headerline`, verifies b.c absent, b.d.e=3 for 1 doc, b.d.e="" for 3 docs, a=1/2/3 each once, x.y="" for all 4.
 
 - [x] **Step 8: Convert `json_array.js`** (EXTEND) — `TestRoundTripJSONArray` in `mongoimport/mongoimport_test.go`: exports 20 docs with `--jsonArray`, asserts import without `--jsonArray` fails and leaves 0 docs, then asserts import with `--jsonArray` restores all 20 docs with correct `_id` values.
 
