@@ -280,7 +280,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 15: Convert `sort_and_skip.js`** (NEW) — `TestRoundTripSortAndSkip` in `mongoimport/mongoimport_test.go`: inserts 50 docs, exports with `--sort {a:1} --skip 20`, drops, imports, asserts count == 30 and each `a=20..49` exists.
 
-- [ ] **Step 16: Convert `stdout.js`** (NEW) — `TestExportStdout`: verify export writes correct JSON to stdout when no `--out` is specified.
+- [x] **Step 16: Convert `stdout.js`** (NEW) — `TestExportWritesToStdout` in `mongoexport/mongoexport_test.go`: runs the CLI via `go run ./main` without `--out`, captures stdout, asserts each `"_id":N` for N=0..19 appears.
 
 - [ ] **Step 17: Convert `type_case.js`** (NEW) — `TestExportTypeCase`: verify type name case insensitivity in export output format selection.
 
