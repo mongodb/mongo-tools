@@ -1038,6 +1038,34 @@ git commit -m "migration: remove JS test infrastructure (resmoke, run_qa.sh, com
 
 ---
 
+### Task 15: Refactor test helpers
+
+After all conversions are complete, review all new test code for repeated patterns and extract them into shared package-level helper functions.
+
+- [ ] **Step 1: Audit new test code for repetition** — scan all new test functions in `mongoimport`, `mongoexport`, `mongodump`, `mongorestore`, `mongofiles`, `mongostat`, `mongotop`, and `bsondump` for repeated code. Common patterns to look for:
+  - Export-then-drop-then-import sequences (already partially extracted)
+  - Tool options setup boilerplate
+  - Temp file creation and cleanup
+  - Collection count + drop assertions
+  - Session/client setup
+
+- [ ] **Step 2: Extract helpers** — move repeated logic into named package-level functions. Keep helpers close to their callers (same file or a `_helpers_test.go` file if shared across multiple test files in the same package). If they're shared across packages, add them to the `common/testutil` package.
+
+- [ ] **Step 3: Run full test suite** to confirm nothing broke.
+
+```bash
+go run build.go test:unit
+TOOLS_TESTING_INTEGRATION=1 go run build.go test:integration
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "migration: refactor repeated patterns in converted test code"
+```
+
+---
+
 ## Summary of Batches
 
 | Batch | Task | JS files | Go target | Status | Notes |
@@ -1057,6 +1085,7 @@ git commit -m "migration: remove JS test infrastructure (resmoke, run_qa.sh, com
 | 12 | SSL/TLS | 2 | new SSL/TLS integration test files | | 2 NEW; manual env setup required |
 | 13 | legacy42 | 34 | Various | | 4 SKIP, 20 NEW, 10 EXTEND |
 | 14 | Cleanup | — | `common.yml`, `build.go`, `scripts/` | | Remove infrastructure |
+| 15 | Refactor test helpers | — | All new test files | | Extract repeated patterns into shared helpers |
 
 **Consistent SKIPs across all batches:**
 - Broken pipe tests — OS-signal behavior, untestable in Go unit/integration tests
