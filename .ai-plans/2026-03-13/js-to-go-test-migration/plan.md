@@ -341,7 +341,7 @@ The mongoimport API: `mongoimport.MongoImport{ToolOptions: opts, IngestOptions: 
 
 - [x] **Step 2: Convert `collections.js`** (EXTEND) — `TestImportCollectionNameDerivation` in `mongoimport/mongoimport_test.go`: verifies `foo.blah.json` → collection `foo.blah`, `foo.blah.json.backup` → `foo.blah.json`, explicit `--collection` override, and `--db` routing.
 
-- [ ] **Step 3: Convert `decimal128.js`** (NEW) — `TestImportDecimal128`: export a document with a Decimal128 field as Extended JSON, import it back, verify the field is stored as BSON Decimal128.
+- [x] **Step 3: Convert `decimal128.js`** (NEW) — `TestRoundTripDecimal128` in `mongoimport/mongoimport_test.go`: inserts `{_id:"foo", x:Decimal128("123456789012345678901234567890")}` (>2^64), exports, drops, imports, asserts full document equality.
 
 - [ ] **Step 4: Convert `fields.js`** (EXTEND) — Add to existing field tests: `--fieldFile` option, nested dotted field names, and CSV rows with more fields than the header.
 
