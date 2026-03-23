@@ -256,7 +256,7 @@ The mongoexport library API: create `mongoexport.MongoExport{Options: opts}`, th
 
 - [x] **Step 3: Convert `export_views.js`** (NEW) — `TestRoundTripViewExport` in `mongoimport/mongoimport_test.go`: inserts 9 cities, creates 3 state-based views, exports the CA view (4 docs) to a temp file, drops the DB, imports into `CACities`, asserts count == 4.
 
-- [ ] **Step 4: Convert `field_file.js`** (NEW) — `TestExportFieldFile`: verify `--fieldFile` reads field names from a file and limits export output accordingly.
+- [x] **Step 4: Convert `field_file.js`** (NEW) — `TestRoundTripFieldFile` in `mongoimport/mongoimport_test.go`: inserts 3 docs, exports to CSV using a fieldFile containing `a` and `b`, imports with `--fields a,b,c`, asserts `count({a:1})==3`, `count({b:1})==1`, `count({b:2})==1`, `count({c:3})==0`.
 
 - [ ] **Step 5: Convert `fields_json.js`** (NEW) — `TestExportFieldsJSON`: verify `--fields` limits which fields appear in JSON export output.
 
