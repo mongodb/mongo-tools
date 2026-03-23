@@ -339,7 +339,7 @@ The mongoimport API: `mongoimport.MongoImport{ToolOptions: opts, IngestOptions: 
 
 - [x] **Step 1: Convert `boolean_type.js`** (NEW) — `TestImportBooleanType` in `mongoimport/mongoimport_test.go`: generates 19 legacy JSON lines with `Boolean()` expressions, imports with `--legacy`, verifies each keyed document exists.
 
-- [ ] **Step 2: Convert `collections.js`** (EXTEND) — Add cases to `TestMongoImportValidateSettings` covering: multi-dot filenames, positional arguments for collection name, `--db` combined with positional arg.
+- [x] **Step 2: Convert `collections.js`** (EXTEND) — `TestImportCollectionNameDerivation` in `mongoimport/mongoimport_test.go`: verifies `foo.blah.json` → collection `foo.blah`, `foo.blah.json.backup` → `foo.blah.json`, explicit `--collection` override, and `--db` routing.
 
 - [ ] **Step 3: Convert `decimal128.js`** (NEW) — `TestImportDecimal128`: export a document with a Decimal128 field as Extended JSON, import it back, verify the field is stored as BSON Decimal128.
 

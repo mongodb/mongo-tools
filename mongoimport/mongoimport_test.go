@@ -10,9 +10,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -2625,4 +2627,79 @@ func TestImportBooleanType(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1, n, "document with key=%q should exist", e.key)
 	}
+}
+
+// TestImportCollectionNameDerivation verifies that mongoimport correctly
+// derives the collection name from the input filename (from collections.js).
+func TestImportCollectionNameDerivation(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_collections_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+		if err := client.Database("testdb2").Drop(context.Background()); err != nil {
+			t.Errorf("dropping testdb2: %v", err)
+		}
+	})
+
+	tmpDir := t.TempDir()
+	rows := []map[string]int{{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}}
+	var sb strings.Builder
+	for _, row := range rows {
+		b, err := json.Marshal(row)
+		require.NoError(t, err)
+		sb.Write(b)
+		sb.WriteByte('\n')
+	}
+
+	fooBlahJSON := writeTestFile(t, tmpDir, "foo.blah.json", sb.String())
+	importFromFile(t, fooBlahJSON, dbName, "")
+	assertImported(t, client, dbName, "foo.blah")
+
+	fooBlahJSONBackup := writeTestFile(t, tmpDir, "foo.blah.json.backup", sb.String())
+	importFromFile(t, fooBlahJSONBackup, dbName, "")
+	assertImported(t, client, dbName, "foo.blah.json")
+
+	importFromFile(t, fooBlahJSON, dbName, "testcoll1")
+	assertImported(t, client, dbName, "testcoll1")
+
+	importFromFile(t, fooBlahJSON, "testdb2", "")
+	assertImported(t, client, "testdb2", "foo.blah")
+}
+
+func writeTestFile(t *testing.T, dir, name, content string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+	return path
+}
+
+func importFromFile(t *testing.T, filePath, dbOverride, collOverride string) {
+	t.Helper()
+	toolOpts, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOpts.Namespace = &options.Namespace{DB: dbOverride, Collection: collOverride}
+	mi, err := New(Options{
+		ToolOptions:   toolOpts,
+		InputOptions:  &InputOptions{File: filePath, ParseGrace: "stop"},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err)
+}
+
+func assertImported(t *testing.T, client *mongo.Client, db, coll string) {
+	t.Helper()
+	n, err := client.Database(db).Collection(coll).CountDocuments(context.Background(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, n, "%s.%s should have 2 imported documents", db, coll)
+	require.NoError(t, client.Database(db).Collection(coll).Drop(context.Background()))
 }
