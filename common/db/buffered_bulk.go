@@ -187,8 +187,13 @@ func (bb *BufferedBulkInserter) addModel(
 	docSize int,
 	model mongo.WriteModel,
 ) (*mongo.BulkWriteResult, error) {
+	var (
+		res *mongo.BulkWriteResult
+		err error
+	)
+	
 	if bb.docCount > 0 && bb.byteCount+docSize >= bb.byteLimit {
-		res, err := bb.Flush(ctx)
+		res, err = bb.Flush(ctx)
 		if err != nil {
 			return res, err
 		}
@@ -202,7 +207,7 @@ func (bb *BufferedBulkInserter) addModel(
 		return bb.Flush(ctx)
 	}
 
-	return nil, nil
+	return res, err
 }
 
 // Flush writes all buffered documents in one bulk write and then resets the buffer.
