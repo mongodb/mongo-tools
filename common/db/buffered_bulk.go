@@ -191,7 +191,7 @@ func (bb *BufferedBulkInserter) addModel(
 		res *mongo.BulkWriteResult
 		err error
 	)
-	
+
 	if bb.docCount > 0 && bb.byteCount+docSize >= bb.byteLimit {
 		res, err = bb.Flush(ctx)
 		if err != nil {
