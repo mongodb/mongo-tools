@@ -144,9 +144,21 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			result, err := bufBulk.Insert(t.Context(), bson.D{{"foo", "bar"}})
 			require.NoError(t, err)
-			require.NotNil(t, result)
-			assert.EqualValues(t, 1, result.InsertedCount)
+			if i == 0 {
+				// First insert: buffer was empty, no pre-flush needed.
+				assert.Nil(t, result)
+			} else {
+				// Subsequent inserts: adding the doc would exceed byte limit,
+				// so the previous doc is flushed before this one is buffered.
+				require.NotNil(t, result)
+				assert.EqualValues(t, 1, result.InsertedCount)
+			}
 		}
+		// One doc remains in the buffer; flush it.
+		result, err := bufBulk.Flush(t.Context())
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.EqualValues(t, 1, result.InsertedCount)
 	})
 
 }

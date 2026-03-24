@@ -132,10 +132,10 @@ func (bb *BufferedBulkInserter) Update(
 	if err != nil {
 		return nil, err
 	}
-	bb.byteCount += len(rawBytes)
 
 	return bb.addModel(
 		ctx,
+		len(rawBytes),
 		mongo.NewUpdateOneModel().SetFilter(selector).SetUpdate(rawBytes).SetUpsert(bb.upsert),
 	)
 }
@@ -150,10 +150,10 @@ func (bb *BufferedBulkInserter) Replace(
 	if err != nil {
 		return nil, err
 	}
-	bb.byteCount += len(rawBytes)
 
 	return bb.addModel(
 		ctx,
+		len(rawBytes),
 		mongo.NewReplaceOneModel().
 			SetFilter(selector).
 			SetReplacement(rawBytes).
@@ -167,9 +167,7 @@ func (bb *BufferedBulkInserter) InsertRaw(
 	ctx context.Context,
 	rawBytes []byte,
 ) (*mongo.BulkWriteResult, error) {
-	bb.byteCount += len(rawBytes)
-
-	return bb.addModel(ctx, mongo.NewInsertOneModel().SetDocument(rawBytes))
+	return bb.addModel(ctx, len(rawBytes), mongo.NewInsertOneModel().SetDocument(rawBytes))
 }
 
 // Delete adds a document to the buffer for bulk removal. If the buffer becomes full, the bulk delete is performed, returning
@@ -178,23 +176,38 @@ func (bb *BufferedBulkInserter) Delete(
 	ctx context.Context,
 	selector, replacement bson.D,
 ) (*mongo.BulkWriteResult, error) {
-	return bb.addModel(ctx, mongo.NewDeleteOneModel().SetFilter(selector))
+	return bb.addModel(ctx, 0, mongo.NewDeleteOneModel().SetFilter(selector))
 }
 
-// addModel adds a WriteModel to the buffer. If the buffer becomes full, the bulk write is performed, returning any error
-// that occurs.
+// addModel adds a WriteModel to the buffer. If adding the model would cause
+// the buffer to exceed the byte limit, the current buffer is flushed first,
+// ensuring we never send a wire message that exceeds maxMessageSizeBytes.
 func (bb *BufferedBulkInserter) addModel(
 	ctx context.Context,
+	docSize int,
 	model mongo.WriteModel,
 ) (*mongo.BulkWriteResult, error) {
+	var (
+		res *mongo.BulkWriteResult
+		err error
+	)
+
+	if bb.docCount > 0 && bb.byteCount+docSize >= bb.byteLimit {
+		res, err = bb.Flush(ctx)
+		if err != nil {
+			return res, err
+		}
+	}
+
 	bb.docCount++
+	bb.byteCount += docSize
 	bb.writeModels = append(bb.writeModels, model)
 
-	if bb.docCount >= bb.docLimit || bb.byteCount >= bb.byteLimit {
+	if bb.docCount >= bb.docLimit {
 		return bb.Flush(ctx)
 	}
 
-	return nil, nil
+	return res, err
 }
 
 // Flush writes all buffered documents in one bulk write and then resets the buffer.
