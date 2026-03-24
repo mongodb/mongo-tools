@@ -491,33 +491,38 @@ functions:
           set -v
           set -e
 
+          PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
+          python="python3"
+          if [ "Windows_NT" = "$OS" ]; then
+            python="/cygdrive/c/python/Python311/python"
+          fi
+
           # The aws_e2e_assume_role script requires python3 with boto3.
           # Set up or use an existing python virtualenv for boto3.
           venv='venv'
-          venvNonWindows () { . "$venv"/bin/activate; python3 -m pip install boto3; }
+          venvNonWindows () { . "$venv"/bin/activate; python -m pip install boto3; }
           venvWindows () { . "$venv"/Scripts/activate; pip install boto3; }
-
-          # default to python3 inside mongodbtoolchain
-          PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
 
           if [ -f "$venv"/bin/activate ]; then
             echo 'activating existing virtualenv'
             venvNonWindows
           elif [ -f "$venv"/Scripts/activate ]; then
             echo 'activating existing virtualenv'
+            dos2unix "$venv"/Scripts/activate
             venvWindows
-          elif virtualenv "$venv" || python -m virtualenv "$venv"; then
+          elif $python -m venv "$venv"; then
             echo 'creating new virtualenv'
             if [ -f "$venv"/bin/activate ]; then
               echo 'activating new virtualenv'
               venvNonWindows
             elif [ -f "$venv"/Scripts/activate ]; then
               echo 'activating new virtualenv'
+              dos2unix "$venv"/Scripts/activate
               venvWindows
             fi
           fi
 
-          pip list
+          $python -m pip list
 
           ../../../bin/mongo --nodb aws_e2e_assume_role.js
 
@@ -531,8 +536,14 @@ functions:
           set -v
           set -e
 
-          jsonkey () { python -c "import sys, json; sys.stdout.write(json.load(sys.stdin)['$1'])" < creds.json; }
-          urlencode () { python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus('$1'))"; }
+          PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
+          python="python3"
+          if [ "Windows_NT" = "$OS" ]; then
+            python="/cygdrive/c/python/Python311/python"
+          fi
+
+          jsonkey () { $python -c "import sys, json; sys.stdout.write(json.load(sys.stdin)['$1'])" < creds.json; }
+          urlencode () { $python -c "import sys, urllib.parse as ul; sys.stdout.write(ul.quote_plus('$1'))"; }
 
           USER=$(jsonkey AccessKeyId)
           USER=$(urlencode $USER)
