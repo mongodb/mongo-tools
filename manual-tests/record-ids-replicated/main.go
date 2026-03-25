@@ -170,10 +170,10 @@ func (tc *testContext) connectToClusters(ctx context.Context) error {
 
 func (tc *testContext) disconnectClients(ctx context.Context) {
 	if err := tc.srcClient.Disconnect(ctx); err != nil {
-		log.Println("❌ Failed to disconnect source client: %v", err)
+		log.Printf("❌ Failed to disconnect source client: %v", err)
 	}
 	if err := tc.dstClient.Disconnect(ctx); err != nil {
-		log.Println("❌ Failed to disconnect destination client: %v", err)
+		log.Printf("❌ Failed to disconnect destination client: %v", err)
 	}
 }
 
