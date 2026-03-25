@@ -348,6 +348,28 @@ func runBsondumpWithLargeFile(t *testing.T, size int) (string, error) {
 	return runBsondump("--bsonFile", bsonFile, "--outFile", outFile)
 }
 
+// TestBrokenPipe verifies that bsondump handles a broken pipe gracefully
+// (exits with a write error rather than being killed by SIGPIPE).
+func TestBrokenPipe(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	// Write 1000 docs (~1 KB each) so the JSON output exceeds the pipe buffer.
+	dir := t.TempDir()
+	bsonPath := filepath.Join(dir, "large.bson")
+	f, err := os.Create(bsonPath)
+	require.NoError(t, err)
+	for i := range 1000 {
+		doc := bson.D{{"_id", int32(i)}, {"data", strings.Repeat("x", 1000)}}
+		raw, err := bson.Marshal(doc)
+		require.NoError(t, err)
+		_, err = f.Write(raw)
+		require.NoError(t, err)
+	}
+	require.NoError(t, f.Close())
+
+	testutil.AssertBrokenPipeHandled(t, bsondumpCommand(bsonPath))
+}
+
 func runBsondump(args ...string) (string, error) {
 	cmd := []string{"go", "run", filepath.Join("..", "bsondump", "main")}
 	cmd = append(cmd, args...)
