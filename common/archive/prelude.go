@@ -290,7 +290,7 @@ func (pe *PreludeExplorer) ReadDir() ([]DirLike, error) {
 
 	serverVersion, err := db.StrToVersion(pe.prelude.Header.ServerVersion)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse version from prelude: %w", err)
+		return nil, fmt.Errorf("parse version from prelude: %w", err)
 	}
 
 	pes := []DirLike{}
