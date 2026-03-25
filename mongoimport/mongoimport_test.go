@@ -1705,7 +1705,7 @@ func TestRoundTripDataTypes(t *testing.T) {
 }
 
 // TestRoundTripViewExport verifies that mongoexport correctly exports documents
-// from a MongoDB view, and that mongoimport can restore them (from export_views.js).
+// from a MongoDB view, and that mongoimport can restore them.
 func TestRoundTripViewExport(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -1791,7 +1791,7 @@ func TestRoundTripViewExport(t *testing.T) {
 	require.NoError(t, err)
 	imported, _, err := mi.ImportDocuments()
 	require.NoError(t, err)
-	assert.EqualValues(t, 4, imported, "export should succeed")
+	assert.EqualValues(t, 4, imported, "import should succeed")
 
 	n, err = db.Collection("CACities").CountDocuments(t.Context(), bson.D{})
 	require.NoError(t, err)
