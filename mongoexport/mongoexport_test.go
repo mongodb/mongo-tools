@@ -8,12 +8,16 @@ package mongoexport
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -311,4 +315,38 @@ func TestBadOptions(t *testing.T) {
 			testCase.errorTestFunc(t, err)
 		}
 	}
+}
+
+// TestBrokenPipe verifies that mongoexport handles a broken pipe gracefully
+// (exits with a write error rather than being killed by SIGPIPE).
+func TestBrokenPipe(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const (
+		dbName   = "mongoexport_broken_pipe_test"
+		collName = "docs"
+	)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+
+	// Insert 1000 docs with a large field so JSON output exceeds the pipe buffer.
+	docs := make([]any, 1000)
+	for i := range 1000 {
+		docs[i] = bson.D{{"_id", int32(i)}, {"data", strings.Repeat("x", 1000)}}
+	}
+	_, err = client.Database(dbName).Collection(collName).InsertMany(context.Background(), docs)
+	require.NoError(t, err)
+
+	args := append(
+		[]string{"run", filepath.Join("..", "mongoexport", "main")},
+		testutil.GetBareArgs()...,
+	)
+	args = append(args, "--db", dbName, "--collection", collName)
+	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))
 }
