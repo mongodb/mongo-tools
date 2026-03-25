@@ -3157,3 +3157,274 @@ func importWithIngestOpts(
 	_, _, err = mi.ImportDocuments()
 	return err
 }
+
+// TestImportModeUpsertFields tests --mode with --upsertFields a,c (compound key matching).
+// The collection starts with two docs: {a:1234, c:222, x:"original field"} and
+// {a:4567, c:333, x:"original field"}.
+// The import file has five entries:
+//   - (a=1234,c=222) appears twice; last write sets b="blah"
+//   - (a=4567,c=333) matches the second doc and sets b="yyy"
+//   - (a=4567,c=222) has no match and becomes a new doc with b="asdf"
+func TestImportModeUpsertFields(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const (
+		dbName   = "mongoimport_modes_upsertfields_test"
+		collName = "c"
+	)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	ns := &options.Namespace{DB: dbName, Collection: collName}
+	dir := t.TempDir()
+
+	importFile := writeJSONLinesFile(t, dir, "upsert2.json", []map[string]any{
+		{"a": 1234, "b": 4567, "c": 222},
+		{"a": 4567, "b": "yyy", "c": 333},
+		{"a": 1234, "b": "blah", "c": 222},
+		{"a": "xxx", "b": "test", "c": -1},
+		{"a": 4567, "b": "asdf", "c": 222},
+	})
+
+	t.Run("mode=wrong returns error", func(t *testing.T) {
+		setupUpsertFieldsDocs(t, coll)
+		err := runImportOpts(t, ns, importFile, IngestOptions{Mode: "wrong", UpsertFields: "a,c"})
+		require.ErrorContains(t, err, "invalid --mode argument")
+	})
+
+	t.Run("mode=insert returns error", func(t *testing.T) {
+		setupUpsertFieldsDocs(t, coll)
+		err := runImportOpts(
+			t,
+			ns,
+			importFile,
+			IngestOptions{Mode: modeInsert, UpsertFields: "a,c"},
+		)
+		require.ErrorContains(t, err, "cannot use --upsertFields with --mode=insert")
+	})
+
+	// Default mode, mode=upsert, and deprecated --upsert all replace matched docs.
+	for _, tc := range []struct {
+		name string
+		opts IngestOptions
+	}{
+		{"default mode", IngestOptions{UpsertFields: "a,c"}},
+		{"deprecated --upsert", IngestOptions{Upsert: true, UpsertFields: "a,c"}},
+		{"mode=upsert", IngestOptions{Mode: modeUpsert, UpsertFields: "a,c"}},
+	} {
+		t.Run(tc.name+" replaces matched docs", func(t *testing.T) {
+			setupUpsertFieldsDocs(t, coll)
+			require.NoError(t, runImportOpts(t, ns, importFile, tc.opts))
+
+			var doc map[string]any
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "blah"}}).Decode(&doc))
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+
+			doc = map[string]any{}
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "yyy"}}).Decode(&doc))
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+
+			doc = map[string]any{}
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "asdf"}}).Decode(&doc))
+			assert.Nil(t, doc["x"], "newly inserted doc has no x field")
+		})
+	}
+
+	t.Run("mode=merge updates matched docs and preserves unset fields", func(t *testing.T) {
+		setupUpsertFieldsDocs(t, coll)
+		require.NoError(
+			t,
+			runImportOpts(t, ns, importFile, IngestOptions{Mode: modeMerge, UpsertFields: "a,c"}),
+		)
+
+		var doc map[string]any
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "blah"}}).Decode(&doc))
+		assert.Equal(t, "original field", doc["x"], "merge preserves x on matched doc")
+
+		doc = map[string]any{}
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "yyy"}}).Decode(&doc))
+		assert.Equal(t, "original field", doc["x"], "merge preserves x on matched doc")
+
+		doc = map[string]any{}
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "asdf"}}).Decode(&doc))
+		assert.Nil(t, doc["x"], "newly inserted doc has no x field")
+	})
+}
+
+// TestImportModeByID tests --mode without --upsertFields (matches on _id).
+// The collection starts with {_id:"one", a:"original value", x:"original field"} and
+// {_id:"two", a:"original value 2", x:"original field"}.
+// The import file has five entries; _id="one" appears four times and last write wins,
+// leaving it as {a:"unicorns", b:"zebras"}. _id="two" has one entry: {a:"xxx", b:"yyy"}.
+func TestImportModeByID(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const (
+		dbName   = "mongoimport_modes_byid_test"
+		collName = "c"
+	)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	ns := &options.Namespace{DB: dbName, Collection: collName}
+	dir := t.TempDir()
+
+	importFile := writeJSONLinesFile(t, dir, "upsert1.json", []map[string]any{
+		{"_id": "one", "a": 1234, "b": 4567},
+		{"_id": "two", "a": "xxx", "b": "yyy"},
+		{"_id": "one", "a": "foo", "b": "blah"},
+		{"_id": "one", "a": "test", "b": "test"},
+		{"_id": "one", "a": "unicorns", "b": "zebras"},
+	})
+
+	t.Run("mode=wrong returns error", func(t *testing.T) {
+		setupByIDDocs(t, coll)
+		err := runImportOpts(t, ns, importFile, IngestOptions{Mode: "wrong"})
+		require.ErrorContains(t, err, "invalid --mode argument")
+	})
+
+	// mode=insert and the default mode both skip all duplicates.
+	for _, tc := range []struct {
+		name string
+		opts IngestOptions
+	}{
+		{"mode=insert", IngestOptions{Mode: modeInsert}},
+		{"default mode", IngestOptions{}},
+	} {
+		t.Run(tc.name+" skips duplicates", func(t *testing.T) {
+			setupByIDDocs(t, coll)
+			require.NoError(t, runImportOpts(t, ns, importFile, tc.opts))
+
+			n, err := coll.CountDocuments(t.Context(), bson.D{})
+			require.NoError(t, err)
+			assert.EqualValues(t, 2, n, "all entries were duplicates; count unchanged")
+
+			var doc map[string]any
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
+			assert.Equal(t, "original value", doc["a"], "_id=one unchanged")
+			assert.Equal(t, "original field", doc["x"], "_id=one unchanged")
+		})
+	}
+
+	// Deprecated --upsert and explicit mode=upsert both replace docs by _id.
+	for _, tc := range []struct {
+		name string
+		opts IngestOptions
+	}{
+		{"deprecated --upsert", IngestOptions{Upsert: true}},
+		{"mode=upsert", IngestOptions{Mode: modeUpsert}},
+	} {
+		t.Run(tc.name+" replaces docs", func(t *testing.T) {
+			setupByIDDocs(t, coll)
+			require.NoError(t, runImportOpts(t, ns, importFile, tc.opts))
+
+			var doc map[string]any
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
+			assert.Equal(t, "unicorns", doc["a"], "last write wins")
+			assert.Equal(t, "zebras", doc["b"], "last write wins")
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+
+			doc = map[string]any{}
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "two"}}).Decode(&doc))
+			assert.Equal(t, "xxx", doc["a"])
+			assert.Equal(t, "yyy", doc["b"])
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+		})
+	}
+
+	t.Run("mode=merge updates docs and preserves unset fields", func(t *testing.T) {
+		setupByIDDocs(t, coll)
+		require.NoError(t, runImportOpts(t, ns, importFile, IngestOptions{Mode: modeMerge}))
+
+		var doc map[string]any
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
+		assert.Equal(t, "unicorns", doc["a"], "last write wins")
+		assert.Equal(t, "zebras", doc["b"], "last write wins")
+		assert.Equal(t, "original field", doc["x"], "merge preserves x")
+
+		doc = map[string]any{}
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "two"}}).Decode(&doc))
+		assert.Equal(t, "xxx", doc["a"])
+		assert.Equal(t, "yyy", doc["b"])
+		assert.Equal(t, "original field", doc["x"], "merge preserves x")
+	})
+}
+
+func setupUpsertFieldsDocs(t *testing.T, coll *mongo.Collection) {
+	t.Helper()
+	require.NoError(t, coll.Drop(t.Context()))
+	_, err := coll.InsertMany(
+		t.Context(),
+		[]any{
+			bson.D{{"a", int32(1234)}, {"b", "000000"}, {"c", int32(222)}, {"x", "original field"}},
+			bson.D{{"a", int32(4567)}, {"b", "111111"}, {"c", int32(333)}, {"x", "original field"}},
+		},
+	)
+	require.NoError(t, err)
+}
+
+func setupByIDDocs(t *testing.T, coll *mongo.Collection) {
+	t.Helper()
+	require.NoError(t, coll.Drop(t.Context()))
+	_, err := coll.InsertMany(
+		t.Context(),
+		[]any{
+			bson.D{{"_id", "one"}, {"a", "original value"}, {"x", "original field"}},
+			bson.D{{"_id", "two"}, {"a", "original value 2"}, {"x", "original field"}},
+		},
+	)
+	require.NoError(t, err)
+}
+
+// runImportOpts is like importWithIngestOpts but also returns errors from New,
+// allowing callers to test for invalid-options errors.
+func runImportOpts(
+	t *testing.T,
+	ns *options.Namespace,
+	filePath string,
+	ingestOpts IngestOptions,
+) error {
+	t.Helper()
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = ns
+	mi, err := New(Options{
+		ToolOptions:   toolOptions,
+		InputOptions:  &InputOptions{File: filePath, ParseGrace: "stop"},
+		IngestOptions: &ingestOpts,
+	})
+	if err != nil {
+		return err
+	}
+	defer mi.Close()
+	_, _, err = mi.ImportDocuments()
+	return err
+}
+
+// writeJSONLinesFile marshals each doc in docs as a JSON object and writes them
+// as newline-separated lines to a file in dir named name. Returns the file path.
+func writeJSONLinesFile(t *testing.T, dir, name string, docs []map[string]any) string {
+	t.Helper()
+	var buf bytes.Buffer
+	for _, doc := range docs {
+		b, err := json.Marshal(doc)
+		require.NoError(t, err)
+		buf.Write(b)
+		buf.WriteByte('\n')
+	}
+	return writeTestFile(t, dir, name, buf.String())
+}
