@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -465,7 +466,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					skip = true
 				}
 
-				checkSourceNS := db + "." + strings.TrimPrefix(collection, "system.buckets.")
+				checkSourceNS := db + "." + strings.TrimPrefix(collection, common.TimeseriesBucketPrefix)
 
 				if !restore.includer.Has(checkSourceNS) {
 					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is not included", db, collection)
@@ -477,7 +478,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				}
 				destNS := restore.renamer.Get(sourceNS)
 				destDB, destC := util.SplitNamespace(destNS)
-				destC = strings.TrimPrefix(destC, "system.buckets.")
+				destC = strings.TrimPrefix(destC, common.TimeseriesBucketPrefix)
 				intent := &intents.Intent{
 					ServerVersion: restore.serverVersion,
 					DB:            destDB,
@@ -523,7 +524,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				}
 
 				checkSourceNS := sourceNS
-				if trimmedColl, ok := strings.CutPrefix(collection, "system.buckets."); ok {
+				if trimmedColl, ok := strings.CutPrefix(collection, common.TimeseriesBucketPrefix); ok {
 					checkSourceNS = db + "." + trimmedColl
 				}
 
@@ -614,11 +615,11 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	}
 
 	var isTimeseries bool
-	if strings.HasPrefix(bsonFile.Name(), "system.buckets.") {
+	if strings.HasPrefix(bsonFile.Name(), common.TimeseriesBucketPrefix) {
 		isTimeseries = true
 		// the name of the collection should be without the prefix to allow for operations (like drop) which should be
 		// performed on the timeseries view and not the system.buckets collection.
-		collection = strings.TrimPrefix(collection, "system.buckets.")
+		collection = strings.TrimPrefix(collection, common.TimeseriesBucketPrefix)
 	}
 	// Create the intent using the bson file.
 	intent := &intents.Intent{
@@ -662,7 +663,7 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	}
 
 	if isTimeseries {
-		metadataName = strings.TrimPrefix(metadataName, "system.buckets.")
+		metadataName = strings.TrimPrefix(metadataName, common.TimeseriesBucketPrefix)
 	}
 
 	// If the metadata file is found, add it to the intent.

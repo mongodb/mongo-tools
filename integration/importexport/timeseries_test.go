@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
@@ -82,7 +83,7 @@ func (s *ImportExportSuite) TestTimeseries() {
 		s.Run("export", func() {
 			opts := s.ExportOptions()
 
-			opts.Collection = "system.buckets." + collName
+			opts.Collection = common.TimeseriesBucketPrefix + collName
 			opts.DB = fromDBName
 
 			me, err := mongoexport.New(opts)
@@ -107,7 +108,7 @@ func (s *ImportExportSuite) TestTimeseries() {
 			file := testutil.WriteTempFile(s.T(), buf)
 			defer os.Remove(file.Name())
 
-			opts := s.ImportOptions(toDBName, "system.buckets."+collName)
+			opts := s.ImportOptions(toDBName, common.TimeseriesBucketPrefix+collName)
 			opts.InputOptions.File = file.Name()
 
 			_, err := mongoimport.New(opts)

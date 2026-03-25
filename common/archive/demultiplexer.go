@@ -16,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -76,7 +77,7 @@ func CreateDemux(
 		var ns string
 		if cm.Type == "timeseries" && !version.SupportsRawData() {
 			// 8.3+ supports viewless timeseries.
-			ns = cm.Database + ".system.buckets." + cm.Collection
+			ns = cm.Database + "." + common.TimeseriesBucketPrefix + cm.Collection
 		} else {
 			ns = cm.Database + "." + cm.Collection
 		}
@@ -530,7 +531,7 @@ func (prioritizer *Prioritizer) Get() *intents.Intent {
 		return nil
 	}
 	destDB, destC := util.SplitNamespace(namespace)
-	namespace = destDB + "." + strings.TrimPrefix(destC, "system.buckets.")
+	namespace = destDB + "." + strings.TrimPrefix(destC, common.TimeseriesBucketPrefix)
 	intent := prioritizer.mgr.IntentForNamespace(namespace)
 	if intent == nil {
 		prioritizer.NamespaceErrorChan <- fmt.Errorf("no intent for namespace %v", namespace)

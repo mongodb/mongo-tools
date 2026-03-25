@@ -573,7 +573,7 @@ func (restore *MongoRestore) Restore() Result {
 				break
 			}
 			dbName, collName := util.SplitNamespace(ns)
-			ns = dbName + "." + strings.TrimPrefix(collName, "system.buckets.")
+			ns = dbName + "." + strings.TrimPrefix(collName, common.TimeseriesBucketPrefix)
 			intent := restore.manager.IntentForNamespace(ns)
 			if intent == nil {
 				return Result{Err: fmt.Errorf("no intent for collection in archive: %v", ns)}

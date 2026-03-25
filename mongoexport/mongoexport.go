@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/json"
@@ -409,7 +410,7 @@ func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
 	}
 
 	if exp.version.SupportsRawData() &&
-		strings.HasPrefix(exp.ToolOptions.Collection, "system.buckets.") {
+		strings.HasPrefix(exp.ToolOptions.Collection, common.TimeseriesBucketPrefix) {
 		return 0, fmt.Errorf(
 			"mongoexport does not support exporting system.buckets collections with server versions 8.3+ (detected version: %s)",
 			exp.version,

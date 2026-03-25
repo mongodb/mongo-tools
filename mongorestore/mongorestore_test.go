@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -2232,7 +2233,7 @@ func timeseriesCollName(version db.Version, base string) string {
 		return base
 	}
 
-	return "system.buckets." + base
+	return common.TimeseriesBucketPrefix + base
 }
 
 func TestRestoreTimeseriesCollections(t *testing.T) {
@@ -2254,7 +2255,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 	testdb := session.Database(dbName)
 	dataColl := testdb.Collection("foo_ts")
-	bucketsColl := testdb.Collection("system.buckets.foo_ts")
+	bucketsColl := testdb.Collection(common.TimeseriesBucketPrefix + "foo_ts")
 
 	dropTestDB := func(t *testing.T) {
 		err := testdb.Drop(t.Context())
@@ -2351,7 +2352,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 				return
 			}
 
-			testdb.RunCommand(t.Context(), bson.M{"create": "system.buckets.foo_ts"})
+			testdb.RunCommand(t.Context(), bson.M{"create": bucketsColl.Name()})
 
 			result := restore.Restore()
 			defer restore.Close()
@@ -2500,7 +2501,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = testdb.Collection("system.buckets.bar_ts").
+		count, err = testdb.Collection(common.TimeseriesBucketPrefix+"bar_ts").
 			CountDocuments(t.Context(), bson.M{})
 		require.NoError(t, err)
 		assert.EqualValues(t, 10, count)
@@ -2563,7 +2564,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 		args := []string{
 			NSIncludeOption,
-			dbName + ".system.buckets.foo_ts",
+			dbName + "." + bucketsColl.Name(),
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump",
 		}
@@ -2636,7 +2637,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			assert.Zero(t, numIndexes)
 		}
 
-		cur, err := testdb.ListCollections(ctx, bson.M{"name": "system.buckets.foo_ts"})
+		cur, err := testdb.ListCollections(ctx, bson.M{"name": bucketsColl.Name()})
 		require.NoError(t, err)
 
 		for cur.Next(ctx) {
@@ -2681,7 +2682,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = testdb.Collection("system.buckets.foo_rename_ts").
+		count, err = testdb.Collection(common.TimeseriesBucketPrefix+"foo_rename_ts").
 			CountDocuments(t.Context(), bson.M{})
 		require.NoError(t, err)
 		assert.EqualValues(t, 10, count)
@@ -2692,11 +2693,13 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		// renamed, even if the user tries to rename the system.buckets collection.
 		defer dropTestDB(t)
 
+		renameBucketsName := common.TimeseriesBucketPrefix + "foo_rename_ts"
+
 		args := []string{
 			NSFromOption,
-			dbName + ".system.buckets.foo_ts",
+			dbName + "." + bucketsColl.Name(),
 			NSToOption,
-			dbName + ".system.buckets.foo_rename_ts",
+			dbName + "." + renameBucketsName,
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump",
 		}
@@ -2713,7 +2716,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, count)
 
-		count, err = testdb.Collection("system.buckets.foo_rename_ts").
+		count, err = testdb.Collection(renameBucketsName).
 			CountDocuments(t.Context(), bson.M{})
 		require.NoError(t, err)
 		assert.Zero(t, count)
