@@ -35,25 +35,25 @@ type oplogContext struct {
 	txnBuffer  *txn.Buffer
 }
 
-var knownCommands = map[string]bool{
-	"renameCollection": true,
-	"dropDatabase":     true,
-	"applyOps":         true,
-	"dbCheck":          true,
-	"create":           true,
-	"convertToCapped":  true,
-	"emptycapped":      true,
-	"drop":             true,
-	"createIndexes":    true,
-	"deleteIndex":      true,
-	"deleteIndexes":    true,
-	"dropIndex":        true,
-	"dropIndexes":      true,
-	"collMod":          true,
-	"startIndexBuild":  true,
-	"abortIndexBuild":  true,
-	"commitIndexBuild": true,
-}
+var knownCommands = mapset.NewSet(
+	"renameCollection",
+	"dropDatabase",
+	"applyOps",
+	"dbCheck",
+	"create",
+	"convertToCapped",
+	"emptycapped",
+	"drop",
+	"createIndexes",
+	"deleteIndex",
+	"deleteIndexes",
+	"dropIndex",
+	"dropIndexes",
+	"collMod",
+	"startIndexBuild",
+	"abortIndexBuild",
+	"commitIndexBuild",
+)
 
 var errorTimestampBeforeLimit = fmt.Errorf("timestamp before limit")
 
@@ -153,16 +153,16 @@ func (restore *MongoRestore) RestoreOplog() error {
 
 }
 
-var ignoredOps = map[string]struct{}{
+var ignoredOps = mapset.NewSet(
 	// This is a no-op op.
-	"n": struct{}{},
+	"n",
 	// These ops are seen when replicated record IDs are enabled. They are related to internal
 	// bookkeeping for the cluster and do not need to be replicated on restore.
-	"cd": struct{}{},
-	"ci": struct{}{},
-	"cu": struct{}{},
-	"km": struct{}{},
-}
+	"cd",
+	"ci",
+	"cu",
+	"km",
+)
 
 // These are types in the 'c' oplog field we ignore, because they'll be recreated in the restored
 // cluster by the replication system.
@@ -177,7 +177,7 @@ func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error
 		return nil
 	}
 
-	if _, exists := ignoredOps[op.Operation]; exists {
+	if ignoredOps.ContainsOne(op.Operation) {
 		return nil
 	}
 
@@ -235,7 +235,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 		}
 		cmdName := op.Object[0].Key
 
-		if !knownCommands[cmdName] {
+		if !knownCommands.ContainsOne(cmdName) {
 			return fmt.Errorf("unknown oplog command name %v: %v", cmdName, op)
 		}
 
