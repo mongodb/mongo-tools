@@ -80,7 +80,7 @@ func (it *Intent) DataNamespace() string {
 
 func (it *Intent) DataCollection() string {
 	if it.IsTimeseries() && !it.ServerVersion.SupportsRawData() {
-		// 8.3+ uses viewless timeseries.
+		// 8.3+ supports viewless timeseries.
 		return "system.buckets." + it.C
 	}
 	return it.C
