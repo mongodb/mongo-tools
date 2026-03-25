@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ccoveille/go-safecast/v2"
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
@@ -286,6 +287,12 @@ func (pe *PreludeExplorer) ReadDir() ([]DirLike, error) {
 	if !pe.IsDir() {
 		return nil, fmt.Errorf("not a directory")
 	}
+
+	serverVersion, err := db.StrToVersion(pe.prelude.Header.ServerVersion)
+	if err != nil {
+		return nil, fmt.Errorf("parse version from prelude: %w", err)
+	}
+
 	pes := []DirLike{}
 	if pe.database == "" {
 		// when reading the top level of the archive, we need return all of the
@@ -323,7 +330,7 @@ func (pe *PreludeExplorer) ReadDir() ([]DirLike, error) {
 		}
 		for _, namespaceMetadata := range namespaceMetadatas {
 			dataCollection := namespaceMetadata.Collection
-			if namespaceMetadata.Type == "timeseries" {
+			if namespaceMetadata.Type == "timeseries" && !serverVersion.SupportsRawData() {
 				dataCollection = "system.buckets." + namespaceMetadata.Collection
 			}
 			pes = append(pes, &PreludeExplorer{

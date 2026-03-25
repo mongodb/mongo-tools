@@ -1986,16 +1986,15 @@ func TestUnversionedIndexes(t *testing.T) {
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "no cluster available")
 
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
+	require.NoError(t, err, "no client available")
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get cluster version")
 
 	dbName := t.Name()
 	collName := "coll"
@@ -2026,6 +2025,9 @@ func TestUnversionedIndexes(t *testing.T) {
 	require.NoError(t, err, "should marshal metadata to extJSON")
 
 	archive := archive.SimpleArchive{
+		Header: archive.Header{
+			ServerVersion: serverVersion.String(),
+		},
 		CollectionMetadata: []archive.CollectionMetadata{
 			{
 				Database:   dbName,
@@ -2107,10 +2109,13 @@ func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 		t.Skip("The test currently fails on v8.0 because of SERVER-92222")
 	}
 
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "parse server version")
+
 	dbName := "timeseries_test_DB"
 	collName := "timeseries_mixed_schema"
 	testdb := session.Database(dbName)
-	bucketColl := testdb.Collection("system.buckets." + collName)
+	bucketColl := testdb.Collection(timeseriesCollName(serverVersion, collName))
 
 	setupTimeseriesWithMixedSchema(t, dbName, collName)
 
@@ -2177,6 +2182,9 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	require.NoError(t, err, "get session provider")
 
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get server version")
+
 	client, err := sessionProvider.GetSession()
 	require.NoError(t, err, "get session")
 
@@ -2204,7 +2212,8 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 		require.NoError(t, res.Err(), "collMod timeseries collection")
 	}
 
-	bucketColl := sessionProvider.DB(dbName).Collection("system.buckets." + collName)
+	bucketName := timeseriesCollName(serverVersion, collName)
+	bucketColl := sessionProvider.DB(dbName).Collection(bucketName)
 	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
 	var bucketMap map[string]any
 	err = json.Unmarshal([]byte(bucketJSON), &bucketMap)
@@ -2215,6 +2224,15 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 
 	_, err = bucketColl.InsertOne(t.Context(), bucketMap)
 	require.NoError(t, err, "insert bucket doc")
+}
+
+func timeseriesCollName(version db.Version, base string) string {
+	if version.SupportsRawData() {
+		// viewless timeseries
+		return base
+	}
+
+	return "system.buckets." + base
 }
 
 func TestRestoreTimeseriesCollections(t *testing.T) {

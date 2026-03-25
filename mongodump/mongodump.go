@@ -51,17 +51,18 @@ type MongoDump struct {
 	ProgressManager progress.Manager
 
 	// useful internals that we don't directly expose as options
-	SessionProvider *db.SessionProvider
-	manager         *intents.Manager
-	query           bson.D
-	oplogCollection string
-	oplogStart      bson.Timestamp
-	oplogEnd        bson.Timestamp
-	isMongos        bool
-	isAtlasProxy    bool
-	serverVersion   string
-	authVersion     int
-	archive         *archive.Writer
+	SessionProvider    *db.SessionProvider
+	manager            *intents.Manager
+	query              bson.D
+	oplogCollection    string
+	oplogStart         bson.Timestamp
+	oplogEnd           bson.Timestamp
+	isMongos           bool
+	isAtlasProxy       bool
+	serverVersion      string
+	serverVersionArray db.Version
+	authVersion        int
+	archive            *archive.Writer
 	// shutdownIntentsNotifier is provided to the multiplexer
 	// as well as the signal handler, and allows them to notify
 	// the intent dumpers that they should shutdown
@@ -314,6 +315,17 @@ func (dump *MongoDump) Dump() (err error) {
 		return fmt.Errorf("error connecting to host: %v", err)
 	}
 
+	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
+	if err != nil {
+		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
+		dump.serverVersion = common.ServerVersionUnknown
+	}
+
+	dump.serverVersionArray, err = db.StrToVersion(dump.serverVersion)
+	if err != nil {
+		log.Logvf(log.Always, "warning, couldn't parse version information from server: %v", err)
+	}
+
 	// If oplog capturing is enabled, we first check the most recent
 	// oplog entry and save its timestamp, this will let us later
 	// copy all oplog entries that occurred while dumping, creating
@@ -374,12 +386,6 @@ func (dump *MongoDump) Dump() (err error) {
 	err = dump.DumpMetadata()
 	if err != nil {
 		return fmt.Errorf("error dumping metadata: %v", err)
-	}
-
-	dump.serverVersion, err = dump.SessionProvider.ServerVersion()
-	if err != nil {
-		log.Logvf(log.Always, "warning, couldn't get version information from server: %v", err)
-		dump.serverVersion = common.ServerVersionUnknown
 	}
 
 	if dump.OutputOptions.Archive != "" {
@@ -593,7 +599,8 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	}
 	intendedDB := session.Database(intent.DB)
 	var coll *mongo.Collection
-	if intent.IsTimeseries() {
+	if intent.IsTimeseries() && !intent.ServerVersion.SupportsRawData() {
+		// 8.3+ supports viewless timeseries.
 		coll = intendedDB.Collection("system.buckets." + intent.C)
 	} else {
 		coll = intendedDB.Collection(intent.C)
@@ -769,7 +776,7 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 		}()
 	}
 
-	cursor, err := query.Iter()
+	cursor, err := query.Iter(dump.serverVersionArray)
 	if err != nil {
 		return
 	}

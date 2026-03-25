@@ -46,6 +46,16 @@ func (s *ImportExportSuite) RequireFCVAtLeast(wantFCV string) {
 	}
 }
 
+func (s *ImportExportSuite) ServerVersion() db.Version {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	s.Require().NoError(err, "no cluster available")
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	s.Require().NoError(err, "get server version")
+
+	return serverVersion
+}
+
 func (s *ImportExportSuite) ExportOptions() mongoexport.Options {
 	toolOptions, err := testutil.GetToolOptions()
 	s.Require().NoError(err)

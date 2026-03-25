@@ -466,7 +466,8 @@ func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
 	inserter := db.NewUnorderedBufferedBulkInserter(collection, imp.IngestOptions.BulkBufferSize, serverVersion).
 		SetBypassDocumentValidation(imp.IngestOptions.BypassDocumentValidation).
 		SetOrdered(imp.IngestOptions.MaintainInsertionOrder).
-		SetUpsert(true)
+		SetUpsert(true).
+		SetWithoutRawData()
 
 readLoop:
 	for {

@@ -14,6 +14,7 @@ func (s *ImportExportSuite) TestTimeseries() {
 	s.RequireFCVAtLeast("5.0")
 
 	client := s.Client()
+	serverVersion := s.ServerVersion()
 
 	fromDBName, toDBName, collName := "fromdb", "todb", "tscoll"
 
@@ -89,8 +90,17 @@ func (s *ImportExportSuite) TestTimeseries() {
 			defer me.Close()
 
 			count, err := me.Export(buf)
-			s.Require().NoError(err)
-			s.Assert().EqualValues(10, count)
+			if serverVersion.SupportsRawData() {
+				s.Assert().Zero(count)
+				s.Require().ErrorContains(
+					err,
+					"does not support exporting system.buckets collections",
+				)
+			} else {
+				s.Require().NoError(err)
+				s.Assert().EqualValues(10, count)
+			}
+
 		})
 
 		s.Run("import", func() {
