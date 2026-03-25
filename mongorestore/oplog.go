@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/ccoveille/go-safecast/v2"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -163,6 +164,14 @@ var ignoredOps = map[string]struct{}{
 	"km": struct{}{},
 }
 
+// These are types in the 'c' oplog field we ignore, because they'll be recreated in the restored
+// cluster by the replication system.
+var ignoredCEntries = mapset.NewSet(
+	"startIndexBuild",
+	"abortIndexBuild",
+	"setMultikeyMetadata",
+)
+
 func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error {
 	if shouldIgnoreNamespace(op.Namespace) {
 		return nil
@@ -174,7 +183,7 @@ func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error
 
 	if op.Operation == "c" && len(op.Object) > 0 {
 		entryName := op.Object[0].Key
-		if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
+		if ignoredCEntries.ContainsOne(entryName) {
 			log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
 			return nil
 		}
