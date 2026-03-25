@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -341,7 +342,7 @@ func timeseriesCollName(version db.Version, base string) string {
 		return base
 	}
 
-	return "system.buckets." + base
+	return common.TimeseriesBucketPrefix + base
 }
 
 func setUpDBView(dbName string, colName string) error {
@@ -1909,13 +1910,13 @@ func TestTimeseriesCollections(t *testing.T) {
 
 		t.Run("exclude system.buckets.coll", func(t *testing.T) {
 			md := setup("archive")
-			md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+			md.OutputOptions.ExcludedCollections = []string{common.TimeseriesBucketPrefix + colName}
 			runArchiveTest(t, md)
 		})
 
 		t.Run("exclude system.buckets prefix", func(t *testing.T) {
 			md := setup("archive")
-			md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{common.TimeseriesBucketPrefix}
 			runArchiveTest(t, md)
 		})
 	})
@@ -1971,13 +1972,13 @@ func TestTimeseriesCollections(t *testing.T) {
 
 		t.Run("exclude system.buckets.coll", func(t *testing.T) {
 			md := setup("dir")
-			md.OutputOptions.ExcludedCollections = []string{"system.buckets." + colName}
+			md.OutputOptions.ExcludedCollections = []string{common.TimeseriesBucketPrefix + colName}
 			runDirTest(t, md)
 		})
 
 		t.Run("exclude system.buckets prefix", func(t *testing.T) {
 			md := setup("dir")
-			md.OutputOptions.ExcludedCollectionPrefixes = []string{"system.buckets."}
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{common.TimeseriesBucketPrefix}
 			runDirTest(t, md)
 		})
 	})
@@ -2058,7 +2059,7 @@ func TestTimeseriesCollections(t *testing.T) {
 	t.Run("specify buckets collection explicitly", func(t *testing.T) {
 		md := setup("dir")
 		md.ToolOptions.DB = dbName
-		md.ToolOptions.Collection = "system.buckets." + colName
+		md.ToolOptions.Collection = common.TimeseriesBucketPrefix + colName
 
 		err = md.Init()
 		require.Error(t, err)

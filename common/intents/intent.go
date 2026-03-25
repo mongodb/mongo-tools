@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -85,7 +86,7 @@ func (it *Intent) DataCollection() string {
 
 	if it.IsTimeseries() && !it.ServerVersion.SupportsRawData() {
 		// 8.3+ supports viewless timeseries.
-		return "system.buckets." + it.C
+		return common.TimeseriesBucketPrefix + it.C
 	}
 	return it.C
 }

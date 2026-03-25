@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -336,7 +337,7 @@ func (dump *MongoDump) NewIntentFromOptions(
 		} else if ci.IsTimeseries() && !dump.serverVersionArray.SupportsRawData() {
 			// 8.3+ supports viewless timeseries, so they end up in the final else block as a normal
 			// collection.
-			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, "system.buckets."+ci.Name)+".bson")
+			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, common.TimeseriesBucketPrefix+ci.Name)+".bson")
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 			intent.Location = path
 		} else if ci.IsView() && !dump.OutputOptions.ViewsAsCollections {

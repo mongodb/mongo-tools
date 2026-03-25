@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ccoveille/go-safecast/v2"
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -331,7 +332,7 @@ func (pe *PreludeExplorer) ReadDir() ([]DirLike, error) {
 		for _, namespaceMetadata := range namespaceMetadatas {
 			dataCollection := namespaceMetadata.Collection
 			if namespaceMetadata.Type == "timeseries" && !serverVersion.SupportsRawData() {
-				dataCollection = "system.buckets." + namespaceMetadata.Collection
+				dataCollection = common.TimeseriesBucketPrefix + namespaceMetadata.Collection
 			}
 			pes = append(pes, &PreludeExplorer{
 				prelude:    pe.prelude,

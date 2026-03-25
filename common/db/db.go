@@ -24,6 +24,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/youmark/pkcs8"
@@ -633,7 +634,7 @@ func GetLogicalTimeseriesCollName(version Version, rawCollName string) (string, 
 		return rawCollName, nil
 	}
 
-	collName := strings.TrimPrefix(rawCollName, "system.buckets.")
+	collName := strings.TrimPrefix(rawCollName, common.TimeseriesBucketPrefix)
 	if collName == rawCollName || collName == "" {
 		return "", errors.New("invalid timeseries bucket name: " + rawCollName)
 	}

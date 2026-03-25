@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -429,7 +430,7 @@ func TestMongoImportValidateSettings(t *testing.T) {
 			imp.InputOptions.File = "input"
 			imp.InputOptions.HeaderLine = true
 			imp.InputOptions.Type = CSV
-			imp.ToolOptions.Collection = "system.buckets.foo"
+			imp.ToolOptions.Collection = common.TimeseriesBucketPrefix + "foo"
 			So(imp.validateSettings(), ShouldNotBeNil)
 		})
 

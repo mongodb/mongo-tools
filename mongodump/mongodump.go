@@ -104,7 +104,7 @@ func (dump *MongoDump) ValidateOptions() error {
 		return fmt.Errorf("must specify a database when running with dumpDbUsersAndRoles")
 	case dump.OutputOptions.DumpDBUsersAndRoles && dump.ToolOptions.Collection != "":
 		return fmt.Errorf("cannot specify a collection when running with dumpDbUsersAndRoles")
-	case strings.HasPrefix(dump.ToolOptions.Collection, "system.buckets."):
+	case strings.HasPrefix(dump.ToolOptions.Collection, common.TimeseriesBucketPrefix):
 		return fmt.Errorf("cannot specify a system.buckets collection in --collection. " +
 			"Specifying the timeseries collection will dump the system.buckets collection")
 	case dump.OutputOptions.Oplog && dump.ToolOptions.DB != "":
@@ -601,7 +601,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	var coll *mongo.Collection
 	if intent.IsTimeseries() && !intent.ServerVersion.SupportsRawData() {
 		// 8.3+ supports viewless timeseries.
-		coll = intendedDB.Collection("system.buckets." + intent.C)
+		coll = intendedDB.Collection(common.TimeseriesBucketPrefix + intent.C)
 	} else {
 		coll = intendedDB.Collection(intent.C)
 	}
