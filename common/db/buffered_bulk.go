@@ -46,6 +46,10 @@ func newBufferedBulkInserter(
 	bulkOpts := options.BulkWrite().SetOrdered(ordered)
 	var zeroTimestampOk bool
 
+	if serverVersion.IsEmpty() {
+		panic("newBufferedBulkInserter requires non-empty server version")
+	}
+
 	if MongoCanAcceptLiteralZeroTimestamp(serverVersion) {
 		zeroTimestampOk = true
 		err := xoptions.SetInternalBulkWriteOptions(bulkOpts, "addCommandFields", bson.D{

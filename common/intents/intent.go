@@ -79,6 +79,10 @@ func (it *Intent) DataNamespace() string {
 }
 
 func (it *Intent) DataCollection() string {
+	if it.ServerVersion.IsEmpty() {
+		panic("intent requires server version")
+	}
+
 	if it.IsTimeseries() && !it.ServerVersion.SupportsRawData() {
 		// 8.3+ supports viewless timeseries.
 		return "system.buckets." + it.C

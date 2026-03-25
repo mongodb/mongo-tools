@@ -28,24 +28,28 @@ const testDocCount = 10000
 
 var testIntents = []*intents.Intent{
 	{
-		DB:       "foo",
-		C:        "bar",
-		Location: "foo.bar",
+		ServerVersion: db.Version{7, 0, 0},
+		DB:            "foo",
+		C:             "bar",
+		Location:      "foo.bar",
 	},
 	{
-		DB:       "ding",
-		C:        "bats",
-		Location: "ding.bats",
+		ServerVersion: db.Version{7, 0, 0},
+		DB:            "ding",
+		C:             "bats",
+		Location:      "ding.bats",
 	},
 	{
-		DB:       "flim",
-		C:        "flam.fooey",
-		Location: "flim.flam.fooey",
+		ServerVersion: db.Version{7, 0, 0},
+		DB:            "flim",
+		C:             "flam.fooey",
+		Location:      "flim.flam.fooey",
 	},
 	{
-		DB:       "crow",
-		C:        "bar",
-		Location: "crow.bar",
+		ServerVersion: db.Version{7, 0, 0},
+		DB:            "crow",
+		C:             "bar",
+		Location:      "crow.bar",
 	},
 }
 
