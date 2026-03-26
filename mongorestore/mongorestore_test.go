@@ -162,7 +162,12 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 }
 
 func TestMongorestore(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.RequireMatchingTestType(
+		t,
+		testtype.IntegrationTestType,
+		testtype.ShardedIntegrationTestType,
+	)
+
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")
@@ -300,7 +305,11 @@ func TestMongorestore(t *testing.T) {
 }
 
 func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.RequireMatchingTestType(
+		t,
+		testtype.IntegrationTestType,
+		testtype.ShardedIntegrationTestType,
+	)
 
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -1148,7 +1157,11 @@ func TestRestoreUsersOrRoles(t *testing.T) {
 }
 
 func TestKnownCollections(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.RequireMatchingTestType(
+		t,
+		testtype.IntegrationTestType,
+		testtype.ShardedIntegrationTestType,
+	)
 	session, err := testutil.GetBareSession()
 	if err != nil {
 		t.Fatalf("No server available")

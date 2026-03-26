@@ -8,6 +8,7 @@ package testtype
 
 import (
 	"os"
+	"slices"
 	"testing"
 )
 
@@ -57,6 +58,15 @@ func SkipUnlessTestType(t *testing.T, testType string) {
 	if !HasTestType(testType) {
 		doSkip(t, testType)
 	}
+}
+
+func RequireMatchingTestType(t *testing.T, testTypes ...string) {
+	if slices.ContainsFunc(testTypes, HasTestType) {
+		return
+	}
+
+	t.Logf("The environment lacks any of %q; skipping this test …", testTypes)
+	t.SkipNow()
 }
 
 func SkipUnlessBenchmarkType(b *testing.B, testType string) {
