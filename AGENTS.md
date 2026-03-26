@@ -88,6 +88,12 @@ go run build.go sa:modtidy   # go mod tidy
 - New tests should use `testify` (`github.com/stretchr/testify/require` and `assert`). The codebase
   is actively migrating away from GoConvey — do not add new GoConvey tests.
 
+## Linting
+
+Run `go run build.go sa:lint` to check for lint errors. Ignore LSP diagnostics that are suppressed
+by `.golangci.yml` — in particular, `bson.E struct literal uses unkeyed fields` is explicitly
+allowed and should not be treated as an error.
+
 ## Architecture
 
 ```
