@@ -7,7 +7,7 @@
 # running the relevant mage command or by explicitly running `precious` from the CLI.
 
 exclude = [
-  ".ai-plans/**/*",
+  ".claude/**/*",
   "vendor/**/*",
 ]
 
