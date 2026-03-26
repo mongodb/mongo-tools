@@ -12,6 +12,67 @@ If you're interested in contributing, we have a list of some suggested tickets t
 to get started on
 [here](https://jira.mongodb.org/issues/?jql=project%20%3D%20TOOLS%20AND%20labels%20%3D%20community%20and%20status%20%3D%20open)
 
+## Dev Tools (mise)
+
+We use [`mise`](https://mise.jdx.dev/) to manage dev tools (Go, linters, formatters, etc.), ensuring
+every developer and CI run uses the same versions.
+
+### Installing mise
+
+To install mise, run this command:
+
+```
+MISE_VERSION=$( cat ./scripts/mise-version.txt ) sh scripts/mise.run.sh
+```
+
+Then run:
+
+```
+# Enable the Go backend
+mise settings experimental=true
+# Trust the config in this repo
+mise trust
+# Install all dev tools (Go, linters, etc.)
+mise install
+# Install Node packages needed by eslint, prettier, etc.
+npm install
+```
+
+After `mise install`, all tools (including `go`) are available directly in your shell when you're in
+this repo's directory. See [the mise docs](https://mise.jdx.dev/) for details on shell integration.
+
+### Adding a new tool
+
+Run `mise use github:some-org/some-tool@1.2.3`. We use the `github` backend for tools that provide
+binary releases. For Go tools without binary releases, use `go:some/package@vX.Y.Z`.
+
+## Using Mise
+
+You can integrate `mise` with your shell so that dev tools are automatically added to your `PATH`
+when your working directory is in the Mongosync repo. See [the `mise` docs](https://mise.jdx.dev/)
+for more details on this.
+
+If you _don't_ want to use that integration, you can instead use
+`mise exec <list of tools> -- some-tool` to run the tools managed by `mise`, so something like
+`mise exec go -- go version`. It's important to list the tools that `mise exec` needs. Without that
+list, it will attempt to install _all_ the tools in our `mise.toml` when you run `mise exec`. This
+is generally fine locally, but can cause problems in CI, where many of the tools we use cannot be
+installed on some of the platforms we use.
+
+### In CI
+
+We do not set up the shell integration when installing `mise` in CI. That means that anything in CI
+which needs to run Go or another dev tool should use `mise exec go -- go ...` or a similar
+invocation.
+
+### Writing Code that Runs Dev Tools
+
+You may want to write code that uses these tools, either as a script for use in CI or some other
+case.
+
+All programmatic tool invocations should use `mise exec <tool>`. This will work in CI as well as
+locally.
+
 ## Getting Started
 
 1. Create a [MongoDB JIRA account](https://jira.mongodb.org/secure/Signup!default.jspa).

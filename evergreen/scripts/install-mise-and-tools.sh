@@ -4,7 +4,9 @@ set -o errexit
 set -o pipefail
 set -o verbose
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+WORKDIR="$1"
+
+SCRIPT_DIR=$(dirname "$0")
 REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 MISE_BIN_DIR="${workdir:?}/.local/bin"
@@ -14,9 +16,9 @@ WANT_MISE_VERSION=$(cat "$REPO_ROOT/scripts/mise-version.txt")
 
 # Install mise if it is not present or is the wrong version.
 INSTALL_MISE="yes"
-set +e
+set +o errexit
 MISE_PATH=$(which mise 2>/dev/null)
-set -e
+set -o errexit
 
 if [ -n "$MISE_PATH" ]; then
     MISE_VERSION_OUTPUT=$(mise --version)
@@ -39,6 +41,20 @@ fi
 
 mise settings experimental=true
 
-mise install
+export MISE_DATA_DIR="${WORKDIR:?}/.local/share/mise"
+
+set +e
+mise where go
+STATUS=$?
+set -e
+
+# If the status is not 0, that means the version of Go defined in the `mise.toml` file is not
+# installed.
+if [ $STATUS -ne 0 ]; then
+    mise install go
+fi
+
+mise exec go -- go version
+mise exec go -- go env
 
 mise exec node -- npm install
