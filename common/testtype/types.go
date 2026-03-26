@@ -18,6 +18,9 @@ const (
 	// First checks for a URI for a Mongod in the env variable TOOLS_TESTING_MONGOD. If it does not find it, looks on localhost:33333.
 	IntegrationTestType = "TOOLS_TESTING_INTEGRATION"
 
+	// Testing the tools against a sharded cluster (mongos) topology.
+	ShardedIntegrationTestType = "TOOLS_TESTING_SHARDED_INTEGRATION"
+
 	// Unit tests don't require a real mongod. They may still do file I/O.
 	UnitTestType = "TOOLS_TESTING_UNIT"
 

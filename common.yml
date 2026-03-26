@@ -461,6 +461,33 @@ functions:
           fi;
           ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
+  "create sharded cluster":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        background: true
+        script: |
+          set -x
+          set -v
+          set -e
+          echo "starting sharded cluster"
+          mkdir -p /data/db/
+          # use jsconfig.json to set baseUrl to find libs
+          mv test/shell_common/jsconfig.json ./
+          if [ -n "${load_libs_version}" ]; then
+            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
+          fi
+          PATH=./bin:$PATH ./bin/mongo --port ${mongod_port} --nodb --eval "$IMPORT_LOAD_LIBS; var st = new ShardingTest({name: \"tools_sharded_cluster\", shards: 1, mongos: [{port: ${mongod_port}}], other: {rsOptions: {}, configOptions: {}}}); while(true){sleep(1000);}"
+
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/mongodb/mongo-tools
+        script: |
+          set -x
+          set -v
+          set -e
+          ./bin/mongo --port ${mongod_port} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+
   "add-aws-auth-variables-to-file":
     - command: shell.exec
       type: test
@@ -1623,6 +1650,140 @@ tasks:
       - func: "run make target"
         vars:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
+
+  - name: integration-4.4-sharded
+    tags: ["4.4", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "4.4"
+      - func: "create sharded cluster"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
+
+  - name: integration-5.0-sharded
+    tags: ["5.0", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "5.0"
+      - func: "create sharded cluster"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
+
+  - name: integration-6.0-sharded
+    tags: ["6.0", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "6.0"
+      - func: "create sharded cluster"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
+
+  - name: integration-7.0-sharded
+    tags: ["7.0", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "7.0"
+      - func: "create sharded cluster"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
+
+  - name: integration-8.0-sharded
+    tags: ["8.0", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.0"
+      - func: "create sharded cluster"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
+
+  - name: integration-8.1-sharded
+    tags: ["8.1", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.1.0"
+      - func: "create sharded cluster"
+        vars:
+          load_libs_version: "8.1"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
+
+  - name: integration-8.2-sharded
+    tags: ["8.2", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "8.2.0"
+      - func: "create sharded cluster"
+        vars:
+          load_libs_version: "8.2"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
+
+  - name: integration-latest-sharded
+    tags: ["latest", "sharded"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "latest"
+      - func: "create sharded cluster"
+        vars:
+          load_libs_version: *max_server_version
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration ${testArgs}
 
   - name: aws-auth-latest
     tags: ["latest", "aws-auth"]
