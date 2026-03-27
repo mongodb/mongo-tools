@@ -78,7 +78,50 @@ func TestIndexDocumentMarshalPartialFilterExpression(t *testing.T) {
 
 		elements, err := partialFilterExpressionDoc.Elements()
 		require.NoError(t, err)
-		assert.Len(t, elements, 0, "expected partialFilterExpression to marshal as an empty document")
+		assert.Len(
+			t,
+			elements,
+			0,
+			"expected partialFilterExpression to marshal as an empty document",
+		)
 	})
-}
 
+	t.Run(
+		"round-trip marshal and unmarshal with empty partialFilterExpression",
+		func(t *testing.T) {
+			// Create an index document with an empty partial filter expression
+			emptyPartialFilterExpression := bson.D{}
+			originalDoc := IndexDocument{
+				Key:                     bson.D{{"field", int32(1)}},
+				PartialFilterExpression: &emptyPartialFilterExpression,
+				Options:                 bson.M{"name": "field_1"},
+			}
+
+			marshaled, err := bson.Marshal(originalDoc)
+			require.NoError(t, err)
+
+			var unmarshaled IndexDocument
+			err = bson.Unmarshal(marshaled, &unmarshaled)
+			require.NoError(t, err)
+
+			// Verify the empty partial filter expression is preserved
+			assert.NotNil(
+				t,
+				unmarshaled.PartialFilterExpression,
+				"expected partialFilterExpression to be non-nil after round-trip",
+			)
+			assert.Equal(
+				t,
+				len(*unmarshaled.PartialFilterExpression),
+				0,
+				"expected empty partialFilterExpression to remain empty",
+			)
+			assert.Equal(
+				t,
+				originalDoc.Key,
+				unmarshaled.Key,
+				"expected key to match after round-trip",
+			)
+		},
+	)
+}

@@ -16,8 +16,8 @@ import (
 
 // IndexDocument holds information about a collection's index.
 type IndexDocument struct {
-	Options                 bson.M `bson:",inline"`
-	Key                     bson.D `bson:"key"`
+	Options                 bson.M  `bson:",inline"`
+	Key                     bson.D  `bson:"key"`
 	PartialFilterExpression *bson.D `bson:"partialFilterExpression,omitempty"`
 }
 
