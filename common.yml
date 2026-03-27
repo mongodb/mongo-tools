@@ -63,11 +63,13 @@ functions:
     command: shell.exec
     type: test
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
-        set -x
-        set -v
-        set -e
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         chmod +x bin/*
         mv bin/* ${test_path}/
         cd ${test_path}
@@ -98,8 +100,13 @@ functions:
     command: shell.exec
     type: test
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         ${_set_shell_env}
         ${_maybe_enable_devtoolset_7}
         PATH=$PATH:$HOME
@@ -115,8 +122,13 @@ functions:
           contents: read
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
@@ -132,11 +144,15 @@ functions:
   "setup integration test":
     command: shell.exec
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       # Set up Kerberos stuff: run kinit if necessary, and add KDC to registry
       # on Windows (see https://wiki.mongodb.com/display/DH/Testing+Kerberos)
       script: |
-        set -e
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         # export sensitive info before `set -x`
         if [ '${run_kinit}' = 'true' ]; then
             # BUILD-3830
@@ -158,12 +174,14 @@ functions:
   "setup credentials":
     command: shell.exec
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       silent: true
       script: |
-        set -x
-        set -v
-        set -e
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         cat > mci.buildlogger <<END_OF_CREDS
         slavename='${slave}'
         passwd='${passwd}'
@@ -178,12 +196,14 @@ functions:
   "start mongod":
     command: shell.exec
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       background: true
       script: |
-        set -x
-        set -v
-        set -e
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         rm -rf mongodb/db_files mongodb/${logfile|run.log}
         mkdir -p mongodb/db_files
         MONGOD_ARGS="${mongod_args}"
@@ -202,10 +222,13 @@ functions:
   "wait for mongod to be ready":
     command: shell.exec
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
-        set -x
-        set -v
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         SECS=0
         MONGO_ARGS="${mongo_args}"
         if [ "${USE_TLS}" = "true" ]; then
@@ -214,10 +237,13 @@ functions:
           MONGO_ARGS="--port 33333"
         fi;
         while true ; do
-            set -o verbose
-
+            set +o errexit
             ./bin/mongo${extension} $MONGO_ARGS --eval 'true;'
-            if [ "$?" = "0" ]; then
+            status=$?
+            # This overwrites "$?".
+            set -o errexit
+
+            if [ "$status" = "0" ]; then
                 echo "mongod ready";
                 exit 0
             else
@@ -234,8 +260,13 @@ functions:
   "create mongod users":
     command: shell.exec
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         ${_set_shell_env}
         MONGO_ARGS="${mongo_args}"
         if [ "${USE_TLS}" = "true" ]; then
@@ -247,8 +278,13 @@ functions:
     # build release artifacts
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
           PATH=$PATH:$HOME
@@ -258,8 +294,13 @@ functions:
     # temporary workaround for TOOLS-2606
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           rm -rf ./mongorestore/testdata/longcollectionname/
 
     # upload individual release artifacts to task page
@@ -314,6 +355,7 @@ functions:
   "sign artifacts":
     command: shell.exec
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       env:
         MONGO_OS: ${mongo_os}
@@ -325,6 +367,10 @@ functions:
         GARASIGN_USERNAME: ${garasign_username}
         AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
       script: |
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         ${_set_shell_env}
         ./scripts/sign_artifacts.sh
 
@@ -332,8 +378,13 @@ functions:
     # temporary workaround for TOOLS-2606
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           rm -rf ./mongorestore/testdata/longcollectionname/
     - command: s3.put
       params:
@@ -354,16 +405,26 @@ functions:
   "upload release packages to s3":
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ${_set_shell_env}
           go run release/release.go upload-release
 
   "upload release json feed to s3":
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ${_set_shell_env}
           go run release/release.go upload-json
     - command: s3.put
@@ -380,32 +441,49 @@ functions:
   "generate full JSON feed":
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ${_set_shell_env}
           go run release/release.go generate-full-json
 
   "upload release packages to linux repos":
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           curl -L -O http://boxes.10gen.com/build/curator/curator-dist-rhel70-latest.tar.gz
           tar -zxvf curator-dist-rhel70-latest.tar.gz
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ${_set_shell_env}
           go run release/release.go linux-release
 
   "fetch source":
     - command: shell.exec
       params:
+        shell: bash
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           mkdir -p src/github.com/mongodb
     - command: git.get_project
       params:
@@ -415,22 +493,26 @@ functions:
         directory: src/github.com/mongodb/mongo-tools
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           mkdir -p bin
 
   "create repl_set":
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         background: true
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           echo "starting repl set"
           MONGO_ARGS="${mongo_args}"
           NODE_OPTIONS=""
@@ -450,11 +532,13 @@ functions:
 
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           MONGO_ARGS="${mongo_args}"
           if [ "${USE_TLS}" = "true" ]; then
             MONGO_ARGS="${mongo_args_tls}"
@@ -464,12 +548,14 @@ functions:
   "create sharded cluster":
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         background: true
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           echo "starting sharded cluster"
           mkdir -p /data/db/
           # use jsconfig.json to set baseUrl to find libs
@@ -481,23 +567,26 @@ functions:
 
     - command: shell.exec
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ./bin/mongo --port ${mongod_port} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
 
   "add-aws-auth-variables-to-file":
     - command: shell.exec
       type: test
       params:
+        shell: bash
         silent: true
         working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
           cat <<EOF > $(pwd)/aws_e2e_setup.json
           {
@@ -511,12 +600,13 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: bash
         # silent: true
         working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
           PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
           python="python3"
@@ -556,12 +646,13 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: bash
         silent: true
         working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
         script: |
-          set -x
-          set -v
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
 
           PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
           python="python3"
@@ -592,8 +683,13 @@ functions:
     command: shell.exec
     type: test
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         ${_set_shell_env}
         ./scripts/regenerate-and-diff-sbom-lite.sh
 
@@ -601,8 +697,13 @@ functions:
     command: shell.exec
     type: test
     params:
+      shell: bash
       working_dir: src/github.com/mongodb/mongo-tools
       script: |
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         ${_set_shell_env}
         ./scripts/regenerate-and-diff-sarif-report.sh
 
@@ -610,12 +711,14 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: bash
         working_dir: src/github.com/mongodb/mongo-tools
         script: |
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           ${_set_shell_env}
-          set -x
-          set -v
-          set -e
           ./scripts/write-evergreen-config-file.sh
 
   "set silkbomb credentials":
@@ -626,12 +729,15 @@ functions:
     - command: shell.exec
       display_name: Pull Kondukto API token from AWS Secrets Manager and write it to file
       params:
-        silent: true
         shell: bash
+        silent: true
         include_expansions_in_env:
           [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         script: |
-          set -e
+          set -o errexit
+          set -o pipefail
+          set -o verbose
+
           # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
           kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
           # set the KONDUKTO_TOKEN environment variable
@@ -645,14 +751,17 @@ pre:
   - command: shell.exec
     params:
       silent: true
+      shell: bash
       script: |
-        set -x
-          set -v
+        # This script intentionally doesn't set errexit or pipefail, since these commands can fail and that's ok.
+        set -o verbose
+
         ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
         rm -rf src /data/db/*
         exit 0
   - command: shell.exec
     params:
+      shell: bash
       script: |
         cat <<EOT > expansions.yml
         _set_shell_env: |
@@ -715,17 +824,22 @@ post:
       files: ["src/github.com/mongodb/mongo-tools/testing_output/*.suite"]
   - command: shell.exec
     params:
+      shell: bash
       silent: true
       script: |
-        set -x
-        set -v
+        # This script intentionally doesn't set errexit or pipefail, since these commands can fail and that's ok.
+        set -o verbose
+
         ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
         exit 0
   - command: shell.exec
     params:
+      shell: bash
       script: |
-        set -x
-          set -v
+        set -o errexit
+        set -o pipefail
+        set -o verbose
+
         rm -rf /data/db/*
         exit 0
   # Extra post steps needed for mongodump passthrough.
@@ -736,10 +850,12 @@ post:
 timeout:
   - command: shell.exec
     params:
+      shell: bash
       silent: true
       script: |
-        set -x
-          set -v
+        # This script intentionally doesn't set errexit or pipefail, since these commands can fail and that's ok.
+        set -o verbose
+
         # don't attempt to abort on any distro which has a special way of
         # killing everything (i.e. using taskkill on Windows)
         if [ "${killall_mci}" = "" ]; then
@@ -816,9 +932,14 @@ tasks:
       - func: "set silkbomb credentials"
       - command: shell.exec
         params:
+          shell: bash
           working_dir: src/github.com/mongodb/mongo-tools
           include_expansions_in_env: [KONDUKTO_TOKEN]
           script: |
+            set -o errexit
+            set -o pipefail
+            set -o verbose
+
             ${_set_shell_env}
             ./scripts/regenerate-and-diff-augmented-sbom.sh
 
@@ -2033,12 +2154,14 @@ tasks:
       - command: shell.exec
         type: test
         params:
+          shell: bash
           working_dir: src/github.com/mongodb/mongo-tools
           script: |
+            set -o errexit
+            set -o pipefail
+            set -o verbose
+
             ${_set_shell_env}
-            set -x
-            set -v
-            set -e
             ./dev-bin/precious lint --all
 
   - name: qa-tests-5.0
@@ -2276,12 +2399,14 @@ tasks:
       - command: shell.exec
         type: test
         params:
+          shell: bash
           working_dir: src/github.com/mongodb/mongo-tools
           script: |
+            set -o errexit
+            set -o pipefail
+            set -o verbose
+
             ${_set_shell_env}
-            set -x
-            set -v
-            set -e
             go vet -composites=false ./bsondump ./mongo*
 
   - name: check-third-party-notices
@@ -2293,10 +2418,13 @@ tasks:
       - command: shell.exec
         type: test
         params:
+          shell: bash
           working_dir: src/github.com/mongodb/mongo-tools
           script: |
-            set -e
-            set -x
+            set -o errexit
+            set -o pipefail
+            set -o verbose
+
             git diff --exit-code
 
   - name: check-sbom-lite
