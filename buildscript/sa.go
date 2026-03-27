@@ -403,16 +403,26 @@ func SAEvergreenValidate(ctx *task.Context) error {
 		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
 	}
 
-	// TODO: change this if-block in TOOLS-2840.
-	// This check ignores any YAML warnings related to duplicate keys in YAML maps.
-	// See ticket for more details.
 	if strings.HasSuffix(output, "is valid with warnings") {
 		for _, line := range strings.Split(output, "\n") {
-			if !strings.HasSuffix(line, "unmarshal errors:") &&
-				!strings.HasSuffix(line, "already set in map") &&
-				!strings.HasSuffix(line, "is valid with warnings") {
-				return fmt.Errorf("error from `evergreen validate`: %s", output)
+			if strings.HasPrefix(line, "WARNING: ") {
+				if strings.HasSuffix(line, "unmarshal errors:") ||
+					strings.HasSuffix(line, "already set in map") ||
+					strings.HasSuffix(line, "but allowed_requesters is always higher precedence") ||
+					strings.HasSuffix(
+						line,
+						"defined but not used by any variants; consider using or disabling",
+					) {
+
+					continue
+				}
 			}
+
+			if strings.HasSuffix(line, "is valid with warnings") {
+				continue
+			}
+
+			return fmt.Errorf("error from `evergreen validate`: %s", output)
 		}
 	}
 
