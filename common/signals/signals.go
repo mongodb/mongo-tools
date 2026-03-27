@@ -21,24 +21,23 @@ func Handle() chan struct{} {
 	return HandleWithInterrupt(nil)
 }
 
-// HandleWithInterrupt starts a goroutine which listens for SIGTERM, SIGINT, and
-// SIGKILL and explicitly ignores SIGPIPE. It calls the finalizer function when
-// the first signal is received and forcibly terminates the program after the
-// second. If a nil function is provided, the program will exit after the first
-// signal.
+// HandleWithInterrupt starts a goroutine which listens for SIGTERM, SIGINT, and SIGKILL. It also
+// calles signal.Ignore to explicitly ignore SIGPIPE. It calls the finalizer function when the first
+// signal is received and forcibly terminates the program after the second. If a nil function is
+// provided, the program will exit after the first signal.
 func HandleWithInterrupt(finalizer func()) chan struct{} {
+	// Ignore SIGPIPE synchronously so there is no race between this call and the first write: a
+	// broken pipe must surface as an EPIPE write error, not kill the process.
+	signal.Ignore(syscall.SIGPIPE)
+
 	finishedChan := make(chan struct{})
 	go handleSignals(finalizer, finishedChan)
 	return finishedChan
 }
 
 func handleSignals(finalizer func(), finishedChan chan struct{}) {
-	// explicitly ignore SIGPIPE; the tools should deal with write errors
-	noopChan := make(chan os.Signal)
-	signal.Notify(noopChan, syscall.SIGPIPE)
-
 	log.Logv(log.DebugLow, "will listen for SIGTERM, SIGINT, and SIGKILL")
-	sigChan := make(chan os.Signal, 2)
+	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	defer signal.Stop(sigChan)
 	if finalizer != nil {
