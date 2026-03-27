@@ -551,3 +551,58 @@ func TestExportNoData(t *testing.T) {
 	_, err = me2.Export(&buf)
 	assert.Error(t, err, "export with --assertExists should fail on nonexistent collection")
 }
+
+// TestExportPretty verifies that mongoexport --pretty --jsonArray produces
+// indented, parseable JSON with correct field values.
+func TestExportPretty(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	const dbName = "mongoexport_pretty_test"
+	const collName = "source"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	_, err = client.Database(dbName).Collection(collName).InsertMany(t.Context(), []any{
+		bson.D{{"a", int32(1)}},
+		bson.D{{"a", int32(1)}, {"b", int32(1)}},
+		bson.D{{"a", int32(1)}, {"b", int32(2)}, {"c", int32(3)}},
+	})
+	require.NoError(t, err)
+
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	me, err := New(Options{
+		ToolOptions: toolOptions,
+		OutputFormatOptions: &OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "relaxed",
+			JSONArray:  true,
+			Pretty:     true,
+		},
+		InputOptions: &InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+
+	var buf bytes.Buffer
+	_, err = me.Export(&buf)
+	require.NoError(t, err)
+
+	var docs []map[string]any
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &docs), "output should be valid JSON array")
+	require.Len(t, docs, 3, "should have 3 documents")
+	assert.Equal(t, float64(1), docs[0]["a"], "docs[0].a should be 1")
+	assert.Equal(t, float64(1), docs[1]["b"], "docs[1].b should be 1")
+	assert.Equal(t, float64(2), docs[2]["b"], "docs[2].b should be 2")
+	assert.Equal(t, float64(3), docs[2]["c"], "docs[2].c should be 3")
+}
