@@ -1260,6 +1260,7 @@ var linuxRepoVersionsStable = []LinuxRepo{
 	{"7.0", "7.0.0"}, // any 7.0 stable release version will send the package to the "7.0" repo
 	{"8.0", "8.0.0"}, // any 8.0 stable release version will send the package to the "8.0" repo
 	{"8.2", "8.2.0"}, // any 8.2 stable release version will send the package to the "8.2" repo
+	{"8.3", "8.3.0"}, // any 8.3 stable release version will send the package to the "8.3" repo
 }
 
 var linuxRepoVersionsUnstable = []LinuxRepo{
