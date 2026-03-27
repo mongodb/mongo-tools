@@ -2706,3 +2706,69 @@ func assertImported(t *testing.T, client *mongo.Client, db, coll string) {
 	assert.EqualValues(t, 2, n, "%s.%s should have 2 imported documents", db, coll)
 	require.NoError(t, client.Database(db).Collection(coll).Drop(context.Background()))
 }
+
+// TestRoundTripDecimal128 verifies that a Decimal128 value survives an
+// export-then-import round-trip.
+func TestRoundTripDecimal128(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_decimal128_test"
+	const collName = "dec128"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	dec, err := bson.ParseDecimal128("123456789012345678901234567890")
+	require.NoError(t, err)
+	testDoc := bson.D{{"_id", "foo"}, {"x", dec}}
+
+	coll := client.Database(dbName).Collection(collName)
+	_, err = coll.InsertOne(t.Context(), testDoc)
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	require.NoError(t, coll.Drop(t.Context()))
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, imported, "should import 1 document")
+
+	var result bson.D
+	err = coll.FindOne(t.Context(), bson.D{{"_id", "foo"}}).Decode(&result)
+	require.NoError(t, err)
+	assert.Equal(t, testDoc, result, "imported doc should match original")
+}
