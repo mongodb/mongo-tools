@@ -70,7 +70,7 @@ tasks:
         params:
           files:
             - src/github.com/mongodb/mongo-tools/manual-tasks.json
-    patch_only: true
+    allowed_requesters: ["patch"]
 
   # Task dependencies have been changed slightly here, to allow this
   # task to execute concurrently with "compile_coverage".
