@@ -629,7 +629,8 @@ func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []*idx.Inde
 						indexSpec.Key = elem.Value.(bson.D)
 					case "partialFilterExpression":
 						//nolint:errcheck
-						indexSpec.PartialFilterExpression = elem.Value.(bson.D)
+						partialFilterExpression := elem.Value.(bson.D)
+						indexSpec.PartialFilterExpression = &partialFilterExpression
 					default:
 						indexSpec.Options[elem.Key] = elem.Value
 					}
@@ -659,7 +660,8 @@ func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, *idx.IndexDocum
 			indexDocument.Key = elem.Value.(bson.D)
 		case "partialFilterExpression":
 			//nolint:errcheck
-			indexDocument.PartialFilterExpression = elem.Value.(bson.D)
+			partialFilterExpression := elem.Value.(bson.D)
+			indexDocument.PartialFilterExpression = &partialFilterExpression
 		default:
 			indexDocument.Options[elem.Key] = elem.Value
 		}
