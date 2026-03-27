@@ -3016,3 +3016,144 @@ func writeFieldFile(t *testing.T, dir, name string, fields []string) string {
 	require.NoError(t, os.WriteFile(path, []byte(strings.Join(fields, "\n")+"\n"), 0o644))
 	return path
 }
+
+// TestImportDocumentValidation verifies mongoimport behavior with collection
+// validators: normal import skips invalid docs, --bypassDocumentValidation
+// imports all, --stopOnError and --maintainInsertionOrder fail on validation
+// errors.
+func TestImportDocumentValidation(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_docvalidation_test"
+	const collName = "bar"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	db := client.Database(dbName)
+
+	// 1000 docs: even-indexed lack `baz` (invalid), odd-indexed have `baz` (valid).
+	docs := make([]any, 1000)
+	for i := range 1000 {
+		if i%2 == 0 {
+			docs[i] = bson.D{{"_id", int32(i)}, {"num", int32(i + 1)}, {"s", fmt.Sprintf("%d", i)}}
+		} else {
+			docs[i] = bson.D{{"_id", int32(i)}, {"num", int32(i + 1)}, {"s", fmt.Sprintf("%d", i)}, {"baz", int32(i)}}
+		}
+	}
+	_, err = db.Collection(collName).InsertMany(t.Context(), docs)
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+	_, err = me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	validator := bson.D{{"baz", bson.D{{"$exists", true}}}}
+	ns := &options.Namespace{DB: dbName, Collection: collName}
+
+	t.Run("no validator imports all docs", func(t *testing.T) {
+		require.NoError(t, db.Drop(t.Context()))
+		require.NoError(t, importWithIngestOpts(t, ns, tmpFile.Name(), IngestOptions{}))
+		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 1000, n, "import without validation should import all 1000 documents")
+	})
+
+	t.Run("validator skips invalid docs", func(t *testing.T) {
+		recreateWithValidator(t, db, validator)
+		require.NoError(t, importWithIngestOpts(t, ns, tmpFile.Name(), IngestOptions{}))
+		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 500, n, "only valid documents should be imported")
+	})
+
+	t.Run("stopOnError fails on validation errors", func(t *testing.T) {
+		recreateWithValidator(t, db, validator)
+		err := importWithIngestOpts(t, ns, tmpFile.Name(), IngestOptions{StopOnError: true})
+		assertValidationError(t, err, "import with --stopOnError should fail on validation errors")
+	})
+
+	t.Run("maintainInsertionOrder fails on validation errors", func(t *testing.T) {
+		recreateWithValidator(t, db, validator)
+		err := importWithIngestOpts(
+			t, ns, tmpFile.Name(), IngestOptions{MaintainInsertionOrder: true},
+		)
+		assertValidationError(
+			t, err, "import with --maintainInsertionOrder should fail on validation errors",
+		)
+	})
+
+	t.Run("bypassDocumentValidation imports all docs", func(t *testing.T) {
+		recreateWithValidator(t, db, validator)
+		require.NoError(t, importWithIngestOpts(
+			t, ns, tmpFile.Name(), IngestOptions{BypassDocumentValidation: true},
+		))
+		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.EqualValues(
+			t, 1000, n, "all documents should be imported with --bypassDocumentValidation",
+		)
+	})
+}
+
+func recreateWithValidator(t *testing.T, db *mongo.Database, validator any) {
+	t.Helper()
+	require.NoError(t, db.Drop(context.Background()))
+	require.NoError(
+		t,
+		db.CreateCollection(
+			context.Background(), "bar", mopt.CreateCollection().SetValidator(validator),
+		),
+	)
+}
+
+func assertValidationError(t *testing.T, err error, msg string) {
+	t.Helper()
+	var bwe mongo.BulkWriteException
+	if assert.ErrorAs(t, err, &bwe, msg) {
+		assert.NotEmpty(t, bwe.WriteErrors, "should have at least one write error")
+		assert.Equal(t, 121, bwe.WriteErrors[0].Code, "should be DocumentValidationFailure (121)")
+	}
+}
+
+func importWithIngestOpts(
+	t *testing.T,
+	ns *options.Namespace,
+	filePath string,
+	ingestOpts IngestOptions,
+) error {
+	t.Helper()
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = ns
+	mi, err := New(Options{
+		ToolOptions:   toolOptions,
+		InputOptions:  &InputOptions{File: filePath, ParseGrace: "stop"},
+		IngestOptions: &ingestOpts,
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	return err
+}
