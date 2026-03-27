@@ -487,3 +487,35 @@ func TestBrokenPipe(t *testing.T) {
 	args = append(args, "--db", dbName, "--collection", collName)
 	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))
 }
+
+// TestExportNamespaceValidation verifies that mongoexport rejects invalid DB
+// names and accepts system collections (from namespace_validation.js).
+func TestExportNamespaceValidation(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	for _, dbName := range []string{"test.bar", `test"bar`} {
+		toolOptions, err := testutil.GetToolOptions()
+		require.NoError(t, err)
+		toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "foo"}
+		_, err = New(Options{
+			ToolOptions:         toolOptions,
+			OutputFormatOptions: &OutputFormatOptions{Type: "json", JSONFormat: "canonical"},
+			InputOptions:        &InputOptions{},
+		})
+		assert.Error(t, err, "db name %q should be rejected", dbName)
+	}
+
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = &options.Namespace{DB: "test", Collection: "system.foobar"}
+	me, err := New(Options{
+		ToolOptions:         toolOptions,
+		OutputFormatOptions: &OutputFormatOptions{Type: "json", JSONFormat: "canonical"},
+		InputOptions:        &InputOptions{},
+	})
+	assert.NoError(t, err, "system collection should be accepted")
+	if me != nil {
+		me.Close()
+	}
+}
