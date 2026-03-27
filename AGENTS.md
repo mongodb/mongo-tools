@@ -12,6 +12,9 @@ break the work up into multiple pull requests as well. We prefer PRs to be 200-4
 exception would be a large rename or refactoring (like a type change), where the PR is very large in
 terms of lines but conceptually small.
 
+When you create a plan, include this in the PR as a comment with an attachment. If the user creates
+the PR themselves, remind them to include this.
+
 ## Requirements
 
 **The most important thing for these tools is that they must not corrupt or lose user data.** This
