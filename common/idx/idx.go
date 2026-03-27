@@ -18,7 +18,7 @@ import (
 type IndexDocument struct {
 	Options                 bson.M `bson:",inline"`
 	Key                     bson.D `bson:"key"`
-	PartialFilterExpression bson.D `bson:"partialFilterExpression,omitempty"`
+	PartialFilterExpression *bson.D `bson:"partialFilterExpression,omitempty"`
 }
 
 // newIndexDocumentFromD converts a bson.D index spec into an IndexDocument. This is only used in
@@ -37,7 +37,8 @@ func newIndexDocumentFromD(doc bson.D) (*IndexDocument, error) {
 			}
 		case "partialFilterExpression":
 			if val, ok := elem.Value.(bson.D); ok {
-				indexDoc.PartialFilterExpression = val
+				partialFilterExpression := val
+				indexDoc.PartialFilterExpression = &partialFilterExpression
 				continue
 			} else {
 				return nil, fmt.Errorf("index partialFilterExpression could not type assert to bson.D")
