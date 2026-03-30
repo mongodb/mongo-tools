@@ -2199,3 +2199,74 @@ func TestRoundTripJSONArray(t *testing.T) {
 		assert.EqualValues(t, 1, c, "document with _id %d should exist", i)
 	}
 }
+
+// TestRoundTripLimit verifies that mongoexport --limit restricts the number of
+// exported documents, and that the correct documents are restored.
+func TestRoundTripLimit(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_roundtrip_limit_test"
+	const collName = "data"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	coll := client.Database(dbName).Collection(collName)
+	docs := make([]any, 50)
+	for i := range 50 {
+		docs[i] = bson.D{{"a", i}}
+	}
+	_, err = coll.InsertMany(t.Context(), docs)
+	require.NoError(t, err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+		},
+		InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Limit: 20},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
+	require.NoError(t, err)
+	n, err := me.Export(tmpFile)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+	assert.EqualValues(t, 20, n, "should export exactly 20 documents")
+
+	require.NoError(t, coll.Drop(t.Context()))
+
+	importToolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	imported, _, err := mi.ImportDocuments()
+	require.NoError(t, err)
+	assert.EqualValues(t, 20, imported, "should import all 20 exported documents")
+
+	count, err := coll.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 20, count, "collection should have exactly 20 documents")
+	for i := range 20 {
+		c, err := coll.CountDocuments(t.Context(), bson.D{{"a", i}})
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, c, "document with a=%d should exist (first 20 by sort)", i)
+	}
+}
