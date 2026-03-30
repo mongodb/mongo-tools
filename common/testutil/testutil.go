@@ -96,6 +96,7 @@ func GetToolOptions() (*options.ToolOptions, error) {
 			Port: db.DefaultTestPort,
 		}
 		toolOptions = &options.ToolOptions{
+			General:      &options.General{},
 			SSL:          &ssl,
 			Connection:   connection,
 			Auth:         &auth,
