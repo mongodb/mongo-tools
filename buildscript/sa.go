@@ -403,9 +403,9 @@ func SAEvergreenValidate(ctx *task.Context) error {
 		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
 	}
 
-	if strings.HasSuffix(output, "is valid with warnings") {
+	if strings.HasSuffix(output, "is valid with notices") {
 		for _, line := range strings.Split(output, "\n") {
-			if strings.HasPrefix(line, "WARNING: ") &&
+			if strings.HasPrefix(line, "NOTICE: ") &&
 				strings.HasSuffix(
 					line,
 					"defined but not used by any variants; consider using or disabling",
@@ -413,7 +413,7 @@ func SAEvergreenValidate(ctx *task.Context) error {
 				continue
 			}
 
-			if strings.HasSuffix(line, "is valid with warnings") {
+			if strings.HasSuffix(line, "is valid with notices") {
 				continue
 			}
 
