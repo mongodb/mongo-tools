@@ -645,3 +645,74 @@ func TestExportWritesToStdout(t *testing.T) {
 		assert.Contains(t, output, fmt.Sprintf(`"_id":%d`, i), "stdout should contain _id=%d", i)
 	}
 }
+
+// TestExportTypeCase verifies that --type is case-insensitive and that invalid
+// types are rejected.
+func TestExportTypeCase(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	const dbName = "mongoexport_typecase_test"
+	const collName = "source"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	ns := &options.Namespace{DB: dbName, Collection: collName}
+	_, err = client.Database(dbName).Collection(collName).InsertMany(t.Context(), []any{
+		bson.D{{"a", 1}},
+		bson.D{{"a", 1}, {"b", 1}},
+		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
+	})
+	require.NoError(t, err)
+
+	_, err = exportWithType(t, ns, "foobar")
+	assert.Error(t, err, "invalid type should be rejected")
+
+	csvLower, err := exportWithType(t, ns, "csv")
+	require.NoError(t, err)
+	csvUpper, err := exportWithType(t, ns, "CSV")
+	require.NoError(t, err)
+	csvMixed, err := exportWithType(t, ns, "cSv")
+	require.NoError(t, err)
+	assert.Equal(t, csvLower, csvUpper, "csv and CSV should produce identical output")
+	assert.Equal(t, csvLower, csvMixed, "csv and cSv should produce identical output")
+
+	jsonLower, err := exportWithType(t, ns, "json")
+	require.NoError(t, err)
+	jsonUpper, err := exportWithType(t, ns, "JSON")
+	require.NoError(t, err)
+	assert.Equal(t, jsonLower, jsonUpper, "json and JSON should produce identical output")
+
+	assert.NotEqual(t, csvLower, jsonLower, "csv and json output should differ")
+}
+
+func exportWithType(t *testing.T, ns *options.Namespace, typeName string) (string, error) {
+	t.Helper()
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = ns
+	me, err := New(Options{
+		ToolOptions: toolOptions,
+		OutputFormatOptions: &OutputFormatOptions{
+			Type:       typeName,
+			JSONFormat: "relaxed",
+			Fields:     "a",
+		},
+		InputOptions: &InputOptions{},
+	})
+	if err != nil {
+		return "", err
+	}
+	defer me.Close()
+	var buf bytes.Buffer
+	_, err = me.Export(&buf)
+	return buf.String(), err
+}
