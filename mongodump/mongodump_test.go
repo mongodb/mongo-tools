@@ -9,12 +9,14 @@ package mongodump
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"math/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -2516,4 +2518,38 @@ func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
 
 	os.RemoveAll(dumpDir)
 	metaFile.Close()
+}
+
+// TestBrokenPipe verifies that mongodump handles a broken pipe gracefully
+// (exits with a write error rather than being killed by SIGPIPE).
+func TestBrokenPipe(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const (
+		dbName   = "mongodump_broken_pipe_test"
+		collName = "docs"
+	)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+
+	// Insert 2000 docs so the archive output exceeds the pipe buffer.
+	docs := make([]any, 2000)
+	for i := range 2000 {
+		docs[i] = bson.D{{"_id", int32(i)}, {"data", strings.Repeat("x", 500)}}
+	}
+	_, err = client.Database(dbName).Collection(collName).InsertMany(context.Background(), docs)
+	require.NoError(t, err)
+
+	args := append(
+		[]string{"run", filepath.Join("..", "mongodump", "main")},
+		testutil.GetBareArgs()...,
+	)
+	args = append(args, "--db", dbName, "--archive=-")
+	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))
 }
