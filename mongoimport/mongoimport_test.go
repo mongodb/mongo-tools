@@ -14,14 +14,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -30,7 +28,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
-	"github.com/mongodb/mongo-tools/mongoexport"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1544,1020 +1541,6 @@ func TestImportMIOSOE(t *testing.T) {
 	_ = database.Drop(t.Context())
 }
 
-// TestRoundTripBasicData verifies that data exported by mongoexport can be
-// fully restored by mongoimport with all documents intact.
-func TestRoundTripBasicData(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_basic_test"
-	const collName = "data"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	var docs []bson.D
-	for i := range 50 {
-		docs = append(docs, bson.D{{"_id", int32(i)}})
-	}
-	_, err = coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	require.NoError(t, coll.Drop(t.Context()))
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := New(Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &InputOptions{File: tmpFile.Name()},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 50, imported, "should import all 50 documents")
-
-	count, err := coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 50, count, "collection should have all 50 documents after round-trip")
-
-	for i := range 50 {
-		c, err := coll.CountDocuments(t.Context(), bson.D{{"_id", i}})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1, c, "document with _id %d should exist after round-trip", i)
-	}
-}
-
-// TestRoundTripDataTypes verifies that documents with diverse BSON types
-// survive an export-then-import round-trip intact.
-func TestRoundTripDataTypes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_datatypes_test"
-	const collName = "data"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	docs := []any{
-		bson.D{{"num", 1}},
-		bson.D{{"flt", 1.0}},
-		bson.D{{"str", "1"}},
-		bson.D{{"obj", bson.D{{"a", 1}}}},
-		bson.D{{"arr", bson.A{0, 1}}},
-		bson.D{{"bd", bson.Binary{Subtype: 0x00, Data: []byte{0xd7, 0x6d, 0xf8}}}},
-		bson.D{
-			{
-				"date",
-				bson.NewDateTimeFromTime(time.Date(2009, 8, 27, 12, 34, 56, 789000000, time.UTC)),
-			},
-		},
-		bson.D{{"ts", bson.Timestamp{T: 1234, I: 5678}}},
-		bson.D{{"rx", bson.Regex{Pattern: `foo*"bar"`, Options: "i"}}},
-	}
-	_, err = coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	require.NoError(t, coll.Drop(t.Context()))
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := New(Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &InputOptions{File: tmpFile.Name()},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 9, imported, "should import all 9 documents")
-
-	count, err := coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 9, count, "collection should have all 9 documents after round-trip")
-
-	for _, q := range []bson.D{
-		{{"num", 1}},
-		{{"flt", 1.0}},
-		{{"str", "1"}},
-		{{"obj", bson.D{{"a", 1}}}},
-		{{"arr", bson.A{0, 1}}},
-		{{"rx", bson.D{{"$exists", true}}}},
-	} {
-		c, err := coll.CountDocuments(t.Context(), q)
-		require.NoError(t, err)
-		assert.EqualValues(t, 1, c, "document matching %v should exist after round-trip", q)
-	}
-}
-
-// TestRoundTripViewExport verifies that mongoexport correctly exports documents
-// from a MongoDB view, and that mongoimport can restore them.
-func TestRoundTripViewExport(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_views_test"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	db := client.Database(dbName)
-
-	cities := []any{
-		bson.D{{"city", "Boise"}, {"state", "ID"}},
-		bson.D{{"city", "Pocatello"}, {"state", "ID"}},
-		bson.D{{"city", "Nampa"}, {"state", "ID"}},
-		bson.D{{"city", "Albany"}, {"state", "NY"}},
-		bson.D{{"city", "New York"}, {"state", "NY"}},
-		bson.D{{"city", "Los Angeles"}, {"state", "CA"}},
-		bson.D{{"city", "San Jose"}, {"state", "CA"}},
-		bson.D{{"city", "Cupertino"}, {"state", "CA"}},
-		bson.D{{"city", "San Francisco"}, {"state", "CA"}},
-	}
-	_, err = db.Collection("cities").InsertMany(t.Context(), cities)
-	require.NoError(t, err)
-
-	for _, view := range []struct{ name, state string }{
-		{"citiesID", "ID"},
-		{"citiesNY", "NY"},
-		{"citiesCA", "CA"},
-	} {
-		pipeline := bson.A{bson.D{{"$match", bson.D{{"state", view.state}}}}}
-		err = db.CreateView(t.Context(), view.name, "cities", pipeline)
-		require.NoError(t, err)
-	}
-
-	n, err := db.Collection("citiesID").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "should have 3 cities in Idaho view")
-	n, err = db.Collection("citiesNY").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 2, n, "should have 2 cities in New York view")
-	n, err = db.Collection("citiesCA").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 4, n, "should have 4 cities in California view")
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "citiesCA"}
-
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	require.NoError(t, db.Drop(t.Context()))
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "CACities"}
-	mi, err := New(Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &InputOptions{File: tmpFile.Name()},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 4, imported, "import should succeed")
-
-	n, err = db.Collection("CACities").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 4, n, "restored view should have correct number of rows")
-}
-
-// TestRoundTripFieldFile verifies that mongoexport --fieldFile limits exported
-// fields, and that mongoimport correctly restores the filtered data.
-func TestRoundTripFieldFile(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_fieldfile_test"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	db := client.Database(dbName)
-	_, err = db.Collection("source").InsertMany(t.Context(), []any{
-		bson.D{{"a", 1}},
-		bson.D{{"a", 1}, {"b", 1}},
-		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
-	})
-	require.NoError(t, err)
-
-	fieldFile, err := os.CreateTemp(t.TempDir(), "fields-*.txt")
-	require.NoError(t, err)
-	_, err = fieldFile.WriteString("a\nb\n")
-	require.NoError(t, err)
-	require.NoError(t, fieldFile.Close())
-
-	exportTarget, err := os.CreateTemp(t.TempDir(), "export-*.csv")
-	require.NoError(t, err)
-	require.NoError(t, exportTarget.Close())
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "csv",
-			JSONFormat: "canonical",
-			FieldFile:  fieldFile.Name(),
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-
-	f, err := os.OpenFile(exportTarget.Name(), os.O_WRONLY, 0o644)
-	require.NoError(t, err)
-	_, err = me.Export(f)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	fields := "a,b,c"
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
-	mi, err := New(Options{
-		ToolOptions: importToolOptions,
-		InputOptions: &InputOptions{
-			File:       exportTarget.Name(),
-			Type:       "csv",
-			Fields:     &fields,
-			ParseGrace: "stop",
-		},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
-
-	dest := db.Collection("dest")
-	n, err := dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=2")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "c=3 should not have been exported (not in fieldFile)")
-}
-
-// TestRoundTripFieldsCSV verifies that mongoexport --csv --fields limits which
-// fields are exported, and that mongoimport correctly restores the filtered data.
-func TestRoundTripFieldsCSV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_fieldscsv_test"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	db := client.Database(dbName)
-	_, err = db.Collection("source").InsertMany(t.Context(), []any{
-		bson.D{{"a", 1}},
-		bson.D{{"a", 1}, {"b", 1}},
-		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
-	})
-	require.NoError(t, err)
-
-	exportCSVAndImport(t, dbName, "a", db)
-	dest := db.Collection("dest")
-	n, err := dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "b=1 should not have been exported")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "b=2 should not have been exported")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "c=3 should not have been exported")
-
-	exportCSVAndImport(t, dbName, "a,b,c", db)
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=2")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have c=3")
-
-	var fromSource, fromDest bson.M
-	q := bson.D{{"a", 1}, {"b", 1}}
-	err = db.Collection("source").FindOne(t.Context(), q).Decode(&fromSource)
-	require.NoError(t, err)
-	err = dest.FindOne(t.Context(), q).Decode(&fromDest)
-	require.NoError(t, err)
-	assert.NotEqual(t, fromSource["_id"], fromDest["_id"], "_id should not have been exported")
-}
-
-func exportCSVAndImport(t *testing.T, dbName, exportFields string, db *mongo.Database) {
-	t.Helper()
-	require.NoError(t, db.Collection("dest").Drop(t.Context()))
-
-	exportTarget, err := os.CreateTemp(t.TempDir(), "export-*.csv")
-	require.NoError(t, err)
-	require.NoError(t, exportTarget.Close())
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "csv",
-			JSONFormat: "canonical",
-			Fields:     exportFields,
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	f, err := os.OpenFile(exportTarget.Name(), os.O_WRONLY, 0o644)
-	require.NoError(t, err)
-	_, err = me.Export(f)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	importFields := "a,b,c"
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
-	mi, err := New(Options{
-		ToolOptions: importToolOptions,
-		InputOptions: &InputOptions{
-			File:       exportTarget.Name(),
-			Type:       "csv",
-			Fields:     &importFields,
-			ParseGrace: "stop",
-		},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
-}
-
-// TestRoundTripFieldsJSON verifies that mongoexport --fields limits which fields
-// appear in JSON export output, and that _id is included (unlike CSV).
-func TestRoundTripFieldsJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_fieldsjson_test"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	db := client.Database(dbName)
-	_, err = db.Collection("source").InsertMany(t.Context(), []any{
-		bson.D{{"a", 1}},
-		bson.D{{"a", 1}, {"b", 1}},
-		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
-	})
-	require.NoError(t, err)
-
-	exportJSONAndImport(t, dbName, "a", db)
-	dest := db.Collection("dest")
-	n, err := dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "b=1 should not have been exported")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "b=2 should not have been exported")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "c=3 should not have been exported")
-
-	exportJSONAndImport(t, dbName, "a,b,c", db)
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=2")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have c=3")
-
-	var fromSource, fromDest bson.M
-	q := bson.D{{"a", 1}, {"b", 1}}
-	err = db.Collection("source").FindOne(t.Context(), q).Decode(&fromSource)
-	require.NoError(t, err)
-	err = dest.FindOne(t.Context(), q).Decode(&fromDest)
-	require.NoError(t, err)
-	assert.Equal(
-		t, fromSource["_id"], fromDest["_id"],
-		"_id should have been exported in JSON mode",
-	)
-}
-
-func exportJSONAndImport(t *testing.T, dbName, fields string, db *mongo.Database) {
-	t.Helper()
-	require.NoError(t, db.Collection("dest").Drop(t.Context()))
-
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-			Fields:     fields,
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	f, err := os.OpenFile(tmpFile.Name(), os.O_WRONLY, 0o644)
-	require.NoError(t, err)
-	_, err = me.Export(f)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
-	mi, err := New(Options{
-		ToolOptions: importToolOptions,
-		InputOptions: &InputOptions{
-			File:       tmpFile.Name(),
-			ParseGrace: "stop",
-		},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
-}
-
-// TestRoundTripJSONArray verifies that mongoexport --jsonArray produces a JSON
-// array, that mongoimport rejects it without --jsonArray, and accepts it with
-// --jsonArray.
-func TestRoundTripJSONArray(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_jsonarray_test"
-	const collName = "data"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	docs := make([]any, 20)
-	for i := range 20 {
-		docs[i] = bson.D{{"_id", i}}
-	}
-	_, err = coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-			JSONArray:  true,
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	require.NoError(t, coll.Drop(t.Context()))
-
-	importWithoutFlagOpts, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importWithoutFlagOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := New(Options{
-		ToolOptions:   importWithoutFlagOpts,
-		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	assert.Error(t, err, "import without --jsonArray should fail on jsonArray output")
-
-	n, err := coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "nothing should have been imported without --jsonArray")
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err = New(Options{
-		ToolOptions: importToolOptions,
-		InputOptions: &InputOptions{
-			File:       tmpFile.Name(),
-			ParseGrace: "stop",
-			JSONArray:  true,
-		},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 20, imported, "should import all 20 documents with --jsonArray")
-
-	n, err = coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 20, n, "all 20 documents should be present after import")
-	for i := range 20 {
-		c, err := coll.CountDocuments(t.Context(), bson.D{{"_id", i}})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1, c, "document with _id %d should exist", i)
-	}
-}
-
-// TestRoundTripLimit verifies that mongoexport --limit restricts the number of
-// exported documents, and that the correct documents are restored.
-func TestRoundTripLimit(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_limit_test"
-	const collName = "data"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	docs := make([]any, 50)
-	for i := range 50 {
-		docs[i] = bson.D{{"a", i}}
-	}
-	_, err = coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Limit: 20},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	n, err := me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-	assert.EqualValues(t, 20, n, "should export exactly 20 documents")
-
-	require.NoError(t, coll.Drop(t.Context()))
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := New(Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 20, imported, "should import all 20 exported documents")
-
-	count, err := coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 20, count, "collection should have exactly 20 documents")
-	for i := range 20 {
-		c, err := coll.CountDocuments(t.Context(), bson.D{{"a", i}})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1, c, "document with a=%d should exist (first 20 by sort)", i)
-	}
-}
-
-// TestRoundTripNestedFieldsCSV verifies that mongoexport correctly exports
-// nested dotted field paths to CSV and that mongoimport restores them.
-func TestRoundTripNestedFieldsCSV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_nestedcsv_test"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	db := client.Database(dbName)
-	_, err = db.Collection("source").InsertMany(t.Context(), []any{
-		bson.D{{"a", 1}},
-		bson.D{{"a", 2}, {"b", bson.D{{"c", 2}}}},
-		bson.D{{"a", 3}, {"b", bson.D{{"c", 3}, {"d", bson.D{{"e", 3}}}}}},
-		bson.D{{"a", 4}, {"x", nil}},
-	})
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "csv",
-			JSONFormat: "canonical",
-			Fields:     "a,b.d.e,x.y",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.csv")
-	require.NoError(t, err)
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
-	mi, err := New(Options{
-		ToolOptions: importToolOptions,
-		InputOptions: &InputOptions{
-			File:       tmpFile.Name(),
-			Type:       "csv",
-			HeaderLine: true,
-			ParseGrace: "stop",
-		},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
-
-	dest := db.Collection("dest")
-	for _, tc := range []struct {
-		filter bson.D
-		count  int64
-		msg    string
-	}{
-		{bson.D{{"b.c", 2}}, 0, "b.c should not have been exported"},
-		{bson.D{{"b.c", 3}}, 0, "b.c should not have been exported"},
-		{bson.D{{"b.d.e", 3}}, 1, "b.d.e=3 should be present"},
-		{bson.D{{"b.d.e", ""}}, 3, "b.d.e should be empty string for 3 docs"},
-		{bson.D{{"a", 1}}, 1, "a=1 should be present"},
-		{bson.D{{"a", 2}}, 1, "a=2 should be present"},
-		{bson.D{{"a", 3}}, 1, "a=3 should be present"},
-		{bson.D{{"x.y", ""}}, 4, "x.y should be empty string for all 4 docs"},
-	} {
-		n, err := dest.CountDocuments(t.Context(), tc.filter)
-		require.NoError(t, err)
-		assert.EqualValues(t, tc.count, n, tc.msg)
-	}
-}
-
-// TestRoundTripQuery verifies that mongoexport --query and --queryFile filter
-// export output correctly across multiple query types.
-func TestRoundTripQuery(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_query_test"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	db := client.Database(dbName)
-
-	basicDocs := []any{
-		bson.D{{"a", 1}, {"x", bson.D{{"b", "1"}}}},
-		bson.D{{"a", 2}, {"x", bson.D{{"b", "1"}, {"c", "2"}}}},
-		bson.D{{"a", 1}, {"c", "1"}},
-		bson.D{{"a", 2}, {"c", "2"}},
-	}
-
-	n := exportAndImportWithQuery(t, db, basicDocs, `{"a":3}`, "")
-	assert.EqualValues(t, 0, n, "query matching nothing should export 0 docs")
-
-	n = exportAndImportWithQuery(t, db, basicDocs, `{"a":1,"c":"1"}`, "")
-	assert.EqualValues(t, 1, n, "query matching one doc should export 1 doc")
-
-	queryFile, err := os.CreateTemp(t.TempDir(), "query-*.json")
-	require.NoError(t, err)
-	_, err = queryFile.WriteString(`{"a":1,"c":"1"}`)
-	require.NoError(t, err)
-	require.NoError(t, queryFile.Close())
-	n = exportAndImportWithQuery(t, db, basicDocs, "", queryFile.Name())
-	assert.EqualValues(t, 1, n, "queryFile matching one doc should export 1 doc")
-
-	n = exportAndImportWithQuery(t, db, basicDocs, `{"a":2,"x.c":"2"}`, "")
-	assert.EqualValues(t, 1, n, "query on embedded doc field should export 1 doc")
-
-	n = exportAndImportWithQuery(t, db, basicDocs, `{}`, "")
-	assert.EqualValues(t, 4, n, "empty query should export all 4 docs")
-
-	// TOOLS-469: extended JSON date query with $numberLong
-	dateDocs := []any{bson.D{
-		{"a", 1},
-		{"x", bson.NewDateTimeFromTime(time.Date(2014, 12, 11, 13, 52, 39, 498000000, time.UTC))},
-		{"y", bson.NewDateTimeFromTime(time.Date(2014, 12, 13, 13, 52, 39, 498000000, time.UTC))},
-	}}
-	dateQueryNumberLong := `{
-		"x": {
-			"$gt": {"$date": {"$numberLong": "1418305949498"}},
-			"$lt": {"$date": {"$numberLong": "1418305979498"}}
-		},
-		"y": {
-			"$gt": {"$date": {"$numberLong": "1418478749498"}},
-			"$lt": {"$date": {"$numberLong": "1418478769498"}}
-		}
-	}`
-	n = exportAndImportWithQuery(t, db, dateDocs, dateQueryNumberLong, "")
-	assert.EqualValues(t, 1, n, "extended JSON date query should export 1 doc")
-
-	// TOOLS-530: date query with ISO string format
-	n = exportAndImportWithQuery(
-		t,
-		db,
-		dateDocs,
-		`{"x":{"$gt":{"$date":"2014-12-11T13:52:39.3Z"},"$lt":{"$date":"2014-12-11T13:52:39.5Z"}}}`,
-		"",
-	)
-	assert.EqualValues(t, 1, n, "ISO date string query should export 1 doc")
-}
-
-func exportAndImportWithQuery(
-	t *testing.T,
-	db *mongo.Database,
-	sourceDocs []any,
-	query, queryFile string,
-) int64 {
-	t.Helper()
-	dbName := db.Name()
-	require.NoError(t, db.Collection("source").Drop(t.Context()))
-	require.NoError(t, db.Collection("dest").Drop(t.Context()))
-	if len(sourceDocs) > 0 {
-		_, err := db.Collection("source").InsertMany(t.Context(), sourceDocs)
-		require.NoError(t, err)
-	}
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type: "json", JSONFormat: "relaxed",
-		},
-		InputOptions: &mongoexport.InputOptions{Query: query, QueryFile: queryFile},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
-	mi, err := New(Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
-
-	n, err := db.Collection("dest").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	return n
-}
-
-// TestRoundTripSortAndSkip verifies that mongoexport --sort and --skip
-// correctly affect which documents are exported.
-func TestRoundTripSortAndSkip(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_roundtrip_sortskip_test"
-	const collName = "data"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	docs := make([]any, 50)
-	for i := range 50 {
-		docs[i] = bson.D{{"a", i}}
-	}
-	rand.Shuffle(len(docs), func(i, j int) {
-		docs[i], docs[j] = docs[j], docs[i]
-	})
-
-	_, err = coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type: "json", JSONFormat: "relaxed",
-		},
-		InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Skip: 20},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	n, err := me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-	assert.EqualValues(t, 30, n, "should export 30 documents after skipping 20")
-
-	require.NoError(t, coll.Drop(t.Context()))
-
-	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := New(Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 30, imported, "should import all 30 exported documents")
-
-	count, err := coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 30, count, "collection should have 30 documents")
-	for i := range 30 {
-		c, err := coll.CountDocuments(t.Context(), bson.D{{"a", i + 20}})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1, c, "document with a=%d should exist", i+20)
-	}
-}
-
 // TestImportBooleanType verifies that mongoimport correctly imports legacy
 // JSON with Boolean() constructor syntax using --legacy.
 func TestImportBooleanType(t *testing.T) {
@@ -2566,15 +1549,7 @@ func TestImportBooleanType(t *testing.T) {
 	const dbName = "mongoimport_booleantype_test"
 	const collName = "testcollbool"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
+	client := newImportTestClient(t, dbName)
 
 	entries := []struct{ key, expr string }{
 		{"a", "Boolean(1)"},
@@ -2598,8 +1573,6 @@ func TestImportBooleanType(t *testing.T) {
 		{"s", "Boolean()"},
 	}
 
-	// This isn't actually valid JSON that we're generating. It's a JSON-ish format that the legacy
-	// shell generated and that mongoimport supports with the `--legacy` flag.
 	tmpFile, err := os.CreateTemp(t.TempDir(), "boolean-*.json")
 	require.NoError(t, err)
 	for _, e := range entries {
@@ -2640,17 +1613,9 @@ func TestImportCollectionNameDerivation(t *testing.T) {
 
 	const dbName = "mongoimport_collections_test"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
+	client := newImportTestClient(t, dbName)
 	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-		if err := client.Database("testdb2").Drop(context.Background()); err != nil {
-			t.Errorf("dropping testdb2: %v", err)
-		}
+		_ = client.Database("testdb2").Drop(t.Context())
 	})
 
 	tmpDir := t.TempDir()
@@ -2678,11 +1643,313 @@ func TestImportCollectionNameDerivation(t *testing.T) {
 	assertImported(t, client, "testdb2", "foo.blah")
 }
 
-func writeTestFile(t *testing.T, dir, name, content string) string {
+// TestImportFields verifies --headerline, --fields, --fieldFile, --ignoreBlanks,
+// nested dotted field names, and extra-fields-beyond-header behavior.
+func TestImportFields(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_fields_test"
+
+	client := newImportTestClient(t, dbName)
+
+	tmpDir := t.TempDir()
+	header := []string{"a", "b", "c.xyz", "d.hij.lkm"}
+	rows := [][]string{
+		{"foo", "bar", "blah", "qwz"},
+		{"bob", "", "steve", "sue"},
+		{"one", "two", "three", "four"},
+	}
+
+	for _, format := range []string{"csv", "tsv"} {
+		testImportFieldsForFormat(t, client, dbName, tmpDir, format, header, rows)
+	}
+}
+
+// TestImportExtraFields verifies that CSV columns beyond the fieldFile mapping
+// are imported as field4, field5, etc.
+func TestImportExtraFields(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_extrafields_test"
+	const collName = "extrafields"
+
+	client := newImportTestClient(t, dbName)
+
+	tmpDir := t.TempDir()
+	extraRows := [][]string{
+		{"foo", "bar", "blah", "qwz"},
+		{"bob", "", "steve", "sue"},
+		{"one", "two", "three", "four", "extra1", "extra2", "extra3"},
+	}
+	extraFile := filepath.Join(tmpDir, "extrafields.csv")
+	writeXSVFile(t, extraFile, ',', extraRows)
+
+	fieldNames := []string{"a", "b", "c.xyz", "d.hij.lkm"}
+	fieldFilePath := writeFieldFile(t, tmpDir, "fieldfile", fieldNames)
+
+	toolOpts, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions: toolOpts,
+		InputOptions: &InputOptions{
+			File:       extraFile,
+			Type:       "csv",
+			FieldFile:  &fieldFilePath,
+			ParseGrace: "stop",
+		},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err)
+
+	var doc bson.M
+	err = client.Database(dbName).Collection(collName).
+		FindOne(t.Context(), bson.D{{"a", "one"}}).Decode(&doc)
+	require.NoError(t, err)
+	assert.Equal(t, "extra1", doc["field4"], "field4 should contain first extra value")
+	assert.Equal(t, "extra2", doc["field5"], "field5 should contain second extra value")
+	assert.Equal(t, "extra3", doc["field6"], "field6 should contain third extra value")
+}
+
+// TestImportModeUpsertFields tests --mode with --upsertFields a,c (compound key matching).
+func TestImportModeUpsertFields(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const (
+		dbName   = "mongoimport_modes_upsertfields_test"
+		collName = "c"
+	)
+
+	client := newImportTestClient(t, dbName)
+
+	coll := client.Database(dbName).Collection(collName)
+	ns := &options.Namespace{DB: dbName, Collection: collName}
+	dir := t.TempDir()
+
+	importFile := writeJSONLinesFile(t, dir, "upsert2.json", []map[string]any{
+		{"a": 1234, "b": 4567, "c": 222},
+		{"a": 4567, "b": "yyy", "c": 333},
+		{"a": 1234, "b": "blah", "c": 222},
+		{"a": "xxx", "b": "test", "c": -1},
+		{"a": 4567, "b": "asdf", "c": 222},
+	})
+
+	t.Run("mode=wrong returns error", func(t *testing.T) {
+		setupUpsertFieldsDocs(t, coll)
+		err := importCollection(
+			t,
+			ns,
+			importFile,
+			IngestOptions{Mode: "wrong", UpsertFields: "a,c"},
+		)
+		require.ErrorContains(t, err, "invalid --mode argument")
+	})
+
+	t.Run("mode=insert returns error", func(t *testing.T) {
+		setupUpsertFieldsDocs(t, coll)
+		err := importCollection(
+			t,
+			ns,
+			importFile,
+			IngestOptions{Mode: modeInsert, UpsertFields: "a,c"},
+		)
+		require.ErrorContains(t, err, "cannot use --upsertFields with --mode=insert")
+	})
+
+	for _, tc := range []struct {
+		name string
+		opts IngestOptions
+	}{
+		{"default mode", IngestOptions{UpsertFields: "a,c"}},
+		{"deprecated --upsert", IngestOptions{Upsert: true, UpsertFields: "a,c"}},
+		{"mode=upsert", IngestOptions{Mode: modeUpsert, UpsertFields: "a,c"}},
+	} {
+		t.Run(tc.name+" replaces matched docs", func(t *testing.T) {
+			setupUpsertFieldsDocs(t, coll)
+			require.NoError(t, importCollection(t, ns, importFile, tc.opts))
+
+			var doc map[string]any
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "blah"}}).Decode(&doc))
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+
+			doc = map[string]any{}
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "yyy"}}).Decode(&doc))
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+
+			doc = map[string]any{}
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "asdf"}}).Decode(&doc))
+			assert.Nil(t, doc["x"], "newly inserted doc has no x field")
+		})
+	}
+
+	t.Run("mode=merge updates matched docs and preserves unset fields", func(t *testing.T) {
+		setupUpsertFieldsDocs(t, coll)
+		require.NoError(
+			t,
+			importCollection(
+				t,
+				ns,
+				importFile,
+				IngestOptions{Mode: modeMerge, UpsertFields: "a,c"},
+			),
+		)
+
+		var doc map[string]any
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "blah"}}).Decode(&doc))
+		assert.Equal(t, "original field", doc["x"], "merge preserves x on matched doc")
+
+		doc = map[string]any{}
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "yyy"}}).Decode(&doc))
+		assert.Equal(t, "original field", doc["x"], "merge preserves x on matched doc")
+
+		doc = map[string]any{}
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "asdf"}}).Decode(&doc))
+		assert.Nil(t, doc["x"], "newly inserted doc has no x field")
+	})
+}
+
+// TestImportModeByID tests --mode without --upsertFields (matches on _id).
+func TestImportModeByID(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const (
+		dbName   = "mongoimport_modes_byid_test"
+		collName = "c"
+	)
+
+	client := newImportTestClient(t, dbName)
+
+	coll := client.Database(dbName).Collection(collName)
+	ns := &options.Namespace{DB: dbName, Collection: collName}
+	dir := t.TempDir()
+
+	importFile := writeJSONLinesFile(t, dir, "upsert1.json", []map[string]any{
+		{"_id": "one", "a": 1234, "b": 4567},
+		{"_id": "two", "a": "xxx", "b": "yyy"},
+		{"_id": "one", "a": "foo", "b": "blah"},
+		{"_id": "one", "a": "test", "b": "test"},
+		{"_id": "one", "a": "unicorns", "b": "zebras"},
+	})
+
+	t.Run("mode=wrong returns error", func(t *testing.T) {
+		setupByIDDocs(t, coll)
+		err := importCollection(t, ns, importFile, IngestOptions{Mode: "wrong"})
+		require.ErrorContains(t, err, "invalid --mode argument")
+	})
+
+	for _, tc := range []struct {
+		name string
+		opts IngestOptions
+	}{
+		{"mode=insert", IngestOptions{Mode: modeInsert}},
+		{"default mode", IngestOptions{}},
+	} {
+		t.Run(tc.name+" skips duplicates", func(t *testing.T) {
+			setupByIDDocs(t, coll)
+			require.NoError(t, importCollection(t, ns, importFile, tc.opts))
+
+			n, err := coll.CountDocuments(t.Context(), bson.D{})
+			require.NoError(t, err)
+			assert.EqualValues(t, 2, n, "all entries were duplicates; count unchanged")
+
+			var doc map[string]any
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
+			assert.Equal(t, "original value", doc["a"], "_id=one unchanged")
+			assert.Equal(t, "original field", doc["x"], "_id=one unchanged")
+		})
+	}
+
+	for _, tc := range []struct {
+		name string
+		opts IngestOptions
+	}{
+		{"deprecated --upsert", IngestOptions{Upsert: true}},
+		{"mode=upsert", IngestOptions{Mode: modeUpsert}},
+	} {
+		t.Run(tc.name+" replaces docs", func(t *testing.T) {
+			setupByIDDocs(t, coll)
+			require.NoError(t, importCollection(t, ns, importFile, tc.opts))
+
+			var doc map[string]any
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
+			assert.Equal(t, "unicorns", doc["a"], "last write wins")
+			assert.Equal(t, "zebras", doc["b"], "last write wins")
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+
+			doc = map[string]any{}
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "two"}}).Decode(&doc))
+			assert.Equal(t, "xxx", doc["a"])
+			assert.Equal(t, "yyy", doc["b"])
+			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
+		})
+	}
+
+	t.Run("mode=merge updates docs and preserves unset fields", func(t *testing.T) {
+		setupByIDDocs(t, coll)
+		require.NoError(t, importCollection(t, ns, importFile, IngestOptions{Mode: modeMerge}))
+
+		var doc map[string]any
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
+		assert.Equal(t, "unicorns", doc["a"], "last write wins")
+		assert.Equal(t, "zebras", doc["b"], "last write wins")
+		assert.Equal(t, "original field", doc["x"], "merge preserves x")
+
+		doc = map[string]any{}
+		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "two"}}).Decode(&doc))
+		assert.Equal(t, "xxx", doc["a"])
+		assert.Equal(t, "yyy", doc["b"])
+		assert.Equal(t, "original field", doc["x"], "merge preserves x")
+	})
+}
+
+func newImportTestClient(t *testing.T, dbName string) *mongo.Client {
 	t.Helper()
-	path := filepath.Join(dir, name)
-	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
-	return path
+	ssl := testutil.GetSSLOptions()
+	auth := testutil.GetAuthOptions()
+	sessionProvider, err := db.NewSessionProvider(options.ToolOptions{
+		General: &options.General{},
+		SSL:     &ssl,
+		Connection: &options.Connection{
+			Host: "localhost",
+			Port: db.DefaultTestPort,
+		},
+		Auth:         &auth,
+		URI:          &options.URI{},
+		Namespace:    &options.Namespace{},
+		WriteConcern: wcwrapper.Majority(),
+	})
+	require.NoError(t, err, "should create session provider")
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err, "should get session")
+	t.Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+	return client
+}
+
+func importCollection(
+	t *testing.T,
+	ns *options.Namespace,
+	filePath string,
+	ingestOpts IngestOptions,
+) error {
+	t.Helper()
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = ns
+	mi, err := New(Options{
+		ToolOptions:   toolOptions,
+		InputOptions:  &InputOptions{File: filePath, ParseGrace: "stop"},
+		IngestOptions: &ingestOpts,
+	})
+	if err != nil {
+		return err
+	}
+	defer mi.Close()
+	_, _, err = mi.ImportDocuments()
+	return err
 }
 
 func importFromFile(t *testing.T, filePath, dbOverride, collOverride string) {
@@ -2700,108 +1967,38 @@ func importFromFile(t *testing.T, filePath, dbOverride, collOverride string) {
 	require.NoError(t, err)
 }
 
-func assertImported(t *testing.T, client *mongo.Client, db, coll string) {
+func assertImported(t *testing.T, client *mongo.Client, dbName, coll string) {
 	t.Helper()
-	n, err := client.Database(db).Collection(coll).CountDocuments(context.Background(), bson.D{})
+	n, err := client.Database(dbName).Collection(coll).CountDocuments(t.Context(), bson.D{})
 	require.NoError(t, err)
-	assert.EqualValues(t, 2, n, "%s.%s should have 2 imported documents", db, coll)
-	require.NoError(t, client.Database(db).Collection(coll).Drop(context.Background()))
+	assert.EqualValues(t, 2, n, "%s.%s should have 2 imported documents", dbName, coll)
+	require.NoError(t, client.Database(dbName).Collection(coll).Drop(t.Context()))
 }
 
-// TestRoundTripDecimal128 verifies that a Decimal128 value survives an
-// export-then-import round-trip.
-func TestRoundTripDecimal128(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_decimal128_test"
-	const collName = "dec128"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	dec, err := bson.ParseDecimal128("123456789012345678901234567890")
-	require.NoError(t, err)
-	testDoc := bson.D{{"_id", "foo"}, {"x", dec}}
-
-	coll := client.Database(dbName).Collection(collName)
-	_, err = coll.InsertOne(t.Context(), testDoc)
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
+func setupUpsertFieldsDocs(t *testing.T, coll *mongo.Collection) {
+	t.Helper()
 	require.NoError(t, coll.Drop(t.Context()))
-
-	importToolOptions, err := testutil.GetToolOptions()
+	_, err := coll.InsertMany(
+		t.Context(),
+		[]any{
+			bson.D{{"a", int32(1234)}, {"b", "000000"}, {"c", int32(222)}, {"x", "original field"}},
+			bson.D{{"a", int32(4567)}, {"b", "111111"}, {"c", int32(333)}, {"x", "original field"}},
+		},
+	)
 	require.NoError(t, err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := New(Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, imported, "should import 1 document")
-
-	var result bson.D
-	err = coll.FindOne(t.Context(), bson.D{{"_id", "foo"}}).Decode(&result)
-	require.NoError(t, err)
-	assert.Equal(t, testDoc, result, "imported doc should match original")
 }
 
-// TestImportFields verifies --headerline, --fields, --fieldFile, --ignoreBlanks,
-// nested dotted field names, and extra-fields-beyond-header behavior.
-func TestImportFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_fields_test"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+func setupByIDDocs(t *testing.T, coll *mongo.Collection) {
+	t.Helper()
+	require.NoError(t, coll.Drop(t.Context()))
+	_, err := coll.InsertMany(
+		t.Context(),
+		[]any{
+			bson.D{{"_id", "one"}, {"a", "original value"}, {"x", "original field"}},
+			bson.D{{"_id", "two"}, {"a", "original value 2"}, {"x", "original field"}},
+		},
+	)
 	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	tmpDir := t.TempDir()
-	header := []string{"a", "b", "c.xyz", "d.hij.lkm"}
-	rows := [][]string{
-		{"foo", "bar", "blah", "qwz"},
-		{"bob", "", "steve", "sue"},
-		{"one", "two", "three", "four"},
-	}
-
-	for _, format := range []string{"csv", "tsv"} {
-		testImportFieldsForFormat(t, client, dbName, tmpDir, format, header, rows)
-	}
 }
 
 func testImportFieldsForFormat(
@@ -2944,60 +2141,23 @@ func importAndCheckFields(t *testing.T, client *mongo.Client, o importFieldsOpts
 	assert.EqualValues(t, 1, n, "%s: nested fields should be stored correctly", o.format)
 }
 
-// TestImportExtraFields verifies that CSV columns beyond the fieldFile mapping
-// are imported as field4, field5, etc.
-func TestImportExtraFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+func writeTestFile(t *testing.T, dir, name, content string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+	return path
+}
 
-	const dbName = "mongoimport_extrafields_test"
-	const collName = "extrafields"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	tmpDir := t.TempDir()
-	extraRows := [][]string{
-		{"foo", "bar", "blah", "qwz"},
-		{"bob", "", "steve", "sue"},
-		{"one", "two", "three", "four", "extra1", "extra2", "extra3"},
+func writeJSONLinesFile(t *testing.T, dir, name string, docs []map[string]any) string {
+	t.Helper()
+	var buf bytes.Buffer
+	for _, doc := range docs {
+		b, err := json.Marshal(doc)
+		require.NoError(t, err)
+		buf.Write(b)
+		buf.WriteByte('\n')
 	}
-	extraFile := filepath.Join(tmpDir, "extrafields.csv")
-	writeXSVFile(t, extraFile, ',', extraRows)
-
-	fieldNames := []string{"a", "b", "c.xyz", "d.hij.lkm"}
-	fieldFilePath := writeFieldFile(t, tmpDir, "fieldfile", fieldNames)
-
-	toolOpts, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := New(Options{
-		ToolOptions: toolOpts,
-		InputOptions: &InputOptions{
-			File:       extraFile,
-			Type:       "csv",
-			FieldFile:  &fieldFilePath,
-			ParseGrace: "stop",
-		},
-		IngestOptions: &IngestOptions{},
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
-
-	var doc bson.M
-	err = client.Database(dbName).Collection(collName).
-		FindOne(t.Context(), bson.D{{"a", "one"}}).Decode(&doc)
-	require.NoError(t, err)
-	assert.Equal(t, "extra1", doc["field4"], "field4 should contain first extra value")
-	assert.Equal(t, "extra2", doc["field5"], "field5 should contain second extra value")
-	assert.Equal(t, "extra3", doc["field6"], "field6 should contain third extra value")
+	return writeTestFile(t, dir, name, buf.String())
 }
 
 func writeXSVFile(t *testing.T, path string, separator rune, records [][]string) {
@@ -3015,522 +2175,4 @@ func writeFieldFile(t *testing.T, dir, name string, fields []string) string {
 	path := filepath.Join(dir, name)
 	require.NoError(t, os.WriteFile(path, []byte(strings.Join(fields, "\n")+"\n"), 0o644))
 	return path
-}
-
-// TestImportDocumentValidation verifies mongoimport behavior with collection
-// validators: normal import skips invalid docs, --bypassDocumentValidation
-// imports all, --stopOnError and --maintainInsertionOrder fail on validation
-// errors.
-func TestImportDocumentValidation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const dbName = "mongoimport_docvalidation_test"
-	const collName = "docvalidation"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	db := client.Database(dbName)
-
-	// 1000 docs: even-indexed lack `baz` (invalid), odd-indexed have `baz` (valid).
-	docs := make([]any, 1000)
-	for i := range 1000 {
-		if i%2 == 0 {
-			docs[i] = bson.D{{"_id", i}, {"num", i + 1}, {"s", fmt.Sprintf("%d", i)}}
-		} else {
-			docs[i] = bson.D{{"_id", i}, {"num", i + 1}, {"s", fmt.Sprintf("%d", i)}, {"baz", i}}
-		}
-	}
-	_, err = db.Collection(collName).InsertMany(t.Context(), docs)
-	require.NoError(t, err)
-
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
-
-	validator := bson.D{{"baz", bson.D{{"$exists", true}}}}
-	ns := &options.Namespace{DB: dbName, Collection: collName}
-
-	t.Run("no validator imports all docs", func(t *testing.T) {
-		require.NoError(t, db.Drop(t.Context()))
-		require.NoError(t, importWithIngestOpts(t, ns, tmpFile.Name(), IngestOptions{}))
-		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1000, n, "import without validation should import all 1000 documents")
-	})
-
-	t.Run("validator skips invalid docs", func(t *testing.T) {
-		recreateWithValidator(t, db, collName, validator)
-		require.NoError(t, importWithIngestOpts(t, ns, tmpFile.Name(), IngestOptions{}))
-		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 500, n, "only valid documents should be imported")
-	})
-
-	t.Run("stopOnError fails on validation errors", func(t *testing.T) {
-		recreateWithValidator(t, db, collName, validator)
-		err := importWithIngestOpts(t, ns, tmpFile.Name(), IngestOptions{StopOnError: true})
-		assertValidationError(t, err, "import with --stopOnError should fail on validation errors")
-	})
-
-	t.Run("maintainInsertionOrder fails on validation errors", func(t *testing.T) {
-		recreateWithValidator(t, db, collName, validator)
-		err := importWithIngestOpts(
-			t, ns, tmpFile.Name(), IngestOptions{MaintainInsertionOrder: true},
-		)
-		assertValidationError(
-			t, err, "import with --maintainInsertionOrder should fail on validation errors",
-		)
-	})
-
-	t.Run("bypassDocumentValidation imports all docs", func(t *testing.T) {
-		recreateWithValidator(t, db, collName, validator)
-		require.NoError(t, importWithIngestOpts(
-			t, ns, tmpFile.Name(), IngestOptions{BypassDocumentValidation: true},
-		))
-		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(
-			t, 1000, n, "all documents should be imported with --bypassDocumentValidation",
-		)
-	})
-}
-
-//nolint:unparam
-func recreateWithValidator(t *testing.T, db *mongo.Database, collName string, validator any) {
-	t.Helper()
-	require.NoError(t, db.Drop(context.Background()))
-	require.NoError(
-		t,
-		db.CreateCollection(
-			context.Background(), collName, mopt.CreateCollection().SetValidator(validator),
-		),
-	)
-}
-
-func assertValidationError(t *testing.T, err error, msg string) {
-	t.Helper()
-	var bwe mongo.BulkWriteException
-	if assert.ErrorAs(t, err, &bwe, msg) {
-		assert.NotEmpty(t, bwe.WriteErrors, "should have at least one write error")
-		assert.Equal(t, 121, bwe.WriteErrors[0].Code, "should be DocumentValidationFailure (121)")
-	}
-}
-
-func importWithIngestOpts(
-	t *testing.T,
-	ns *options.Namespace,
-	filePath string,
-	ingestOpts IngestOptions,
-) error {
-	t.Helper()
-	toolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	toolOptions.Namespace = ns
-	mi, err := New(Options{
-		ToolOptions:   toolOptions,
-		InputOptions:  &InputOptions{File: filePath, ParseGrace: "stop"},
-		IngestOptions: &ingestOpts,
-	})
-	require.NoError(t, err)
-	_, _, err = mi.ImportDocuments()
-	return err
-}
-
-// TestImportModeUpsertFields tests --mode with --upsertFields a,c (compound key matching).
-// The collection starts with two docs: {a:1234, c:222, x:"original field"} and
-// {a:4567, c:333, x:"original field"}.
-// The import file has five entries:
-//   - (a=1234,c=222) appears twice; last write sets b="blah"
-//   - (a=4567,c=333) matches the second doc and sets b="yyy"
-//   - (a=4567,c=222) has no match and becomes a new doc with b="asdf"
-func TestImportModeUpsertFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const (
-		dbName   = "mongoimport_modes_upsertfields_test"
-		collName = "c"
-	)
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = client.Database(dbName).Drop(context.Background())
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	ns := &options.Namespace{DB: dbName, Collection: collName}
-	dir := t.TempDir()
-
-	// initialDocs has two docs keyed on (a,c). Both have an "x" field.
-	initialDocs := []any{
-		bson.D{{"a", 1234}, {"b", "000000"}, {"c", 222}, {"x", "original field"}},
-		bson.D{{"a", 4567}, {"b", "111111"}, {"c", 333}, {"x", "original field"}},
-	}
-
-	// importFile has five entries matched by compound key (a, c).
-	// (a=1234,c=222) appears twice; last write sets b="blah".
-	// (a=4567,c=333) matches the second doc and sets b="yyy".
-	// (a=4567,c=222) has no match and is inserted as a new doc with b="asdf".
-	importFile := writeJSONLinesFile(t, dir, "upsert2.json", []map[string]any{
-		{"a": 1234, "b": 4567, "c": 222},
-		{"a": 4567, "b": "yyy", "c": 333},
-		{"a": 1234, "b": "blah", "c": 222},
-		{"a": "xxx", "b": "test", "c": -1},
-		{"a": 4567, "b": "asdf", "c": 222},
-	})
-
-	t.Run("mode=wrong returns error", func(t *testing.T) {
-		createCollectionWithDocs(t, coll, initialDocs)
-		err := runImportOpts(t, ns, importFile, IngestOptions{Mode: "wrong", UpsertFields: "a,c"})
-		require.ErrorContains(t, err, "invalid --mode argument")
-	})
-
-	t.Run("mode=insert returns error", func(t *testing.T) {
-		createCollectionWithDocs(t, coll, initialDocs)
-		err := runImportOpts(
-			t,
-			ns,
-			importFile,
-			IngestOptions{Mode: modeInsert, UpsertFields: "a,c"},
-		)
-		require.ErrorContains(t, err, "cannot use --upsertFields with --mode=insert")
-	})
-
-	// Default mode, mode=upsert, and deprecated --upsert all replace matched docs.
-	for _, tc := range []struct {
-		name string
-		opts IngestOptions
-	}{
-		{"default mode", IngestOptions{UpsertFields: "a,c"}},
-		{"deprecated --upsert", IngestOptions{Upsert: true, UpsertFields: "a,c"}},
-		{"mode=upsert", IngestOptions{Mode: modeUpsert, UpsertFields: "a,c"}},
-	} {
-		t.Run(tc.name+" replaces matched docs", func(t *testing.T) {
-			createCollectionWithDocs(t, coll, initialDocs)
-			require.NoError(t, runImportOpts(t, ns, importFile, tc.opts))
-
-			var doc map[string]any
-			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "blah"}}).Decode(&doc))
-			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
-
-			doc = map[string]any{}
-			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "yyy"}}).Decode(&doc))
-			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
-
-			doc = map[string]any{}
-			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "asdf"}}).Decode(&doc))
-			assert.Nil(t, doc["x"], "newly inserted doc has no x field")
-		})
-	}
-
-	t.Run("mode=merge updates matched docs and preserves unset fields", func(t *testing.T) {
-		createCollectionWithDocs(t, coll, initialDocs)
-		require.NoError(
-			t,
-			runImportOpts(t, ns, importFile, IngestOptions{Mode: modeMerge, UpsertFields: "a,c"}),
-		)
-
-		var doc map[string]any
-		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "blah"}}).Decode(&doc))
-		assert.Equal(t, "original field", doc["x"], "merge preserves x on matched doc")
-
-		doc = map[string]any{}
-		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "yyy"}}).Decode(&doc))
-		assert.Equal(t, "original field", doc["x"], "merge preserves x on matched doc")
-
-		doc = map[string]any{}
-		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"b", "asdf"}}).Decode(&doc))
-		assert.Nil(t, doc["x"], "newly inserted doc has no x field")
-	})
-}
-
-// TestImportModeByID tests --mode without --upsertFields (matches on _id).
-func TestImportModeByID(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const (
-		dbName   = "mongoimport_modes_byid_test"
-		collName = "c"
-	)
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = client.Database(dbName).Drop(context.Background())
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	ns := &options.Namespace{DB: dbName, Collection: collName}
-	dir := t.TempDir()
-
-	// initialDocs has two docs keyed on _id, each with an "x" field.
-	initialDocs := []any{
-		bson.D{{"_id", "one"}, {"a", "original value"}, {"x", "original field"}},
-		bson.D{{"_id", "two"}, {"a", "original value 2"}, {"x", "original field"}},
-	}
-
-	// importFile has five entries; _id="one" appears four times and last write wins,
-	// leaving it as {a:"unicorns", b:"zebras"}. _id="two" has one entry: {a:"xxx", b:"yyy"}.
-	importFile := writeJSONLinesFile(t, dir, "upsert1.json", []map[string]any{
-		{"_id": "one", "a": 1234, "b": 4567},
-		{"_id": "two", "a": "xxx", "b": "yyy"},
-		{"_id": "one", "a": "foo", "b": "blah"},
-		{"_id": "one", "a": "test", "b": "test"},
-		{"_id": "one", "a": "unicorns", "b": "zebras"},
-	})
-
-	t.Run("mode=wrong returns error", func(t *testing.T) {
-		createCollectionWithDocs(t, coll, initialDocs)
-		err := runImportOpts(t, ns, importFile, IngestOptions{Mode: "wrong"})
-		require.ErrorContains(t, err, "invalid --mode argument")
-	})
-
-	// mode=insert and the default mode both skip all duplicates.
-	for _, tc := range []struct {
-		name string
-		opts IngestOptions
-	}{
-		{"mode=insert", IngestOptions{Mode: modeInsert}},
-		{"default mode", IngestOptions{}},
-	} {
-		t.Run(tc.name+" skips duplicates", func(t *testing.T) {
-			createCollectionWithDocs(t, coll, initialDocs)
-			require.NoError(t, runImportOpts(t, ns, importFile, tc.opts))
-
-			n, err := coll.CountDocuments(t.Context(), bson.D{})
-			require.NoError(t, err)
-			assert.EqualValues(t, 2, n, "all entries were duplicates; count unchanged")
-
-			var doc map[string]any
-			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
-			assert.Equal(t, "original value", doc["a"], "_id=one unchanged")
-			assert.Equal(t, "original field", doc["x"], "_id=one unchanged")
-		})
-	}
-
-	// Deprecated --upsert and explicit mode=upsert both replace docs by _id.
-	for _, tc := range []struct {
-		name string
-		opts IngestOptions
-	}{
-		{"deprecated --upsert", IngestOptions{Upsert: true}},
-		{"mode=upsert", IngestOptions{Mode: modeUpsert}},
-	} {
-		t.Run(tc.name+" replaces docs", func(t *testing.T) {
-			createCollectionWithDocs(t, coll, initialDocs)
-			require.NoError(t, runImportOpts(t, ns, importFile, tc.opts))
-
-			var doc map[string]any
-			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
-			assert.Equal(t, "unicorns", doc["a"], "last write wins")
-			assert.Equal(t, "zebras", doc["b"], "last write wins")
-			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
-
-			doc = map[string]any{}
-			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "two"}}).Decode(&doc))
-			assert.Equal(t, "xxx", doc["a"])
-			assert.Equal(t, "yyy", doc["b"])
-			assert.Nil(t, doc["x"], "upsert replaces doc; original x field gone")
-		})
-	}
-
-	t.Run("mode=merge updates docs and preserves unset fields", func(t *testing.T) {
-		createCollectionWithDocs(t, coll, initialDocs)
-		require.NoError(t, runImportOpts(t, ns, importFile, IngestOptions{Mode: modeMerge}))
-
-		var doc map[string]any
-		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "one"}}).Decode(&doc))
-		assert.Equal(t, "unicorns", doc["a"], "last write wins")
-		assert.Equal(t, "zebras", doc["b"], "last write wins")
-		assert.Equal(t, "original field", doc["x"], "merge preserves x")
-
-		doc = map[string]any{}
-		require.NoError(t, coll.FindOne(t.Context(), bson.D{{"_id", "two"}}).Decode(&doc))
-		assert.Equal(t, "xxx", doc["a"])
-		assert.Equal(t, "yyy", doc["b"])
-		assert.Equal(t, "original field", doc["x"], "merge preserves x")
-	})
-}
-
-func createCollectionWithDocs(t *testing.T, coll *mongo.Collection, docs []any) {
-	t.Helper()
-	require.NoError(t, coll.Drop(t.Context()))
-	_, err := coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
-}
-
-// runImportOpts is like importWithIngestOpts but also returns errors from New,
-// allowing callers to test for invalid-options errors.
-func runImportOpts(
-	t *testing.T,
-	ns *options.Namespace,
-	filePath string,
-	ingestOpts IngestOptions,
-) error {
-	t.Helper()
-	toolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	toolOptions.Namespace = ns
-	mi, err := New(Options{
-		ToolOptions:   toolOptions,
-		InputOptions:  &InputOptions{File: filePath, ParseGrace: "stop"},
-		IngestOptions: &ingestOpts,
-	})
-	if err != nil {
-		return err
-	}
-	defer mi.Close()
-	_, _, err = mi.ImportDocuments()
-	return err
-}
-
-// TestImportModeUpsertIDSubdoc verifies that --mode=upsert uses the full
-// subdocument _id as the upsert key, preserving field order through a
-// round-trip of export → upsert-replace → re-import.
-func TestImportModeUpsertIDSubdoc(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	const (
-		dbName   = "mongoimport_upsert_subdoc_test"
-		collName = "c"
-	)
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = client.Database(dbName).Drop(context.Background())
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	ns := &options.Namespace{DB: dbName, Collection: collName}
-
-	origDocs := subdocIDDocs("string")
-	insertDocs := make([]any, len(origDocs))
-	for i, d := range origDocs {
-		insertDocs[i] = d
-	}
-	_, err = coll.InsertMany(t.Context(), insertDocs)
-	require.NoError(t, err)
-
-	exportedFile := exportCollectionToFile(t, ns)
-	str2File := writeSubdocIDFile(t, "str2")
-
-	t.Run("upsert with replacement data updates all docs in place", func(t *testing.T) {
-		require.NoError(t, runImportOpts(t, ns, str2File, IngestOptions{Mode: modeUpsert}))
-		n, err := coll.CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 20, n, "count should be unchanged after upsert")
-		n, err = coll.CountDocuments(t.Context(), bson.D{{"x", "str2"}})
-		require.NoError(t, err)
-		assert.EqualValues(t, 20, n, "all docs should have x=str2 after upsert")
-	})
-
-	t.Run("re-import original export reverts all docs", func(t *testing.T) {
-		require.NoError(t, runImportOpts(t, ns, exportedFile, IngestOptions{Mode: modeUpsert}))
-		n, err := coll.CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 20, n, "count should be unchanged after re-import")
-		n, err = coll.CountDocuments(t.Context(), bson.D{{"x", "string"}})
-		require.NoError(t, err)
-		assert.EqualValues(t, 20, n, "all docs should have x=string after re-import")
-	})
-}
-
-func exportCollectionToFile(t *testing.T, ns *options.Namespace) string {
-	t.Helper()
-	exportFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
-	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	exportToolOptions.Namespace = ns
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	_, err = me.Export(exportFile)
-	require.NoError(t, err)
-	require.NoError(t, exportFile.Close())
-	return exportFile.Name()
-}
-
-func writeSubdocIDFile(t *testing.T, xFieldValue string) string {
-	t.Helper()
-	f, err := os.CreateTemp(t.TempDir(), "subdoc-*.json")
-	require.NoError(t, err)
-	for _, doc := range subdocIDDocs(xFieldValue) {
-		b, err := bson.MarshalExtJSON(doc, true, false)
-		require.NoError(t, err)
-		_, err = f.Write(b)
-		require.NoError(t, err)
-		_, err = f.Write([]byte("\n"))
-		require.NoError(t, err)
-	}
-	require.NoError(t, f.Close())
-	return f.Name()
-}
-
-func subdocIDDocs(xFieldValue string) []bson.D {
-	docs := make([]bson.D, 0, 20)
-	for i := range 4 {
-		for j := range 5 {
-			docs = append(docs, bson.D{
-				{"_id", bson.D{
-					{"a", i},
-					{"b", bson.A{0, 1, 2, bson.D{{"c", j}, {"d", "foo"}}}},
-					{"e", "bar"},
-				}},
-				{"x", xFieldValue},
-			})
-		}
-	}
-	return docs
-}
-
-// writeJSONLinesFile marshals each doc in docs as a JSON object and writes them
-// as newline-separated lines to a file in dir named name. Returns the file path.
-func writeJSONLinesFile(t *testing.T, dir, name string, docs []map[string]any) string {
-	t.Helper()
-	var buf bytes.Buffer
-	for _, doc := range docs {
-		b, err := json.Marshal(doc)
-		require.NoError(t, err)
-		buf.Write(b)
-		buf.WriteByte('\n')
-	}
-	return writeTestFile(t, dir, name, buf.String())
 }

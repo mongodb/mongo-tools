@@ -712,6 +712,7 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 
 	// Prepare the test by creating the necessary collection.
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+	t.Cleanup(func() { _ = session.Database("mongodump_test_db").Drop(t.Context()) })
 	require.NoError(t, session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"))
 
 	oplogFileName := "testdata/oplogs/bson/vectored_insert.bson"
@@ -791,6 +792,7 @@ func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 
 	// Prepare the test by creating the necessary collection.
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+	t.Cleanup(func() { _ = session.Database("mongodump_test_db").Drop(t.Context()) })
 	require.NoError(t, session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"))
 
 	oplogFileName := "testdata/oplogs/bson/collMod_indexUniqueness.bson"
@@ -846,6 +848,7 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 
 	// Prepare the test by creating the necessary collection.
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+	t.Cleanup(func() { _ = session.Database("mongodump_test_db").Drop(t.Context()) })
 
 	oplogFileName := "testdata/oplogs/bson/bypassDocumentValidation.bson"
 
@@ -896,6 +899,7 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 
 	// Prepare the test by creating the necessary collection.
 	require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+	t.Cleanup(func() { _ = session.Database("mongodump_test_db").Drop(t.Context()) })
 
 	args := []string{
 		DirectoryOption, "testdata/collMod_ttl_index",
