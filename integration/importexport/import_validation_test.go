@@ -9,15 +9,11 @@ package importexport
 import (
 	"fmt"
 	"os"
-	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -25,13 +21,11 @@ import (
 // validators: normal import skips invalid docs, --bypassDocumentValidation
 // imports all, --stopOnError and --maintainInsertionOrder fail on validation
 // errors.
-func TestImportDocumentValidation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestImportDocumentValidation() {
 	const dbName = "mongoimport_docvalidation_test"
 	const collName = "docvalidation"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	db := client.Database(dbName)
 
@@ -44,11 +38,11 @@ func TestImportDocumentValidation(t *testing.T) {
 			docs[i] = bson.D{{"_id", i}, {"num", i + 1}, {"s", fmt.Sprintf("%d", i)}, {"baz", i}}
 		}
 	}
-	_, err := db.Collection(collName).InsertMany(t.Context(), docs)
-	require.NoError(t, err)
+	_, err := db.Collection(collName).InsertMany(s.Context(), docs)
+	s.Require().NoError(err)
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -58,58 +52,59 @@ func TestImportDocumentValidation(t *testing.T) {
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+	s.Require().NoError(err)
 	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(tmpFile.Close())
 
 	validator := bson.D{{"baz", bson.D{{"$exists", true}}}}
 	ns := &options.Namespace{DB: dbName, Collection: collName}
 
-	t.Run("no validator imports all docs", func(t *testing.T) {
-		require.NoError(t, db.Drop(t.Context()))
-		require.NoError(t, importCollection(t, ns, tmpFile.Name(), mongoimport.IngestOptions{}))
-		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1000, n, "import without validation should import all 1000 documents")
+	s.Run("no validator imports all docs", func() {
+		s.Require().NoError(db.Drop(s.Context()))
+		s.Require().NoError(s.importCollection(ns, tmpFile.Name(), mongoimport.IngestOptions{}))
+		n, err := db.Collection(collName).CountDocuments(s.Context(), bson.D{})
+		s.Require().NoError(err)
+		s.Assert().
+			EqualValues(1000, n, "import without validation should import all 1000 documents")
 	})
 
-	t.Run("validator skips invalid docs", func(t *testing.T) {
-		recreateWithValidator(t, db.Collection(collName), validator)
-		require.NoError(t, importCollection(t, ns, tmpFile.Name(), mongoimport.IngestOptions{}))
-		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 500, n, "only valid documents should be imported")
+	s.Run("validator skips invalid docs", func() {
+		s.recreateWithValidator(db.Collection(collName), validator)
+		s.Require().NoError(s.importCollection(ns, tmpFile.Name(), mongoimport.IngestOptions{}))
+		n, err := db.Collection(collName).CountDocuments(s.Context(), bson.D{})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(500, n, "only valid documents should be imported")
 	})
 
-	t.Run("stopOnError fails on validation errors", func(t *testing.T) {
-		recreateWithValidator(t, db.Collection(collName), validator)
-		err := importCollection(t, ns, tmpFile.Name(), mongoimport.IngestOptions{StopOnError: true})
-		assertValidationError(t, err, "import with --stopOnError should fail on validation errors")
+	s.Run("stopOnError fails on validation errors", func() {
+		s.recreateWithValidator(db.Collection(collName), validator)
+		err := s.importCollection(ns, tmpFile.Name(), mongoimport.IngestOptions{StopOnError: true})
+		s.assertValidationError(err, "import with --stopOnError should fail on validation errors")
 	})
 
-	t.Run("maintainInsertionOrder fails on validation errors", func(t *testing.T) {
-		recreateWithValidator(t, db.Collection(collName), validator)
-		err := importCollection(
-			t, ns, tmpFile.Name(), mongoimport.IngestOptions{MaintainInsertionOrder: true},
+	s.Run("maintainInsertionOrder fails on validation errors", func() {
+		s.recreateWithValidator(db.Collection(collName), validator)
+		err := s.importCollection(
+			ns, tmpFile.Name(), mongoimport.IngestOptions{MaintainInsertionOrder: true},
 		)
-		assertValidationError(
-			t, err, "import with --maintainInsertionOrder should fail on validation errors",
+		s.assertValidationError(
+			err, "import with --maintainInsertionOrder should fail on validation errors",
 		)
 	})
 
-	t.Run("bypassDocumentValidation imports all docs", func(t *testing.T) {
-		recreateWithValidator(t, db.Collection(collName), validator)
-		require.NoError(t, importCollection(
-			t, ns, tmpFile.Name(), mongoimport.IngestOptions{BypassDocumentValidation: true},
+	s.Run("bypassDocumentValidation imports all docs", func() {
+		s.recreateWithValidator(db.Collection(collName), validator)
+		s.Require().NoError(s.importCollection(
+			ns, tmpFile.Name(), mongoimport.IngestOptions{BypassDocumentValidation: true},
 		))
-		n, err := db.Collection(collName).CountDocuments(t.Context(), bson.D{})
-		require.NoError(t, err)
-		assert.EqualValues(
-			t, 1000, n, "all documents should be imported with --bypassDocumentValidation",
+		n, err := db.Collection(collName).CountDocuments(s.Context(), bson.D{})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(
+			1000, n, "all documents should be imported with --bypassDocumentValidation",
 		)
 	})
 }

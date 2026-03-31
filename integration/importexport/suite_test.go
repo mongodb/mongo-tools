@@ -1,6 +1,8 @@
 package importexport
 
 import (
+	"context"
+	"os"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
@@ -9,14 +11,16 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
+	integrationSuite "github.com/mongodb/mongo-tools/integration/suite"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type ImportExportSuite struct {
-	suite.Suite
+	integrationSuite.IntegrationSuite
 }
 
 func TestImportExport(t *testing.T) {
@@ -24,36 +28,6 @@ func TestImportExport(t *testing.T) {
 
 	ts := new(ImportExportSuite)
 	suite.Run(t, ts)
-}
-
-func (s *ImportExportSuite) Client() *mongo.Client {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	s.Require().NoError(err, "no cluster available")
-
-	client, err := sessionProvider.GetSession()
-	s.Require().NoError(err, "no client available")
-
-	return client
-}
-
-func (s *ImportExportSuite) RequireFCVAtLeast(wantFCV string) {
-	fcv := testutil.GetFCV(s.Client())
-	cmp, err := testutil.CompareFCV(fcv, wantFCV)
-	s.Require().NoError(err, "get fcv")
-
-	if cmp < 0 {
-		s.T().Skipf("Requires server with FCV %s or later; found %v", wantFCV, fcv)
-	}
-}
-
-func (s *ImportExportSuite) ServerVersion() db.Version {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	s.Require().NoError(err, "no cluster available")
-
-	serverVersion, err := sessionProvider.ServerVersionArray()
-	s.Require().NoError(err, "get server version")
-
-	return serverVersion
 }
 
 func (s *ImportExportSuite) ExportOptions() mongoexport.Options {
@@ -100,5 +74,80 @@ func (s *ImportExportSuite) ImportOptions(dbName, collName string) mongoimport.O
 		IngestOptions: &mongoimport.IngestOptions{
 			Mode: "insert",
 		},
+	}
+}
+
+func (s *ImportExportSuite) newClient(dbName string) *mongo.Client {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	s.Require().NoError(err, "should create session provider")
+	client, err := sessionProvider.GetSession()
+	s.Require().NoError(err, "should get session")
+	s.T().Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+	return client
+}
+
+func (s *ImportExportSuite) importCollection(
+	ns *options.Namespace,
+	filePath string,
+	ingestOpts mongoimport.IngestOptions,
+) error {
+	toolOptions, err := testutil.GetToolOptions()
+	s.Require().NoError(err)
+	toolOptions.Namespace = ns
+	mi, err := mongoimport.New(mongoimport.Options{
+		ToolOptions:   toolOptions,
+		InputOptions:  &mongoimport.InputOptions{File: filePath, ParseGrace: "stop"},
+		IngestOptions: &ingestOpts,
+	})
+	if err != nil {
+		return err
+	}
+	defer mi.Close()
+	_, _, err = mi.ImportDocuments()
+	return err
+}
+
+func (s *ImportExportSuite) exportCollectionToFile(ns *options.Namespace) string {
+	exportFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+	s.Require().NoError(err)
+	exportToolOptions, err := testutil.GetToolOptions()
+	s.Require().NoError(err)
+	exportToolOptions.Namespace = ns
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type:       "json",
+			JSONFormat: "canonical",
+		},
+		InputOptions: &mongoexport.InputOptions{},
+	})
+	s.Require().NoError(err)
+	defer me.Close()
+	_, err = me.Export(exportFile)
+	s.Require().NoError(err)
+	s.Require().NoError(exportFile.Close())
+	return exportFile.Name()
+}
+
+func (s *ImportExportSuite) recreateWithValidator(coll *mongo.Collection, validator any) {
+	s.Require().NoError(coll.Database().Drop(context.Background()))
+	s.Require().NoError(
+		coll.Database().CreateCollection(
+			context.Background(), coll.Name(), mopt.CreateCollection().SetValidator(validator),
+		),
+	)
+}
+
+func (s *ImportExportSuite) assertValidationError(err error, msg string) {
+	var bwe mongo.BulkWriteException
+	if s.Assert().ErrorAs(err, &bwe, msg) {
+		s.Assert().NotEmpty(bwe.WriteErrors, "should have at least one write error")
+		s.Assert().Equal(
+			121,
+			bwe.WriteErrors[0].Code,
+			"should be DocumentValidationFailure (121)",
+		)
 	}
 }

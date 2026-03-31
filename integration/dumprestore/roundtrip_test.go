@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,16 +19,12 @@ import (
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/idx"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongodump"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
-	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -40,25 +35,23 @@ func uniqueDBName() string {
 	return fmt.Sprintf("mongorestore_test_%d_%d", os.Getpid(), time.Now().UnixMilli())
 }
 
-func TestPipedDumpRestore(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	t.Logf("start %#q", t.Name())
-	ctx := t.Context()
+func (s *DumpRestoreSuite) TestPipedDumpRestore() {
+	s.T().Logf("start %#q", s.T().Name())
+	ctx := s.Context()
 
 	provider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err, "should get session provider")
+	s.Require().NoError(err, "should get session provider")
 
-	t.Logf("getting session")
+	s.T().Logf("getting session")
 	sess, err := provider.GetSession()
-	require.NoError(t, err, "should get session")
+	s.Require().NoError(err, "should get session")
 
 	srcCollNames := []string{"alpha", "beta", "gamma", "delta", "epsilon"}
 
 	db := sess.Database(uniqueDBName())
-	require.NoError(t, db.Drop(ctx), "should pre-drop DB %#q", db.Name())
+	s.Require().NoError(db.Drop(ctx), "should pre-drop DB %#q", db.Name())
 
-	t.Logf("creating collections")
+	s.T().Logf("creating collections")
 
 	for _, collName := range srcCollNames {
 		docs := lo.RepeatBy(
@@ -70,8 +63,7 @@ func TestPipedDumpRestore(t *testing.T) {
 			},
 		)
 
-		require.NoError(
-			t,
+		s.Require().NoError(
 			db.Collection(collName).Drop(ctx),
 			"should drop %#q", collName,
 		)
@@ -81,10 +73,10 @@ func TestPipedDumpRestore(t *testing.T) {
 			lo.ToAnySlice(docs),
 		)
 
-		require.NoError(t, err, "should insert docs into %#q", collName)
+		s.Require().NoError(err, "should insert docs into %#q", collName)
 	}
 
-	t.Log("Finished creating documents.")
+	s.T().Log("Finished creating documents.")
 
 	reader, writer := io.Pipe()
 
@@ -99,7 +91,7 @@ func TestPipedDumpRestore(t *testing.T) {
 
 		dump.ToolOptions.DB = db.Name()
 
-		assert.NoError(t, dump.Dump(), "dump should work")
+		s.Assert().NoError(dump.Dump(), "dump should work")
 
 		return nil
 	})
@@ -127,34 +119,26 @@ func TestPipedDumpRestore(t *testing.T) {
 			),
 		}
 
-		assert.NoError(t, restore.Restore().Err, "restore should work")
+		s.Assert().NoError(restore.Restore().Err, "restore should work")
 
 		return nil
 	})
 
-	require.NoError(t, eg.Wait())
+	s.Require().NoError(eg.Wait())
 }
 
-func TestDumpAndRestoreConfigDB(t *testing.T) {
-	require := require.New(t)
-
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *DumpRestoreSuite) TestDumpAndRestoreConfigDB() {
 	_, err := testutil.GetBareSession()
-	require.NoError(err, "can connect to server")
+	s.Require().NoError(err, "can connect to server")
 
-	t.Run(
+	s.Run(
 		"test dump and restore only config db includes all config collections",
-		func(t *testing.T) {
-			testDumpAndRestoreConfigDBIncludesAllCollections(t)
-		},
+		s.testDumpAndRestoreConfigDBIncludesAllCollections,
 	)
 
-	t.Run(
+	s.Run(
 		"test dump and restore all dbs includes only some config collections",
-		func(t *testing.T) {
-			testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t)
-		},
+		s.testDumpAndRestoreAllDBsIgnoresSomeConfigCollections,
 	)
 }
 
@@ -176,37 +160,33 @@ var userDefinedConfigCollectionNames = []string{
 	"coll3",
 }
 
-func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
-	require := require.New(t)
-
+func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
 	session, err := testutil.GetBareSession()
-	require.NoError(err, "can connect to server")
+	s.Require().NoError(err, "can connect to server")
 
 	configDB := session.Database("config")
 
-	collections := createCollectionsWithTestDocuments(
-		t,
+	collections := s.createCollectionsWithTestDocuments(
 		configDB,
 		append(configCollectionNamesToKeep, userDefinedConfigCollectionNames...),
 	)
-	defer clearDB(t, configDB)
+	defer s.clearDB(configDB)
 
-	withBSONMongodump(
-		t,
+	s.withBSONMongodump(
 		func(dir string) {
-			clearDB(t, configDB)
+			s.clearDB(configDB)
 
 			restore, err := getRestoreWithArgs(dir)
-			require.NoError(err)
+			s.Require().NoError(err)
 			defer restore.Close()
 
 			result := restore.Restore()
-			require.NoError(result.Err, "can run mongorestore")
-			require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+			s.Require().NoError(result.Err, "can run mongorestore")
+			s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 			for _, collection := range collections {
-				r := collection.FindOne(t.Context(), testDocument)
-				require.NoError(r.Err(), "expected document")
+				r := collection.FindOne(s.Context(), testDocument)
+				s.Require().NoError(r.Err(), "expected document")
 			}
 		},
 		"--db", "config",
@@ -214,78 +194,72 @@ func testDumpAndRestoreConfigDBIncludesAllCollections(t *testing.T) {
 	)
 }
 
-func testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(t *testing.T) {
-	require := require.New(t)
-
+func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections() {
 	session, err := testutil.GetBareSession()
-	require.NoError(err, "can connect to server")
+	s.Require().NoError(err, "can connect to server")
 
 	// Drop any databases that other tests may have left behind with validators
 	// that would cause failures during the full dump+restore.
-	require.NoError(session.Database("mongodump_test_db").Drop(t.Context()))
+	s.Require().NoError(session.Database("mongodump_test_db").Drop(s.Context()))
 
 	configDB := session.Database("config")
 
-	userDefinedCollections := createCollectionsWithTestDocuments(
-		t,
+	userDefinedCollections := s.createCollectionsWithTestDocuments(
 		configDB,
 		userDefinedConfigCollectionNames,
 	)
-	collectionsToKeep := createCollectionsWithTestDocuments(
-		t,
+	collectionsToKeep := s.createCollectionsWithTestDocuments(
 		configDB,
 		configCollectionNamesToKeep,
 	)
-	defer clearDB(t, configDB)
+	defer s.clearDB(configDB)
 
-	withBSONMongodump(
-		t,
+	s.withBSONMongodump(
 		func(dir string) {
-			clearDB(t, configDB)
+			s.clearDB(configDB)
 
 			restore, err := getRestoreWithArgs(
 				mongorestore.DropOption,
 				dir,
 			)
-			require.NoError(err)
+			s.Require().NoError(err)
 			defer restore.Close()
 
 			result := restore.Restore()
-			require.NoError(result.Err, "can run mongorestore")
-			require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+			s.Require().NoError(result.Err, "can run mongorestore")
+			s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 			for _, collection := range collectionsToKeep {
-				r := collection.FindOne(t.Context(), testDocument)
-				require.NoError(r.Err(), "expected document")
+				r := collection.FindOne(s.Context(), testDocument)
+				s.Require().NoError(r.Err(), "expected document")
 			}
 
 			for _, collection := range userDefinedCollections {
-				r := collection.FindOne(t.Context(), testDocument)
-				require.Error(r.Err(), "expected no document")
+				r := collection.FindOne(s.Context(), testDocument)
+				s.Require().Error(r.Err(), "expected no document")
 			}
 		},
 	)
 }
 
-func withBSONMongodump(t *testing.T, testCase func(string), args ...string) {
-	dir, cleanup := testutil.MakeTempDir(t)
+func (s *DumpRestoreSuite) withBSONMongodump(testCase func(string), args ...string) {
+	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
 	dirArgs := []string{
 		"--out", dir,
 	}
-	runMongodumpWithArgs(t, append(dirArgs, args...)...)
+	s.runMongodumpWithArgs(append(dirArgs, args...)...)
 	testCase(dir)
 }
 
-func runMongodumpWithArgs(t *testing.T, args ...string) {
-	require := require.New(t)
+func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
 	cmd = append(cmd, testutil.GetBareArgs()...)
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")
-	require.NoError(err, "can execute command %s with output: %s", cmdStr, out)
-	require.NotContains(
+	s.Require().NoError(err, "can execute command %s with output: %s", cmdStr, out)
+	s.Require().NotContains(
 		string(out),
 		"does not exist",
 		"running [%s] does not tell us the namespace does not exist",
@@ -362,76 +336,68 @@ func getArchiveMongoRestore(input io.ReadCloser) (*mongorestore.MongoRestore, er
 	return restore, nil
 }
 
-func createCollectionsWithTestDocuments(
-	t *testing.T,
+func (s *DumpRestoreSuite) createCollectionsWithTestDocuments(
 	db *mongo.Database,
 	collectionNames []string,
 ) []*mongo.Collection {
 	collections := []*mongo.Collection{}
 	for _, collectionName := range collectionNames {
-		collection := createCollectionWithTestDocument(t, db, collectionName)
+		collection := s.createCollectionWithTestDocument(db, collectionName)
 		collections = append(collections, collection)
 	}
 	return collections
 }
 
-func createCollectionWithTestDocument(
-	t *testing.T,
+func (s *DumpRestoreSuite) createCollectionWithTestDocument(
 	db *mongo.Database,
 	collectionName string,
 ) *mongo.Collection {
-	require := require.New(t)
 	collection := db.Collection(collectionName)
 	_, err := collection.InsertOne(
-		t.Context(),
+		s.Context(),
 		testDocument,
 	)
-	require.NoError(err, "can insert documents into collection")
+	s.Require().NoError(err, "can insert documents into collection")
 	return collection
 }
 
-func clearDB(t *testing.T, db *mongo.Database) {
-	require := require.New(t)
-	collectionNames, err := db.ListCollectionNames(t.Context(), bson.D{})
-	require.NoError(err, "can get collection names")
+func (s *DumpRestoreSuite) clearDB(db *mongo.Database) {
+	collectionNames, err := db.ListCollectionNames(s.Context(), bson.D{})
+	s.Require().NoError(err, "can get collection names")
 	for _, collectionName := range collectionNames {
 		collection := db.Collection(collectionName)
-		_, _ = collection.DeleteMany(t.Context(), bson.M{})
+		_, _ = collection.DeleteMany(s.Context(), bson.M{})
 	}
 }
 
-func withBSONMongodumpForCollection(
-	t *testing.T,
+func (s *DumpRestoreSuite) withBSONMongodumpForCollection(
 	db string,
 	collection string,
 	testCase func(string),
 ) {
-	dir, cleanup := testutil.MakeTempDir(t)
+	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
-	runBSONMongodumpForCollection(t, dir, db, collection)
+	s.runBSONMongodumpForCollection(dir, db, collection)
 	testCase(dir)
 }
 
-func runBSONMongodumpForCollection(
-	t *testing.T,
+func (s *DumpRestoreSuite) runBSONMongodumpForCollection(
 	dir, db, collection string,
 	args ...string,
 ) string {
-	require := require.New(t)
 	baseArgs := []string{
 		"--out", dir,
 		"--db", db,
 		"--collection", collection,
 	}
-	runMongodumpWithArgs(
-		t,
+	s.runMongodumpWithArgs(
 		append(baseArgs, args...)...,
 	)
 	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
 	_, err := os.Stat(bsonFile)
-	require.NoError(err, "dump created BSON data file")
+	s.Require().NoError(err, "dump created BSON data file")
 	_, err = os.Stat(filepath.Join(dir, db, fmt.Sprintf("%s.metadata.json", collection)))
-	require.NoError(err, "dump created JSON metadata file")
+	s.Require().NoError(err, "dump created JSON metadata file")
 	return bsonFile
 }
 
@@ -453,23 +419,17 @@ func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) 
 	return nil
 }
 
-func TestRestoreZeroTimestamp(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	ctx := t.Context()
-
-	require := require.New(t)
+func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
+	ctx := s.Context()
 
 	session, err := testutil.GetBareSession()
-	require.NoError(err, "can connect to server")
+	s.Require().NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
 	defer func() {
 		err = testDB.Drop(ctx)
-		if err != nil {
-			t.Fatalf("Failed to drop test database: %v", err)
-		}
+		s.Require().NoError(err, "Failed to drop test database")
 	}()
 
 	coll := testDB.Collection("mycoll")
@@ -493,29 +453,28 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 		},
 		mopt.UpdateOne().SetUpsert(true),
 	)
-	require.NoError(err, "should insert (via update/upsert)")
+	s.Require().NoError(err, "should insert (via update/upsert)")
 
-	withBSONMongodumpForCollection(t, coll.Database().Name(), coll.Name(), func(dir string) {
+	s.withBSONMongodumpForCollection(coll.Database().Name(), coll.Name(), func(dir string) {
 		restore, err := getRestoreWithArgs(
 			mongorestore.DropOption,
 			dir,
 		)
-		require.NoError(err)
+		s.Require().NoError(err)
 		defer restore.Close()
 
 		result := restore.Restore()
-		require.NoError(result.Err, "can run mongorestore (result: %+v)", result)
-		require.EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+		s.Require().NoError(result.Err, "can run mongorestore (result: %+v)", result)
+		s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 	})
 
 	cursor, err := coll.Find(ctx, bson.D{})
-	require.NoError(err, "should find docs")
+	s.Require().NoError(err, "should find docs")
 	docs := []bson.M{}
-	require.NoError(cursor.All(ctx, &docs), "should read docs")
+	s.Require().NoError(cursor.All(ctx, &docs), "should read docs")
 
-	require.Len(docs, 1, "expect docs count")
-	assert.Equal(
-		t,
+	s.Require().Len(docs, 1, "expect docs count")
+	s.Assert().Equal(
 		bson.M{
 			"_id":        docID,
 			"empty_time": bson.Timestamp{},
@@ -526,23 +485,17 @@ func TestRestoreZeroTimestamp(t *testing.T) {
 	)
 }
 
-func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	ctx := t.Context()
-
-	require := require.New(t)
+func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
+	ctx := s.Context()
 
 	session, err := testutil.GetBareSession()
-	require.NoError(err, "can connect to server")
+	s.Require().NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
 	defer func() {
 		err = testDB.Drop(ctx)
-		if err != nil {
-			t.Fatalf("Failed to drop test database: %v", err)
-		}
+		s.Require().NoError(err, "Failed to drop test database")
 	}()
 
 	coll := testDB.Collection("mycoll")
@@ -563,9 +516,9 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 		},
 		mopt.UpdateOne().SetUpsert(true),
 	)
-	require.NoError(err, "should insert (via update/upsert)")
+	s.Require().NoError(err, "should insert (via update/upsert)")
 
-	withBSONMongodumpForCollection(t, coll.Database().Name(), coll.Name(), func(dir string) {
+	s.withBSONMongodumpForCollection(coll.Database().Name(), coll.Name(), func(dir string) {
 		updated, err := coll.UpdateOne(
 			ctx,
 			bson.D{
@@ -579,29 +532,28 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 				}}},
 			},
 		)
-		require.NoError(err, "should send update")
-		require.NotZero(updated.MatchedCount, "update should match a doc")
+		s.Require().NoError(err, "should send update")
+		s.Require().NotZero(updated.MatchedCount, "update should match a doc")
 
 		restore, err := getRestoreWithArgs(
 			dir,
 		)
-		require.NoError(err)
+		s.Require().NoError(err)
 		defer restore.Close()
 
 		result := restore.Restore()
-		require.NoError(result.Err, "can run mongorestore")
+		s.Require().NoError(result.Err, "can run mongorestore")
 
-		assert.EqualValues(t, 1, result.Failures, "mongorestore reports failure")
+		s.Assert().EqualValues(1, result.Failures, "mongorestore reports failure")
 	})
 
 	cursor, err := coll.Find(ctx, bson.D{})
-	require.NoError(err, "should find docs")
+	s.Require().NoError(err, "should find docs")
 	docs := []bson.M{}
-	require.NoError(cursor.All(ctx, &docs), "should read docs")
+	s.Require().NoError(cursor.All(ctx, &docs), "should read docs")
 
-	require.Len(docs, 1, "expect docs count")
-	assert.NotContains(
-		t,
+	s.Require().Len(docs, 1, "expect docs count")
+	s.Assert().NotContains(
 		docs[0],
 		"empty_time",
 		"restore did not clobber existing document (found: %+v)",
@@ -609,9 +561,7 @@ func TestRestoreZeroTimestamp_NonClobber(t *testing.T) {
 	)
 }
 
-func TestRestoreMultipleIDIndexes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 	cases := []struct {
 		Label   string
 		Indexes []mongo.IndexModel
@@ -649,17 +599,17 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 		curCase := cases[c]
 		indexesToCreate := curCase.Indexes
 
-		t.Run(
+		s.Run(
 			curCase.Label,
-			func(t *testing.T) {
+			func() {
 				for attemptNum := range [20]any{} {
-					t.Run(
+					s.Run(
 						fmt.Sprintf("attempt %d", attemptNum),
-						func(t *testing.T) {
+						func() {
 							session, err := testutil.GetBareSession()
-							require.NoError(t, err, "should connect to server")
+							s.Require().NoError(err, "should connect to server")
 
-							ctx := t.Context()
+							ctx := s.Context()
 
 							testDB := session.Database(dbName)
 
@@ -671,17 +621,15 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 							coll := testDB.Collection(collName)
 
 							_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
-							require.NoError(t, err, "indexes should be created")
+							s.Require().NoError(err, "indexes should be created")
 
 							archivedIndexes := []bson.M{}
-							require.NoError(
-								t,
+							s.Require().NoError(
 								listIndexes(ctx, coll, &archivedIndexes),
 								"should list indexes",
 							)
 
-							withBSONMongodumpForCollection(
-								t,
+							s.withBSONMongodumpForCollection(
 								testDB.Name(),
 								coll.Name(),
 								func(dir string) {
@@ -689,18 +637,16 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 										mongorestore.DropOption,
 										dir,
 									)
-									require.NoError(t, err)
+									s.Require().NoError(err)
 									defer restore.Close()
 
 									result := restore.Restore()
-									require.NoError(
-										t,
+									s.Require().NoError(
 										result.Err,
 										"%s: mongorestore should finish OK",
 										curCase.Label,
 									)
-									require.EqualValues(
-										t,
+									s.Require().EqualValues(
 										0,
 										result.Failures,
 										"%s: mongorestore should report 0 failures",
@@ -710,14 +656,12 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 							)
 
 							restoredIndexes := []bson.M{}
-							require.NoError(
-								t,
+							s.Require().NoError(
 								listIndexes(ctx, coll, &restoredIndexes),
 								"should list indexes",
 							)
 
-							assert.ElementsMatch(
-								t,
+							s.Assert().ElementsMatch(
 								archivedIndexes,
 								restoredIndexes,
 								"indexes should round-trip dump/restore (attempt #%d)",
@@ -731,116 +675,103 @@ func TestRestoreMultipleIDIndexes(t *testing.T) {
 
 	}
 }
-
-func TestRestoreUsersOrRoles(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	s.Require().NoError(err, "no server available")
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
+	s.Run("Restoring users and roles should drop tempusers and temproles", func() {
+		restore, err := getRestoreWithArgs(
 			mongorestore.NumParallelCollectionsOption, "1",
 			mongorestore.NumInsertionWorkersOption, "1",
+		)
+		s.Require().NoError(err)
+		defer restore.Close()
+
+		adminDB := session.Database("admin")
+		restore.TargetDirectory = "../../mongorestore/testdata/usersdump"
+		result := restore.Restore()
+		s.Require().NoError(result.Err, "can run mongorestore")
+
+		adminCollections, err := adminDB.ListCollectionNames(s.Context(), bson.M{})
+		s.Require().NoError(err, "can list admin collections")
+
+		for _, collName := range adminCollections {
+			s.Assert().NotEqual("tempusers", collName, "tempusers should not exist after restore")
+			s.Assert().NotEqual("temproles", collName, "temproles should not exist after restore")
 		}
+	})
 
-		Convey("Restoring users and roles should drop tempusers and temproles", func() {
-
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
+	s.Run("If --dumpUsersAndRoles was not used with the target", func() {
+		s.Run("Restoring from db directory should not be allowed", func() {
+			restore, err := getRestoreWithArgs(
+				mongorestore.NumParallelCollectionsOption, "1",
+				mongorestore.NumInsertionWorkersOption, "1",
+				mongorestore.RestoreDBUsersAndRolesOption,
+				mongorestore.DBOption,
+				"db1",
+				"../../mongorestore/testdata/testdirs/db1",
+			)
+			s.Require().NoError(err)
 			defer restore.Close()
 
-			db := session.Database("admin")
-
-			restore.TargetDirectory = "../../mongorestore/testdata/usersdump"
 			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-
-			adminCollections, err := db.ListCollectionNames(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-
-			for _, collName := range adminCollections {
-				So(collName, ShouldNotEqual, "tempusers")
-				So(collName, ShouldNotEqual, "temproles")
-			}
+			s.Require().
+				ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
 		})
 
-		Convey("If --dumpUsersAndRoles was not used with the target", func() {
-			Convey("Restoring from db directory should not be allowed", func() {
-				args = append(
-					args,
+		s.Run("Restoring from base dump directory should not be allowed", func() {
+			restore, err := getRestoreWithArgs(
+				mongorestore.NumParallelCollectionsOption, "1",
+				mongorestore.NumInsertionWorkersOption, "1",
+				mongorestore.RestoreDBUsersAndRolesOption,
+				mongorestore.DBOption,
+				"db1",
+				"../../mongorestore/testdata/testdirs",
+			)
+			s.Require().NoError(err)
+			defer restore.Close()
+
+			result := restore.Restore()
+			s.Require().
+				ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
+		})
+
+		s.Run("Restoring from archive of entire dump should not be allowed", func() {
+			s.withArchiveMongodump(func(archivePath string) {
+				restore, err := getRestoreWithArgs(
+					mongorestore.NumParallelCollectionsOption, "1",
+					mongorestore.NumInsertionWorkersOption, "1",
 					mongorestore.RestoreDBUsersAndRolesOption,
 					mongorestore.DBOption,
 					"db1",
-					"../../mongorestore/testdata/testdirs/db1",
+					mongorestore.ArchiveOption+"="+archivePath,
 				)
-
-				restore, err := getRestoreWithArgs(args...)
-				So(err, ShouldBeNil)
+				s.Require().NoError(err)
 				defer restore.Close()
 
 				result := restore.Restore()
-				So(errors.Is(result.Err, mongorestore.NoUsersOrRolesInDumpError), ShouldBeTrue)
-			})
-
-			Convey("Restoring from base dump directory should not be allowed", func() {
-				args = append(
-					args,
-					mongorestore.RestoreDBUsersAndRolesOption,
-					mongorestore.DBOption,
-					"db1",
-					"../../mongorestore/testdata/testdirs",
-				)
-
-				restore, err := getRestoreWithArgs(args...)
-				So(err, ShouldBeNil)
-				defer restore.Close()
-
-				result := restore.Restore()
-				So(errors.Is(result.Err, mongorestore.NoUsersOrRolesInDumpError), ShouldBeTrue)
-			})
-
-			Convey("Restoring from archive of entire dump should not be allowed", func() {
-				withArchiveMongodump(t, func(archivePath string) {
-					args = append(
-						args,
-						mongorestore.RestoreDBUsersAndRolesOption,
-						mongorestore.DBOption,
-						"db1",
-						mongorestore.ArchiveOption+"="+archivePath,
-					)
-
-					restore, err := getRestoreWithArgs(args...)
-					So(err, ShouldBeNil)
-					defer restore.Close()
-
-					result := restore.Restore()
-					So(errors.Is(result.Err, mongorestore.NoUsersOrRolesInDumpError), ShouldBeTrue)
-
-				})
+				s.Require().
+					ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
 			})
 		})
 	})
 }
 
-func TestUnversionedIndexes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	ctx := t.Context()
+func (s *DumpRestoreSuite) TestUnversionedIndexes() {
+	ctx := s.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err, "no cluster available")
+	s.Require().NoError(err, "no cluster available")
 
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	require.NoError(t, err, "no client available")
+	s.Require().NoError(err, "no client available")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
-	require.NoError(t, err, "get cluster version")
+	s.Require().NoError(err, "get cluster version")
 
-	dbName := t.Name()
+	dbName := s.DBName()
 	collName := "coll"
 
 	coll := session.Database(dbName).Collection(collName)
@@ -866,9 +797,9 @@ func TestUnversionedIndexes(t *testing.T) {
 		false,
 		false,
 	)
-	require.NoError(t, err, "should marshal metadata to extJSON")
+	s.Require().NoError(err, "should marshal metadata to extJSON")
 
-	testArchive := archive.SimpleArchive{
+	simpleArchive := archive.SimpleArchive{
 		Header: archive.Header{
 			ServerVersion: serverVersion.String(),
 		},
@@ -887,223 +818,137 @@ func TestUnversionedIndexes(t *testing.T) {
 			},
 		},
 	}
-	archiveBytes, err := testArchive.Marshal()
-	require.NoError(t, err, "should marshal the archive")
+	archiveBytes, err := simpleArchive.Marshal()
+	s.Require().NoError(err, "should marshal the archive")
 
-	withArchiveMongodump(t, func(archivePath string) {
-		require.NoError(t, os.WriteFile(archivePath, archiveBytes, 0644))
+	s.withArchiveMongodump(func(archivePath string) {
+		s.Require().NoError(os.WriteFile(archivePath, archiveBytes, 0644))
 
 		restore, err := getRestoreWithArgs(
 			mongorestore.DropOption,
 			mongorestore.ArchiveOption+"="+archivePath,
 		)
-		require.NoError(t, err)
+		s.Require().NoError(err)
 		defer restore.Close()
 
 		result := restore.Restore()
-		require.NoError(t, result.Err, "can run mongorestore")
-		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
+		s.Require().NoError(result.Err, "can run mongorestore")
+		s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 		cursor, err := coll.Indexes().List(ctx)
-		require.NoError(t, err, "should open index-list cursor")
+		s.Require().NoError(err, "should open index-list cursor")
 
 		var indexes []idx.IndexDocument
 		err = cursor.All(ctx, &indexes)
-		require.NoError(t, err, "should fetch index specs")
+		s.Require().NoError(err, "should fetch index specs")
 
-		t.Logf("indexes: %+v", indexes)
+		s.T().Logf("indexes: %+v", indexes)
 
 		var twoDIndexDoc idx.IndexDocument
-
 		for _, index := range indexes {
 			if index.Options["name"] == "my2dsphere" {
 				twoDIndexDoc = index
 			}
 		}
 
-		require.NotNil(t, twoDIndexDoc.Key, "should find 2dsphere index (indexes: %+v)", indexes)
-		assert.EqualValues(t, 1, twoDIndexDoc.Options["2dsphereIndexVersion"])
+		s.Require().NotNil(twoDIndexDoc.Key, "should find 2dsphere index (indexes: %+v)", indexes)
+		s.Assert().Equal(
+			int32(1),
+			twoDIndexDoc.Options["2dsphereIndexVersion"],
+			"should have version 1 2dsphere index (unversioned)",
+		)
 	})
 }
 
-func TestRestoreTimeseriesCollectionsWithMixedSchema(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	ctx := t.Context()
+func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
+	ctx := s.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err, "no cluster available")
+	s.Require().NoError(err, "no cluster available")
 
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	require.NoError(t, err, "no client available")
+	s.Require().NoError(err, "no client available")
 
 	fcv := testutil.GetFCV(session)
 	// TODO: Enable tests for 6.0, 7.0 and 8.0 (TOOLS-3597).
 	// The server fix for SERVER-84531 was only backported to 7.3.
 	if cmp, err := testutil.CompareFCV(fcv, "7.3"); err != nil || cmp < 0 {
-		require.NoError(t, err, "get fcv")
-		t.Skip("Requires server with FCV 7.3 or later")
+		s.Require().NoError(err, "get fcv")
+		s.T().Skip("Requires server with FCV 7.3 or later")
 	}
 
 	if cmp, err := testutil.CompareFCV(fcv, "8.0"); cmp >= 0 {
-		require.NoError(t, err, "get fcv")
-		t.Skip("The test currently fails on v8.0 because of SERVER-92222")
+		s.Require().NoError(err, "get fcv")
+		s.T().Skip("The test currently fails on v8.0 because of SERVER-92222")
 	}
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
-	require.NoError(t, err, "parse server version")
+	s.Require().NoError(err, "parse server version")
 
 	dbName := "timeseries_test_DB"
 	collName := "timeseries_mixed_schema"
 	testdb := session.Database(dbName)
 	bucketColl := testdb.Collection(timeseriesCollName(serverVersion, collName))
 
-	setupTimeseriesWithMixedSchema(t, dbName, collName)
+	s.setupTimeseriesWithMixedSchema(dbName, collName)
 
-	withArchiveMongodump(t, func(file string) {
-		require.NoError(t, testdb.Collection(collName).Drop(ctx))
-		require.NoError(t, bucketColl.Drop(ctx))
+	s.withArchiveMongodump(func(file string) {
+		s.Require().NoError(testdb.Collection(collName).Drop(ctx))
+		s.Require().NoError(bucketColl.Drop(ctx))
 
 		restore, err := getRestoreWithArgs(
 			mongorestore.DropOption,
 			mongorestore.ArchiveOption+"="+file,
 		)
-		require.NoError(t, err)
+		s.Require().NoError(err)
 		defer restore.Close()
 
 		result := restore.Restore()
-		require.NoError(t, result.Err, "can run mongorestore")
-		require.EqualValues(t, 0, result.Failures, "mongorestore reports 0 failures")
+		s.Require().NoError(result.Err, "can run mongorestore")
+		s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 		count, err := testdb.Collection(collName).CountDocuments(ctx, bson.M{})
-		require.NoError(t, err)
-		require.Equal(t, int64(2), count)
+		s.Require().NoError(err)
+		s.Require().Equal(int64(2), count, "should have 2 documents in timeseries collection")
 
 		count, err = bucketColl.CountDocuments(ctx, bson.M{})
-		require.NoError(t, err)
-		require.Equal(t, int64(1), count)
+		s.Require().NoError(err)
+		s.Require().Equal(int64(1), count, "should have 1 document in bucket collection")
 
-		hasMixedSchema := timeseriesBucketsMayHaveMixedSchemaData(t, bucketColl)
-		require.True(t, hasMixedSchema)
+		hasMixedSchema := s.timeseriesBucketsMayHaveMixedSchemaData(bucketColl)
+		s.Require().True(hasMixedSchema, "bucket collection should have mixed schema flag set")
 
 		//nolint:errcheck
 		defer testdb.Collection(collName).Drop(ctx)
 	})
 }
 
-func timeseriesBucketsMayHaveMixedSchemaData(
-	t *testing.T,
-	bucketColl *mongo.Collection,
-) bool {
-	ctx := t.Context()
-	cursor, err := bucketColl.Database().RunCommandCursor(ctx, bson.D{
-		{"aggregate", bucketColl.Name()},
-		{"pipeline", bson.A{
-			bson.D{{"$listCatalog", bson.D{}}},
-		}},
-		{"readConcern", bson.D{{"level", "majority"}}},
-		{"cursor", bson.D{}},
-	})
-	require.NoError(t, err)
-
-	if !cursor.Next(ctx) {
-		require.Fail(t, "no entry in $listCatalog response")
-	}
-
-	md, err := cursor.Current.LookupErr("md")
-	require.NoError(t, err, "lookup 'md' field")
-
-	hasMixedSchema, err := md.Document().LookupErr("timeseriesBucketsMayHaveMixedSchemaData")
-	require.NoError(t, err, "lookup 'timeseriesBucketsMayHaveMixedSchemaData' field")
-
-	return hasMixedSchema.Boolean()
-}
-
-func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) {
+func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err, "get session provider")
-
-	serverVersion, err := sessionProvider.ServerVersionArray()
-	require.NoError(t, err, "get server version")
-
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err, "get session")
-
-	err = client.Database(dbName).Collection(collName).Drop(t.Context())
-	require.NoError(t, err, "drop existing coll")
-
-	createCmd := bson.D{
-		{"create", collName},
-		{"timeseries", bson.D{
-			{"timeField", "t"},
-			{"metaField", "m"},
-		}},
-	}
-
-	createRes := sessionProvider.DB(dbName).RunCommand(t.Context(), createCmd)
-	require.NoError(t, createRes.Err(), "create timeseries coll")
-
-	// SERVER-84531 was only backported to 7.3.
-	if cmp, err := testutil.CompareFCV(testutil.GetFCV(client), "7.3"); err != nil || cmp >= 0 {
-		res := sessionProvider.DB(dbName).RunCommand(t.Context(), bson.D{
-			{"collMod", collName},
-			{"timeseriesBucketsMayHaveMixedSchemaData", true},
-		})
-
-		require.NoError(t, res.Err(), "collMod timeseries collection")
-	}
-
-	bucketName := timeseriesCollName(serverVersion, collName)
-	bucketColl := sessionProvider.DB(dbName).Collection(bucketName)
-	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
-	var bucketMap map[string]any
-	err = json.Unmarshal([]byte(bucketJSON), &bucketMap)
-	require.NoError(t, err, "unmarshal json")
-
-	err = bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap)
-	require.NoError(t, err, "convert extjson to bson")
-
-	_, err = bucketColl.InsertOne(t.Context(), bucketMap)
-	require.NoError(t, err, "insert bucket doc")
-}
-
-func timeseriesCollName(version db.Version, base string) string {
-	if version.SupportsRawData() {
-		// viewless timeseries
-		return base
-	}
-
-	return common.TimeseriesBucketPrefix + base
-}
-
-func TestIgnoreMongoDBInternal(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
-		t.Skip("replica set required")
+		s.T().Skip("replica set required")
 	}
 
-	ctx := t.Context()
+	ctx := s.Context()
 
-	dbName := util.MongoDBInternalDBPrefix + t.Name()
+	testName := s.DBName()
+	dbName := s.DBName(util.MongoDBInternalDBPrefix)
 
 	client, err := testutil.GetBareSession()
-	require.NoError(t, err, "must connect to server")
+	s.Require().NoError(err, "must connect to server")
 
-	internalColl := client.Database(dbName).Collection(t.Name())
+	internalColl := client.Database(dbName).Collection(testName)
 
 	_, err = internalColl.InsertOne(ctx, bson.D{{"_id", 1}})
-	require.NoError(t, err, "must write to the internal DB")
+	s.Require().NoError(err, "must write to the internal DB")
 
-	_, err = client.Database(t.Name()).Collection(t.Name()).InsertOne(ctx, bson.D{})
-	require.NoError(t, err, "must write to the user DB")
+	_, err = client.Database(testName).Collection(testName).InsertOne(ctx, bson.D{})
+	s.Require().NoError(err, "must write to the user DB")
 
-	// Send repeated updates to the internal DB in a background thread.
 	writesCtx, writesCancel := context.WithCancelCause(ctx)
 	updatesDone := make(chan struct{})
 	go func() {
@@ -1116,21 +961,20 @@ func TestIgnoreMongoDBInternal(t *testing.T) {
 			)
 
 			if !errors.Is(err, context.Canceled) {
-				require.NoError(t, err, "must write to the internal DB")
+				s.Require().NoError(err, "must write to the internal DB")
 			}
 		}
 
-		t.Logf("Updates canceled: %v", context.Cause(writesCtx))
+		s.T().Logf("Updates canceled: %v", context.Cause(writesCtx))
 	}()
 
-	withArchiveMongodump(
-		t,
+	s.withArchiveMongodump(
 		func(archivePath string) {
 			writesCancel(fmt.Errorf("archive is finished"))
 			<-updatesDone
 
-			require.NoError(t, client.Database(internalColl.Database().Name()).Drop(ctx))
-			require.NoError(t, client.Database(t.Name()).Drop(ctx))
+			s.Require().NoError(client.Database(internalColl.Database().Name()).Drop(ctx))
+			s.Require().NoError(client.Database(testName).Drop(ctx))
 
 			restore, err := getRestoreWithArgs(
 				mongorestore.ArchiveOption+"="+archivePath,
@@ -1138,13 +982,12 @@ func TestIgnoreMongoDBInternal(t *testing.T) {
 				"--oplogReplay",
 				"--drop",
 			)
-			require.NoError(t, err)
+			s.Require().NoError(err)
 			defer restore.Close()
 
 			result := restore.Restore()
-			require.NoError(t, result.Err, "can run mongorestore")
-			require.EqualValues(
-				t,
+			s.Require().NoError(result.Err, "can run mongorestore")
+			s.Require().EqualValues(
 				0,
 				result.Failures,
 				"mongorestore reports 0 failures (result=%+v)",
@@ -1156,20 +999,17 @@ func TestIgnoreMongoDBInternal(t *testing.T) {
 	)
 
 	dbNames, err := client.ListDatabaseNames(ctx, bson.D{})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
-	assert.Contains(t, dbNames, t.Name(), "user DB restored")
-	assert.NotContains(t, dbNames, internalColl.Database().Name(), "internal DB ignored")
+	s.Assert().Contains(dbNames, testName, "user DB restored")
+	s.Assert().NotContains(dbNames, internalColl.Database().Name(), "internal DB ignored")
 }
 
-func TestFinalNewlinesInNamespaces(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
-	ctx := t.Context()
-	require := require.New(t)
+func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
+	ctx := s.Context()
 
 	session, err := testutil.GetBareSession()
-	require.NoError(err, "can connect to server")
+	s.Require().NoError(err, "can connect to server")
 
 	allNames := []string{
 		"no-nl",
@@ -1197,39 +1037,39 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 			},
 		)
 
-		t.Run(
+		s.Run(
 			variant.label,
-			func(t *testing.T) {
+			func() {
 				for _, dbname := range myAllNames {
-					t.Run(
+					s.Run(
 						fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
-						func(t *testing.T) {
-							require.NoError(session.Database(dbname).Drop(ctx))
-							createCollectionsWithTestDocuments(
-								t,
+						func() {
+							s.Require().NoError(session.Database(dbname).Drop(ctx))
+							s.createCollectionsWithTestDocuments(
 								session.Database(dbname),
 								myAllNames,
 							)
 
-							withArchiveMongodump(t, func(archivePath string) {
-								require.NoError(session.Database(dbname).Drop(ctx))
+							s.withArchiveMongodump(func(archivePath string) {
+								s.Require().NoError(session.Database(dbname).Drop(ctx))
 
 								colls, err := session.Database(dbname).
 									ListCollectionNames(ctx, bson.D{})
-								require.NoError(err)
-								require.Empty(colls, "sanity: db drop should drop all collections")
+								s.Require().NoError(err)
+								s.Require().
+									Empty(colls, "sanity: db drop should drop all collections")
 
 								restore, err := getRestoreWithArgs(
 									mongorestore.DBOption, dbname,
 									mongorestore.ArchiveOption+"="+archivePath,
 									"-vv",
 								)
-								require.NoError(err)
+								s.Require().NoError(err)
 								defer restore.Close()
 
 								result := restore.Restore()
-								require.NoError(result.Err, "can run mongorestore")
-								require.EqualValues(
+								s.Require().NoError(result.Err, "can run mongorestore")
+								s.Require().EqualValues(
 									0,
 									result.Failures,
 									"mongorestore reports 0 failures (result=%+v)",
@@ -1239,36 +1079,119 @@ func TestFinalNewlinesInNamespaces(t *testing.T) {
 
 							colls, err := session.Database(dbname).
 								ListCollectionNames(ctx, bson.D{})
-							require.NoError(err)
+							s.Require().NoError(err)
 
-							assert.ElementsMatch(t, myAllNames, colls, "all collections restored")
+							s.Assert().ElementsMatch(
+								myAllNames,
+								colls,
+								"all collections restored",
+							)
 						},
 					)
 				}
 			},
 		)
 	}
-
 }
 
-func withArchiveMongodump(t *testing.T, testCase func(string), dumpArgs ...string) {
-	dir, cleanup := testutil.MakeTempDir(t)
+func (s *DumpRestoreSuite) withArchiveMongodump(testCase func(string), dumpArgs ...string) {
+	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
 	file := filepath.Join(dir, "archive")
-	runArchiveMongodump(t, file, dumpArgs...)
+	s.runArchiveMongodump(file, dumpArgs...)
 	testCase(file)
 }
 
-func runArchiveMongodump(t *testing.T, file string, dumpArgs ...string) string {
-	require := require.New(t)
-	runMongodumpWithArgs(
-		t,
+func (s *DumpRestoreSuite) runArchiveMongodump(file string, dumpArgs ...string) {
+	s.runMongodumpWithArgs(
 		append(
 			[]string{mongorestore.ArchiveOption + "=" + file},
 			dumpArgs...,
 		)...,
 	)
 	_, err := os.Stat(file)
-	require.NoError(err, "dump created archive data file")
-	return file
+	s.Require().NoError(err, "dump created archive data file")
+}
+
+func (s *DumpRestoreSuite) timeseriesBucketsMayHaveMixedSchemaData(
+	bucketColl *mongo.Collection,
+) bool {
+	ctx := s.Context()
+	cursor, err := bucketColl.Database().RunCommandCursor(ctx, bson.D{
+		{"aggregate", bucketColl.Name()},
+		{"pipeline", bson.A{
+			bson.D{{"$listCatalog", bson.D{}}},
+		}},
+		{"readConcern", bson.D{{"level", "majority"}}},
+		{"cursor", bson.D{}},
+	})
+	s.Require().NoError(err)
+
+	if !cursor.Next(ctx) {
+		s.Require().Fail("no entry in $listCatalog response")
+	}
+
+	md, err := cursor.Current.LookupErr("md")
+	s.Require().NoError(err, "lookup 'md' field")
+
+	hasMixedSchema, err := md.Document().LookupErr("timeseriesBucketsMayHaveMixedSchemaData")
+	s.Require().NoError(err, "lookup 'timeseriesBucketsMayHaveMixedSchemaData' field")
+
+	return hasMixedSchema.Boolean()
+}
+
+func (s *DumpRestoreSuite) setupTimeseriesWithMixedSchema(dbName string, collName string) {
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	s.Require().NoError(err, "get session provider")
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	s.Require().NoError(err, "get server version")
+
+	client, err := sessionProvider.GetSession()
+	s.Require().NoError(err, "get session")
+
+	err = client.Database(dbName).Collection(collName).Drop(s.Context())
+	s.Require().NoError(err, "drop existing coll")
+
+	createCmd := bson.D{
+		{"create", collName},
+		{"timeseries", bson.D{
+			{"timeField", "t"},
+			{"metaField", "m"},
+		}},
+	}
+
+	createRes := sessionProvider.DB(dbName).RunCommand(s.Context(), createCmd)
+	s.Require().NoError(createRes.Err(), "create timeseries coll")
+
+	// SERVER-84531 was only backported to 7.3.
+	if cmp, err := testutil.CompareFCV(testutil.GetFCV(client), "7.3"); err != nil || cmp >= 0 {
+		res := sessionProvider.DB(dbName).RunCommand(s.Context(), bson.D{
+			{"collMod", collName},
+			{"timeseriesBucketsMayHaveMixedSchemaData", true},
+		})
+
+		s.Require().NoError(res.Err(), "collMod timeseries collection")
+	}
+
+	bucketName := timeseriesCollName(serverVersion, collName)
+	bucketColl := sessionProvider.DB(dbName).Collection(bucketName)
+	bucketJSON := `{"_id":{"$oid":"65a6eb806ffc9fa4280ecac4"},"control":{"version":1,"min":{"_id":{"$oid":"65a6eba7e6d2e848e08c3750"},"t":{"$date":"2024-01-16T20:48:00Z"},"a":1},"max":{"_id":{"$oid":"65a6eba7e6d2e848e08c3751"},"t":{"$date":"2024-01-16T20:48:39.448Z"},"a":"a"}},"meta":0,"data":{"_id":{"0":{"$oid":"65a6eba7e6d2e848e08c3750"},"1":{"$oid":"65a6eba7e6d2e848e08c3751"}},"t":{"0":{"$date":"2024-01-16T20:48:39.448Z"},"1":{"$date":"2024-01-16T20:48:39.448Z"}},"a":{"0":"a","1":1}}}`
+	var bucketMap map[string]any
+	err = json.Unmarshal([]byte(bucketJSON), &bucketMap)
+	s.Require().NoError(err, "unmarshal json")
+
+	err = bsonutil.ConvertLegacyExtJSONDocumentToBSON(bucketMap)
+	s.Require().NoError(err, "convert extjson to bson")
+
+	_, err = bucketColl.InsertOne(s.Context(), bucketMap)
+	s.Require().NoError(err, "insert bucket doc")
+}
+
+func timeseriesCollName(version db.Version, base string) string {
+	if version.SupportsRawData() {
+		return base
+	}
+
+	return common.TimeseriesBucketPrefix + base
 }
