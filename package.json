@@ -1,4 +1,5 @@
 {
+  "name": "mongo-tools",
   "devDependencies": {
     "eslint": "8.57.0",
     "github-codeowners": "0.2.1",
