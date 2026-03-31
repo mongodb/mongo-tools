@@ -233,7 +233,7 @@ func (dump *MongoDump) Dump() (err error) {
 		return fmt.Errorf("error verifying collection info: %v", err)
 	}
 	if !exists {
-		log.Logvf(log.Always, "namespace with DB %s and collection %s does not exist",
+		log.Logvf(log.Always, "namespace with DB %#q and collection %#q does not exist",
 			dump.ToolOptions.DB, dump.ToolOptions.Collection)
 		return nil
 	}
@@ -414,7 +414,7 @@ func (dump *MongoDump) Dump() (err error) {
 			}
 		}
 		if dump.OutputOptions.DumpDBUsersAndRoles {
-			log.Logvf(log.Always, "dumping users and roles for %v", dump.ToolOptions.DB)
+			log.Logvf(log.Always, "dumping users and roles for %#q", dump.ToolOptions.DB)
 			if dump.ToolOptions.DB == "admin" {
 				log.Logvf(log.Always, "skipping users/roles dump, already dumped admin database")
 			} else {
@@ -477,7 +477,7 @@ func (dump *MongoDump) Dump() (err error) {
 		}
 		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 
-		log.Logvf(log.Always, "writing captured oplog to %v", dump.manager.Oplog().Location)
+		log.Logvf(log.Always, "writing captured oplog to %#q", dump.manager.Oplog().Location)
 
 		err = dump.DumpOplogBetweenTimestamps(dump.oplogStart, dump.oplogEnd)
 		if err != nil {
@@ -645,7 +645,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 	var dumpCount int64
 
 	if dump.OutputOptions.Out == "-" {
-		log.Logvf(log.Always, "writing %v to stdout", intent.DataNamespace())
+		log.Logvf(log.Always, "writing %#q to stdout", intent.DataNamespace())
 		dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer)
 		if err == nil {
 			// on success, print the document count
@@ -654,14 +654,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 		return err
 	}
 
-	log.Logvf(log.Always, "writing %v to %v", intent.DataNamespace(), intent.Location)
+	log.Logvf(log.Always, "writing %#q to %#q", intent.DataNamespace(), intent.Location)
 	if dumpCount, err = dump.dumpQueryToIntent(findQuery, intent, buffer); err != nil {
 		return err
 	}
 
 	log.Logvf(
 		log.Always,
-		"done dumping %v (%v %v)",
+		"done dumping %#q (%v %v)",
 		intent.DataNamespace(),
 		dumpCount,
 		docPlural(dumpCount),
@@ -688,15 +688,14 @@ func (dump *MongoDump) dumpQueryToIntent(
 // the oplog collection to avoid the performance issue in TOOLS-2068.
 func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent) (int64, error) {
 	if len(dump.query) != 0 || intent.IsOplog() {
-		log.Logvf(log.DebugLow, "not counting query on %v", intent.Namespace())
+		log.Logvf(log.DebugLow, "not counting query on %#q", intent.Namespace())
 		return 0, nil
 	}
 
 	log.Logvf(
 		log.DebugHigh,
-		"Getting estimated count for %v.%v",
-		query.Coll.Database().Name(),
-		query.Coll.Name(),
+		"Getting estimated count for %#q",
+		query.Coll.Database().Name()+"."+query.Coll.Name(),
 	)
 	// We call getCount() when we are dumping a collection. If we are dumping views as collections, we need to run a
 	// count instead of an estimatedDocumentCount which uses collStats. We don't do this if the intent is timeseries because
@@ -708,7 +707,7 @@ func (dump *MongoDump) getCount(query *db.DeferredQuery, intent *intents.Intent)
 
 	log.Logvf(
 		log.DebugLow,
-		"counted %v %v in %v",
+		"counted %v %v in %#q",
 		total,
 		docPlural(int64(total)),
 		intent.Namespace(),

@@ -60,7 +60,7 @@ type realBSONFile struct {
 func (f *realBSONFile) Open() (err error) {
 	if f.path == "" {
 		// This should not occur normally. All realBSONFile's should have a path
-		return fmt.Errorf("error creating BSON file without a path, namespace: %v",
+		return fmt.Errorf("error creating BSON file without a path, namespace: %#q",
 			f.intent.Namespace())
 	}
 	err = os.MkdirAll(filepath.Dir(f.path), os.ModeDir|os.ModePerm)
@@ -71,7 +71,7 @@ func (f *realBSONFile) Open() (err error) {
 
 	f.WriteCloser, err = os.Create(f.path)
 	if err != nil {
-		return fmt.Errorf("error creating BSON file %v: %v", f.path, err)
+		return fmt.Errorf("error creating BSON file %#q: %v", f.path, err)
 	}
 
 	return nil
@@ -91,7 +91,7 @@ type realMetadataFile struct {
 // Open opens the file on disk that the intent indicates. Any directories needed are created.
 func (f *realMetadataFile) Open() (err error) {
 	if f.path == "" {
-		return fmt.Errorf("No metadata path for %v.%v", f.intent.DB, f.intent.C)
+		return fmt.Errorf("No metadata path for %#q.%#q", f.intent.DB, f.intent.C)
 	}
 	err = os.MkdirAll(filepath.Dir(f.path), os.ModeDir|os.ModePerm)
 	if err != nil {
@@ -101,7 +101,7 @@ func (f *realMetadataFile) Open() (err error) {
 
 	f.WriteCloser, err = os.Create(f.path)
 	if err != nil {
-		return fmt.Errorf("error creating metadata file %v: %v", f.path, err)
+		return fmt.Errorf("error creating metadata file %#q: %v", f.path, err)
 	}
 	return nil
 }
@@ -282,7 +282,7 @@ func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 // collection is specified by --db and --collection.
 func (dump *MongoDump) CreateCollectionIntent(dbName, colName string) error {
 	if dump.shouldSkipCollection(colName) {
-		log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, colName)
+		log.Logvf(log.DebugLow, "skipping dump of %#q, it is excluded", dbName+"."+colName)
 		return nil
 	}
 
@@ -341,7 +341,7 @@ func (dump *MongoDump) NewIntentFromOptions(
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 			intent.Location = path
 		} else if ci.IsView() && !dump.OutputOptions.ViewsAsCollections {
-			log.Logvf(log.DebugLow, "not dumping data for %v.%v because it is a view", dbName, ci.Name)
+			log.Logvf(log.DebugLow, "not dumping data for %#q because it is a view", dbName+"."+ci.Name)
 		} else {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
@@ -378,7 +378,7 @@ func (dump *MongoDump) NewIntentFromOptions(
 	if err != nil {
 		return nil, err
 	}
-	log.Logvf(log.DebugHigh, "Getting estimated count for %v.%v", dbName, ci.Name)
+	log.Logvf(log.DebugHigh, "Getting estimated count for %#q", dbName+"."+ci.Name)
 	count, err := session.Database(dbName).
 		Collection(ci.Name).
 		EstimatedDocumentCount(context.Background())
@@ -401,7 +401,7 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 
 	colsIter, err := db.GetCollections(session.Database(dbName), "")
 	if err != nil {
-		return fmt.Errorf("error getting collections for database `%v`: %v", dbName, err)
+		return fmt.Errorf("error getting collections for database %#q: %v", dbName, err)
 	}
 	defer colsIter.Close(context.Background())
 
@@ -423,24 +423,26 @@ func (dump *MongoDump) CreateIntentsForDatabase(dbName string) error {
 		if dump.shouldSkipSystemNamespace(dbName, collInfo.Name) {
 			log.Logvf(
 				log.DebugHigh,
-				"will not dump system collection '%s.%s'",
-				dbName,
-				collInfo.Name,
+				"will not dump system collection %#q",
+				dbName+"."+collInfo.Name,
 			)
 			continue
 		}
 
 		if dump.shouldSkipCollection(collInfo.Name) {
-			log.Logvf(log.DebugLow, "skipping dump of %v.%v, it is excluded", dbName, collInfo.Name)
+			log.Logvf(
+				log.DebugLow,
+				"skipping dump of %#q, it is excluded",
+				dbName+"."+collInfo.Name,
+			)
 			continue
 		}
 
 		if dump.OutputOptions.ViewsAsCollections && !collInfo.IsView() {
 			log.Logvf(
 				log.DebugLow,
-				"skipping dump of %v.%v because it is not a view",
-				dbName,
-				collInfo.Name,
+				"skipping dump of %#q because it is not a view",
+				dbName+"."+collInfo.Name,
 			)
 			continue
 		}
@@ -489,7 +491,7 @@ func (dump *MongoDump) GetValidDbs() ([]string, error) {
 
 	dbs = lo.Without(dbs, internalDBs...)
 
-	log.Logvf(log.DebugHigh, "found databases: %v", strings.Join(dbs, ", "))
+	log.Logvf(log.DebugHigh, "found databases: %v", util.QuoteAndJoin(dbs, ", "))
 
 	for _, dbName := range dbs {
 		if dbName == "local" {
@@ -517,7 +519,7 @@ func (dump *MongoDump) CreateAllIntents() error {
 	}
 	for _, dbName := range dbs {
 		if err := dump.CreateIntentsForDatabase(dbName); err != nil {
-			return fmt.Errorf("error creating intents for database %s: %v", dbName, err)
+			return fmt.Errorf("error creating intents for database %#q: %v", dbName, err)
 		}
 	}
 	return nil

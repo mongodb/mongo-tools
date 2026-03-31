@@ -485,7 +485,7 @@ func (restore *MongoRestore) Restore() Result {
 			restore.ToolOptions.Collection,
 		)
 	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection != "":
-		log.Logvf(log.Always, "checking for collection data in %v", target.Path())
+		log.Logvf(log.Always, "checking for collection data in %#q", target.Path())
 		err = restore.CreateIntentForCollection(
 			restore.ToolOptions.DB,
 			restore.ToolOptions.Collection,
@@ -568,7 +568,7 @@ func (restore *MongoRestore) Restore() Result {
 			ns, ok := <-namespaceChan
 			// the archive can have only special collections. In that case we keep reading until
 			// the namespaces are exhausted, indicated by the namespaceChan being closed.
-			log.Logvf(log.DebugLow, "received %v from namespaceChan", ns)
+			log.Logvf(log.DebugLow, "received %#q from namespaceChan", ns)
 			if !ok {
 				break
 			}
@@ -576,18 +576,18 @@ func (restore *MongoRestore) Restore() Result {
 			ns = dbName + "." + strings.TrimPrefix(collName, common.TimeseriesBucketPrefix)
 			intent := restore.manager.IntentForNamespace(ns)
 			if intent == nil {
-				return Result{Err: fmt.Errorf("no intent for collection in archive: %v", ns)}
+				return Result{Err: fmt.Errorf("no intent for collection in archive: %#q", ns)}
 			}
 			if intent.IsSystemIndexes() ||
 				intent.IsUsers() ||
 				intent.IsRoles() ||
 				intent.IsAuthVersion() {
-				log.Logvf(log.DebugLow, "special collection %v found", ns)
+				log.Logvf(log.DebugLow, "special collection %#q found", ns)
 				namespaceErrorChan <- nil
 			} else {
 				// Put the ns back on the announcement chan so that the
 				// demultiplexer can start correctly
-				log.Logvf(log.DebugLow, "first non special collection %v found."+
+				log.Logvf(log.DebugLow, "first non special collection %#q found."+
 					" The demultiplexer will handle it and the remainder", ns)
 				namespaceChan <- ns
 				break

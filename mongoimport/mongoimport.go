@@ -241,7 +241,7 @@ func (imp *MongoImport) validateSettings() error {
 
 	if imp.IngestOptions.Mode != modeInsert {
 		imp.IngestOptions.MaintainInsertionOrder = true
-		log.Logvf(log.Info, "using upsert fields: %v", imp.upsertFields)
+		log.Logvf(log.Info, "using upsert fields: %v", util.QuoteAndJoin(imp.upsertFields, ","))
 	}
 
 	if imp.IngestOptions.MaintainInsertionOrder {
@@ -273,7 +273,7 @@ func (imp *MongoImport) validateSettings() error {
 		if lastDotIndex != -1 {
 			fileBaseName = fileBaseName[0:lastDotIndex]
 		}
-		log.Logvf(log.Always, "using filename '%v' as collection", fileBaseName)
+		log.Logvf(log.Always, "using filename %#q as collection", fileBaseName)
 		imp.ToolOptions.Collection = fileBaseName
 	}
 	err = util.ValidateCollectionName(imp.ToolOptions.Collection)
@@ -372,9 +372,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		util.SanitizeURI(imp.ToolOptions.ConnectionString),
 	)
 
-	log.Logvf(log.Info, "ns: %v.%v",
-		imp.ToolOptions.DB,
-		imp.ToolOptions.Collection)
+	log.Logvf(log.Info, "ns: %#q", imp.ToolOptions.DB+"."+imp.ToolOptions.Collection)
 
 	// check if the server is a replica set, mongos, or standalone
 	imp.nodeType, err = imp.SessionProvider.GetNodeType()
@@ -385,9 +383,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 
 	// drop the database if necessary
 	if imp.IngestOptions.Drop {
-		log.Logvf(log.Always, "dropping: %v.%v",
-			imp.ToolOptions.DB,
-			imp.ToolOptions.Collection)
+		log.Logvf(log.Always, "dropping: %#q", imp.ToolOptions.DB+"."+imp.ToolOptions.Collection)
 		collection := session.Database(imp.ToolOptions.DB).
 			Collection(imp.ToolOptions.Collection)
 		if err := collection.Drop(context.TODO()); err != nil {
