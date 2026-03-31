@@ -127,7 +127,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		// monogofiles put ... and mongofiles get ... should work
 		// over a list of files, i.e. by using mf.FileNameList
 		if len(args) == 1 || args[1] == "" {
-			return fmt.Errorf("'%v' argument missing", args[0])
+			return fmt.Errorf("%#q argument missing", args[0])
 		}
 
 		mf.FileNameList = args[1:]
@@ -135,7 +135,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		// mongofiles get_regex ... should work over a PCRE
 		// and a string of options passed to the $regex query
 		if len(args) == 1 || args[1] == "" {
-			return fmt.Errorf("'%v' argument missing", args[0])
+			return fmt.Errorf("%#q argument missing", args[0])
 		} else if len(args) > 2 {
 			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
 		}
@@ -150,7 +150,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		// also make sure the supporting argument isn't literally an
 		// empty string for example, mongofiles get ""
 		if len(args) == 1 || args[1] == "" {
-			return fmt.Errorf("'%v' argument missing", args[0])
+			return fmt.Errorf("%#q argument missing", args[0])
 		}
 		mf.FileName = args[1]
 	case GetID, DeleteID:
@@ -160,7 +160,7 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 			)
 		}
 		if len(args) == 1 || args[1] == "" {
-			return fmt.Errorf("'%v' argument missing", args[0])
+			return fmt.Errorf("%#q argument missing", args[0])
 		}
 		mf.Id = args[1]
 	case PutID:
@@ -170,13 +170,13 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 			)
 		}
 		if len(args) < 3 || args[1] == "" || args[2] == "" {
-			return fmt.Errorf("'%v' argument(s) missing", args[0])
+			return fmt.Errorf("%#q argument(s) missing", args[0])
 		}
 		mf.FileName = args[1]
 		mf.Id = args[2]
 	default:
 		return fmt.Errorf(
-			"'%v' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			"%#q is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
 			args[0],
 		)
 	}
@@ -270,7 +270,10 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 		// Case supporting queries one or many files specified in mongofiles ... get ...
 		query = bson.M{"filename": bson.M{"$in": mf.FileNameList}}
 		minimumExpectedDocs = len(mf.FileNameList)
-		minimumExpectedDocsError = fmt.Errorf("requested files not found: %v", mf.FileNameList)
+		minimumExpectedDocsError = fmt.Errorf(
+			"requested files not found: %v",
+			util.QuoteAndJoin(mf.FileNameList, ", "),
+		)
 	} else if mf.FileNameRegex != "" {
 		// Case supporting queries by regex specified in mongofiles ... get_regex ...
 		query = bson.M{
@@ -279,10 +282,10 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 				"$options": mf.StorageOptions.RegexOptions,
 			},
 		}
-		minimumExpectedDocsError = fmt.Errorf("files matching the following pattern were not found: %v", mf.FileNameRegex)
+		minimumExpectedDocsError = fmt.Errorf("files matching the following pattern were not found: %#q", mf.FileNameRegex)
 	} else if mf.Id != "" {
 		// Case supporting queries by file ID specified in mongofiles ... get_id ...
-		minimumExpectedDocsError = fmt.Errorf("no such file with _id: %v", mf.Id)
+		minimumExpectedDocsError = fmt.Errorf("no such file with _id: %#q", mf.Id)
 
 		id, err := mf.parseOrCreateID()
 		if err != nil {
@@ -294,7 +297,7 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 		// Case supporting queries of a single file with specific local
 		// file name, i.e. with mongofiles ... get ... --local ...
 		query = bson.M{"filename": mf.FileName}
-		minimumExpectedDocsError = fmt.Errorf("no such file with name: %v", mf.FileName)
+		minimumExpectedDocsError = fmt.Errorf("no such file with name: %#q", mf.FileName)
 	}
 
 	gridFiles, err := mf.findGFSFiles(query)
@@ -362,7 +365,7 @@ func (mf *MongoFiles) deleteAll(baseCtx context.Context, filename string) error 
 
 		cancel()
 	}
-	log.Logvf(log.Always, "successfully deleted all instances of '%v' from GridFS\n", mf.FileName)
+	log.Logvf(log.Always, "successfully deleted all instances of %#q from GridFS\n", mf.FileName)
 
 	return nil
 }
@@ -381,7 +384,7 @@ func (mf *MongoFiles) handleDeleteID(baseCtx context.Context) error {
 	if err := file.Delete(ctx); err != nil {
 		return err
 	}
-	log.Logvf(log.Always, "successfully deleted file with _id %v from GridFS", mf.Id)
+	log.Logvf(log.Always, "successfully deleted file with _id %#q from GridFS", mf.Id)
 
 	return nil
 }
@@ -444,7 +447,7 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 		defer dc.CloseWithErrorCapture(&err)
 	}
 
-	log.Logvf(log.DebugLow, "created local file '%v'", localFileName)
+	log.Logvf(log.DebugLow, "created local file %#q", localFileName)
 
 	stream, err := gridFile.OpenStreamForReading()
 	if err != nil {
@@ -454,10 +457,10 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 	defer dc.CloseWithErrorCapture(&err)
 
 	if _, err = io.Copy(localFile, stream); err != nil {
-		return fmt.Errorf("error while writing Data into local file '%v': %v", localFileName, err)
+		return fmt.Errorf("error while writing Data into local file %#q: %v", localFileName, err)
 	}
 
-	log.Logvf(log.Always, "finished writing to %s\n", localFileName)
+	log.Logvf(log.Always, "finished writing to %#q\n", localFileName)
 	return nil
 }
 
@@ -480,11 +483,11 @@ func (mf *MongoFiles) put(
 	} else {
 		localFile, err = os.Open(localFileName)
 		if err != nil {
-			return 0, fmt.Errorf("error while opening local gridFile '%v' : %v", localFileName, err)
+			return 0, fmt.Errorf("error while opening local gridFile %#q: %v", localFileName, err)
 		}
 		dc := util.DeferredCloser{Closer: localFile}
 		defer dc.CloseWithErrorCapture(&err)
-		log.Logvf(log.DebugLow, "creating GridFS gridFile '%v' from local gridFile '%v'", mf.FileName, localFileName)
+		log.Logvf(log.DebugLow, "creating GridFS gridFile %#q from local gridFile %#q", mf.FileName, localFileName)
 	}
 
 	// check if --replace flag turned on
@@ -510,7 +513,7 @@ func (mf *MongoFiles) put(
 
 	n, err := io.Copy(stream, localFile)
 	if err != nil {
-		return n, fmt.Errorf("error while storing '%v' into GridFS: %v", localFileName, err)
+		return n, fmt.Errorf("error while storing %#q into GridFS: %v", localFileName, err)
 	}
 
 	return n, nil
@@ -528,7 +531,7 @@ func (mf *MongoFiles) handlePut(ctx context.Context) error {
 			return err
 		}
 
-		log.Logvf(log.Always, "adding gridFile: %v\n", filename)
+		log.Logvf(log.Always, "adding gridFile: %#q\n", filename)
 
 		n, err := mf.put(ctx, id, filename)
 		if err != nil {
@@ -536,7 +539,7 @@ func (mf *MongoFiles) handlePut(ctx context.Context) error {
 			return err
 		}
 		log.Logvf(log.DebugLow, "copied %v bytes to server", n)
-		log.Logvf(log.Always, "added gridFile: %v\n", filename)
+		log.Logvf(log.Always, "added gridFile: %#q\n", filename)
 	}
 
 	return nil

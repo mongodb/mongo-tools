@@ -281,19 +281,19 @@ func (node *NodeMonitor) Poll(
 	checkShards bool,
 ) (*status.ServerStatus, error) {
 	stat := &status.ServerStatus{}
-	log.Logvf(log.DebugHigh, "getting session on server: %v", node.host)
+	log.Logvf(log.DebugHigh, "getting session on server: %#q", node.host)
 	session, err := node.sessionProvider.GetSession()
 	if err != nil {
-		log.Logvf(log.DebugLow, "got error getting session to server %v", node.host)
+		log.Logvf(log.DebugLow, "got error getting session to server %#q", node.host)
 		return nil, err
 	}
-	log.Logvf(log.DebugHigh, "got session on server: %v", node.host)
+	log.Logvf(log.DebugHigh, "got session on server: %#q", node.host)
 
 	result := session.Database("admin").
 		RunCommand(context.TODO(), bson.D{{"serverStatus", 1}, {"recordStats", 0}})
 	err = result.Err()
 	if err != nil {
-		log.Logvf(log.DebugLow, "got error calling serverStatus against server %v", node.host)
+		log.Logvf(log.DebugLow, "got error calling serverStatus against server %#q", node.host)
 		return nil, err
 	}
 	tempBson, err := result.Raw()
@@ -362,11 +362,11 @@ func (node *NodeMonitor) Watch(sleep time.Duration, discover chan string, cluste
 	var cycle uint64
 	ticker := time.NewTicker(sleep)
 	for range ticker.C {
-		log.Logvf(log.DebugHigh, "polling server: %v", node.host)
+		log.Logvf(log.DebugHigh, "polling server: %#q", node.host)
 		stat, err := node.Poll(discover, cycle%10 == 0)
 
 		if stat != nil {
-			log.Logvf(log.DebugHigh, "successfully got statline from host: %v", node.host)
+			log.Logvf(log.DebugHigh, "successfully got statline from host: %#q", node.host)
 		}
 		var nodeError *status.NodeError
 		if err != nil {
@@ -402,7 +402,7 @@ func (mstat *MongoStat) AddNewNode(fullhost string) error {
 			return nil
 		}
 	}
-	log.Logvf(log.DebugLow, "adding new host to monitoring: %v", fullhost)
+	log.Logvf(log.DebugLow, "adding new host to monitoring: %#q", fullhost)
 	// Create a new node monitor for this host
 	node, err := NewNodeMonitor(*mstat.Options, fullhost)
 	if err != nil {

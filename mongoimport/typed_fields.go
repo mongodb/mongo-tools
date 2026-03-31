@@ -93,12 +93,12 @@ func ColumnNames(fs []ColumnSpec) (s []string) {
 func ParseTypedHeader(header string, parseGrace ParseGrace) (f ColumnSpec, err error) {
 	match := columnTypeRE.FindStringSubmatch(header)
 	if len(match) != 4 {
-		err = fmt.Errorf("could not parse type from header %s", header)
+		err = fmt.Errorf("could not parse type from header %#q", header)
 		return
 	}
 	t, ok := columnTypeNameMap[match[2]]
 	if !ok {
-		err = fmt.Errorf("invalid type %s in header %s", match[2], header)
+		err = fmt.Errorf("invalid type %#q in header %#q", match[2], header)
 		return
 	}
 	p, err := NewFieldParser(t, match[3])
@@ -236,7 +236,7 @@ func (bp *FieldBinaryParser) Parse(in string) (any, error) {
 func NewFieldBinaryParser(arg string) (*FieldBinaryParser, error) {
 	enc, ok := binaryEncodingNameMap[arg]
 	if !ok {
-		return nil, fmt.Errorf("invalid binary encoding: %s", arg)
+		return nil, fmt.Errorf("invalid binary encoding: %#q", arg)
 	}
 	return &FieldBinaryParser{enc}, nil
 }

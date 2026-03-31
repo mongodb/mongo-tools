@@ -104,7 +104,7 @@ func (dump *MongoDump) dumpMetadata(
 		}
 
 		if err := indexesIter.Err(); err != nil {
-			return fmt.Errorf("error getting indexes for collection `%v`: %v", intent.Namespace(), err)
+			return fmt.Errorf("error getting indexes for collection %#q: %v", intent.Namespace(), err)
 		}
 	}
 
@@ -112,7 +112,7 @@ func (dump *MongoDump) dumpMetadata(
 	jsonBytes, err := bsonutil.MarshalExtJSONWithBSONRoundtripConsistency(meta, true, false)
 	if err != nil {
 		return fmt.Errorf(
-			"error marshaling metadata json for collection `%v`: %v",
+			"error marshaling metadata json for collection %#q: %v",
 			intent.Namespace(),
 			err,
 		)
@@ -126,7 +126,7 @@ func (dump *MongoDump) dumpMetadata(
 		closeErr := intent.MetadataFile.Close()
 		if err == nil && closeErr != nil {
 			err = fmt.Errorf(
-				"error writing metadata for collection `%v` to disk: %v",
+				"error writing metadata for collection %#q to disk: %v",
 				intent.Namespace(),
 				closeErr,
 			)
@@ -142,7 +142,7 @@ func (dump *MongoDump) dumpMetadata(
 			closeErr := buffer.Close()
 			if err == nil && closeErr != nil {
 				err = fmt.Errorf(
-					"error writing metadata for collection `%v` to disk: %v",
+					"error writing metadata for collection %#q to disk: %v",
 					intent.Namespace(),
 					closeErr,
 				)
@@ -152,7 +152,7 @@ func (dump *MongoDump) dumpMetadata(
 	_, err = f.Write(jsonBytes)
 	if err != nil {
 		err = fmt.Errorf(
-			"error writing metadata for collection `%v` to disk: %v",
+			"error writing metadata for collection %#q to disk: %v",
 			intent.Namespace(),
 			err,
 		)

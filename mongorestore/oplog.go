@@ -249,7 +249,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			collectionName, indexes := extractIndexDocumentFromCommitIndexBuilds(op)
 			if indexes == nil {
 				return fmt.Errorf(
-					"failed to parse IndexDocument from commitIndexBuild in %s, %v",
+					"failed to parse IndexDocument from commitIndexBuild in %#q, %v",
 					collectionName,
 					op,
 				)
@@ -272,7 +272,7 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			collectionName, index := extractIndexDocumentFromCreateIndexes(op)
 			if index.Key == nil {
 				return fmt.Errorf(
-					"failed to parse IndexDocument from createIndexes in %s, %v",
+					"failed to parse IndexDocument from createIndexes in %#q, %v",
 					collectionName,
 					op,
 				)

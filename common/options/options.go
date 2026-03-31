@@ -37,11 +37,11 @@ var BuiltWithGSSAPI = true
 
 const IncompatibleArgsErrorFormat = "illegal argument combination: cannot specify %s and --uri"
 
-const unknownOptionsWarningFormat = "WARNING: ignoring unsupported URI parameter '%v'"
+const unknownOptionsWarningFormat = "WARNING: ignoring unsupported URI parameter %#q"
 
 func ConflictingArgsErrorFormat(optionName, uriValue, cliValue, cliOptionName string) error {
 	return fmt.Errorf(
-		"Invalid Options: Cannot specify different %s in connection URI and command-line option (\"%s\" was specified in the URI and \"%s\" was specified in the %s option)",
+		"Invalid Options: Cannot specify different %s in connection URI and command-line option %#q was specified in the URI and %#q was specified in the %s option",
 		optionName,
 		uriValue,
 		cliValue,
@@ -742,7 +742,7 @@ func (opts *ToolOptions) handleUnknownOption(
 			"See http://dochub.mongodb.org/core/tools-dbpath-deprecated for more information")
 	}
 
-	return args, fmt.Errorf(`unknown option "%v"`, option)
+	return args, fmt.Errorf(`unknown option %#q`, option)
 }
 
 // Sets options from the URI. If any options are already set, they are added to the connection string.

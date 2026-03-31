@@ -368,7 +368,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	if !restore.OutputOptions.Drop && collectionExists {
 		log.Logvf(
 			log.Always,
-			"restoring to existing collection %v without dropping",
+			"restoring to existing collection %#q without dropping",
 			intent.Namespace(),
 		)
 	}
@@ -378,7 +378,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			if strings.HasPrefix(intent.C, "system.") {
 				log.Logvf(
 					log.Always,
-					"cannot drop system collection %v, skipping",
+					"cannot drop system collection %#q, skipping",
 					intent.Namespace(),
 				)
 			} else {

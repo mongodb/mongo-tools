@@ -32,7 +32,7 @@ type DestinationConflictError struct {
 }
 
 func (e DestinationConflictError) Error() string {
-	return fmt.Sprintf("destination conflict: %s (src) => %s (dst)", e.Src, e.Dst)
+	return fmt.Sprintf("destination conflict: %#q (src) => %#q (dst)", e.Src, e.Dst)
 }
 
 // FileNeedsIOBuffer is an interface that denotes that a struct needs
@@ -335,7 +335,7 @@ func (mgr *Manager) putNormalIntentWithNamespace(ns string, intent *Intent) {
 // Put inserts an intent into the manager with the same source namespace as
 // its destinations.
 func (mgr *Manager) Put(intent *Intent) {
-	log.Logvf(log.DebugLow, "enqueued collection '%v'", intent.Namespace())
+	log.Logvf(log.DebugLow, "enqueued collection %#q", intent.Namespace())
 	mgr.PutWithNamespace(intent.Namespace(), intent)
 }
 

@@ -138,9 +138,9 @@ func (i *IndexCatalog) String() string {
 	b.WriteString("IndexCatalog:\n")
 	for dbName, coll := range i.indexes {
 		for collName, collIndexCatalog := range coll {
-			b.WriteString(fmt.Sprintf("\t%s.%s: \n", dbName, collName))
+			b.WriteString(fmt.Sprintf("\t%#q: \n", dbName+"."+collName))
 			for indexName, indexSpec := range collIndexCatalog.indexes {
-				b.WriteString(fmt.Sprintf("\t\t%s: %+#v\n", indexName, indexSpec))
+				b.WriteString(fmt.Sprintf("\t\t%#q: %+#v\n", indexName, indexSpec))
 			}
 			b.WriteByte('\n')
 		}
@@ -239,9 +239,9 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 		for key, value := range collIndexes {
 			isEq, err := bsonutil.IsEqual(indexToDrop, value.Key)
 			if err != nil {
-				return fmt.Errorf("could not drop index on %s.%s, could not handle %v: "+
+				return fmt.Errorf("could not drop index on %#q, could not handle %v: "+
 					"was unable to find matching index in indexCatalog. Error with equality test: %v",
-					database, collection, dropCmd[0].Key, err)
+					database+"."+collection, dropCmd[0].Key, err)
 			}
 
 			if isEq {
@@ -249,8 +249,8 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 			}
 		}
 		if len(toDelete) > 1 {
-			return fmt.Errorf("could not drop index on %s.%s: "+
-				"the key %v somehow matched more than one index in the collection", database, collection, dropCmd[0].Key)
+			return fmt.Errorf("could not drop index on %#q: "+
+				"the key %v somehow matched more than one index in the collection", database+"."+collection, dropCmd[0].Key)
 		}
 		// Could we have 0 items in toDelete? I'm not sure, so it's best to
 		// avoid accessing toDelete[0].
@@ -258,12 +258,12 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 			delete(collIndexes, td)
 		}
 
-		log.Logvf(log.DebugHigh, "Must drop index on %s.%s by key pattern: %v", database, collection, indexToDrop)
+		log.Logvf(log.DebugHigh, "Must drop index on %#q by key pattern: %v", database+"."+collection, indexToDrop)
 		return nil
 	default:
-		return fmt.Errorf("could not drop index on %s.%s, could not handle %v: "+
+		return fmt.Errorf("could not drop index on %#q, could not handle %v: "+
 			"expected string or object for 'index', found: %T, %v",
-			database, collection, dropCmd[0].Key, indexToDrop, indexToDrop)
+			database+"."+collection, dropCmd[0].Key, indexToDrop, indexToDrop)
 	}
 }
 
@@ -336,7 +336,7 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 		} else if k == "unique" || k == "forceNonUnique" {
 			v, boolOk := element.Value.(bool)
 			if !boolOk {
-				return errors.Errorf("cannot convert %s value to bool: %v", k, element.Value)
+				return errors.Errorf("cannot convert %#q value to bool: %v", k, element.Value)
 			}
 
 			if k == "unique" && v {
@@ -348,7 +348,7 @@ func (i *IndexCatalog) collMod(database, collection string, indexModValue any) e
 			}
 			matchingIndex.Options[k] = v
 		} else {
-			return errors.Errorf("unknown index option: %v", k)
+			return errors.Errorf("unknown index option: %#q", k)
 		}
 	}
 

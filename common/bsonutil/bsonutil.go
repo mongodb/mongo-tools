@@ -128,7 +128,7 @@ func FindIntByKey(keyName string, document *bson.D) (int, error) {
 	case int:
 		return x, nil
 	default:
-		return 0, fmt.Errorf("field '%s' is not an integer type", keyName)
+		return 0, fmt.Errorf("field %#q is not an integer type", keyName)
 	}
 }
 
@@ -142,7 +142,7 @@ func FindSubdocumentByKey(keyName string, document *bson.D) (bson.D, error) {
 	}
 	doc, ok := value.(bson.D)
 	if !ok {
-		return bson.D{}, fmt.Errorf("field '%s' is not a document", keyName)
+		return bson.D{}, fmt.Errorf("field %#q is not a document", keyName)
 	}
 	return doc, nil
 }

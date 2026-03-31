@@ -176,18 +176,18 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		crc, ok := demux.outs[demux.currentNamespace].Sum64()
 		if ok {
 			if crc != colHeader.CRC {
-				return fmt.Errorf("CRC mismatch for namespace %v, %v!=%v",
+				return fmt.Errorf("CRC mismatch for namespace %#q, %v!=%v",
 					demux.currentNamespace,
 					crc,
 					colHeader.CRC,
 				)
 			}
 			log.Logvf(log.DebugHigh,
-				"demux checksum for namespace %v is correct (%v), %v bytes",
+				"demux checksum for namespace %#q is correct (%v), %v bytes",
 				demux.currentNamespace, crc, length)
 		} else {
 			log.Logvf(log.DebugHigh,
-				"demux checksum for namespace %v was not calculated.",
+				"demux checksum for namespace %#q was not calculated.",
 				demux.currentNamespace)
 		}
 		delete(demux.outs, demux.currentNamespace)
@@ -213,12 +213,15 @@ func (demux *Demultiplexer) End() error {
 			demux.outs[ns].End()
 		}
 		err = newError(
-			fmt.Sprintf("archive finished but contained files were unfinished (%v)", openNss),
+			fmt.Sprintf(
+				"archive finished but contained files were unfinished (%v)",
+				util.QuoteAndJoin(openNss, ", "),
+			),
 		)
 	} else {
 		for ns, status := range demux.NamespaceStatus {
 			if status != NamespaceClosed {
-				err = newError(fmt.Sprintf("archive finished before all collections were seen (%v)", ns))
+				err = newError(fmt.Sprintf("archive finished before all collections were seen (%#q)", ns))
 			}
 		}
 	}
@@ -258,7 +261,7 @@ func (demux *Demultiplexer) Open(ns string, out DemuxOut) {
 	// or while the demutiplexer is inside of the NamespaceChan NamespaceErrorChan conversation
 	// I think that we don't need to lock outs, but I suspect that if the implementation changes
 	// we may need to lock when outs is accessed
-	log.Logvf(log.DebugHigh, "demux Open for %s", ns)
+	log.Logvf(log.DebugHigh, "demux Open for %#q", ns)
 	if demux.outs == nil {
 		demux.outs = make(map[string]DemuxOut)
 		demux.lengths = make(map[string]int64)
@@ -534,11 +537,11 @@ func (prioritizer *Prioritizer) Get() *intents.Intent {
 	namespace = destDB + "." + strings.TrimPrefix(destC, common.TimeseriesBucketPrefix)
 	intent := prioritizer.mgr.IntentForNamespace(namespace)
 	if intent == nil {
-		prioritizer.NamespaceErrorChan <- fmt.Errorf("no intent for namespace %v", namespace)
+		prioritizer.NamespaceErrorChan <- fmt.Errorf("no intent for namespace %#q", namespace)
 	} else {
 		if intent.BSONFile != nil {
 			if err := intent.BSONFile.Open(); err != nil {
-				prioritizer.NamespaceErrorChan <- fmt.Errorf("error opening BSON file for %s: %v", intent.Namespace(), err)
+				prioritizer.NamespaceErrorChan <- fmt.Errorf("error opening BSON file for %#q: %v", intent.Namespace(), err)
 			}
 		}
 		if intent.IsOplog() {

@@ -95,14 +95,14 @@ func countDollarSigns(in string) int {
 func validateReplacement(from, to string) error {
 	if strings.Contains(from, "$") {
 		if countDollarSigns(from)%2 != 0 {
-			return fmt.Errorf("Odd number of dollar signs in from: '%s'", from)
+			return fmt.Errorf("Odd number of dollar signs in from: %#q", from)
 		}
 		if countDollarSigns(to)%2 != 0 {
-			return fmt.Errorf("Odd number of dollar signs in to: '%s'", to)
+			return fmt.Errorf("Odd number of dollar signs in to: %#q", to)
 		}
 	} else {
 		if countAsterisks(from) != countAsterisks(to) {
-			return fmt.Errorf("Different number of asterisks in from: '%s' and to: '%s'", from, to)
+			return fmt.Errorf("Different number of asterisks in from: %#q and to: %#q", from, to)
 		}
 	}
 	return nil
@@ -126,7 +126,7 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 		if ok { // found variable
 			if _, ok := vars[varName]; ok {
 				// Cannot repeat the same variable in a 'from' string
-				err = fmt.Errorf("Variable name '%s' used more than once", varName)
+				err = fmt.Errorf("Variable name %#q used more than once", varName)
 				return
 			}
 			// Put the variable in the map with its index in the string
@@ -160,7 +160,7 @@ func processReplacement(from, to string) (re *regexp.Regexp, replacer string, er
 				replacer += fmt.Sprintf("${%d}", num)
 				to = rest
 			} else {
-				err = fmt.Errorf("Unknown variable '%s'", varName)
+				err = fmt.Errorf("Unknown variable %#q", varName)
 				return
 			}
 			continue
@@ -196,7 +196,7 @@ func NewRenamer(fromSlice, toSlice []string) (r *Renamer, err error) {
 		}
 		matcher, replacer, e := processReplacement(from, to)
 		if e != nil {
-			err = fmt.Errorf("Invalid replacement from '%s' to '%s': %s", from, to, e)
+			err = fmt.Errorf("Invalid replacement from %#q to %#q: %s", from, to, e)
 			return
 		}
 		r.matchers = append(r.matchers, matcher)

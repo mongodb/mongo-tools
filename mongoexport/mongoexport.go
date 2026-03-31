@@ -388,7 +388,7 @@ func (exp *MongoExport) verifyCollectionExists() (bool, error) {
 		var collInfoErr error
 		if exp.InputOpts.AssertExists {
 			collInfoErr = fmt.Errorf(
-				"collection '%s' does not exist",
+				"collection %#q does not exist",
 				exp.ToolOptions.Collection,
 			)
 		}

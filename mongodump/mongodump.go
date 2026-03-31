@@ -613,7 +613,7 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 			if err != nil {
 				return errors.Wrapf(
 					err,
-					"could not find timeseries options for %s",
+					"could not find timeseries options for %#q",
 					intent.Namespace(),
 				)
 			}
@@ -621,14 +621,14 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 			if err != nil {
 				return errors.Wrapf(
 					err,
-					"could not determine the metaField for %s",
+					"could not determine the metaField for %#q",
 					intent.Namespace(),
 				)
 			}
 			for i, predicate := range dump.query {
 				splitPredicateKey := strings.SplitN(predicate.Key, ".", 2)
 				if splitPredicateKey[0] != metaKey {
-					return fmt.Errorf("cannot process query %v for timeseries collection %s. "+
+					return fmt.Errorf("cannot process query %v for timeseries collection %#q. "+
 						"mongodump only processes queries on metadata fields for timeseries collections.", dump.query, intent.Namespace())
 				}
 				if len(splitPredicateKey) > 1 {
@@ -736,7 +736,7 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 		closeErr := intent.BSONFile.Close()
 		if err == nil && closeErr != nil {
 			err = fmt.Errorf(
-				"error writing data for collection `%v` to disk: %v",
+				"error writing data for collection %#q to disk: %v",
 				intent.Namespace(),
 				closeErr,
 			)
@@ -767,7 +767,7 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 			closeErr := buffer.Close()
 			if err == nil && closeErr != nil {
 				err = fmt.Errorf(
-					"error writing data for collection `%v` to disk: %v",
+					"error writing data for collection %#q to disk: %v",
 					intent.Namespace(),
 					closeErr,
 				)
@@ -783,7 +783,7 @@ func (dump *MongoDump) dumpValidatedQueryToIntent(
 	dumpCount, _ = dumpProgressor.Progress()
 	if err != nil {
 		err = fmt.Errorf(
-			"error writing data for collection `%v` to disk: %v",
+			"error writing data for collection %#q to disk: %v",
 			intent.Namespace(),
 			err,
 		)
