@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -2771,4 +2772,247 @@ func TestRoundTripDecimal128(t *testing.T) {
 	err = coll.FindOne(t.Context(), bson.D{{"_id", "foo"}}).Decode(&result)
 	require.NoError(t, err)
 	assert.Equal(t, testDoc, result, "imported doc should match original")
+}
+
+// TestImportFields verifies --headerline, --fields, --fieldFile, --ignoreBlanks,
+// nested dotted field names, and extra-fields-beyond-header behavior.
+func TestImportFields(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_fields_test"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	tmpDir := t.TempDir()
+	header := []string{"a", "b", "c.xyz", "d.hij.lkm"}
+	rows := [][]string{
+		{"foo", "bar", "blah", "qwz"},
+		{"bob", "", "steve", "sue"},
+		{"one", "two", "three", "four"},
+	}
+
+	for _, format := range []string{"csv", "tsv"} {
+		testImportFieldsForFormat(t, client, dbName, tmpDir, format, header, rows)
+	}
+}
+
+func testImportFieldsForFormat(
+	t *testing.T,
+	client *mongo.Client,
+	dbName, tmpDir, format string,
+	header []string,
+	rows [][]string,
+) {
+	t.Helper()
+
+	separator, ok := map[string]rune{
+		"csv": ',',
+		"tsv": '\t',
+	}[format]
+	require.True(t, ok, "found a separator for %#q format", format)
+
+	headerFile := filepath.Join(tmpDir, "header."+format)
+	writeXSVFile(t, headerFile, separator, append([][]string{header}, rows...))
+
+	noHeaderFile := filepath.Join(tmpDir, "noheader."+format)
+	writeXSVFile(t, noHeaderFile, separator, rows)
+	fieldFilePath := writeFieldFile(t, tmpDir, "fieldfile."+format, header)
+
+	t.Run(format+"/headerline", func(t *testing.T) {
+		importAndCheckFields(t, client, importFieldsOpts{
+			dbName:     dbName,
+			inputFile:  headerFile,
+			format:     format,
+			headerLine: true,
+		})
+	})
+
+	t.Run(format+"/fields", func(t *testing.T) {
+		fields := "a,b,c.xyz,d.hij.lkm"
+		importAndCheckFields(t, client, importFieldsOpts{
+			dbName:    dbName,
+			inputFile: noHeaderFile,
+			format:    format,
+			fields:    &fields,
+		})
+	})
+
+	t.Run(format+"/fieldFile", func(t *testing.T) {
+		importAndCheckFields(t, client, importFieldsOpts{
+			dbName:        dbName,
+			inputFile:     noHeaderFile,
+			format:        format,
+			fieldFilePath: fieldFilePath,
+		})
+		coll := client.Database(dbName).Collection(format + "testcoll")
+		var bobDoc bson.M
+		err := coll.FindOne(t.Context(), bson.D{{"a", "bob"}}).Decode(&bobDoc)
+		require.NoError(t, err)
+		assert.Equal(
+			t, "", bobDoc["b"],
+			"%s: blank field should be empty string without --ignoreBlanks", format,
+		)
+	})
+
+	t.Run(format+"/ignoreBlanks", func(t *testing.T) {
+		importAndCheckFields(t, client, importFieldsOpts{
+			dbName:        dbName,
+			inputFile:     noHeaderFile,
+			format:        format,
+			fieldFilePath: fieldFilePath,
+			ignoreBlanks:  true,
+		})
+		coll := client.Database(dbName).Collection(format + "testcoll")
+		var bobDoc bson.M
+		err := coll.FindOne(t.Context(), bson.D{{"a", "bob"}}).Decode(&bobDoc)
+		require.NoError(t, err)
+		_, hasB := bobDoc["b"]
+		assert.False(t, hasB, "%s: blank field should be omitted with --ignoreBlanks", format)
+	})
+
+	t.Run(format+"/noFieldSpec", func(t *testing.T) {
+		toolOpts, err := testutil.GetToolOptions()
+		require.NoError(t, err)
+		toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: format + "testcoll"}
+		_, err = New(Options{
+			ToolOptions:   toolOpts,
+			InputOptions:  &InputOptions{File: noHeaderFile, Type: format, ParseGrace: "stop"},
+			IngestOptions: &IngestOptions{},
+		})
+		assert.Error(t, err, "%s: import without field spec should fail", format)
+	})
+}
+
+type importFieldsOpts struct {
+	dbName        string
+	inputFile     string
+	format        string
+	fieldFilePath string
+	fields        *string
+	headerLine    bool
+	ignoreBlanks  bool
+}
+
+func importAndCheckFields(t *testing.T, client *mongo.Client, o importFieldsOpts) {
+	t.Helper()
+	collName := o.format + "testcoll"
+	require.NoError(t, client.Database(o.dbName).Collection(collName).Drop(t.Context()))
+	toolOpts, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOpts.Namespace = &options.Namespace{DB: o.dbName, Collection: collName}
+	var ffPtr *string
+	if o.fieldFilePath != "" {
+		ffPtr = &o.fieldFilePath
+	}
+	mi, err := New(Options{
+		ToolOptions: toolOpts,
+		InputOptions: &InputOptions{
+			File:       o.inputFile,
+			Type:       o.format,
+			HeaderLine: o.headerLine,
+			FieldFile:  ffPtr,
+			Fields:     o.fields,
+			ParseGrace: "stop",
+		},
+		IngestOptions: &IngestOptions{IgnoreBlanks: o.ignoreBlanks},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err)
+
+	coll := client.Database(o.dbName).Collection(collName)
+	n, err := coll.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, n, "%s: should import 3 documents", o.format)
+
+	nestedQuery := bson.D{
+		{"a", "foo"},
+		{"b", "bar"},
+		{"c.xyz", "blah"},
+		{"d.hij.lkm", "qwz"},
+	}
+	n, err = coll.CountDocuments(t.Context(), nestedQuery)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, n, "%s: nested fields should be stored correctly", o.format)
+}
+
+// TestImportExtraFields verifies that CSV columns beyond the fieldFile mapping
+// are imported as field4, field5, etc.
+func TestImportExtraFields(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_extrafields_test"
+	const collName = "extrafields"
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err)
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := client.Database(dbName).Drop(context.Background()); err != nil {
+			t.Errorf("dropping test database: %v", err)
+		}
+	})
+
+	tmpDir := t.TempDir()
+	extraRows := [][]string{
+		{"foo", "bar", "blah", "qwz"},
+		{"bob", "", "steve", "sue"},
+		{"one", "two", "three", "four", "extra1", "extra2", "extra3"},
+	}
+	extraFile := filepath.Join(tmpDir, "extrafields.csv")
+	writeXSVFile(t, extraFile, ',', extraRows)
+
+	fieldNames := []string{"a", "b", "c.xyz", "d.hij.lkm"}
+	fieldFilePath := writeFieldFile(t, tmpDir, "fieldfile", fieldNames)
+
+	toolOpts, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions: toolOpts,
+		InputOptions: &InputOptions{
+			File:       extraFile,
+			Type:       "csv",
+			FieldFile:  &fieldFilePath,
+			ParseGrace: "stop",
+		},
+		IngestOptions: &IngestOptions{},
+	})
+	require.NoError(t, err)
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err)
+
+	var doc bson.M
+	err = client.Database(dbName).Collection(collName).
+		FindOne(t.Context(), bson.D{{"a", "one"}}).Decode(&doc)
+	require.NoError(t, err)
+	assert.Equal(t, "extra1", doc["field4"], "field4 should contain first extra value")
+	assert.Equal(t, "extra2", doc["field5"], "field5 should contain second extra value")
+	assert.Equal(t, "extra3", doc["field6"], "field6 should contain third extra value")
+}
+
+func writeXSVFile(t *testing.T, path string, separator rune, records [][]string) {
+	t.Helper()
+	f, err := os.Create(path)
+	require.NoError(t, err)
+	w := csv.NewWriter(f)
+	w.Comma = separator
+	require.NoError(t, w.WriteAll(records))
+	require.NoError(t, f.Close())
+}
+
+func writeFieldFile(t *testing.T, dir, name string, fields []string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte(strings.Join(fields, "\n")+"\n"), 0o644))
+	return path
 }
