@@ -227,10 +227,10 @@ func (restore *MongoRestore) CreateIndexes(
 	// if we're here, the connected server does not support the command, so we fall back
 	log.Logv(log.Info, "\tcreateIndexes command not supported, attemping legacy index insertion")
 	for _, idx := range indexes {
-		log.Logvf(log.Info, "\tmanually creating index %v", idx.Options["name"])
+		log.Logvf(log.Info, "\tmanually creating index %#q", idx.Options["name"])
 		err = restore.LegacyInsertIndex(dbName, idx)
 		if err != nil {
-			return fmt.Errorf("error creating index %v: %v", idx.Options["name"], err)
+			return fmt.Errorf("error creating index %#q: %v", idx.Options["name"], err)
 		}
 	}
 	return nil
@@ -454,13 +454,13 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			// just skip auth collections with empty .bson files to avoid gnarly logic later on.
 			log.Logvf(
 				log.Always,
-				"%v file '%v' is empty; skipping %v restoration",
+				"%v file %#q is empty; skipping %v restoration",
 				arg.intentType,
 				arg.intent.Location,
 				arg.intentType,
 			)
 		}
-		log.Logvf(log.Always, "restoring %v from %v", arg.intentType, arg.intent.Location)
+		log.Logvf(log.Always, "restoring %v from %#q", arg.intentType, arg.intent.Location)
 
 		mergeArgs = append(mergeArgs, bson.E{
 			Key:   arg.mergeParamName,

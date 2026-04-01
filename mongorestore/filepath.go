@@ -105,18 +105,18 @@ type realBSONFile struct {
 func (f *realBSONFile) Open() (err error) {
 	if f.path == "" {
 		// this error shouldn't happen normally
-		return fmt.Errorf("error reading BSON file for %v", f.intent.Namespace())
+		return fmt.Errorf("error reading BSON file for %#q", f.intent.Namespace())
 	}
 	file, err := os.Open(f.path)
 	if err != nil {
-		return fmt.Errorf("error reading BSON file %v: %v", f.path, err)
+		return fmt.Errorf("error reading BSON file %#q: %v", f.path, err)
 	}
 	posFile := &posTrackingReader{0, file}
 	if f.gzip {
 		gzFile, err := gzip.NewReader(posFile)
 		posUncompressedFile := &posTrackingReader{0, gzFile}
 		if err != nil {
-			return fmt.Errorf("error decompressing compresed BSON file %v: %v", f.path, err)
+			return fmt.Errorf("error decompressing compresed BSON file %#q: %v", f.path, err)
 		}
 		f.PosReader = &mixedPosTrackingReader{
 			readHolder: posUncompressedFile,
@@ -146,16 +146,16 @@ type realMetadataFile struct {
 // can be called on them.
 func (f *realMetadataFile) Open() (err error) {
 	if f.path == "" {
-		return fmt.Errorf("error reading metadata for %v", f.intent.Namespace())
+		return fmt.Errorf("error reading metadata for %#q", f.intent.Namespace())
 	}
 	file, err := os.Open(f.path)
 	if err != nil {
-		return fmt.Errorf("error reading metadata %v: %v", f.path, err)
+		return fmt.Errorf("error reading metadata %#q: %v", f.path, err)
 	}
 	if f.gzip {
 		gzFile, err := gzip.NewReader(file)
 		if err != nil {
-			return fmt.Errorf("error reading compressed metadata %v: %v", f.path, err)
+			return fmt.Errorf("error reading compressed metadata %#q: %v", f.path, err)
 		}
 		f.ReadCloser = &util.WrappedReadCloser{gzFile, file}
 	} else {
@@ -317,7 +317,7 @@ func (restore *MongoRestore) getCollectionNameFromMetadata(
 // CreateAllIntents drills down into a dump folder, creating intents for all of
 // the databases and collections it finds.
 func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
-	log.Logvf(log.DebugHigh, "using %v as dump root directory", dir.Path())
+	log.Logvf(log.DebugHigh, "using %#q as dump root directory", dir.Path())
 	entries, err := dir.ReadDir()
 	if err != nil {
 		return fmt.Errorf("error reading root dump folder: %v", err)
@@ -325,7 +325,7 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			if err = util.ValidateDBName(entry.Name()); err != nil {
-				return fmt.Errorf("invalid database name '%v': %v", entry.Name(), err)
+				return fmt.Errorf("invalid database name %#q: %v", entry.Name(), err)
 			}
 
 			// Don't restore anything into the admin DB if connected to atlas proxy.
@@ -378,7 +378,7 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
 				}
 				restore.manager.Put(oplogIntent)
 			} else {
-				log.Logvf(log.Always, `don't know what to do with file "%v", skipping...`, entry.Path())
+				log.Logvf(log.Always, `don't know what to do with file %#q, skipping...`, entry.Path())
 			}
 		}
 	}
@@ -393,10 +393,10 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 	if err != nil {
 		return err
 	}
-	log.Logvf(log.DebugLow, "reading oplog from %v", target.Path())
+	log.Logvf(log.DebugLow, "reading oplog from %#q", target.Path())
 
 	if target.IsDir() {
-		return fmt.Errorf("file %v is a directory, not a bson file", target.Path())
+		return fmt.Errorf("file %#q is a directory, not a bson file", target.Path())
 	}
 
 	// Then create its intent.
@@ -420,7 +420,7 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 // for all of the collection dump files it finds for the db database.
 func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) (err error) {
 	var entries []archive.DirLike
-	log.Logvf(log.DebugHigh, "reading collections for database %v in %v", db, dir.Name())
+	log.Logvf(log.DebugHigh, "reading collections for database %#q in %#q", db, dir.Name())
 	entries, err = dir.ReadDir()
 	if err != nil {
 		return fmt.Errorf("error reading db folder %v: %v", db, err)
@@ -428,7 +428,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 	usesMetadataFiles := hasMetadataFiles(entries)
 	for _, entry := range entries {
 		if entry.IsDir() {
-			log.Logvf(log.Always, `don't know what to do with subdirectory "%v", skipping...`,
+			log.Logvf(log.Always, `don't know what to do with subdirectory %#q, skipping...`,
 				filepath.Join(dir.Name(), entry.Name()))
 		} else {
 			// Pass the full file path in case a .metadata.json file needs to be opened and inspected.
@@ -447,21 +447,21 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				// If these special files manage to be included in a dump directory during a full
 				// (multi-db) restore, we should ignore them.
 				if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" && strings.HasPrefix(collection, "$") {
-					log.Logvf(log.DebugLow, "not restoring special collection %v.%v", db, collection)
+					log.Logvf(log.DebugLow, "not restoring special collection %#q", db+"."+collection)
 					skip = true
 				}
 				// TOOLS-717: disallow restoring to the system.profile collection.
 				// Server versions >= 3.0.3 disallow user inserts to system.profile so
 				// it would likely fail anyway.
 				if collection == "system.profile" {
-					log.Logvf(log.DebugLow, "skipping restore of system.profile collection in %v", db)
+					log.Logvf(log.DebugLow, "skipping restore of system.profile collection in %#q", db)
 					skip = true
 				}
 				// skip restoring the indexes collection if we are using metadata
 				// files to store index information, to eliminate redundancy
 				if collection == "system.indexes" && usesMetadataFiles {
 					log.Logvf(log.DebugLow,
-						"not restoring system.indexes collection because database %v "+
+						"not restoring system.indexes collection because database %#q "+
 							"has .metadata.json files", db)
 					skip = true
 				}
@@ -469,11 +469,11 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				checkSourceNS := db + "." + strings.TrimPrefix(collection, common.TimeseriesBucketPrefix)
 
 				if !restore.includer.Has(checkSourceNS) {
-					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is not included", db, collection)
+					log.Logvf(log.DebugLow, "skipping restoring %#q, it is not included", db+"."+collection)
 					skip = true
 				}
 				if restore.excluder.Has(checkSourceNS) {
-					log.Logvf(log.DebugLow, "skipping restoring %v.%v, it is excluded", db, collection)
+					log.Logvf(log.DebugLow, "skipping restoring %#q, it is excluded", db+"."+collection)
 					skip = true
 				}
 				destNS := restore.renamer.Get(sourceNS)
@@ -515,7 +515,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					intent.Location = entry.Path()
 					intent.BSONFile = &realBSONFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
-				log.Logvf(log.Info, "found collection %v bson to restore to %v", sourceNS, destNS)
+				log.Logvf(log.Info, "found collection %#q bson to restore to %#q", sourceNS, destNS)
 				restore.manager.PutWithNamespace(checkSourceNS, intent)
 			case MetadataFileType:
 				if collection == "system.profile" {
@@ -529,11 +529,11 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 				}
 
 				if !restore.includer.Has(checkSourceNS) {
-					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is not included", db, collection)
+					log.Logvf(log.DebugLow, "skipping restoring %#q metadata, it is not included", db+"."+collection)
 					continue
 				}
 				if restore.excluder.Has(checkSourceNS) {
-					log.Logvf(log.DebugLow, "skipping restoring %v.%v metadata, it is excluded", db, collection)
+					log.Logvf(log.DebugLow, "skipping restoring %#q metadata, it is excluded", db+"."+collection)
 					continue
 				}
 
@@ -557,11 +557,11 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					intent.MetadataLocation = entry.Path()
 					intent.MetadataFile = &realMetadataFile{path: entry.Path(), intent: intent, gzip: restore.InputOptions.Gzip}
 				}
-				log.Logvf(log.Info, "found collection metadata from %v to restore to %v", sourceNS, destNS)
-				log.Logvf(log.DebugLow, "adding intent for %v", sourceNS)
+				log.Logvf(log.Info, "found collection metadata from %#q to restore to %#q", sourceNS, destNS)
+				log.Logvf(log.DebugLow, "adding intent for %#q", sourceNS)
 				restore.manager.PutWithNamespace(sourceNS, intent)
 			default:
-				log.Logvf(log.Always, `don't know what to do with file "%v", skipping...`,
+				log.Logvf(log.Always, `don't know what to do with file %#q, skipping...`,
 					entry.Path())
 			}
 		}
@@ -572,7 +572,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 // CreateStdinIntentForCollection builds an intent for the given database and collection name
 // that is to be read from standard input.
 func (restore *MongoRestore) CreateStdinIntentForCollection(db string, collection string) error {
-	log.Logvf(log.DebugLow, "reading collection %v for database %v from standard input",
+	log.Logvf(log.DebugLow, "reading collection %#q for database %#q from standard input",
 		collection, db)
 	intent := &intents.Intent{
 		ServerVersion: restore.serverVersion,
@@ -596,7 +596,7 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	collection string,
 	bsonFile archive.DirLike,
 ) error {
-	log.Logvf(log.DebugLow, "reading collection %v for database %v from %v",
+	log.Logvf(log.DebugLow, "reading collection %#q for database %#q from %#q",
 		collection, db, bsonFile.Path())
 	// First ensure that the bson file exists with one of correct file extensions.
 	_, err := bsonFile.Stat()
@@ -604,14 +604,14 @@ func (restore *MongoRestore) CreateIntentForCollection(
 		return err
 	}
 	if bsonFile.IsDir() {
-		return fmt.Errorf("file %v is a directory, not a bson file", bsonFile.Path())
+		return fmt.Errorf("file %#q is a directory, not a bson file", bsonFile.Path())
 	}
 	_, fileType, err := restore.getInfoFromFile(bsonFile.Path())
 	if err != nil {
 		return err
 	}
 	if fileType != BSONFileType {
-		return fmt.Errorf("file %v does not have .bson or .bson.gz extension", bsonFile.Path())
+		return fmt.Errorf("file %#q does not have .bson or .bson.gz extension", bsonFile.Path())
 	}
 
 	var isTimeseries bool
@@ -639,7 +639,7 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	}
 	// Check if the bson file has a corresponding .metadata.json file in its folder. If there's a
 	// directory error, log a note but attempt to restore without the metadata file anyway.
-	log.Logvf(log.DebugLow, "scanning directory %v for metadata", bsonFile.Parent())
+	log.Logvf(log.DebugLow, "scanning directory %#q for metadata", bsonFile.Parent())
 	entries, err := bsonFile.Parent().ReadDir()
 	if err != nil {
 		if isTimeseries {
@@ -670,7 +670,7 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	for _, entry := range entries {
 		if entry.Name() == metadataName {
 			metadataPath := entry.Path()
-			log.Logvf(log.Info, "found metadata for collection at %v", metadataPath)
+			log.Logvf(log.Info, "found metadata for collection at %#q", metadataPath)
 			intent.MetadataLocation = metadataPath
 			intent.MetadataFile = &realMetadataFile{
 				path:   metadataPath,
@@ -723,7 +723,7 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 		}
 
 		if fileType != BSONFileType {
-			return fmt.Errorf("file %v does not have .bson extension", path)
+			return fmt.Errorf("file %#q does not have .bson extension", path)
 		}
 		restore.ToolOptions.Collection = newCollectionName
 		log.Logvf(

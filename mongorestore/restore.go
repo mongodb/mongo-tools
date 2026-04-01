@@ -43,7 +43,7 @@ type Result struct {
 
 // log pretty-prints the result, associated with restoring the given namespace.
 func (result *Result) log(ns string) {
-	log.Logvf(log.Always, "finished restoring %v (%v %v, %v %v)",
+	log.Logvf(log.Always, "finished restoring %#q (%v %v, %v %v)",
 		ns, result.Successes, util.Pluralize(int(result.Successes), "document", "documents"),
 		result.Failures, util.Pluralize(int(result.Failures), "failure", "failures"))
 }
@@ -175,7 +175,7 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 			}
 		}
 
-		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", namespaceString)
+		log.Logvf(log.Always, "restoring indexes for collection %#q from metadata", namespaceString)
 		if restore.OutputOptions.ConvertLegacyIndexes {
 			indexes = restore.convertLegacyIndexes(indexes, namespaceString)
 		}
@@ -195,7 +195,7 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 			)
 		}
 	} else {
-		log.Logvf(log.Always, "no indexes to restore for collection %v", namespaceString)
+		log.Logvf(log.Always, "no indexes to restore for collection %#q", namespaceString)
 	}
 
 	return nil
@@ -243,7 +243,7 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 			}
 			defer intent.MetadataFile.Close()
 
-			log.Logvf(log.Always, "reading metadata for %v from %v", intent.Namespace(), intent.MetadataLocation)
+			log.Logvf(log.Always, "reading metadata for %#q from %#q", intent.Namespace(), intent.MetadataLocation)
 			metadataJSON, err := io.ReadAll(intent.MetadataFile)
 			if err != nil {
 				return fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
@@ -268,7 +268,7 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 
 				if restore.OutputOptions.PreserveUUID {
 					if metadata.UUID == "" {
-						log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
+						log.Logvf(log.Always, "--preserveUUID used but no UUID found in %#q, generating new UUID for %#q", intent.MetadataLocation, intent.Namespace())
 					}
 					intent.UUID = metadata.UUID
 				}
@@ -382,7 +382,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 					intent.Namespace(),
 				)
 			} else {
-				log.Logvf(log.Always, "dropping collection %v before restoring", intent.Namespace())
+				log.Logvf(log.Always, "dropping collection %#q before restoring", intent.Namespace())
 				err = restore.DropCollection(intent)
 				if err != nil {
 					return Result{Err: err} // no context needed
@@ -390,7 +390,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 				collectionExists = false
 			}
 		} else {
-			log.Logvf(log.DebugLow, "collection %v doesn't exist, skipping drop command", intent.Namespace())
+			log.Logvf(log.DebugLow, "collection %#q doesn't exist, skipping drop command", intent.Namespace())
 		}
 	}
 
@@ -441,7 +441,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	if !collectionExists {
-		log.Logvf(log.Info, "creating collection %v %s", intent.Namespace(), logMessageSuffix)
+		log.Logvf(log.Info, "creating collection %#q %s", intent.Namespace(), logMessageSuffix)
 		log.Logvf(log.DebugHigh, "using collection options: %#v", options)
 		err = restore.CreateCollection(intent, options, uuid)
 		if err != nil {
@@ -451,7 +451,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 		restore.addToKnownCollections(intent)
 	} else {
-		log.Logvf(log.Info, "collection %v already exists - skipping collection create", intent.Namespace())
+		log.Logvf(log.Info, "collection %#q already exists - skipping collection create", intent.Namespace())
 	}
 
 	var result Result
@@ -462,7 +462,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 		defer intent.BSONFile.Close()
 
-		log.Logvf(log.Always, "restoring %v from %v", intent.DataNamespace(), intent.Location)
+		log.Logvf(log.Always, "restoring %#q from %#q", intent.DataNamespace(), intent.Location)
 
 		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
 		defer bsonSource.Close()
@@ -583,7 +583,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 			}
 
 			if restore.terminate.Load() {
-				log.Logvf(log.Always, "terminating read on %v.%v", dbName, colName)
+				log.Logvf(log.Always, "terminating read on %#q", dbName+"."+colName)
 				termErr = util.ErrTerminated
 				close(docChan)
 				return

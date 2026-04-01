@@ -67,7 +67,7 @@ func (dump *MongoDump) dumpMetadata(
 	// We keep a running list of all the indexes
 	// for the current collection as we iterate over the cursor, and include
 	// that list as the "indexes" field of the metadata document.
-	log.Logvf(log.DebugHigh, "\treading indexes for `%v`", intent.Namespace())
+	log.Logvf(log.DebugHigh, "\treading indexes for %#q", intent.Namespace())
 
 	session, err := dump.SessionProvider.GetSession()
 	if err != nil {
@@ -77,7 +77,7 @@ func (dump *MongoDump) dumpMetadata(
 	if dump.OutputOptions.ViewsAsCollections || intent.IsView() {
 		log.Logvf(
 			log.DebugLow,
-			"not dumping indexes metadata for '%v' because it is a view",
+			"not dumping indexes metadata for %#q because it is a view",
 			intent.Namespace(),
 		)
 	} else {
@@ -87,7 +87,7 @@ func (dump *MongoDump) dumpMetadata(
 			return err
 		}
 		if indexesIter == nil {
-			log.Logvf(log.Always, "the collection %v appears to have been dropped after the dump started", intent.Namespace())
+			log.Logvf(log.Always, "the collection %#q appears to have been dropped after the dump started", intent.Namespace())
 			return nil
 		}
 		defer indexesIter.Close(context.Background())

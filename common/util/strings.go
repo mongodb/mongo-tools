@@ -6,7 +6,13 @@
 
 package util
 
-import "regexp"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/samber/lo"
+)
 
 // Pluralize takes an amount and two strings denoting the singular
 // and plural noun the amount represents. If the amount is singular,
@@ -18,6 +24,15 @@ func Pluralize(amount int, singular, plural string) string {
 		return singular
 	}
 	return plural
+}
+
+// QuoteAndJoin quotes each string in ss using Go's %#q format, then joins
+// them with sep. This makes special characters in each element visible in log
+// output.
+func QuoteAndJoin(ss []string, sep string) string {
+	return strings.Join(lo.Map(ss, func(s string, _ int) string {
+		return fmt.Sprintf("%#q", s)
+	}), sep)
 }
 
 var uriRedactionRE = regexp.MustCompile(`^([^:]+)://[^/?]*@`)

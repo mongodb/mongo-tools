@@ -224,7 +224,7 @@ func getUpsertValue(field string, document bson.D) any {
 	left := field[0:index]
 	subDoc, _ := bsonutil.FindValueByKey(left, &document)
 	if subDoc == nil {
-		log.Logvf(log.DebugHigh, "no subdoc found for '%v'", left)
+		log.Logvf(log.DebugHigh, "no subdoc found for %#q", left)
 		return nil
 	}
 	switch subDoc := subDoc.(type) {
@@ -235,7 +235,7 @@ func getUpsertValue(field string, document bson.D) any {
 		subDocD := subDoc
 		return getUpsertValue(field[index+1:], *subDocD)
 	default:
-		log.Logvf(log.DebugHigh, "subdoc found for '%v', but couldn't coerce to bson.D", left)
+		log.Logvf(log.DebugHigh, "subdoc found for %#q, but couldn't coerce to bson.D", left)
 		return nil
 	}
 }
@@ -524,8 +524,8 @@ func tokensToBSON(
 		if index < len(colSpecs) {
 			parsedValue, err := colSpecs[index].Parser.Parse(token)
 			if err != nil {
-				log.Logvf(log.DebugHigh, "parse failure in document #%d for column '%s',"+
-					"could not parse token '%s' to type %s",
+				log.Logvf(log.DebugHigh, "parse failure in document #%d for column %#q,"+
+					"could not parse token %#q to type %s",
 					numProcessed, colSpecs[index].Name, token, colSpecs[index].TypeName)
 				switch colSpecs[index].ParseGrace {
 				case pgAutoCast:
@@ -841,9 +841,9 @@ func validateReaderFields(fields []string, useArrayIndexFields bool) error {
 		return err
 	}
 	if len(fields) == 1 {
-		log.Logvf(log.Info, "using field: %v", fields[0])
+		log.Logvf(log.Info, "using field: %#q", fields[0])
 	} else {
-		log.Logvf(log.Info, "using fields: %v", strings.Join(fields, ","))
+		log.Logvf(log.Info, "using fields: %v", util.QuoteAndJoin(fields, ","))
 	}
 	return nil
 }
