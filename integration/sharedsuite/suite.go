@@ -4,9 +4,11 @@ import (
 	"context"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	testifySuite "github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -42,6 +44,25 @@ func (s *IntegrationSuite) DBName(prefix ...string) string {
 		name = name[:maxLen]
 	}
 	return p + name
+}
+
+var systemDBs = mapset.NewSet("admin", "local", "config")
+
+// BeforeTest drops all user databases before each test so every test starts
+// with a clean slate. System databases (admin, local, config) are preserved.
+func (s *IntegrationSuite) BeforeTest(_, _ string) {
+	client := s.Client()
+	defer client.Disconnect(context.Background()) //nolint:errcheck
+
+	names, err := client.ListDatabaseNames(context.Background(), bson.D{})
+	s.Require().NoError(err)
+
+	for _, name := range names {
+		if !systemDBs.Contains(name) {
+			err = client.Database(name).Drop(context.Background())
+			s.Require().NoError(err)
+		}
+	}
 }
 
 func (s *IntegrationSuite) RequireFCVAtLeast(wantFCV string) {

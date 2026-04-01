@@ -25,7 +25,7 @@ func (s *ImportExportSuite) TestRoundTripLimit() {
 	const dbName = "mongoimport_roundtrip_limit_test"
 	const collName = "data"
 
-	client := s.newClient(dbName)
+	client := s.Client()
 
 	coll := client.Database(dbName).Collection(collName)
 	docs := make([]any, 50)
@@ -85,7 +85,7 @@ func (s *ImportExportSuite) TestRoundTripLimit() {
 func (s *ImportExportSuite) TestRoundTripQuery() {
 	const dbName = "mongoimport_roundtrip_query_test"
 
-	client := s.newClient(dbName)
+	client := s.Client()
 
 	db := client.Database(dbName)
 
@@ -151,7 +151,7 @@ func (s *ImportExportSuite) TestRoundTripSortAndSkip() {
 	const dbName = "mongoimport_roundtrip_sortskip_test"
 	const collName = "data"
 
-	client := s.newClient(dbName)
+	client := s.Client()
 
 	coll := client.Database(dbName).Collection(collName)
 	docs := make([]any, 50)

@@ -45,7 +45,6 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 	srcCollNames := []string{"alpha", "beta", "gamma", "delta", "epsilon"}
 
 	db := sess.Database(uniqueDBName())
-	s.Require().NoError(db.Drop(ctx), "should pre-drop DB %#q", db.Name())
 
 	s.T().Logf("creating collections")
 
@@ -57,11 +56,6 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 					{"someNum", rand.Float64()},
 				}
 			},
-		)
-
-		s.Require().NoError(
-			db.Collection(collName).Drop(ctx),
-			"should drop %#q", collName,
 		)
 
 		_, err := db.Collection(collName).InsertMany(
@@ -330,10 +324,6 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
-	defer func() {
-		err = testDB.Drop(ctx)
-		s.Require().NoError(err, "Failed to drop test database")
-	}()
 
 	coll := testDB.Collection("mycoll")
 
@@ -396,10 +386,6 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
 
 	dbName := uniqueDBName()
 	testDB := session.Database(dbName)
-	defer func() {
-		err = testDB.Drop(ctx)
-		s.Require().NoError(err, "Failed to drop test database")
-	}()
 
 	coll := testDB.Collection("mycoll")
 
