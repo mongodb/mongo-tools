@@ -27,6 +27,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -234,142 +235,6 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	})
 }
 
-// TestExportNestedFieldsCSV verifies that mongoexport correctly handles nested
-// field paths and $ projection in --fields with --csv output.
-func TestExportNestedFieldsCSV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	log.SetWriter(io.Discard)
-
-	const dbName = "mongoexport_nestedfieldscsv_test"
-	const collName = "source"
-
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
-
-	coll := client.Database(dbName).Collection(collName)
-	_, err = coll.InsertMany(t.Context(), []any{
-		bson.D{{"a", bson.A{1, 2, 3, 4, 5}}, {"b", bson.D{{"c", bson.A{-1, -2, -3, -4}}}}},
-		bson.D{
-			{"a", int32(1)},
-			{"b", int32(2)},
-			{"c", int32(3)},
-			{"d", bson.D{{"e", bson.A{4, 5, 6}}}},
-		},
-		bson.D{
-			{"a", int32(1)},
-			{"b", int32(2)},
-			{"c", int32(3)},
-			{"d", int32(5)},
-			{"e", bson.D{{"0", bson.A{"foo", "bar", "baz"}}}},
-		},
-		bson.D{
-			{"a", int32(1)},
-			{"b", int32(2)},
-			{"c", int32(3)},
-			{"d", bson.A{4, 5, 6}},
-			{"e", bson.A{bson.D{{"0", 0}, {"1", 1}}, bson.D{{"2", 2}, {"3", 3}}}},
-		},
-	})
-	require.NoError(t, err)
-
-	toolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
-	toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-
-	rows := parseCSVRows(t, exportNestedCSV(t, toolOptions, "d.e.2", ""))
-	assert.True(
-		t, rowsContainValue(rows, "d.e.2", "6"),
-		"d.e.2 should select the third element of d.e array",
-	)
-
-	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "e.0.0", ""))
-	assert.True(
-		t, rowsContainValue(rows, "e.0.0", "foo"),
-		"e.0.0 should select nested numeric array value",
-	)
-
-	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "b,d.1,e.1.3", ""))
-	assert.True(t, rowsContainValue(rows, "b", "2"), "b column should contain 2")
-	assert.True(t, rowsContainValue(rows, "d.1", "5"), "d.1 column should contain 5")
-	assert.True(t, rowsContainValue(rows, "e.1.3", "3"), "e.1.3 column should contain 3")
-
-	// $ projection strips the trailing .$ from the header name and wraps the result in [].
-	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "d.$", `{"d": 4}`))
-	assert.True(
-		t, rowsContainValue(rows, "d", "[4]"),
-		"d.$ with query {d:4} should select matching element",
-	)
-
-	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "a.$", `{"a": {"$gt": 1}}`))
-	assert.True(
-		t, rowsContainValue(rows, "a", "[2]"),
-		"a.$ with query {a:{$gt:1}} should select matching element",
-	)
-
-	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "b.c.$", `{"b.c": -1}`))
-	assert.True(
-		t, rowsContainValue(rows, "b.c", "[-1]"),
-		"b.c.$ with query {b.c:-1} should select matching element",
-	)
-}
-
-func exportNestedCSV(t *testing.T, toolOptions *options.ToolOptions, fields, query string) string {
-	t.Helper()
-	me, err := New(Options{
-		ToolOptions: toolOptions,
-		OutputFormatOptions: &OutputFormatOptions{
-			Type:       "csv",
-			JSONFormat: "canonical",
-			Fields:     fields,
-		},
-		InputOptions: &InputOptions{Query: query},
-	})
-	require.NoError(t, err)
-	defer me.Close()
-	var buf bytes.Buffer
-	_, err = me.Export(&buf)
-	require.NoError(t, err)
-	return buf.String()
-}
-
-func parseCSVRows(t *testing.T, output string) []map[string]string {
-	t.Helper()
-	r := csv.NewReader(strings.NewReader(output))
-	records, err := r.ReadAll()
-	require.NoError(t, err)
-	if len(records) == 0 {
-		return nil
-	}
-	headers := records[0]
-	rows := make([]map[string]string, 0, len(records)-1)
-	for _, record := range records[1:] {
-		row := make(map[string]string, len(headers))
-		for i, h := range headers {
-			if i < len(record) {
-				row[h] = record[i]
-			}
-		}
-		rows = append(rows, row)
-	}
-	return rows
-}
-
-func rowsContainValue(rows []map[string]string, col, val string) bool {
-	for _, row := range rows {
-		if row[col] == val {
-			return true
-		}
-	}
-	return false
-}
-
 func TestBadOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -472,7 +337,6 @@ func TestBrokenPipe(t *testing.T) {
 		_ = client.Database(dbName).Drop(context.Background())
 	})
 
-	// Insert 1000 docs with a large field so JSON output exceeds the pipe buffer.
 	docs := make([]any, 1000)
 	for i := range 1000 {
 		docs[i] = bson.D{{"_id", int32(i)}, {"data", strings.Repeat("x", 1000)}}
@@ -561,17 +425,9 @@ func TestExportPretty(t *testing.T) {
 	const dbName = "mongoexport_pretty_test"
 	const collName = "source"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
+	client := newExportTestClient(t, dbName)
 
-	_, err = client.Database(dbName).Collection(collName).InsertMany(t.Context(), []any{
+	_, err := client.Database(dbName).Collection(collName).InsertMany(t.Context(), []any{
 		bson.D{{"a", 1}},
 		bson.D{{"a", 1}, {"b", 1}},
 		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
@@ -616,24 +472,16 @@ func TestExportWritesToStdout(t *testing.T) {
 	const dbName = "mongoexport_stdout_test"
 	const collName = "data"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
+	client := newExportTestClient(t, dbName)
 
 	docs := make([]any, 20)
 	for i := range 20 {
 		docs[i] = bson.D{{"_id", i}}
 	}
-	_, err = client.Database(dbName).Collection(collName).InsertMany(t.Context(), docs)
+	_, err := client.Database(dbName).Collection(collName).InsertMany(t.Context(), docs)
 	require.NoError(t, err)
 
-	args := []string{"go", "run", "./main"}
+	args := []string{"go", "run", filepath.Join("..", "mongoexport", "main")}
 	args = append(args, testutil.GetBareArgs()...)
 	args = append(args, "--db", dbName, "--collection", collName)
 	cmd := exec.Command(args[0], args[1:]...)
@@ -655,18 +503,10 @@ func TestExportTypeCase(t *testing.T) {
 	const dbName = "mongoexport_typecase_test"
 	const collName = "source"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	require.NoError(t, err)
-	client, err := sessionProvider.GetSession()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := client.Database(dbName).Drop(context.Background()); err != nil {
-			t.Errorf("dropping test database: %v", err)
-		}
-	})
+	client := newExportTestClient(t, dbName)
 
 	ns := &options.Namespace{DB: dbName, Collection: collName}
-	_, err = client.Database(dbName).Collection(collName).InsertMany(t.Context(), []any{
+	_, err := client.Database(dbName).Collection(collName).InsertMany(t.Context(), []any{
 		bson.D{{"a", 1}},
 		bson.D{{"a", 1}, {"b", 1}},
 		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
@@ -694,6 +534,109 @@ func TestExportTypeCase(t *testing.T) {
 	assert.NotEqual(t, csvLower, jsonLower, "csv and json output should differ")
 }
 
+// TestExportNestedFieldsCSV verifies that mongoexport correctly handles nested
+// field paths and $ projection in --fields with --csv output.
+func TestExportNestedFieldsCSV(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	const dbName = "mongoexport_nestedfieldscsv_test"
+	const collName = "source"
+
+	client := newExportTestClient(t, dbName)
+
+	coll := client.Database(dbName).Collection(collName)
+	_, err := coll.InsertMany(t.Context(), []any{
+		bson.D{{"a", bson.A{1, 2, 3, 4, 5}}, {"b", bson.D{{"c", bson.A{-1, -2, -3, -4}}}}},
+		bson.D{
+			{"a", int32(1)},
+			{"b", int32(2)},
+			{"c", int32(3)},
+			{"d", bson.D{{"e", bson.A{4, 5, 6}}}},
+		},
+		bson.D{
+			{"a", int32(1)},
+			{"b", int32(2)},
+			{"c", int32(3)},
+			{"d", int32(5)},
+			{"e", bson.D{{"0", bson.A{"foo", "bar", "baz"}}}},
+		},
+		bson.D{
+			{"a", int32(1)},
+			{"b", int32(2)},
+			{"c", int32(3)},
+			{"d", bson.A{4, 5, 6}},
+			{"e", bson.A{bson.D{{"0", 0}, {"1", 1}}, bson.D{{"2", 2}, {"3", 3}}}},
+		},
+	})
+	require.NoError(t, err)
+
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+
+	rows := parseCSVRows(t, exportNestedCSV(t, toolOptions, "d.e.2", ""))
+	assert.True(
+		t, rowsContainValue(rows, "d.e.2", "6"),
+		"d.e.2 should select the third element of d.e array",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "e.0.0", ""))
+	assert.True(
+		t, rowsContainValue(rows, "e.0.0", "foo"),
+		"e.0.0 should select nested numeric array value",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "b,d.1,e.1.3", ""))
+	assert.True(t, rowsContainValue(rows, "b", "2"), "b column should contain 2")
+	assert.True(t, rowsContainValue(rows, "d.1", "5"), "d.1 column should contain 5")
+	assert.True(t, rowsContainValue(rows, "e.1.3", "3"), "e.1.3 column should contain 3")
+
+	// $ projection strips the trailing .$ from the header name and wraps the result in [].
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "d.$", `{"d": 4}`))
+	assert.True(
+		t, rowsContainValue(rows, "d", "[4]"),
+		"d.$ with query {d:4} should select matching element",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "a.$", `{"a": {"$gt": 1}}`))
+	assert.True(
+		t, rowsContainValue(rows, "a", "[2]"),
+		"a.$ with query {a:{$gt:1}} should select matching element",
+	)
+
+	rows = parseCSVRows(t, exportNestedCSV(t, toolOptions, "b.c.$", `{"b.c": -1}`))
+	assert.True(
+		t, rowsContainValue(rows, "b.c", "[-1]"),
+		"b.c.$ with query {b.c:-1} should select matching element",
+	)
+}
+
+func newExportTestClient(t *testing.T, dbName string) *mongo.Client {
+	t.Helper()
+	ssl := testutil.GetSSLOptions()
+	auth := testutil.GetAuthOptions()
+	sessionProvider, err := db.NewSessionProvider(options.ToolOptions{
+		General: &options.General{},
+		SSL:     &ssl,
+		Connection: &options.Connection{
+			Host: "localhost",
+			Port: db.DefaultTestPort,
+		},
+		Auth:         &auth,
+		URI:          &options.URI{},
+		Namespace:    &options.Namespace{},
+		WriteConcern: wcwrapper.Majority(),
+	})
+	require.NoError(t, err, "should create session provider")
+	client, err := sessionProvider.GetSession()
+	require.NoError(t, err, "should get session")
+	t.Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+	return client
+}
+
 func exportWithType(t *testing.T, ns *options.Namespace, typeName string) (string, error) {
 	t.Helper()
 	toolOptions, err := testutil.GetToolOptions()
@@ -715,4 +658,54 @@ func exportWithType(t *testing.T, ns *options.Namespace, typeName string) (strin
 	var buf bytes.Buffer
 	_, err = me.Export(&buf)
 	return buf.String(), err
+}
+
+func exportNestedCSV(t *testing.T, toolOptions *options.ToolOptions, fields, query string) string {
+	t.Helper()
+	me, err := New(Options{
+		ToolOptions: toolOptions,
+		OutputFormatOptions: &OutputFormatOptions{
+			Type:       "csv",
+			JSONFormat: "canonical",
+			Fields:     fields,
+		},
+		InputOptions: &InputOptions{Query: query},
+	})
+	require.NoError(t, err)
+	defer me.Close()
+	var buf bytes.Buffer
+	_, err = me.Export(&buf)
+	require.NoError(t, err)
+	return buf.String()
+}
+
+func parseCSVRows(t *testing.T, output string) []map[string]string {
+	t.Helper()
+	r := csv.NewReader(strings.NewReader(output))
+	records, err := r.ReadAll()
+	require.NoError(t, err)
+	if len(records) == 0 {
+		return nil
+	}
+	headers := records[0]
+	rows := make([]map[string]string, 0, len(records)-1)
+	for _, record := range records[1:] {
+		row := make(map[string]string, len(headers))
+		for i, h := range headers {
+			if i < len(record) {
+				row[h] = record[i]
+			}
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func rowsContainValue(rows []map[string]string, col, val string) bool {
+	for _, row := range rows {
+		if row[col] == val {
+			return true
+		}
+	}
+	return false
 }
