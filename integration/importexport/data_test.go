@@ -23,7 +23,7 @@ func (s *ImportExportSuite) TestRoundTripBasicData() {
 	const dbName = "mongoimport_roundtrip_basic_test"
 	const collName = "data"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	coll := client.Database(dbName).Collection(collName)
 	var docs []bson.D
@@ -86,7 +86,7 @@ func (s *ImportExportSuite) TestRoundTripDataTypes() {
 	const dbName = "mongoimport_roundtrip_datatypes_test"
 	const collName = "data"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	coll := client.Database(dbName).Collection(collName)
 	docs := []any{
@@ -168,7 +168,7 @@ func (s *ImportExportSuite) TestRoundTripDecimal128() {
 	const dbName = "mongoimport_decimal128_test"
 	const collName = "dec128"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	dec, err := bson.ParseDecimal128("123456789012345678901234567890")
 	s.Require().NoError(err)
@@ -223,7 +223,7 @@ func (s *ImportExportSuite) TestRoundTripDecimal128() {
 func (s *ImportExportSuite) TestRoundTripViewExport() {
 	const dbName = "mongoimport_roundtrip_views_test"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	db := client.Database(dbName)
 

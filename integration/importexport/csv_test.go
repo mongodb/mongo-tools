@@ -22,7 +22,7 @@ import (
 func (s *ImportExportSuite) TestRoundTripFieldFile() {
 	const dbName = "mongoimport_roundtrip_fieldfile_test"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	db := client.Database(dbName)
 	_, err := db.Collection("source").InsertMany(s.T().Context(), []any{
@@ -101,7 +101,7 @@ func (s *ImportExportSuite) TestRoundTripFieldFile() {
 func (s *ImportExportSuite) TestRoundTripFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_fieldscsv_test"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	db := client.Database(dbName)
 	_, err := db.Collection("source").InsertMany(s.T().Context(), []any{
@@ -154,7 +154,7 @@ func (s *ImportExportSuite) TestRoundTripFieldsCSV() {
 func (s *ImportExportSuite) TestRoundTripNestedFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_nestedcsv_test"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	db := client.Database(dbName)
 	_, err := db.Collection("source").InsertMany(s.T().Context(), []any{

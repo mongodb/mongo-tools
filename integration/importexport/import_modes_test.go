@@ -18,7 +18,7 @@ func (s *ImportExportSuite) TestImportModeUpsertIDSubdoc() {
 		collName = "c"
 	)
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	coll := client.Database(dbName).Collection(collName)
 	ns := &options.Namespace{DB: dbName, Collection: collName}
