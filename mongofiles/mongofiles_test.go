@@ -319,7 +319,7 @@ func TestValidArguments(t *testing.T) {
 		args := []string{"put_id", "arg1"}
 		err := mf.ValidateCommand(args)
 		require.Error(t, err)
-		assert.EqualError(t, err, fmt.Sprintf("'%v' argument(s) missing", "put_id"))
+		assert.EqualError(t, err, fmt.Sprintf("%#q argument(s) missing", "put_id"))
 	})
 
 	t.Run("list with no args", func(t *testing.T) {
@@ -348,7 +348,7 @@ func TestValidArguments(t *testing.T) {
 			assert.EqualError(
 				t,
 				err,
-				fmt.Sprintf("'%v' argument missing", command),
+				fmt.Sprintf("%#q argument missing", command),
 				"%s with no additional argument",
 				command,
 			)
@@ -364,7 +364,7 @@ func TestValidArguments(t *testing.T) {
 			t,
 			err,
 			fmt.Sprintf(
-				"'%v' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+				"%#q is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
 				args[0],
 			),
 		)
@@ -489,7 +489,7 @@ func TestMongoFilesCommands(t *testing.T) {
 				logOutput := buff.String()
 
 				for _, testFile := range localTestFiles {
-					logEvent := fmt.Sprintf("finished writing to %v", testFile)
+					logEvent := fmt.Sprintf("finished writing to %#q", testFile)
 					So(logOutput, ShouldContainSubstring, logEvent)
 				}
 			})
@@ -1022,8 +1022,8 @@ func TestMongoFilesCommands(t *testing.T) {
 
 			Convey("log an event specifying the completion of each file", func() {
 				const (
-					logAdding = "adding gridFile: %v"
-					logAdded  = "added gridFile: %v"
+					logAdding = "adding gridFile: %#q"
+					logAdded  = "added gridFile: %#q"
 				)
 
 				logOutput := buff.String()
@@ -1073,7 +1073,7 @@ func TestMongoFilesCommands(t *testing.T) {
 						So(str, ShouldBeEmpty)
 
 						testName := fmt.Sprintf(
-							"compare contents of %v and original lorem ipsum file",
+							"compare contents of %#q and original lorem ipsum file",
 							testFile,
 						)
 						Convey(testName, func() {

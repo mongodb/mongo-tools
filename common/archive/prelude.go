@@ -146,7 +146,7 @@ func (prelude *Prelude) AddMetadata(cm *CollectionMetadata) {
 		prelude.NamespaceMetadatasByDB[cm.Database],
 		cm,
 	)
-	log.Logvf(log.Info, "archive prelude %v.%v", cm.Database, cm.Collection)
+	log.Logvf(log.Info, "archive prelude %#q", cm.Database+"."+cm.Collection)
 }
 
 // Write writes the archive header.
@@ -380,7 +380,7 @@ func (mpf *MetadataPreludeFile) Open() error {
 	db, c := util.SplitNamespace(mpf.Origin)
 	dbMetadatas, ok := mpf.Prelude.NamespaceMetadatasByDB[db]
 	if !ok {
-		return fmt.Errorf("no metadata found for '%s'", db)
+		return fmt.Errorf("no metadata found for %#q", db)
 	}
 	for _, metadata := range dbMetadatas {
 		if metadata.Collection == c {
@@ -388,7 +388,7 @@ func (mpf *MetadataPreludeFile) Open() error {
 			return nil
 		}
 	}
-	return fmt.Errorf("no matching metadata found for '%s'", mpf.Origin)
+	return fmt.Errorf("no matching metadata found for %#q", mpf.Origin)
 }
 
 // Close is part of the intents.file interface.

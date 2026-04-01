@@ -90,7 +90,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 		return Options{toolOpts, outputOpts}, nil
 	default:
 		return Options{}, fmt.Errorf(
-			"unsupported output type '%v'. Must be either '%v' or '%v'",
+			"unsupported output type %#q. Must be either %#q or %#q",
 			DebugOutputType,
 			JSONOutputType,
 			outputOpts.Type,

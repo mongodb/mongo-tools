@@ -72,7 +72,7 @@ func (mt *MongoTop) runTopDiff() (outDiff FormattableDiff, err error) {
 		}
 
 		if topinfo[elem.Key()] != (NSTopInfo{}) {
-			return nil, fmt.Errorf("duplicate namespace (%s) in top result", elem.Key())
+			return nil, fmt.Errorf("duplicate namespace %#q in top result", elem.Key())
 		}
 		info := NSTopInfo{}
 		if unmarshalErr := bson.Unmarshal(elem.Value().Document(), &info); unmarshalErr != nil {

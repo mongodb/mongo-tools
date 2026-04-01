@@ -1202,7 +1202,7 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a.0,a.0\n1,2,3",
 				nil,
 				fmt.Errorf(
-					"array index error with field 'a.0': array indexes in fields must start from 0 and increase sequentially",
+					"array index error with field `a.0`: array indexes in fields must start from 0 and increase sequentially",
 				),
 			),
 		)
@@ -1212,7 +1212,7 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a.1,a.0\n1,2,3",
 				nil,
 				fmt.Errorf(
-					"array index error with field 'a.1': array indexes in fields must start from 0 and increase sequentially",
+					"array index error with field `a.1`: array indexes in fields must start from 0 and increase sequentially",
 				),
 			),
 		)
@@ -1222,7 +1222,7 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a.0,a.2\n1,2,3",
 				nil,
 				fmt.Errorf(
-					"array index error with field 'a.2': array indexes in fields must start from 0 and increase sequentially",
+					"array index error with field `a.2`: array indexes in fields must start from 0 and increase sequentially",
 				),
 			),
 		)
@@ -1233,7 +1233,7 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a.0.a,a.2.a\n1,2,3",
 				nil,
 				fmt.Errorf(
-					"array index error with field 'a.2.a': array indexes in fields must start from 0 and increase sequentially",
+					"array index error with field `a.2.a`: array indexes in fields must start from 0 and increase sequentially",
 				),
 			),
 		)
@@ -1243,7 +1243,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.a,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.a' and 'a.0' are incompatible"),
+				fmt.Errorf("fields `a.a` and `a.0` are incompatible"),
 			),
 		)
 		Convey(
@@ -1252,7 +1252,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.a.a.a,a.a.0.a\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.a.a.a' and 'a.a.0.a' are incompatible"),
+				fmt.Errorf("fields `a.a.a.a` and `a.a.0.a` are incompatible"),
 			),
 		)
 		Convey(
@@ -1261,7 +1261,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.0,a.a\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.0' and 'a.a' are incompatible"),
+				fmt.Errorf("fields `a.0` and `a.a` are incompatible"),
 			),
 		)
 		Convey(
@@ -1270,7 +1270,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.a.a.0,a.a.a.a\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.a.a.0' and 'a.a.a.a' are incompatible"),
+				fmt.Errorf("fields `a.a.a.0` and `a.a.a.a` are incompatible"),
 			),
 		)
 		Convey(
@@ -1279,7 +1279,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a' and 'a.0' are incompatible"),
+				fmt.Errorf("fields `a` and `a.0` are incompatible"),
 			),
 		)
 		Convey(
@@ -1288,7 +1288,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.a.a,a.a.a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.a.a' and 'a.a.a.0' are incompatible"),
+				fmt.Errorf("fields `a.a.a` and `a.a.a.0` are incompatible"),
 			),
 		)
 		Convey(
@@ -1297,7 +1297,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a./,a.0\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a./' and 'a.0' are incompatible"),
+				fmt.Errorf("fields `a./` and `a.0` are incompatible"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Indexes in fields must start from 0",
@@ -1306,7 +1306,7 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a,b.1\n1,2,3",
 				nil,
 				fmt.Errorf(
-					"array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially",
+					"array index error with field `b.1`: array indexes in fields must start from 0 and increase sequentially",
 				),
 			),
 		)
@@ -1317,7 +1317,7 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a.b,b.1\n1,2,3",
 				nil,
 				fmt.Errorf(
-					"array index error with field 'b.1': array indexes in fields must start from 0 and increase sequentially",
+					"array index error with field `b.1`: array indexes in fields must start from 0 and increase sequentially",
 				),
 			),
 		)
@@ -1327,7 +1327,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.b,a.b\n1,2,3",
 				nil,
-				fmt.Errorf("fields cannot be identical: 'a.b' and 'a.b'"),
+				fmt.Errorf("fields cannot be identical: `a.b` and `a.b`"),
 			),
 		)
 		Convey("With --useArrayIndexFields: Repeated array index should throw error",
@@ -1336,7 +1336,7 @@ func TestImportDocuments(t *testing.T) {
 				"_id,a.0,a.1,a.2,a.0\n1,2,3,4,5",
 				nil,
 				fmt.Errorf(
-					"array index error with field 'a.0': array indexes in fields must start from 0 and increase sequentially",
+					"array index error with field `a.0`: array indexes in fields must start from 0 and increase sequentially",
 				),
 			),
 		)
@@ -1345,7 +1345,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.a.0.a,a.a.0.1\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.a.0.a' and 'a.a.0.1' are incompatible"),
+				fmt.Errorf("fields `a.a.0.a` and `a.a.0.1` are incompatible"),
 			),
 		)
 		Convey(
@@ -1354,7 +1354,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.0.0,a.0.a\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.0.0' and 'a.0.a' are incompatible"),
+				fmt.Errorf("fields `a.0.0` and `a.0.a` are incompatible"),
 			),
 		)
 		Convey(
@@ -1363,7 +1363,7 @@ func TestImportDocuments(t *testing.T) {
 				t,
 				"_id,a.a.a.a,a.a\n1,2,3",
 				nil,
-				fmt.Errorf("fields 'a.a.a.a' and 'a.a' are incompatible"),
+				fmt.Errorf("fields `a.a.a.a` and `a.a` are incompatible"),
 			),
 		)
 	})

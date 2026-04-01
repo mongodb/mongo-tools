@@ -97,7 +97,7 @@ func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
 		newJSONString := CreateExtJSONString(indexKey)
 		log.Logvf(
 			log.Always,
-			"convertLegacyIndexes: converted index values '%s' to '%s' on collection '%s'",
+			"convertLegacyIndexes: converted index values %#q to %#q on collection %#q",
 			originalJSONString,
 			newJSONString,
 			ns,
@@ -161,7 +161,7 @@ func ConvertLegacyIndexOptions(indexOptions bson.M) {
 	}
 	if converted {
 		newJSONString := CreateExtJSONString(indexOptions)
-		log.Logvf(log.Always, "convertLegacyIndexes: converted index options '%s' to '%s'",
+		log.Logvf(log.Always, "convertLegacyIndexes: converted index options %#q to %#q",
 			originalJSONString, newJSONString)
 	}
 }

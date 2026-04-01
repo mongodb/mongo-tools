@@ -366,27 +366,27 @@ func (restore *MongoRestore) Restore() Result {
 		}
 		log.Logvf(
 			log.DebugLow,
-			`archive format version "%v"`,
+			`archive format version %#q`,
 			restore.archive.Prelude.Header.FormatVersion,
 		)
 
 		dumpServerVersionStr := restore.archive.Prelude.Header.ServerVersion
 		log.Logvf(
 			log.DebugLow,
-			`archive server version "%v"`,
+			`archive server version %#q`,
 			dumpServerVersionStr,
 		)
 		restore.dumpServerVersion, _ = db.StrToVersion(dumpServerVersionStr)
 		log.Logvf(
 			log.DebugLow,
-			`archive tool version "%v"`,
+			`archive tool version %#q`,
 			restore.archive.Prelude.Header.ToolVersion,
 		)
 
 		if restore.dumpServerVersion.CmpMinor(restore.serverVersion) != 0 {
 			log.Logvf(
 				log.Always,
-				"WARNING: This archive came from MongoDB %s, but you are restoring to %s. Cross-version dump & restore is unsupported. The restored data may be corrupted.",
+				"WARNING: This archive came from MongoDB %#q, but you are restoring to %#q. Cross-version dump & restore is unsupported. The restored data may be corrupted.",
 				dumpServerVersionStr,
 				restore.serverVersion.String(),
 			)
@@ -472,7 +472,7 @@ func (restore *MongoRestore) Restore() Result {
 		err = restore.CreateAllIntents(target)
 	case restore.ToolOptions.DB != "" && restore.ToolOptions.Collection == "":
 		log.Logvf(log.Always,
-			"building a list of collections to restore from %v dir",
+			"building a list of collections to restore from %#q dir",
 			target.Path())
 		err = restore.CreateIntentsForDB(
 			restore.ToolOptions.DB,
@@ -778,7 +778,7 @@ func (restore *MongoRestore) preFlightChecks() error {
 
 				if timeseriesExists {
 					return fmt.Errorf(
-						"timeseries collection `%s` already exists on the destination. "+
+						"timeseries collection %#q already exists on the destination. "+
 							"You must remove this collection from the destination or use --drop",
 						intent.Namespace(),
 					)
@@ -791,8 +791,8 @@ func (restore *MongoRestore) preFlightChecks() error {
 
 				if bucketExists {
 					return fmt.Errorf(
-						"system.buckets collection `%v` already exists on the destination. "+
-							"You must remove this collection from the destination in order to restore %s",
+						"system.buckets collection %#q already exists on the destination. "+
+							"You must remove this collection from the destination in order to restore %#q",
 						intent.DataNamespace(),
 						intent.Namespace(),
 					)
@@ -814,7 +814,7 @@ func (restore *MongoRestore) preFlightChecks() error {
 			for _, index := range indexes {
 				for _, keyElement := range index.Key {
 					if keyElement.Value == "geoHaystack" {
-						return fmt.Errorf("found a geoHaystack index: %v on %s. "+
+						return fmt.Errorf("found a geoHaystack index: %v on %#q. "+
 							"geoHaystack indexes are not supported by the destination cluster. "+
 							"Remove the index from the source or use --noIndexRestore to skip all indexes.", index.Key, ns.String())
 					}

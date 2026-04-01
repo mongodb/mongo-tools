@@ -37,9 +37,9 @@
     out = rawMongoProgramOutput();
     return (out.match(/archive \w+ version/g) || []).length;
   }, "should see at least three version string in the output");
-  assert(/archive format version "\S+"/.test(out), "format version found");
-  assert(/archive server version "\S+"/.test(out), "server version found");
-  assert(/archive tool version "\S+"/.test(out), "tool version found");
+  assert(/archive format version `\S+`/.test(out), "format version found");
+  assert(/archive server version `\S+`/.test(out), "server version found");
+  assert(/archive tool version `\S+`/.test(out), "tool version found");
 
   toolTest.stop();
 }());

@@ -363,7 +363,7 @@ func setNestedArrayValue(fieldParts []string, value any, array *bson.A) (err err
 	idx, ok := isNatNum(fieldParts[0])
 	if !ok {
 		return fmt.Errorf(
-			"setNestedArrayValue expected an integer field, but instead received %s",
+			"setNestedArrayValue expected an integer field, but instead received %#q",
 			fieldParts[0],
 		)
 	}
@@ -537,8 +537,8 @@ func tokensToBSON(
 					return nil, coercionError{}
 				case pgStop:
 					return nil, fmt.Errorf(
-						"type coercion failure in document #%d for column '%s', "+
-							"could not parse token '%s' to type %s",
+						"type coercion failure in document #%d for column %#q, "+
+							"could not parse token %#q to type %s",
 						numProcessed,
 						colSpecs[index].Name,
 						token,
@@ -555,7 +555,7 @@ func tokensToBSON(
 				)
 				if err != nil {
 					return nil, fmt.Errorf(
-						"can't set value for key %s: %s",
+						"can't set value for key %#q: %s",
 						colSpecs[index].Name,
 						err,
 					)
@@ -567,7 +567,7 @@ func tokensToBSON(
 			parsedValue = autoParse(token)
 			key := "field" + strconv.Itoa(index)
 			if util.StringSliceContains(ColumnNames(colSpecs), key) {
-				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v ('%v') in document #%v",
+				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v (%#q) in document #%v",
 					key, index+1, parsedValue, numProcessed)
 			}
 			document = append(document, bson.E{Key: key, Value: parsedValue})
@@ -596,16 +596,16 @@ func validateFields(inputFields []string, useArrayIndexFields bool) error {
 
 		// Here we check validity for case (1).
 		if strings.HasSuffix(field, ".") {
-			return fmt.Errorf("field '%v' cannot end with a '.'", field)
+			return fmt.Errorf("field %#q cannot end with a '.'", field)
 		}
 		if strings.HasPrefix(field, ".") {
-			return fmt.Errorf("field '%v' cannot start with a '.'", field)
+			return fmt.Errorf("field %#q cannot start with a '.'", field)
 		}
 		if strings.HasPrefix(field, "$") {
-			return fmt.Errorf("field '%v' cannot start with a '$'", field)
+			return fmt.Errorf("field %#q cannot start with a '$'", field)
 		}
 		if strings.Contains(field, "..") {
-			return fmt.Errorf("field '%v' cannot contain consecutive '.' characters", field)
+			return fmt.Errorf("field %#q cannot contain consecutive '.' characters", field)
 		}
 	}
 
@@ -722,7 +722,7 @@ func addFieldToArray(
 		// We shouldn't ever get here
 		panic(
 			fmt.Sprintf(
-				"addFieldToArray expected a natural number field, but instead received %s",
+				"addFieldToArray expected a natural number field, but instead received %#q",
 				fieldParts[0],
 			),
 		)
@@ -821,16 +821,16 @@ func findFirstField(i any) string {
 
 func incompatibleError(field string, fieldPrefix string, value any) error {
 	field2 := fieldPrefix + findFirstField(value)
-	return fmt.Errorf("fields '%v' and '%v' are incompatible", field2, field)
+	return fmt.Errorf("fields %#q and %#q are incompatible", field2, field)
 }
 
 func identicalError(field string) error {
-	return fmt.Errorf("fields cannot be identical: '%v' and '%v'", field, field)
+	return fmt.Errorf("fields cannot be identical: %#q and %#q", field, field)
 }
 
 func indexError(field string) error {
 	return fmt.Errorf(
-		"array index error with field '%v': array indexes in fields must start from 0 and increase sequentially",
+		"array index error with field %#q: array indexes in fields must start from 0 and increase sequentially",
 		field,
 	)
 }

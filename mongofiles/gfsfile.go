@@ -96,7 +96,7 @@ func (file *gfsFile) OpenStreamForReading() (*mongo.GridFSDownloadStream, error)
 // Note: this file must be closed if it had been written to before being deleted. Any download streams will be closed as part of this deletion.
 func (file *gfsFile) Delete(ctx context.Context) error {
 	if err := file.mf.bucket.Delete(ctx, file.ID); err != nil {
-		return fmt.Errorf("error while removing '%v' from GridFS: %v", file.Name, err)
+		return fmt.Errorf("error while removing %#q from GridFS: %v", file.Name, err)
 	}
 
 	return nil

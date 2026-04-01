@@ -443,15 +443,15 @@ func TestPositionalArgumentParsing(t *testing.T) {
 		},
 		{
 			InputArgs: []string{"get"},
-			ExpectErr: "'get' argument missing",
+			ExpectErr: "`get` argument missing",
 		},
 		{
 			InputArgs: []string{"get", "mongodb://foo"},
-			ExpectErr: "'get' argument missing",
+			ExpectErr: "`get` argument missing",
 		},
 		{
 			InputArgs: []string{"foo", "bar"},
-			ExpectErr: "'foo' is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			ExpectErr: "`foo` is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
 		},
 		{
 			InputArgs: []string{"list", "mongodb://foo", "--uri=mongodb://bar"},

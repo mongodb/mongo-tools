@@ -262,7 +262,7 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	unescapedCollName, err = util.UnescapeCollectionName(collName)
 	if err != nil {
 		return "", UnknownFileType, fmt.Errorf(
-			"error parsing collection name from filename \"%v\": %v",
+			"error parsing collection name from filename %#q: %v",
 			baseFileName,
 			err,
 		)
@@ -307,7 +307,7 @@ func (restore *MongoRestore) getCollectionNameFromMetadata(
 	// It's invalid for a current metadata file to have no collection name field.
 	if metadata.CollectionName == "" {
 		return "", fmt.Errorf("no collection name found in metadata file with "+
-			"truncated file name \"%s\"", metadataFullPath)
+			"truncated file name %#q", metadataFullPath)
 	}
 
 	// Return the non-empty collection name field from the metadata file with a truncated name.
@@ -364,7 +364,7 @@ func (restore *MongoRestore) CreateAllIntents(dir archive.DirLike) error {
 					if restore.InputOptions.Archive == "-" {
 						oplogIntent.Location = "archive on stdin"
 					} else {
-						oplogIntent.Location = fmt.Sprintf("archive '%v'", restore.InputOptions.Archive)
+						oplogIntent.Location = fmt.Sprintf("archive %#q", restore.InputOptions.Archive)
 					}
 
 					// no need to check that we want to cache here
@@ -489,7 +489,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					if restore.InputOptions.Archive == "-" {
 						intent.Location = "archive on stdin"
 					} else {
-						intent.Location = fmt.Sprintf("archive '%v'", restore.InputOptions.Archive)
+						intent.Location = fmt.Sprintf("archive %#q", restore.InputOptions.Archive)
 					}
 					if skip {
 						// adding the DemuxOut to the demux, but not adding the intent to the manager
@@ -550,7 +550,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					if restore.InputOptions.Archive == "-" {
 						intent.MetadataLocation = "archive on stdin"
 					} else {
-						intent.MetadataLocation = fmt.Sprintf("archive '%v'", restore.InputOptions.Archive)
+						intent.MetadataLocation = fmt.Sprintf("archive %#q", restore.InputOptions.Archive)
 					}
 					intent.MetadataFile = &archive.MetadataPreludeFile{Origin: sourceNS, Intent: intent, Prelude: restore.archive.Prelude}
 				} else {
@@ -644,7 +644,7 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	if err != nil {
 		if isTimeseries {
 			return fmt.Errorf(
-				"could not find the timeseries collection metadata file for %s",
+				"could not find the timeseries collection metadata file for %#q",
 				db+"."+collection,
 			)
 		}
@@ -684,7 +684,7 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	if intent.MetadataFile == nil {
 		if isTimeseries {
 			return fmt.Errorf(
-				"could not find the timeseries collection metadata file for %s",
+				"could not find the timeseries collection metadata file for %#q",
 				db+"."+collection,
 			)
 		}
@@ -728,7 +728,7 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 		restore.ToolOptions.Collection = newCollectionName
 		log.Logvf(
 			log.DebugLow,
-			"inferred collection '%v' from file",
+			"inferred collection %#q from file",
 			restore.ToolOptions.Collection,
 		)
 	}
@@ -743,7 +743,7 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 		restore.ToolOptions.DB = dirForFile
 		log.Logvf(
 			log.DebugLow,
-			"inferred db '%v' from the file's directory",
+			"inferred db %#q from the file's directory",
 			restore.ToolOptions.DB,
 		)
 	}

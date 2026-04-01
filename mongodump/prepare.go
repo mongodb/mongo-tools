@@ -332,7 +332,7 @@ func (dump *MongoDump) NewIntentFromOptions(
 			if dump.OutputOptions.Archive == "-" {
 				intent.Location = "archive on stdout"
 			} else {
-				intent.Location = fmt.Sprintf("archive '%v'", dump.OutputOptions.Archive)
+				intent.Location = fmt.Sprintf("archive %#q", dump.OutputOptions.Archive)
 			}
 		} else if ci.IsTimeseries() && !dump.serverVersionArray.SupportsRawData() {
 			// 8.3+ supports viewless timeseries, so they end up in the final else block as a normal

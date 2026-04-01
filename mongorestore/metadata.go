@@ -130,7 +130,7 @@ func (restore *MongoRestore) CollectionExists(dbName, coll string) (bool, error)
 			colNameRaw := collections.Current.Lookup("name")
 			colName, ok := colNameRaw.StringValueOK()
 			if !ok {
-				return false, fmt.Errorf("invalid collection name: %v", colNameRaw)
+				return false, fmt.Errorf("invalid collection name: %#q", colNameRaw)
 			}
 			restore.knownCollections[dbName] = append(restore.knownCollections[dbName], colName)
 		}
@@ -169,7 +169,7 @@ func (restore *MongoRestore) CreateIndexes(
 			fullIndexName := fmt.Sprintf("%v.$%v", index.Options["ns"], index.Options["name"])
 			if len(fullIndexName) > 127 {
 				return fmt.Errorf(
-					"cannot restore index with namespace '%v': "+
+					"cannot restore index with namespace %#q: "+
 						"namespace is too long (max size is 127 bytes)", fullIndexName)
 			}
 		}
@@ -416,7 +416,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 
 	if users != nil && roles != nil && users.DB != roles.DB {
 		return fmt.Errorf(
-			"can't restore users and roles to different databases, %v and %v",
+			"can't restore users and roles to different databases, %#q and %#q",
 			users.DB,
 			roles.DB,
 		)
@@ -482,7 +482,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 		if tempCollectionNameExists {
 			log.Logvf(
 				log.Info,
-				"dropping preexisting temporary collection admin.%v",
+				"dropping preexisting temporary collection admin.%#q",
 				arg.tempCollectionName,
 			)
 
@@ -491,7 +491,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			cancel()
 			if err != nil {
 				return fmt.Errorf(
-					"error dropping preexisting temporary collection %v: %v",
+					"error dropping preexisting temporary collection %#q: %v",
 					arg.tempCollectionName,
 					err,
 				)
@@ -518,7 +518,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 				// logging errors here because this has no way of returning that doesn't mask other errors
 				log.Logvf(
 					log.Info,
-					"error establishing connection to drop temporary collection admin.%v: %v",
+					"error establishing connection to drop temporary collection admin.%#q: %v",
 					cleanupArg.tempCollectionName,
 					e,
 				)
@@ -526,7 +526,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			}
 			log.Logvf(
 				log.DebugHigh,
-				"dropping temporary collection admin.%v",
+				"dropping temporary collection admin.%#q",
 				cleanupArg.tempCollectionName,
 			)
 			ctx, cancel := restore.writeContext()
@@ -537,7 +537,7 @@ func (restore *MongoRestore) RestoreUsersOrRoles(users, roles *intents.Intent) e
 			if e != nil {
 				log.Logvf(
 					log.Info,
-					"error dropping temporary collection admin.%v: %v",
+					"error dropping temporary collection admin.%#q: %v",
 					cleanupArg.tempCollectionName,
 					e,
 				)
@@ -609,7 +609,7 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			// so we can assume up to version 3.
 			log.Logvf(
 				log.Always,
-				"no system.version bson file found in '%v' database dump",
+				"no system.version bson file found in %#q database dump",
 				restore.ToolOptions.DB,
 			)
 			log.Logv(
