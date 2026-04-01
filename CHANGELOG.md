@@ -1,5 +1,80 @@
 # Database Tools Changelog
 
+## 100.16.0
+
+_Released 2026-04-01_
+
+We are pleased to announce version 100.16.0 of the MongoDB Database Tools.
+
+The highlight for this release is MongoDB Server 8.3.0 support, as well as support for new server
+features being developed internally. There are a few important changes to note:
+
+- When running against server version 8.3, `mongoexport` no longer supports exporting collections in
+  the `system.buckets.` namespace.
+- When running against server version 8.3 with authentication enabled, `mongodump` will need the
+  `performRawDataOperations` permission, in addition to `find`. The built-in `backup` role contains
+  this permission.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+### Investigation
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4039'>TOOLS-4039</a>] -         Investigate changes in SERVER-114086: Explicitly replicate multikey writes in a multi-doc transaction
+</li>
+</ul>
+
+### Build Failure
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4108'>TOOLS-4108</a>] -         Doc missing in capped collection | failed: ctc_rs_dump_oplog_concurrency_fsm_v60_to_v60 on mongodump-v60-to-v60-amazon2-arm64 [mongo-tools @ 0bfec5b8] (job_log_job11)
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4141'>TOOLS-4141</a>] -         system-failed: qa-tests-8.2 on windows [mongo-tools @ 862b2f2c]
+</li>
+</ul>
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4145'>TOOLS-4145</a>] -         mongorestore failure when batch size exceeds maxMessageSizeBytes
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4154'>TOOLS-4154</a>] -         Mongorestore is not handling empty partialFilterExpression option correctly
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4120'>TOOLS-4120</a>] -         Ignore &quot;cu&quot; type oplog entries for dump/restore
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4127'>TOOLS-4127</a>] -         Add pre-release 8.3 version to testing matrix
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4130'>TOOLS-4130</a>] -         Run passthrough tests with 8.1 and 8.2
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4134'>TOOLS-4134</a>] -         Add basic timeseries tests for import/export
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4136'>TOOLS-4136</a>] -         Add passthrough tests for 8.3
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4146'>TOOLS-4146</a>] -         Add rawData parameter to dump/restore + import/export
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4147'>TOOLS-4147</a>] -         Remove workaround for rawData on admin db
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4150'>TOOLS-4150</a>] -         Ensure tools work with changes in SPM-4355
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4153'>TOOLS-4153</a>] -         Enable 8.3 in linux package repos
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4158'>TOOLS-4158</a>] -         All tools should properly escape DB and collection names in output
+</li>
+</ul>
+
 ## 100.15.0
 
 _Released 2026-03-11_
@@ -17,8 +92,8 @@ can be asked on the [/r/mongodb subreddit](https://www.reddit.com/r/mongodb/). B
 requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a
 list of current issues can be found.
 
-<h2>        Bug
-</h2>
+<h3>        Bug
+</h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4105'>TOOLS-4105</a>] -         Mongorestore crashes when applying a collMod oplog event with forceNonUnique
 </li>
@@ -26,14 +101,14 @@ list of current issues can be found.
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4070'>TOOLS-4070</a>] -         Mongorestore --bypassDocumentValidation does not bypass document validation during oplog restore
 </li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4071'>TOOLS-4071</a>] -         Mongorestore crashes when applying a collMod oplog event which does not specify expireAfterSeconds or hidden 
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4071'>TOOLS-4071</a>] -         Mongorestore crashes when applying a collMod oplog event which does not specify expireAfterSeconds or hidden
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4075'>TOOLS-4075</a>] -         Mongorestore crashes when applying a collMod oplog event that converts an index to a TTL index
 </li>
 </ul>
-                
-<h2>        Task
-</h2>
+
+<h3>        Task
+</h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3968'>TOOLS-3968</a>] -         Update tools to driver v2
 </li>
@@ -65,8 +140,8 @@ Please make sure to tag forum posts with `database-tools`. Bugs and feature requ
 in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
 can be found.
 
-<h2>        Bug
-</h2>
+<h3>        Bug
+</h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4037'>TOOLS-4037</a>] -         Multiple vulnerabilities found in mongodb tools installation
 </li>
