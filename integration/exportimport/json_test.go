@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package importexport
+package exportimport
 
 import (
 	"os"
@@ -19,7 +19,7 @@ import (
 
 // TestRoundTripFieldsJSON verifies that mongoexport --fields limits which fields
 // appear in JSON export output, and that _id is included (unlike CSV).
-func (s *ImportExportSuite) TestRoundTripFieldsJSON() {
+func (s *ExportImportSuite) TestRoundTripFieldsJSON() {
 	const dbName = "mongoimport_roundtrip_fieldsjson_test"
 
 	client := s.Client()
@@ -76,7 +76,7 @@ func (s *ImportExportSuite) TestRoundTripFieldsJSON() {
 // TestRoundTripJSONArray verifies that mongoexport --jsonArray produces a JSON
 // array, that mongoimport rejects it without --jsonArray, and accepts it with
 // --jsonArray.
-func (s *ImportExportSuite) TestRoundTripJSONArray() {
+func (s *ExportImportSuite) TestRoundTripJSONArray() {
 	const dbName = "mongoimport_roundtrip_jsonarray_test"
 	const collName = "data"
 
@@ -155,7 +155,7 @@ func (s *ImportExportSuite) TestRoundTripJSONArray() {
 	}
 }
 
-func (s *ImportExportSuite) exportJSONAndImport(dbName, fields string, db *mongo.Database) {
+func (s *ExportImportSuite) exportJSONAndImport(dbName, fields string, db *mongo.Database) {
 	s.Require().NoError(db.Collection("dest").Drop(s.Context()))
 
 	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")

@@ -1,4 +1,4 @@
-package importexport
+package exportimport
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-func (s *ImportExportSuite) TestTimeseries() {
+func (s *ExportImportSuite) TestTimeseries() {
 	s.RequireFCVAtLeast("5.0")
 
 	client := s.Client()

@@ -1,4 +1,4 @@
-package importexport
+package exportimport
 
 import (
 	"os"
@@ -11,7 +11,7 @@ import (
 // TestImportModeUpsertIDSubdoc verifies that --mode=upsert uses the full
 // subdocument _id as the upsert key, preserving field order through a
 // round-trip of export → upsert-replace → re-import.
-func (s *ImportExportSuite) TestImportModeUpsertIDSubdoc() {
+func (s *ExportImportSuite) TestImportModeUpsertIDSubdoc() {
 	const (
 		dbName   = "mongoimport_upsert_subdoc_test"
 		collName = "c"
@@ -58,7 +58,7 @@ func (s *ImportExportSuite) TestImportModeUpsertIDSubdoc() {
 	})
 }
 
-func (s *ImportExportSuite) writeSubdocIDFile(xFieldValue string) string {
+func (s *ExportImportSuite) writeSubdocIDFile(xFieldValue string) string {
 	f, err := os.CreateTemp(s.T().TempDir(), "subdoc-*.json")
 	s.Require().NoError(err, "create temp file")
 	for _, doc := range subdocIDDocs(xFieldValue) {
