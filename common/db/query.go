@@ -53,9 +53,7 @@ func (q *DeferredQuery) Iter(version Version) (*mongo.Cursor, error) {
 		opts.SetOplogReplay(true)
 	}
 
-	// TODO (SERVER-121847): The backup role is missing the rawData privilege on the admin db; this
-	// server ticket will fix that. When that happens, remove this special case for "admin".
-	if version.SupportsRawData() && q.Coll.Database().Name() != "admin" {
+	if version.SupportsRawData() {
 		err := xoptions.SetInternalFindOptions(opts, "rawData", true)
 		if err != nil {
 			return nil, err

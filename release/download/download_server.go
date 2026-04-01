@@ -62,7 +62,11 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 	// This is useful to find a server release that is not in the feed.
 	versionGuess := ""
 	for _, v := range f.Versions {
-		if serverVersion != "latest" && strings.Contains(v.Version, "-rc") {
+		// Most of the time we want to skip release candidates in the feed, so that we test (for
+		// example) 8.0.5 rather than 8.0.6-rc1. For adding new version support, though, we often want
+		// to explicitly test against the latest rc, so we also check for that here.
+		releaseCandidateOk := serverVersion == v.Version || serverVersion == "latest"
+		if strings.Contains(v.Version, "-rc") && !releaseCandidateOk {
 			fmt.Printf("Skipping release candidate: %v\n", v.Version)
 			continue
 		}

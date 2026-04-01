@@ -1620,7 +1620,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.3.0-rc3"
+          mongo_version: "8.3.0-rc4"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1646,7 +1646,7 @@ tasks:
               concat: " --auth"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.3.0-rc3"
+          mongo_version: "8.3.0-rc4"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1670,7 +1670,7 @@ tasks:
       - command: expansions.update
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.3.0-rc3"
+          mongo_version: "8.3.0-rc4"
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
@@ -1690,7 +1690,7 @@ tasks:
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
-          mongo_version: "8.3.0-rc3"
+          mongo_version: "8.3.0-rc4"
       - func: "start mongod"
         vars:
           AWS_AUTH: "true"
@@ -2104,7 +2104,7 @@ tasks:
       - func: "setup credentials"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.3.0-rc3"
+          mongo_version: "8.3.0-rc4"
       - func: "run make target"
         vars:
           target: build
@@ -2274,7 +2274,7 @@ tasks:
       - func: "setup credentials"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "8.3.0-rc3"
+          mongo_version: "8.3.0-rc4"
       - func: "run make target"
         vars:
           target: build
