@@ -15,7 +15,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"gopkg.in/tomb.v2"
 )
 
 func init() {
@@ -447,7 +446,6 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -469,7 +467,6 @@ func TestProcessDocuments(t *testing.T) {
 			iw := &importWorker{
 				unprocessedDataChan:   inputChannel,
 				processedDocumentChan: outputChannel,
-				tomb:                  &tomb.Tomb{},
 			}
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
@@ -508,12 +505,10 @@ func TestDoSequentialStreaming(t *testing.T) {
 				{
 					unprocessedDataChan:   workerInputChannel[0],
 					processedDocumentChan: workerOutputChannel[0],
-					tomb:                  &tomb.Tomb{},
 				},
 				{
 					unprocessedDataChan:   workerInputChannel[1],
 					processedDocumentChan: workerOutputChannel[1],
-					tomb:                  &tomb.Tomb{},
 				},
 			}
 			Convey(
