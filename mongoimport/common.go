@@ -14,14 +14,13 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"gopkg.in/tomb.v2"
+	"golang.org/x/sync/errgroup"
 )
 
 type ParseGrace int
@@ -71,9 +70,6 @@ type importWorker struct {
 
 	// used to stream the processed document back to the caller
 	processedDocumentChan chan bson.D
-
-	// used to synchronize all worker goroutines
-	tomb *tomb.Tomb
 }
 
 // an interface for tracking the number of bytes, which is used in mongoimport to feed
@@ -458,13 +454,12 @@ func streamDocuments(
 	numDecoders int,
 	readDocs chan Converter,
 	outputChan chan bson.D,
-) (retErr error) {
+) error {
 	if numDecoders == 0 {
 		numDecoders = 1
 	}
 	var importWorkers []*importWorker
-	wg := new(sync.WaitGroup)
-	importTomb := new(tomb.Tomb)
+	eg, ctx := errgroup.WithContext(ctx)
 	inChan := readDocs
 	outChan := outputChan
 	for i := 0; i < numDecoders; i++ {
@@ -475,20 +470,11 @@ func streamDocuments(
 		iw := &importWorker{
 			unprocessedDataChan:   inChan,
 			processedDocumentChan: outChan,
-			tomb:                  importTomb,
 		}
 		importWorkers = append(importWorkers, iw)
-		wg.Add(1)
-		go func(iw importWorker) {
-			defer wg.Done()
-			// only set the first worker error and cause sibling goroutines
-			// to terminate immediately
-			err := iw.processDocuments(ctx, ordered)
-			if err != nil && retErr == nil {
-				retErr = err
-				iw.tomb.Kill(err)
-			}
-		}(*iw)
+		eg.Go(func() error {
+			return iw.processDocuments(ctx, ordered)
+		})
 	}
 
 	// if ordered, we have to coordinate the sequence in which processed
@@ -496,9 +482,9 @@ func streamDocuments(
 	if ordered {
 		doSequentialStreaming(ctx, importWorkers, readDocs, outputChan)
 	}
-	wg.Wait()
+	err := eg.Wait()
 	close(outputChan)
-	return
+	return err
 }
 
 // coercionError should only be used as a specific error type to check
@@ -875,11 +861,7 @@ func (iw *importWorker) processDocuments(ctx context.Context, ordered bool) erro
 			case iw.processedDocumentChan <- document:
 			case <-ctx.Done():
 				return nil
-			case <-iw.tomb.Dying():
-				return nil
 			}
-		case <-iw.tomb.Dying():
-			return nil
 		case <-ctx.Done():
 			return nil
 		}
