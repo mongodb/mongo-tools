@@ -18,18 +18,6 @@ func (s *ImportExportSuite) TestTimeseries() {
 	serverVersion := s.ServerVersion()
 
 	fromDBName, toDBName, collName := "fromdb", "todb", "tscoll"
-
-	cleanup := func() {
-		err := client.Database(fromDBName).Drop(s.Context())
-		s.Require().NoError(err)
-
-		err = client.Database(toDBName).Drop(s.Context())
-		s.Require().NoError(err)
-	}
-
-	cleanup()
-	defer cleanup()
-
 	testutil.SetUpTimeseries(s.T(), fromDBName, collName)
 
 	s.Run("logical documents", func() {

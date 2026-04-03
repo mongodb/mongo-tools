@@ -77,14 +77,11 @@ func (s *ImportExportSuite) ImportOptions(dbName, collName string) mongoimport.O
 	}
 }
 
-func (s *ImportExportSuite) newClient(dbName string) *mongo.Client {
+func (s *ImportExportSuite) newClient() *mongo.Client {
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	s.Require().NoError(err, "should create session provider")
 	client, err := sessionProvider.GetSession()
 	s.Require().NoError(err, "should get session")
-	s.T().Cleanup(func() {
-		_ = client.Database(dbName).Drop(context.Background())
-	})
 	return client
 }
 

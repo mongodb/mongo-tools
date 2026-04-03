@@ -22,7 +22,7 @@ import (
 func (s *ImportExportSuite) TestRoundTripFieldsJSON() {
 	const dbName = "mongoimport_roundtrip_fieldsjson_test"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	db := client.Database(dbName)
 	_, err := db.Collection("source").InsertMany(s.Context(), []any{
@@ -80,7 +80,7 @@ func (s *ImportExportSuite) TestRoundTripJSONArray() {
 	const dbName = "mongoimport_roundtrip_jsonarray_test"
 	const collName = "data"
 
-	client := s.newClient(dbName)
+	client := s.newClient()
 
 	coll := client.Database(dbName).Collection(collName)
 	docs := make([]any, 20)
