@@ -8,6 +8,7 @@ package mongoimport
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"testing"
 
@@ -40,7 +41,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 
@@ -60,7 +61,7 @@ func TestTSVStreamDocument(t *testing.T) {
 			So(err, ShouldBeNil)
 			r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 2)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 
@@ -86,7 +87,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 
@@ -112,7 +113,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 
@@ -139,7 +140,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 
@@ -171,7 +172,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, len(expectedReads))
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			for i := 0; i < len(expectedReads); i++ {
 				for j, readDocument := range <-docChan {
 					So(readDocument.Key, ShouldEqual, expectedReads[i][j].Key)
@@ -207,7 +208,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 2)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedReadOne)
 			So(<-docChan, ShouldResemble, expectedReadTwo)
 		})
@@ -234,7 +235,7 @@ func TestTSVStreamDocument(t *testing.T) {
 				So(err, ShouldBeNil)
 				r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
 				docChan := make(chan bson.D, 50)
-				So(r.StreamDocument(true, docChan), ShouldBeNil)
+				So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 				So(<-docChan, ShouldResemble, expectedReadOne)
 				So(<-docChan, ShouldResemble, expectedReadTwo)
 			})
