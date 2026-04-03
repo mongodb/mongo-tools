@@ -161,7 +161,7 @@ func (r *TSVInputReader) StreamDocument(
 	})
 
 	eg.Go(func() error {
-		return streamDocuments(ordered, r.numDecoders, tsvRecordChan, readDocs)
+		return streamDocuments(ctx, ordered, r.numDecoders, tsvRecordChan, readDocs)
 	})
 
 	return eg.Wait()

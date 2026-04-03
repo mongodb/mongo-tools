@@ -7,6 +7,7 @@
 package mongoimport
 
 import (
+	"context"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/log"
@@ -451,7 +452,7 @@ func TestProcessDocuments(t *testing.T) {
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
 			close(inputChannel)
-			So(iw.processDocuments(true), ShouldBeNil)
+			So(iw.processDocuments(context.Background(), true), ShouldBeNil)
 			doc1, open := <-outputChannel
 			So(doc1, ShouldResemble, expectedDocuments[0])
 			So(open, ShouldEqual, true)
@@ -473,7 +474,7 @@ func TestProcessDocuments(t *testing.T) {
 			inputChannel <- csvConverters[0]
 			inputChannel <- csvConverters[1]
 			close(inputChannel)
-			So(iw.processDocuments(false), ShouldBeNil)
+			So(iw.processDocuments(context.Background(), false), ShouldBeNil)
 			doc1, open := <-outputChannel
 			So(doc1, ShouldResemble, expectedDocuments[0])
 			So(open, ShouldEqual, true)
@@ -521,14 +522,19 @@ func TestDoSequentialStreaming(t *testing.T) {
 					// start goroutines to do sequential processing
 					for _, iw := range importWorkers {
 						//nolint:errcheck
-						go iw.processDocuments(true)
+						go iw.processDocuments(context.Background(), true)
 					}
 					// feed in a bunch of documents
 					for _, inputCSVDocument := range csvConverters {
 						inputChannel <- inputCSVDocument
 					}
 					close(inputChannel)
-					doSequentialStreaming(importWorkers, inputChannel, outputChannel)
+					doSequentialStreaming(
+						context.Background(),
+						importWorkers,
+						inputChannel,
+						outputChannel,
+					)
 					for _, document := range expectedDocuments {
 						So(<-outputChannel, ShouldResemble, document)
 					}
@@ -556,7 +562,10 @@ func TestStreamDocuments(t *testing.T) {
 					inputChannel <- csvConverter
 				}
 				close(inputChannel)
-				So(streamDocuments(true, 3, inputChannel, outputChannel), ShouldBeNil)
+				So(
+					streamDocuments(context.Background(), true, 3, inputChannel, outputChannel),
+					ShouldBeNil,
+				)
 
 				// ensure documents are streamed out and processed in the correct manner
 				for _, expectedDocument := range expectedDocuments {
@@ -578,7 +587,10 @@ func TestStreamDocuments(t *testing.T) {
 			close(inputChannel)
 
 			// ensure that an error is returned on the error channel
-			So(streamDocuments(true, 3, inputChannel, outputChannel), ShouldNotBeNil)
+			So(
+				streamDocuments(context.Background(), true, 3, inputChannel, outputChannel),
+				ShouldNotBeNil,
+			)
 		})
 	})
 }
