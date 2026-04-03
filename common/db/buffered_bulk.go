@@ -75,10 +75,12 @@ func newBufferedBulkInserter(
 		collection:    collection,
 		bulkWriteOpts: bulkOpts,
 		docLimit:      docLimit,
-		// We set the byte limit to be slightly lower than maxMessageSizeBytes so it can fit in one OP_MSG.
-		// This may not always be perfect, e.g. we don't count update selectors in byte totals, but it should
-		// be good enough to keep memory consumption in check.
-		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 100,
+		// Reserve space for the OP_MSG header (16 bytes), flagBits (4 bytes),
+		// command body section (insert command + collection name + options ~200 bytes),
+		// and document sequence section header (4 + 4 + identifier bytes).
+		// The previous margin of 100 bytes was insufficient and caused
+		// "message msgLen is invalid" errors on collections with large documents.
+		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 1024,
 		writeModels:        make([]mongo.WriteModel, 0, docLimit),
 		canDoZeroTimestamp: zeroTimestampOk,
 	}
