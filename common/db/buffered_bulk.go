@@ -75,11 +75,10 @@ func newBufferedBulkInserter(
 		collection:    collection,
 		bulkWriteOpts: bulkOpts,
 		docLimit:      docLimit,
-		// Reserve space for the OP_MSG header (16 bytes), flagBits (4 bytes),
-		// command body section (insert command + collection name + options ~200 bytes),
-		// and document sequence section header (4 + 4 + identifier bytes).
-		// The previous margin of 100 bytes was insufficient and caused
-		// "message msgLen is invalid" errors on collections with large documents.
+		// Leave room for OP_MSG wire overhead (header, command body, namespace, etc).
+		// The previous margin of 100 was too small -- namespaces longer than ~11 chars
+		// total pushed the actual message past maxMessageSizeBytes. 1024 is conservative
+		// but safe for any realistic namespace.
 		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 1024,
 		writeModels:        make([]mongo.WriteModel, 0, docLimit),
 		canDoZeroTimestamp: zeroTimestampOk,

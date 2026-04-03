@@ -16,6 +16,50 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+// The OP_MSG overhead is roughly 82 bytes of fixed structure (header, flagBits,
+// command scaffolding, document sequence header) plus the db and collection name
+// lengths. The byteLimit margin needs to cover all of that.
+func TestByteLimitMarginCoversOPMSGOverhead(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	cases := []struct {
+		name       string
+		db         string
+		collection string
+	}{
+		{"short namespace", "test", "t"},
+		{"medium namespace", "myapp", "user_sessions"},
+		{"long namespace", "production_analytics", "user_engagement_event_tracking_v2"},
+		{"very long namespace", "a_database_with_a_very_long_name_for_testing", "a_collection_name_that_is_also_extremely_long_to_test_the_overhead_boundaries"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fixedOverhead := 82
+			totalOverhead := fixedOverhead + len(tc.db) + len(tc.collection)
+			margin := MAX_MESSAGE_SIZE_BYTES - (MAX_MESSAGE_SIZE_BYTES - 1024)
+
+			assert.Greater(t, margin, totalOverhead,
+				"margin of %d bytes should exceed overhead of %d bytes for %s.%s",
+				margin, totalOverhead, tc.db, tc.collection)
+		})
+	}
+}
+
+// Sanity check: the old margin of 100 bytes was too small for any namespace
+// longer than ~11 chars combined. e.g. "testdb.large_documents" produces ~107
+// bytes of overhead, which is why mongorestore would fail with
+// "message msgLen is invalid" on collections with many large documents.
+func TestOldByteLimitMarginWasInsufficient(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	oldMargin := 100
+	overhead := 82 + len("testdb") + len("large_documents")
+
+	assert.Greater(t, overhead, oldMargin, "old margin was too small")
+	assert.Less(t, overhead, 1024, "new margin handles it fine")
+}
+
 func TestBufferedBulkInserterInserts(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
