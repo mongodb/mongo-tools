@@ -711,31 +711,6 @@
       "version": "v0.31.0"
     },
     {
-      "bom-ref": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://gopkg.in/tomb.v2"
-        },
-        {
-          "type": "website",
-          "url": "https://pkg.go.dev/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637"
-        }
-      ],
-      "group": "gopkg.in",
-      "licenses": [
-        {
-          "license": {
-            "name": "BSD-3-Clause"
-          }
-        }
-      ],
-      "name": "tomb.v2",
-      "purl": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637",
-      "type": "library",
-      "version": "v2.0.0-20161208151619-d5d1b5820637"
-    },
-    {
       "bom-ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
       "externalReferences": [
         {
@@ -849,9 +824,6 @@
       "ref": "pkg:golang/golang.org/x/text@v0.31.0"
     },
     {
-      "ref": "pkg:golang/gopkg.in/tomb.v2@v2.0.0-20161208151619-d5d1b5820637"
-    },
-    {
       "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
     },
     {
@@ -859,7 +831,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-02-02T18:27:49.096517+00:00",
+    "timestamp": "2026-04-03T21:14:21.710786+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -903,7 +875,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 40,
+  "version": 41,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
