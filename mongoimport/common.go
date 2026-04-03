@@ -134,19 +134,6 @@ func newBomDiscardingReader(r io.Reader) *bomDiscardingReader {
 	return &bomDiscardingReader{buf: bufio.NewReader(r)}
 }
 
-const quorum = 2
-
-// channelQuorumError takes a channel and either returns the first non-nil error received on the
-// channel or nil if up to 2 nil errors are received.
-func channelQuorumError(ch <-chan error) (err error) {
-	for i := 0; i < quorum; i++ {
-		if err = <-ch; err != nil {
-			return
-		}
-	}
-	return
-}
-
 // constructUpsertDocument constructs a BSON document to use for upserts.
 func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 	upsertDocument := bson.D{}

@@ -996,7 +996,7 @@ func TestImportDocuments(t *testing.T) {
 			So(err, ShouldBeNil)
 			jsonInputReader := NewJSONInputReader(true, true, fileHandle, 1)
 			docChan := make(chan bson.D, 1)
-			So(jsonInputReader.StreamDocument(true, docChan), ShouldNotBeNil)
+			So(jsonInputReader.StreamDocument(context.Background(), true, docChan), ShouldNotBeNil)
 		})
 		Convey("an error should be thrown for invalid CSV import on test data", func() {
 			imp, err := NewMongoImport()

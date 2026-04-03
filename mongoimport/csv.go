@@ -7,12 +7,15 @@
 package mongoimport
 
 import (
+	"context"
 	gocsv "encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/mongodb/mongo-tools/mongoimport/csv"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"golang.org/x/sync/errgroup"
 )
 
 // CSVInputReader implements the InputReader interface for CSV input types.
@@ -111,42 +114,47 @@ func (r *CSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) (err 
 // StreamDocument takes a boolean indicating if the documents should be streamed
 // in read order and a channel on which to stream the documents processed from
 // the underlying reader. Returns a non-nil error if streaming fails.
-func (r *CSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (retErr error) {
+func (r *CSVInputReader) StreamDocument(
+	ctx context.Context,
+	ordered bool,
+	readDocs chan bson.D,
+) error {
 	csvRecordChan := make(chan Converter, r.numDecoders)
-	csvErrChan := make(chan error)
+	eg, ctx := errgroup.WithContext(ctx)
 
-	// begin reading from source
-	go func() {
-		var err error
+	eg.Go(func() error {
+		defer close(csvRecordChan)
 		for {
+			var err error
 			r.csvRecord, err = r.csvReader.Read()
 			if err != nil {
-				close(csvRecordChan)
-				if err == io.EOF {
-					csvErrChan <- nil
-				} else {
-					r.numProcessed++
-					csvErrChan <- fmt.Errorf("read error on entry #%v: %v", r.numProcessed, err)
+				if errors.Is(err, io.EOF) {
+					return nil
 				}
-				return
+				r.numProcessed++
+				return fmt.Errorf("read error on entry #%v: %v", r.numProcessed, err)
 			}
-			csvRecordChan <- CSVConverter{
+			select {
+			case csvRecordChan <- CSVConverter{
 				colSpecs:            r.colSpecs,
 				data:                r.csvRecord,
 				index:               r.numProcessed,
 				ignoreBlanks:        r.ignoreBlanks,
 				useArrayIndexFields: r.useArrayIndexFields,
 				rejectWriter:        r.csvRejectWriter,
+			}:
+				r.numProcessed++
+			case <-ctx.Done():
+				return nil
 			}
-			r.numProcessed++
 		}
-	}()
+	})
 
-	go func() {
-		csvErrChan <- streamDocuments(ordered, r.numDecoders, csvRecordChan, readDocs)
-	}()
+	eg.Go(func() error {
+		return streamDocuments(ordered, r.numDecoders, csvRecordChan, readDocs)
+	})
 
-	return channelQuorumError(csvErrChan)
+	return eg.Wait()
 }
 
 // Convert implements the Converter interface for CSV input. It converts a

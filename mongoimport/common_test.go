@@ -7,7 +7,6 @@
 package mongoimport
 
 import (
-	"io"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/log"
@@ -580,31 +579,6 @@ func TestStreamDocuments(t *testing.T) {
 
 			// ensure that an error is returned on the error channel
 			So(streamDocuments(true, 3, inputChannel, outputChannel), ShouldNotBeNil)
-		})
-	})
-}
-
-func TestChannelQuorumError(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("Given a channel and a quorum...", t, func() {
-		Convey("an error should be returned if one is received", func() {
-			ch := make(chan error, 2)
-			ch <- nil
-			ch <- io.EOF
-			So(channelQuorumError(ch), ShouldNotBeNil)
-		})
-		Convey("no error should be returned if none is received", func() {
-			ch := make(chan error, 2)
-			ch <- nil
-			ch <- nil
-			So(channelQuorumError(ch), ShouldBeNil)
-		})
-		Convey("no error should be returned if up to quorum nil errors are received", func() {
-			ch := make(chan error, 3)
-			ch <- nil
-			ch <- nil
-			ch <- io.EOF
-			So(channelQuorumError(ch), ShouldBeNil)
 		})
 	})
 }
