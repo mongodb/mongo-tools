@@ -154,7 +154,7 @@ func (r *JSONInputReader) StreamDocument(
 	})
 
 	eg.Go(func() error {
-		return streamDocuments(ordered, r.numDecoders, rawChan, readChan)
+		return streamDocuments(ctx, ordered, r.numDecoders, rawChan, readChan)
 	})
 
 	return eg.Wait()
