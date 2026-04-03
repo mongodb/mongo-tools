@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"sync/atomic"
 
 	"github.com/ccoveille/go-safecast/v2"
@@ -26,7 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/tomb.v2"
 )
 
 // Input format types accepted by mongoimport.
@@ -72,10 +70,6 @@ type MongoImport struct {
 
 	// SessionProvider is used for connecting to the database
 	SessionProvider *db.SessionProvider
-
-	// the tomb is used to synchronize ingestion goroutines and causes
-	// other sibling goroutines to terminate immediately if one errors out
-	tomb.Tomb
 
 	// fields to use for upsert operations
 	upsertFields []string
@@ -416,7 +410,7 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 // ingestDocuments accepts a channel from which it reads documents to be inserted
 // into the target collection. It spreads the insert/upsert workload across one
 // or more workers.
-func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) (retErr error) {
+func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) error {
 	numInsertionWorkers := imp.IngestOptions.NumInsertionWorkers
 	if numInsertionWorkers <= 0 {
 		numInsertionWorkers = 1
@@ -430,26 +424,18 @@ func (imp *MongoImport) ingestDocuments(readDocs chan bson.D) (retErr error) {
 	// 3. There is an insertion/update error - e.g. duplicate key
 	//    error - and stopOnError is set to true
 
-	wg := new(sync.WaitGroup)
+	eg, ctx := errgroup.WithContext(context.Background())
 	for i := 0; i < numInsertionWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// only set the first insertion error and cause sibling goroutines to terminate immediately
-			err := imp.runInsertionWorker(readDocs)
-			if err != nil && retErr == nil {
-				retErr = err
-				imp.Kill(err)
-			}
-		}()
+		eg.Go(func() error {
+			return imp.runInsertionWorker(ctx, readDocs)
+		})
 	}
-	wg.Wait()
-	return
+	return eg.Wait()
 }
 
 // runInsertionWorker is a helper to InsertDocuments - it reads document off
 // the read channel and prepares then in batches for insertion into the database.
-func (imp *MongoImport) runInsertionWorker(readDocs chan bson.D) (err error) {
+func (imp *MongoImport) runInsertionWorker(ctx context.Context, readDocs chan bson.D) (err error) {
 	session, err := imp.SessionProvider.GetSession()
 	if err != nil {
 		return fmt.Errorf("error connecting to mongod: %v", err)
@@ -478,7 +464,7 @@ readLoop:
 			if db.FilterError(imp.IngestOptions.StopOnError, err) != nil {
 				return err
 			}
-		case <-imp.Dying():
+		case <-ctx.Done():
 			return nil
 		}
 	}
