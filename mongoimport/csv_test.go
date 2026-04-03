@@ -8,6 +8,7 @@ package mongoimport
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 	"strings"
@@ -45,7 +46,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldNotBeNil)
 		})
 		Convey("escaped quotes are parsed correctly", func() {
 			contents := `1, 2, "foo""bar"`
@@ -63,7 +64,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 		})
 		Convey("multiple escaped quotes separated by whitespace parsed correctly", func() {
 			contents := `1, 2, "foo"" ""bar"`
@@ -86,7 +87,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 		Convey("integer valued strings should be converted", func() {
@@ -110,7 +111,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 		Convey("extra fields should be prefixed with 'field'", func() {
@@ -135,7 +136,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedRead)
 		})
 		Convey("nested CSV fields should be imported properly", func() {
@@ -161,7 +162,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 4)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 
 			readDocument := <-docChan
 			So(readDocument[0], ShouldResemble, expectedRead[0])
@@ -190,7 +191,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldNotBeNil)
 		})
 		Convey("nested CSV fields causing header collisions should error", func() {
 			contents := `1, 2f , " 3e" , " may", june`
@@ -208,7 +209,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldNotBeNil)
 		})
 		Convey("calling StreamDocument() for CSVs should return next set of "+
 			"values", func() {
@@ -237,7 +238,7 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 			)
 			docChan := make(chan bson.D, 2)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedReadOne)
 			So(<-docChan, ShouldResemble, expectedReadTwo)
 		})
@@ -263,7 +264,7 @@ func TestCSVStreamDocument(t *testing.T) {
 			So(err, ShouldBeNil)
 			r := NewCSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, len(expectedReads))
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			for _, expectedRead := range expectedReads {
 				for i, readDocument := range <-docChan {
 					So(readDocument.Key, ShouldResemble, expectedRead[i].Key)
@@ -505,7 +506,7 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			So(err, ShouldBeNil)
 			r := NewCSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
 			docChan := make(chan bson.D, 50)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			So(r.StreamDocument(context.Background(), true, docChan), ShouldBeNil)
 			So(<-docChan, ShouldResemble, expectedReadOne)
 			So(<-docChan, ShouldResemble, expectedReadTwo)
 		})

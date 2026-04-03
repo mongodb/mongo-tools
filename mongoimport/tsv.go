@@ -8,11 +8,14 @@ package mongoimport
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -121,43 +124,47 @@ func (r *TSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) (err 
 // StreamDocument takes a boolean indicating if the documents should be streamed
 // in read order and a channel on which to stream the documents processed from
 // the underlying reader. Returns a non-nil error if streaming fails.
-func (r *TSVInputReader) StreamDocument(ordered bool, readDocs chan bson.D) (retErr error) {
+func (r *TSVInputReader) StreamDocument(
+	ctx context.Context,
+	ordered bool,
+	readDocs chan bson.D,
+) error {
 	tsvRecordChan := make(chan Converter, r.numDecoders)
-	tsvErrChan := make(chan error)
+	eg, ctx := errgroup.WithContext(ctx)
 
-	// begin reading from source
-	go func() {
-		var err error
+	eg.Go(func() error {
+		defer close(tsvRecordChan)
 		for {
+			var err error
 			r.tsvRecord, err = r.tsvReader.ReadString(entryDelimiter)
 			if err != nil {
-				close(tsvRecordChan)
-				if err == io.EOF {
-					tsvErrChan <- nil
-				} else {
-					r.numProcessed++
-					tsvErrChan <- fmt.Errorf("read error on entry #%v: %v", r.numProcessed, err)
+				if errors.Is(err, io.EOF) {
+					return nil
 				}
-				return
+				r.numProcessed++
+				return fmt.Errorf("read error on entry #%v: %v", r.numProcessed, err)
 			}
-			tsvRecordChan <- TSVConverter{
+			select {
+			case tsvRecordChan <- TSVConverter{
 				colSpecs:            r.colSpecs,
 				data:                r.tsvRecord,
 				index:               r.numProcessed,
 				ignoreBlanks:        r.ignoreBlanks,
 				useArrayIndexFields: r.useArrayIndexFields,
 				rejectWriter:        r.tsvRejectWriter,
+			}:
+				r.numProcessed++
+			case <-ctx.Done():
+				return nil
 			}
-			r.numProcessed++
 		}
-	}()
+	})
 
-	// begin processing read bytes
-	go func() {
-		tsvErrChan <- streamDocuments(ordered, r.numDecoders, tsvRecordChan, readDocs)
-	}()
+	eg.Go(func() error {
+		return streamDocuments(ordered, r.numDecoders, tsvRecordChan, readDocs)
+	})
 
-	return channelQuorumError(tsvErrChan)
+	return eg.Wait()
 }
 
 // Convert implements the Converter interface for TSV input. It converts a

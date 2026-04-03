@@ -134,19 +134,6 @@ func newBomDiscardingReader(r io.Reader) *bomDiscardingReader {
 	return &bomDiscardingReader{buf: bufio.NewReader(r)}
 }
 
-const quorum = 2
-
-// channelQuorumError takes a channel and either returns the first non-nil error received on the
-// channel or nil if up to 2 nil errors are received.
-func channelQuorumError(ch <-chan error) (err error) {
-	for i := 0; i < quorum; i++ {
-		if err = <-ch; err != nil {
-			return
-		}
-	}
-	return
-}
-
 // constructUpsertDocument constructs a BSON document to use for upserts.
 func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 	upsertDocument := bson.D{}
@@ -454,8 +441,8 @@ func isNatNum(s string) (int, bool) {
 func streamDocuments(
 	ordered bool,
 	numDecoders int,
-	readDocs chan Converter,
-	outputChan chan bson.D,
+	recordChan chan Converter,
+	readDocs chan bson.D,
 ) (retErr error) {
 	if numDecoders == 0 {
 		numDecoders = 1
@@ -463,8 +450,8 @@ func streamDocuments(
 	var importWorkers []*importWorker
 	wg := new(sync.WaitGroup)
 	importTomb := new(tomb.Tomb)
-	inChan := readDocs
-	outChan := outputChan
+	inChan := recordChan
+	outChan := readDocs
 	for i := 0; i < numDecoders; i++ {
 		if ordered {
 			inChan = make(chan Converter, workerBufferSize)
@@ -492,10 +479,10 @@ func streamDocuments(
 	// if ordered, we have to coordinate the sequence in which processed
 	// documents are passed to the main read channel
 	if ordered {
-		doSequentialStreaming(importWorkers, readDocs, outputChan)
+		doSequentialStreaming(importWorkers, recordChan, readDocs)
 	}
 	wg.Wait()
-	close(outputChan)
+	close(readDocs)
 	return
 }
 
