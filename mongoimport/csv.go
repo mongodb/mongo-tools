@@ -151,7 +151,7 @@ func (r *CSVInputReader) StreamDocument(
 	})
 
 	eg.Go(func() error {
-		return streamDocuments(ordered, r.numDecoders, csvRecordChan, readDocs)
+		return streamDocuments(ctx, ordered, r.numDecoders, csvRecordChan, readDocs)
 	})
 
 	return eg.Wait()
