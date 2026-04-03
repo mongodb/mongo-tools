@@ -39,9 +39,9 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 
 		Convey("valid TSV input file that starts with the UTF-8 BOM should "+
@@ -59,9 +59,9 @@ func TestTSVStreamDocument(t *testing.T) {
 			fileHandle, err := os.Open("testdata/test_bom.tsv")
 			So(err, ShouldBeNil)
 			r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
-			docChan := make(chan bson.D, 2)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 2)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 
 		Convey("integer valued strings should be converted tsv2", func() {
@@ -85,9 +85,9 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 
 		Convey("extra columns should be prefixed with 'field'", func() {
@@ -111,9 +111,9 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 
 		Convey("mixed values should be parsed correctly", func() {
@@ -138,9 +138,9 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 
 		Convey("calling StreamDocument() in succession for TSVs should "+
@@ -170,10 +170,10 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, len(expectedReads))
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			streamOutChan := make(chan bson.D, len(expectedReads))
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
 			for i := 0; i < len(expectedReads); i++ {
-				for j, readDocument := range <-docChan {
+				for j, readDocument := range <-streamOutChan {
 					So(readDocument.Key, ShouldEqual, expectedReads[i][j].Key)
 					So(readDocument.Value, ShouldEqual, expectedReads[i][j].Value)
 				}
@@ -206,10 +206,10 @@ func TestTSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 2)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedReadOne)
-			So(<-docChan, ShouldResemble, expectedReadTwo)
+			streamOutChan := make(chan bson.D, 2)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedReadOne)
+			So(<-streamOutChan, ShouldResemble, expectedReadTwo)
 		})
 
 		Convey("plain TSV input file sources should be parsed correctly and "+
@@ -233,10 +233,10 @@ func TestTSVStreamDocument(t *testing.T) {
 				fileHandle, err := os.Open("testdata/test.tsv")
 				So(err, ShouldBeNil)
 				r := NewTSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
-				docChan := make(chan bson.D, 50)
-				So(r.StreamDocument(true, docChan), ShouldBeNil)
-				So(<-docChan, ShouldResemble, expectedReadOne)
-				So(<-docChan, ShouldResemble, expectedReadTwo)
+				streamOutChan := make(chan bson.D, 50)
+				So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+				So(<-streamOutChan, ShouldResemble, expectedReadOne)
+				So(<-streamOutChan, ShouldResemble, expectedReadTwo)
 			})
 	})
 }

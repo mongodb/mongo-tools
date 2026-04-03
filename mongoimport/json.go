@@ -7,6 +7,7 @@
 package mongoimport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"golang.org/x/sync/errgroup"
 )
 
 // JSONInputReader is an implementation of InputReader that reads documents
@@ -106,52 +108,56 @@ func (r *JSONInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) erro
 // StreamDocument takes a boolean indicating if the documents should be streamed
 // in read order and a channel on which to stream the documents processed from
 // the underlying reader. Returns a non-nil error if encountered.
-func (r *JSONInputReader) StreamDocument(ordered bool, readChan chan bson.D) (retErr error) {
-	rawChan := make(chan Converter, r.numDecoders)
-	jsonErrChan := make(chan error)
+func (r *JSONInputReader) StreamDocument(
+	ctx context.Context,
+	ordered bool,
+	streamOutChan chan bson.D,
+) error {
+	docsInChan := make(chan Converter, r.numDecoders)
+	eg, ctx := errgroup.WithContext(ctx)
 
-	// begin reading from source
-	go func() {
-		var err error
+	eg.Go(func() error {
+		defer close(docsInChan)
 		for {
 			if r.isArray {
-				if err = r.readJSONArraySeparator(); err != nil {
-					close(rawChan)
-					if err == io.EOF {
-						jsonErrChan <- nil
-					} else {
-						r.numProcessed++
-						jsonErrChan <- fmt.Errorf("error reading separator after document #%v: %v", r.numProcessed, err)
+				if err := r.readJSONArraySeparator(); err != nil {
+					if errors.Is(err, io.EOF) {
+						return nil
 					}
-					return
+					r.numProcessed++
+					return fmt.Errorf(
+						"error reading separator after document #%v: %v",
+						r.numProcessed,
+						err,
+					)
 				}
 			}
 			rawBytes, err := r.decoder.ScanObject()
 			if err != nil {
-				close(rawChan)
-				if err == io.EOF {
-					jsonErrChan <- nil
-				} else {
-					r.numProcessed++
-					jsonErrChan <- fmt.Errorf("error processing document #%v: %v", r.numProcessed, err)
+				if errors.Is(err, io.EOF) {
+					return nil
 				}
-				return
+				r.numProcessed++
+				return fmt.Errorf("error processing document #%v: %v", r.numProcessed, err)
 			}
-			rawChan <- JSONConverter{
+			select {
+			case docsInChan <- JSONConverter{
 				data:          rawBytes,
 				index:         r.numProcessed,
 				legacyExtJSON: r.legacyExtJSON,
+			}:
+				r.numProcessed++
+			case <-ctx.Done():
+				return nil
 			}
-			r.numProcessed++
 		}
-	}()
+	})
 
-	// begin processing read bytes
-	go func() {
-		jsonErrChan <- streamDocuments(ordered, r.numDecoders, rawChan, readChan)
-	}()
+	eg.Go(func() error {
+		return streamDocuments(ordered, r.numDecoders, docsInChan, streamOutChan)
+	})
 
-	return channelQuorumError(jsonErrChan)
+	return eg.Wait()
 }
 
 // Convert implements the Converter interface for JSON input. It converts a

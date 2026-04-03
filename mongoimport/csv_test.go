@@ -44,8 +44,8 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldNotBeNil)
 		})
 		Convey("escaped quotes are parsed correctly", func() {
 			contents := `1, 2, "foo""bar"`
@@ -62,8 +62,8 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
 		})
 		Convey("multiple escaped quotes separated by whitespace parsed correctly", func() {
 			contents := `1, 2, "foo"" ""bar"`
@@ -85,9 +85,9 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 		Convey("integer valued strings should be converted", func() {
 			contents := `1, 2, " 3e"`
@@ -109,9 +109,9 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 		Convey("extra fields should be prefixed with 'field'", func() {
 			contents := `1, 2f , " 3e" , " may"`
@@ -134,9 +134,9 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedRead)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedRead)
 		})
 		Convey("nested CSV fields should be imported properly", func() {
 			contents := `1, 2f , " 3e" , " may"`
@@ -160,10 +160,10 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 4)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			streamOutChan := make(chan bson.D, 4)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
 
-			readDocument := <-docChan
+			readDocument := <-streamOutChan
 			So(readDocument[0], ShouldResemble, expectedRead[0])
 			So(readDocument[1].Key, ShouldResemble, expectedRead[1].Key)
 
@@ -189,8 +189,8 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldNotBeNil)
 		})
 		Convey("nested CSV fields causing header collisions should error", func() {
 			contents := `1, 2f , " 3e" , " may", june`
@@ -207,8 +207,8 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 1)
-			So(r.StreamDocument(true, docChan), ShouldNotBeNil)
+			streamOutChan := make(chan bson.D, 1)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldNotBeNil)
 		})
 		Convey("calling StreamDocument() for CSVs should return next set of "+
 			"values", func() {
@@ -236,10 +236,10 @@ func TestCSVStreamDocument(t *testing.T) {
 				false,
 				false,
 			)
-			docChan := make(chan bson.D, 2)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedReadOne)
-			So(<-docChan, ShouldResemble, expectedReadTwo)
+			streamOutChan := make(chan bson.D, 2)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedReadOne)
+			So(<-streamOutChan, ShouldResemble, expectedReadTwo)
 		})
 		Convey("valid CSV input file that starts with the UTF-8 BOM should "+
 			"not raise an error", func() {
@@ -262,10 +262,10 @@ func TestCSVStreamDocument(t *testing.T) {
 			fileHandle, err := os.Open("testdata/test_bom.csv")
 			So(err, ShouldBeNil)
 			r := NewCSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
-			docChan := make(chan bson.D, len(expectedReads))
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
+			streamOutChan := make(chan bson.D, len(expectedReads))
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
 			for _, expectedRead := range expectedReads {
-				for i, readDocument := range <-docChan {
+				for i, readDocument := range <-streamOutChan {
 					So(readDocument.Key, ShouldResemble, expectedRead[i].Key)
 					So(readDocument.Value, ShouldResemble, expectedRead[i].Value)
 				}
@@ -504,10 +504,10 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			fileHandle, err := os.Open("testdata/test.csv")
 			So(err, ShouldBeNil)
 			r := NewCSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
-			docChan := make(chan bson.D, 50)
-			So(r.StreamDocument(true, docChan), ShouldBeNil)
-			So(<-docChan, ShouldResemble, expectedReadOne)
-			So(<-docChan, ShouldResemble, expectedReadTwo)
+			streamOutChan := make(chan bson.D, 50)
+			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
+			So(<-streamOutChan, ShouldResemble, expectedReadOne)
+			So(<-streamOutChan, ShouldResemble, expectedReadTwo)
 		})
 	})
 }

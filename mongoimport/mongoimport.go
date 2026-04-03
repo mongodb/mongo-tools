@@ -25,6 +25,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/tomb.v2"
 )
 
@@ -86,8 +87,9 @@ type MongoImport struct {
 type InputReader interface {
 	// StreamDocument takes a boolean indicating if the documents should be streamed
 	// in read order and a channel on which to stream the documents processed from
-	// the underlying reader.  Returns a non-nil error if encountered.
-	StreamDocument(ordered bool, read chan bson.D) error
+	// the underlying reader. The context can be used to stop streaming early.
+	// Returns a non-nil error if encountered.
+	StreamDocument(ctx context.Context, ordered bool, read chan bson.D) error
 
 	// ReadAndValidateHeader reads the header line from the InputReader and returns
 	// a non-nil error if the fields from the header line are invalid; returns
@@ -391,24 +393,24 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 		}
 	}
 
-	readDocs := make(chan bson.D, workerBufferSize)
-	processingErrChan := make(chan error)
+	streamOutChan := make(chan bson.D, workerBufferSize)
 	ordered := imp.IngestOptions.MaintainInsertionOrder
 
-	// read and process from the input reader
-	go func() {
-		processingErrChan <- inputReader.StreamDocument(ordered, readDocs)
-	}()
+	eg, ctx := errgroup.WithContext(context.Background())
 
-	// insert documents into the target database
-	go func() {
-		processingErrChan <- imp.ingestDocuments(readDocs)
-	}()
+	eg.Go(func() error {
+		return inputReader.StreamDocument(ctx, ordered, streamOutChan)
+	})
 
-	e1 := channelQuorumError(processingErrChan)
+	eg.Go(func() error {
+		return imp.ingestDocuments(streamOutChan)
+	})
+
+	err = eg.Wait()
+
 	processedCount := atomic.LoadUint64(&imp.processedCount)
 	failureCount := atomic.LoadUint64(&imp.failureCount)
-	return processedCount, failureCount, e1
+	return processedCount, failureCount, err
 }
 
 // ingestDocuments accepts a channel from which it reads documents to be inserted
