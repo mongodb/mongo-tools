@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"golang.org/x/sync/errgroup"
 )
 
 func init() {
@@ -524,12 +525,15 @@ func TestDoSequentialStreaming(t *testing.T) {
 						inputChannel <- inputCSVDocument
 					}
 					close(inputChannel)
+					eg, ctx := errgroup.WithContext(context.Background())
 					doSequentialStreaming(
-						context.Background(),
+						ctx,
+						eg,
 						importWorkers,
 						inputChannel,
 						outputChannel,
 					)
+					So(eg.Wait(), ShouldBeNil)
 					for _, document := range expectedDocuments {
 						So(<-outputChannel, ShouldResemble, document)
 					}

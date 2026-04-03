@@ -154,6 +154,7 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 // from each worker before passing it on to the output channel.
 func doSequentialStreaming(
 	ctx context.Context,
+	eg *errgroup.Group,
 	workers []*importWorker,
 	readDocs chan Converter,
 	outputChan chan bson.D,
@@ -162,13 +163,13 @@ func doSequentialStreaming(
 
 	// feed in the data to be processed and do round-robin
 	// reads from each worker once processing is completed
-	go func() {
+	eg.Go(func() error {
 		i := 0
 		for doc := range readDocs {
 			select {
 			case workers[i].unprocessedDataChan <- doc:
 			case <-ctx.Done():
-				return
+				return nil
 			}
 			i = (i + 1) % numWorkers
 		}
@@ -177,7 +178,8 @@ func doSequentialStreaming(
 		for i := 0; i < numWorkers; i++ {
 			close(workers[i].unprocessedDataChan)
 		}
-	}()
+		return nil
+	})
 
 	// coordinate the order in which the documents are sent over to the
 	// main output channel
@@ -480,7 +482,7 @@ func streamDocuments(
 	// if ordered, we have to coordinate the sequence in which processed
 	// documents are passed to the main read channel
 	if ordered {
-		doSequentialStreaming(ctx, importWorkers, readDocs, outputChan)
+		doSequentialStreaming(ctx, eg, importWorkers, readDocs, outputChan)
 	}
 	err := eg.Wait()
 	close(outputChan)
