@@ -36,7 +36,7 @@ func HandleWithInterrupt(finalizer func()) chan struct{} {
 }
 
 func handleSignals(finalizer func(), finishedChan chan struct{}) {
-	log.Logv(log.DebugLow, "will listen for SIGTERM, SIGINT, and SIGKILL")
+	log.Logv(log.DebugLow, "will listen for SIGTERM and SIGINT")
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	defer signal.Stop(sigChan)
