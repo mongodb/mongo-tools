@@ -77,8 +77,10 @@ func newBufferedBulkInserter(
 		docLimit:      docLimit,
 		// We set the byte limit to be slightly lower than maxMessageSizeBytes so it can fit in one OP_MSG.
 		// This may not always be perfect, e.g. we don't count update selectors in byte totals, but it should
-		// be good enough to keep memory consumption in check.
-		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 100,
+		// be good enough to keep memory consumption in check. Because we cannot reliably predict the total
+		// size of the message that will be sent by the go-driver, the 1MB buffer for message overhead is
+		// a conservative estimate chosen arbitrarily.
+		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 1_000_000,
 		writeModels:        make([]mongo.WriteModel, 0, docLimit),
 		canDoZeroTimestamp: zeroTimestampOk,
 	}
