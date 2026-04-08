@@ -7,7 +7,6 @@
 package mongoimport
 
 import (
-	"io"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/log"
@@ -442,47 +441,47 @@ func TestProcessDocuments(t *testing.T) {
 		}
 		Convey("processDocuments should execute the expected conversion for documents, "+
 			"pass then on the output channel, and close the input channel if ordered is true", func() {
-			inputChannel := make(chan Converter, 100)
-			outputChannel := make(chan bson.D, 100)
+			docsInChan := make(chan Converter, 100)
+			streamOutChan := make(chan bson.D, 100)
 			iw := &importWorker{
-				unprocessedDataChan:   inputChannel,
-				processedDocumentChan: outputChannel,
+				unprocessedDataChan:   docsInChan,
+				processedDocumentChan: streamOutChan,
 				tomb:                  &tomb.Tomb{},
 			}
-			inputChannel <- csvConverters[0]
-			inputChannel <- csvConverters[1]
-			close(inputChannel)
+			docsInChan <- csvConverters[0]
+			docsInChan <- csvConverters[1]
+			close(docsInChan)
 			So(iw.processDocuments(true), ShouldBeNil)
-			doc1, open := <-outputChannel
+			doc1, open := <-streamOutChan
 			So(doc1, ShouldResemble, expectedDocuments[0])
 			So(open, ShouldEqual, true)
-			doc2, open := <-outputChannel
+			doc2, open := <-streamOutChan
 			So(doc2, ShouldResemble, expectedDocuments[1])
 			So(open, ShouldEqual, true)
-			_, open = <-outputChannel
+			_, open = <-streamOutChan
 			So(open, ShouldEqual, false)
 		})
 		Convey("processDocuments should execute the expected conversion for documents, "+
 			"pass then on the output channel, and leave the input channel open if ordered is false", func() {
-			inputChannel := make(chan Converter, 100)
-			outputChannel := make(chan bson.D, 100)
+			docsInChan := make(chan Converter, 100)
+			streamOutChan := make(chan bson.D, 100)
 			iw := &importWorker{
-				unprocessedDataChan:   inputChannel,
-				processedDocumentChan: outputChannel,
+				unprocessedDataChan:   docsInChan,
+				processedDocumentChan: streamOutChan,
 				tomb:                  &tomb.Tomb{},
 			}
-			inputChannel <- csvConverters[0]
-			inputChannel <- csvConverters[1]
-			close(inputChannel)
+			docsInChan <- csvConverters[0]
+			docsInChan <- csvConverters[1]
+			close(docsInChan)
 			So(iw.processDocuments(false), ShouldBeNil)
-			doc1, open := <-outputChannel
+			doc1, open := <-streamOutChan
 			So(doc1, ShouldResemble, expectedDocuments[0])
 			So(open, ShouldEqual, true)
-			doc2, open := <-outputChannel
+			doc2, open := <-streamOutChan
 			So(doc2, ShouldResemble, expectedDocuments[1])
 			So(open, ShouldEqual, true)
-			// close will throw a runtime error if outputChannel is already closed
-			close(outputChannel)
+			// close will throw a runtime error if streamOutChan is already closed
+			close(streamOutChan)
 		})
 	})
 }
@@ -494,8 +493,8 @@ func TestDoSequentialStreaming(t *testing.T) {
 		"Given some import workers, a Converters input channel and an bson.D output channel",
 		t,
 		func() {
-			inputChannel := make(chan Converter, 5)
-			outputChannel := make(chan bson.D, 5)
+			docsInChan := make(chan Converter, 5)
+			streamOutChan := make(chan bson.D, 5)
 			workerInputChannel := []chan Converter{
 				make(chan Converter),
 				make(chan Converter),
@@ -526,12 +525,12 @@ func TestDoSequentialStreaming(t *testing.T) {
 					}
 					// feed in a bunch of documents
 					for _, inputCSVDocument := range csvConverters {
-						inputChannel <- inputCSVDocument
+						docsInChan <- inputCSVDocument
 					}
-					close(inputChannel)
-					doSequentialStreaming(importWorkers, inputChannel, outputChannel)
+					close(docsInChan)
+					doSequentialStreaming(importWorkers, docsInChan, streamOutChan)
 					for _, document := range expectedDocuments {
-						So(<-outputChannel, ShouldResemble, document)
+						So(<-streamOutChan, ShouldResemble, document)
 					}
 				},
 			)
@@ -546,22 +545,22 @@ func TestStreamDocuments(t *testing.T) {
 			2. an input channel where documents are streamed in
 			3. an output channel where processed documents are streamed out`, t, func() {
 
-		inputChannel := make(chan Converter, 5)
-		outputChannel := make(chan bson.D, 5)
+		docsInChan := make(chan Converter, 5)
+		streamOutChan := make(chan bson.D, 5)
 
 		Convey(
 			"the entire pipeline should complete without error under normal circumstances",
 			func() {
 				// stream in some documents
 				for _, csvConverter := range csvConverters {
-					inputChannel <- csvConverter
+					docsInChan <- csvConverter
 				}
-				close(inputChannel)
-				So(streamDocuments(true, 3, inputChannel, outputChannel), ShouldBeNil)
+				close(docsInChan)
+				So(streamDocuments(true, 3, docsInChan, streamOutChan), ShouldBeNil)
 
 				// ensure documents are streamed out and processed in the correct manner
 				for _, expectedDocument := range expectedDocuments {
-					So(<-outputChannel, ShouldResemble, expectedDocument)
+					So(<-streamOutChan, ShouldResemble, expectedDocument)
 				}
 			},
 		)
@@ -575,36 +574,11 @@ func TestStreamDocuments(t *testing.T) {
 				data:  []string{"a", "b", "c"},
 				index: uint64(0),
 			}
-			inputChannel <- csvConverter
-			close(inputChannel)
+			docsInChan <- csvConverter
+			close(docsInChan)
 
 			// ensure that an error is returned on the error channel
-			So(streamDocuments(true, 3, inputChannel, outputChannel), ShouldNotBeNil)
-		})
-	})
-}
-
-func TestChannelQuorumError(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("Given a channel and a quorum...", t, func() {
-		Convey("an error should be returned if one is received", func() {
-			ch := make(chan error, 2)
-			ch <- nil
-			ch <- io.EOF
-			So(channelQuorumError(ch), ShouldNotBeNil)
-		})
-		Convey("no error should be returned if none is received", func() {
-			ch := make(chan error, 2)
-			ch <- nil
-			ch <- nil
-			So(channelQuorumError(ch), ShouldBeNil)
-		})
-		Convey("no error should be returned if up to quorum nil errors are received", func() {
-			ch := make(chan error, 3)
-			ch <- nil
-			ch <- nil
-			ch <- io.EOF
-			So(channelQuorumError(ch), ShouldBeNil)
+			So(streamDocuments(true, 3, docsInChan, streamOutChan), ShouldNotBeNil)
 		})
 	})
 }
