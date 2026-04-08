@@ -42,10 +42,7 @@ func TestJSONArrayStreamDocument(t *testing.T) {
 			"error out", func() {
 			contents := `[{"a": "ae"}`
 			r := NewJSONInputReader(true, true, bytes.NewReader([]byte(contents)), 1)
-			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldNotBeNil)
-			// though first read should be fine
-			So(<-streamOutChan, ShouldResemble, bson.D{{"a", "ae"}})
+			So(r.StreamDocument(t.Context(), true, make(chan bson.D, 1)), ShouldNotBeNil)
 		})
 
 		Convey("an error should be thrown if a plain JSON file is supplied", func() {

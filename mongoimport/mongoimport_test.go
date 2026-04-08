@@ -1463,10 +1463,6 @@ func generateTestData() error {
 
 // test --maintainInsertionOrder and --stopOnError behavior.
 func TestImportMIOSOE(t *testing.T) {
-	t.Skip(
-		"temporarily skipping this until the full context handling behavior is added in the next PR",
-	)
-
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	if err := generateTestData(); err != nil {

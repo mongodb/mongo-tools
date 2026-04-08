@@ -451,7 +451,7 @@ func TestProcessDocuments(t *testing.T) {
 			docsInChan <- csvConverters[0]
 			docsInChan <- csvConverters[1]
 			close(docsInChan)
-			So(iw.processDocuments(true), ShouldBeNil)
+			So(iw.processDocuments(t.Context(), true), ShouldBeNil)
 			doc1, open := <-streamOutChan
 			So(doc1, ShouldResemble, expectedDocuments[0])
 			So(open, ShouldEqual, true)
@@ -473,7 +473,7 @@ func TestProcessDocuments(t *testing.T) {
 			docsInChan <- csvConverters[0]
 			docsInChan <- csvConverters[1]
 			close(docsInChan)
-			So(iw.processDocuments(false), ShouldBeNil)
+			So(iw.processDocuments(t.Context(), false), ShouldBeNil)
 			doc1, open := <-streamOutChan
 			So(doc1, ShouldResemble, expectedDocuments[0])
 			So(open, ShouldEqual, true)
@@ -521,14 +521,14 @@ func TestDoSequentialStreaming(t *testing.T) {
 					// start goroutines to do sequential processing
 					for _, iw := range importWorkers {
 						//nolint:errcheck
-						go iw.processDocuments(true)
+						go iw.processDocuments(t.Context(), true)
 					}
 					// feed in a bunch of documents
 					for _, inputCSVDocument := range csvConverters {
 						docsInChan <- inputCSVDocument
 					}
 					close(docsInChan)
-					doSequentialStreaming(importWorkers, docsInChan, streamOutChan)
+					doSequentialStreaming(t.Context(), importWorkers, docsInChan, streamOutChan)
 					for _, document := range expectedDocuments {
 						So(<-streamOutChan, ShouldResemble, document)
 					}
@@ -556,7 +556,7 @@ func TestStreamDocuments(t *testing.T) {
 					docsInChan <- csvConverter
 				}
 				close(docsInChan)
-				So(streamDocuments(true, 3, docsInChan, streamOutChan), ShouldBeNil)
+				So(streamDocuments(t.Context(), true, 3, docsInChan, streamOutChan), ShouldBeNil)
 
 				// ensure documents are streamed out and processed in the correct manner
 				for _, expectedDocument := range expectedDocuments {
@@ -578,7 +578,7 @@ func TestStreamDocuments(t *testing.T) {
 			close(docsInChan)
 
 			// ensure that an error is returned on the error channel
-			So(streamDocuments(true, 3, docsInChan, streamOutChan), ShouldNotBeNil)
+			So(streamDocuments(t.Context(), true, 3, docsInChan, streamOutChan), ShouldNotBeNil)
 		})
 	})
 }
