@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package importexport
+package exportimport
 
 import (
 	"math/rand"
@@ -21,7 +21,7 @@ import (
 
 // TestRoundTripLimit verifies that mongoexport --limit restricts the number of
 // exported documents, and that the correct documents are restored.
-func (s *ImportExportSuite) TestRoundTripLimit() {
+func (s *ExportImportSuite) TestRoundTripLimit() {
 	const dbName = "mongoimport_roundtrip_limit_test"
 	const collName = "data"
 
@@ -82,7 +82,7 @@ func (s *ImportExportSuite) TestRoundTripLimit() {
 
 // TestRoundTripQuery verifies that mongoexport --query and --queryFile filter
 // export output correctly across multiple query types.
-func (s *ImportExportSuite) TestRoundTripQuery() {
+func (s *ExportImportSuite) TestRoundTripQuery() {
 	const dbName = "mongoimport_roundtrip_query_test"
 
 	client := s.Client()
@@ -147,7 +147,7 @@ func (s *ImportExportSuite) TestRoundTripQuery() {
 
 // TestRoundTripSortAndSkip verifies that mongoexport --sort and --skip
 // correctly affect which documents are exported.
-func (s *ImportExportSuite) TestRoundTripSortAndSkip() {
+func (s *ExportImportSuite) TestRoundTripSortAndSkip() {
 	const dbName = "mongoimport_roundtrip_sortskip_test"
 	const collName = "data"
 
@@ -209,7 +209,7 @@ func (s *ImportExportSuite) TestRoundTripSortAndSkip() {
 	}
 }
 
-func (s *ImportExportSuite) exportAndImportWithQuery(
+func (s *ExportImportSuite) exportAndImportWithQuery(
 	db *mongo.Database,
 	sourceDocs []any,
 	query, queryFile string,

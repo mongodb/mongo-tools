@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package importexport
+package exportimport
 
 import (
 	"os"
@@ -19,7 +19,7 @@ import (
 
 // TestRoundTripBasicData verifies that data exported by mongoexport can be
 // fully restored by mongoimport with all documents intact.
-func (s *ImportExportSuite) TestRoundTripBasicData() {
+func (s *ExportImportSuite) TestRoundTripBasicData() {
 	const dbName = "mongoimport_roundtrip_basic_test"
 	const collName = "data"
 
@@ -82,7 +82,7 @@ func (s *ImportExportSuite) TestRoundTripBasicData() {
 
 // TestRoundTripDataTypes verifies that documents with diverse BSON types
 // survive an export-then-import round-trip intact.
-func (s *ImportExportSuite) TestRoundTripDataTypes() {
+func (s *ExportImportSuite) TestRoundTripDataTypes() {
 	const dbName = "mongoimport_roundtrip_datatypes_test"
 	const collName = "data"
 
@@ -164,7 +164,7 @@ func (s *ImportExportSuite) TestRoundTripDataTypes() {
 
 // TestRoundTripDecimal128 verifies that a Decimal128 value survives an
 // export-then-import round-trip.
-func (s *ImportExportSuite) TestRoundTripDecimal128() {
+func (s *ExportImportSuite) TestRoundTripDecimal128() {
 	const dbName = "mongoimport_decimal128_test"
 	const collName = "dec128"
 
@@ -220,7 +220,7 @@ func (s *ImportExportSuite) TestRoundTripDecimal128() {
 
 // TestRoundTripViewExport verifies that mongoexport correctly exports documents
 // from a MongoDB view, and that mongoimport can restore them.
-func (s *ImportExportSuite) TestRoundTripViewExport() {
+func (s *ExportImportSuite) TestRoundTripViewExport() {
 	const dbName = "mongoimport_roundtrip_views_test"
 
 	client := s.Client()

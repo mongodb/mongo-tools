@@ -1,4 +1,4 @@
-package importexport
+package exportimport
 
 import (
 	"os"
@@ -18,18 +18,18 @@ import (
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-type ImportExportSuite struct {
+type ExportImportSuite struct {
 	sharedsuite.IntegrationSuite
 }
 
 func TestImportExport(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	ts := new(ImportExportSuite)
+	ts := new(ExportImportSuite)
 	suite.Run(t, ts)
 }
 
-func (s *ImportExportSuite) ExportOptions() mongoexport.Options {
+func (s *ExportImportSuite) ExportOptions() mongoexport.Options {
 	toolOptions, err := testutil.GetToolOptions()
 	s.Require().NoError(err)
 
@@ -47,7 +47,7 @@ func (s *ImportExportSuite) ExportOptions() mongoexport.Options {
 	return opts
 }
 
-func (s *ImportExportSuite) ImportOptions(dbName, collName string) mongoimport.Options {
+func (s *ExportImportSuite) ImportOptions(dbName, collName string) mongoimport.Options {
 	ssl := testutil.GetSSLOptions()
 	auth := testutil.GetAuthOptions()
 
@@ -76,7 +76,7 @@ func (s *ImportExportSuite) ImportOptions(dbName, collName string) mongoimport.O
 	}
 }
 
-func (s *ImportExportSuite) importCollection(
+func (s *ExportImportSuite) importCollection(
 	ns *options.Namespace,
 	filePath string,
 	ingestOpts mongoimport.IngestOptions,
@@ -97,7 +97,7 @@ func (s *ImportExportSuite) importCollection(
 	return err
 }
 
-func (s *ImportExportSuite) exportCollectionToFile(ns *options.Namespace) string {
+func (s *ExportImportSuite) exportCollectionToFile(ns *options.Namespace) string {
 	exportFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
 	s.Require().NoError(err)
 	exportToolOptions, err := testutil.GetToolOptions()
@@ -119,7 +119,7 @@ func (s *ImportExportSuite) exportCollectionToFile(ns *options.Namespace) string
 	return exportFile.Name()
 }
 
-func (s *ImportExportSuite) recreateWithValidator(coll *mongo.Collection, validator any) {
+func (s *ExportImportSuite) recreateWithValidator(coll *mongo.Collection, validator any) {
 	s.Require().NoError(coll.Database().Drop(s.Context()))
 	s.Require().NoError(coll.Database().CreateCollection(
 		s.Context(),
@@ -128,7 +128,7 @@ func (s *ImportExportSuite) recreateWithValidator(coll *mongo.Collection, valida
 	))
 }
 
-func (s *ImportExportSuite) assertValidationError(err error, msg string) {
+func (s *ExportImportSuite) assertValidationError(err error, msg string) {
 	var bwe mongo.BulkWriteException
 	if s.Assert().ErrorAs(err, &bwe, msg) {
 		s.Assert().NotEmpty(bwe.WriteErrors, "should have at least one write error")

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package importexport
+package exportimport
 
 import (
 	"os"
@@ -19,7 +19,7 @@ import (
 
 // TestRoundTripFieldFile verifies that mongoexport --fieldFile limits exported
 // fields, and that mongoimport correctly restores the filtered data.
-func (s *ImportExportSuite) TestRoundTripFieldFile() {
+func (s *ExportImportSuite) TestRoundTripFieldFile() {
 	const dbName = "mongoimport_roundtrip_fieldfile_test"
 
 	client := s.Client()
@@ -98,7 +98,7 @@ func (s *ImportExportSuite) TestRoundTripFieldFile() {
 
 // TestRoundTripFieldsCSV verifies that mongoexport --csv --fields limits which
 // fields are exported, and that mongoimport correctly restores the filtered data.
-func (s *ImportExportSuite) TestRoundTripFieldsCSV() {
+func (s *ExportImportSuite) TestRoundTripFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_fieldscsv_test"
 
 	client := s.Client()
@@ -151,7 +151,7 @@ func (s *ImportExportSuite) TestRoundTripFieldsCSV() {
 
 // TestRoundTripNestedFieldsCSV verifies that mongoexport correctly exports
 // nested dotted field paths to CSV and that mongoimport restores them.
-func (s *ImportExportSuite) TestRoundTripNestedFieldsCSV() {
+func (s *ExportImportSuite) TestRoundTripNestedFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_nestedcsv_test"
 
 	client := s.Client()
@@ -223,7 +223,7 @@ func (s *ImportExportSuite) TestRoundTripNestedFieldsCSV() {
 	}
 }
 
-func (s *ImportExportSuite) exportCSVAndImport(dbName, exportFields string, db *mongo.Database) {
+func (s *ExportImportSuite) exportCSVAndImport(dbName, exportFields string, db *mongo.Database) {
 	s.Require().NoError(db.Collection("dest").Drop(s.Context()))
 
 	exportTarget, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")

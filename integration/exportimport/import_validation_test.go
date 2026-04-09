@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package importexport
+package exportimport
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 // validators: normal import skips invalid docs, --bypassDocumentValidation
 // imports all, --stopOnError and --maintainInsertionOrder fail on validation
 // errors.
-func (s *ImportExportSuite) TestImportDocumentValidation() {
+func (s *ExportImportSuite) TestImportDocumentValidation() {
 	const dbName = "mongoimport_docvalidation_test"
 	const collName = "docvalidation"
 
