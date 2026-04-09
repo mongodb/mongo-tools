@@ -76,14 +76,6 @@ func (s *ImportExportSuite) ImportOptions(dbName, collName string) mongoimport.O
 	}
 }
 
-func (s *ImportExportSuite) newClient(dbName string) *mongo.Client {
-	client := s.Client()
-	s.T().Cleanup(func() {
-		_ = client.Database(dbName).Drop(s.Context())
-	})
-	return client
-}
-
 func (s *ImportExportSuite) importCollection(
 	ns *options.Namespace,
 	filePath string,

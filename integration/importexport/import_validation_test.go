@@ -25,7 +25,7 @@ func (s *ImportExportSuite) TestImportDocumentValidation() {
 	const dbName = "mongoimport_docvalidation_test"
 	const collName = "docvalidation"
 
-	client := s.newClient(dbName)
+	client := s.Client()
 
 	db := client.Database(dbName)
 
