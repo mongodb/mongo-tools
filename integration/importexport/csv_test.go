@@ -8,48 +8,42 @@ package importexport
 
 import (
 	"os"
-	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // TestRoundTripFieldFile verifies that mongoexport --fieldFile limits exported
 // fields, and that mongoimport correctly restores the filtered data.
-func TestRoundTripFieldFile(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestRoundTripFieldFile() {
 	const dbName = "mongoimport_roundtrip_fieldfile_test"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	db := client.Database(dbName)
-	_, err := db.Collection("source").InsertMany(t.Context(), []any{
+	_, err := db.Collection("source").InsertMany(s.Context(), []any{
 		bson.D{{"a", 1}},
 		bson.D{{"a", 1}, {"b", 1}},
 		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
-	fieldFile, err := os.CreateTemp(t.TempDir(), "fields-*.txt")
-	require.NoError(t, err)
+	fieldFile, err := os.CreateTemp(s.T().TempDir(), "fields-*.txt")
+	s.Require().NoError(err)
 	_, err = fieldFile.WriteString("a\nb\n")
-	require.NoError(t, err)
-	require.NoError(t, fieldFile.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(fieldFile.Close())
 
-	exportTarget, err := os.CreateTemp(t.TempDir(), "export-*.csv")
-	require.NoError(t, err)
-	require.NoError(t, exportTarget.Close())
+	exportTarget, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
+	s.Require().NoError(err)
+	s.Require().NoError(exportTarget.Close())
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -60,18 +54,18 @@ func TestRoundTripFieldFile(t *testing.T) {
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
 
 	f, err := os.OpenFile(exportTarget.Name(), os.O_WRONLY, 0o644)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	_, err = me.Export(f)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(f.Close())
 
 	fields := "a,b,c"
 	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
 		ToolOptions: importToolOptions,
@@ -83,100 +77,96 @@ func TestRoundTripFieldFile(t *testing.T) {
 		},
 		IngestOptions: &mongoimport.IngestOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	dest := db.Collection("dest")
-	n, err := dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=2")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "c=3 should not have been exported (not in fieldFile)")
+	n, err := dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(3, n, "3 documents should have a=1")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, n, "1 document should have b=1")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, n, "1 document should have b=2")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(0, n, "c=3 should not have been exported (not in fieldFile)")
 }
 
 // TestRoundTripFieldsCSV verifies that mongoexport --csv --fields limits which
 // fields are exported, and that mongoimport correctly restores the filtered data.
-func TestRoundTripFieldsCSV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestRoundTripFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_fieldscsv_test"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	db := client.Database(dbName)
-	_, err := db.Collection("source").InsertMany(t.Context(), []any{
+	_, err := db.Collection("source").InsertMany(s.Context(), []any{
 		bson.D{{"a", 1}},
 		bson.D{{"a", 1}, {"b", 1}},
 		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
-	exportCSVAndImport(t, dbName, "a", db)
+	s.exportCSVAndImport(dbName, "a", db)
 	dest := db.Collection("dest")
-	n, err := dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "b=1 should not have been exported")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "b=2 should not have been exported")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, n, "c=3 should not have been exported")
+	n, err := dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(3, n, "3 documents should have a=1")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(0, n, "b=1 should not have been exported")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(0, n, "b=2 should not have been exported")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(0, n, "c=3 should not have been exported")
 
-	exportCSVAndImport(t, dbName, "a,b,c", db)
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"a", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 1}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=1")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"b", 2}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have b=2")
-	n, err = dest.CountDocuments(t.Context(), bson.D{{"c", 3}})
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, n, "1 document should have c=3")
+	s.exportCSVAndImport(dbName, "a,b,c", db)
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(3, n, "3 documents should have a=1")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, n, "1 document should have b=1")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, n, "1 document should have b=2")
+	n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, n, "1 document should have c=3")
 
 	var fromSource, fromDest bson.M
 	q := bson.D{{"a", 1}, {"b", 1}}
-	err = db.Collection("source").FindOne(t.Context(), q).Decode(&fromSource)
-	require.NoError(t, err)
-	err = dest.FindOne(t.Context(), q).Decode(&fromDest)
-	require.NoError(t, err)
-	assert.NotEqual(t, fromSource["_id"], fromDest["_id"], "_id should not have been exported")
+	err = db.Collection("source").FindOne(s.Context(), q).Decode(&fromSource)
+	s.Require().NoError(err)
+	err = dest.FindOne(s.Context(), q).Decode(&fromDest)
+	s.Require().NoError(err)
+	s.Assert().NotEqual(fromSource["_id"], fromDest["_id"], "_id should not have been exported")
 }
 
 // TestRoundTripNestedFieldsCSV verifies that mongoexport correctly exports
 // nested dotted field paths to CSV and that mongoimport restores them.
-func TestRoundTripNestedFieldsCSV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestRoundTripNestedFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_nestedcsv_test"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	db := client.Database(dbName)
-	_, err := db.Collection("source").InsertMany(t.Context(), []any{
+	_, err := db.Collection("source").InsertMany(s.Context(), []any{
 		bson.D{{"a", 1}},
 		bson.D{{"a", 2}, {"b", bson.D{{"c", 2}}}},
 		bson.D{{"a", 3}, {"b", bson.D{{"c", 3}, {"d", bson.D{{"e", 3}}}}}},
 		bson.D{{"a", 4}, {"x", nil}},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -187,16 +177,16 @@ func TestRoundTripNestedFieldsCSV(t *testing.T) {
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.csv")
-	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
+	s.Require().NoError(err)
 	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(tmpFile.Close())
 
 	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
 		ToolOptions: importToolOptions,
@@ -208,9 +198,9 @@ func TestRoundTripNestedFieldsCSV(t *testing.T) {
 		},
 		IngestOptions: &mongoimport.IngestOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	dest := db.Collection("dest")
 	for _, tc := range []struct {
@@ -227,22 +217,21 @@ func TestRoundTripNestedFieldsCSV(t *testing.T) {
 		{bson.D{{"a", 3}}, 1, "a=3 should be present"},
 		{bson.D{{"x.y", ""}}, 4, "x.y should be empty string for all 4 docs"},
 	} {
-		n, err := dest.CountDocuments(t.Context(), tc.filter)
-		require.NoError(t, err)
-		assert.EqualValues(t, tc.count, n, tc.msg)
+		n, err := dest.CountDocuments(s.Context(), tc.filter)
+		s.Require().NoError(err)
+		s.Assert().EqualValues(tc.count, n, tc.msg)
 	}
 }
 
-func exportCSVAndImport(t *testing.T, dbName, exportFields string, db *mongo.Database) {
-	t.Helper()
-	require.NoError(t, db.Collection("dest").Drop(t.Context()))
+func (s *ImportExportSuite) exportCSVAndImport(dbName, exportFields string, db *mongo.Database) {
+	s.Require().NoError(db.Collection("dest").Drop(s.Context()))
 
-	exportTarget, err := os.CreateTemp(t.TempDir(), "export-*.csv")
-	require.NoError(t, err)
-	require.NoError(t, exportTarget.Close())
+	exportTarget, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
+	s.Require().NoError(err)
+	s.Require().NoError(exportTarget.Close())
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -253,17 +242,17 @@ func exportCSVAndImport(t *testing.T, dbName, exportFields string, db *mongo.Dat
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
 	f, err := os.OpenFile(exportTarget.Name(), os.O_WRONLY, 0o644)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	_, err = me.Export(f)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(f.Close())
 
 	importFields := "a,b,c"
 	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
 		ToolOptions: importToolOptions,
@@ -275,7 +264,7 @@ func exportCSVAndImport(t *testing.T, dbName, exportFields string, db *mongo.Dat
 		},
 		IngestOptions: &mongoimport.IngestOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	_, _, err = mi.ImportDocuments()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 }

@@ -20,10 +20,10 @@ func (s *ImportExportSuite) TestTimeseries() {
 	fromDBName, toDBName, collName := "fromdb", "todb", "tscoll"
 
 	cleanup := func() {
-		err := client.Database(fromDBName).Drop(s.T().Context())
+		err := client.Database(fromDBName).Drop(s.Context())
 		s.Require().NoError(err)
 
-		err = client.Database(toDBName).Drop(s.T().Context())
+		err = client.Database(toDBName).Drop(s.Context())
 		s.Require().NoError(err)
 	}
 
@@ -62,7 +62,7 @@ func (s *ImportExportSuite) TestTimeseries() {
 			}
 
 			db := client.Database(toDBName)
-			res := db.RunCommand(s.T().Context(), createCmd)
+			res := db.RunCommand(s.Context(), createCmd)
 			s.Require().NoError(res.Err(), "create timeseries coll")
 
 			opts := s.ImportOptions(toDBName, collName)

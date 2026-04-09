@@ -8,43 +8,37 @@ package importexport
 
 import (
 	"os"
-	"testing"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // TestRoundTripBasicData verifies that data exported by mongoexport can be
 // fully restored by mongoimport with all documents intact.
-func TestRoundTripBasicData(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestRoundTripBasicData() {
 	const dbName = "mongoimport_roundtrip_basic_test"
 	const collName = "data"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	coll := client.Database(dbName).Collection(collName)
 	var docs []bson.D
 	for i := range 50 {
 		docs = append(docs, bson.D{{"_id", int32(i)}})
 	}
-	_, err := coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
+	_, err := coll.InsertMany(s.Context(), docs)
+	s.Require().NoError(err)
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+	s.Require().NoError(err)
 
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -54,47 +48,45 @@ func TestRoundTripBasicData(t *testing.T) {
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
 	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(tmpFile.Close())
 
-	require.NoError(t, coll.Drop(t.Context()))
+	s.Require().NoError(coll.Drop(s.Context()))
 
 	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := mongoimport.New(mongoimport.Options{
 		ToolOptions:   importToolOptions,
 		InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name()},
 		IngestOptions: &mongoimport.IngestOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 50, imported, "should import all 50 documents")
+	s.Require().NoError(err)
+	s.Assert().EqualValues(50, imported, "should import all 50 documents")
 
-	count, err := coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 50, count, "collection should have all 50 documents after round-trip")
+	count, err := coll.CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(50, count, "collection should have all 50 documents after round-trip")
 
 	for i := range 50 {
-		c, err := coll.CountDocuments(t.Context(), bson.D{{"_id", i}})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1, c, "document with _id %d should exist after round-trip", i)
+		c, err := coll.CountDocuments(s.Context(), bson.D{{"_id", i}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(1, c, "document with _id %d should exist after round-trip", i)
 	}
 }
 
 // TestRoundTripDataTypes verifies that documents with diverse BSON types
 // survive an export-then-import round-trip intact.
-func TestRoundTripDataTypes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestRoundTripDataTypes() {
 	const dbName = "mongoimport_roundtrip_datatypes_test"
 	const collName = "data"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	coll := client.Database(dbName).Collection(collName)
 	docs := []any{
@@ -113,15 +105,15 @@ func TestRoundTripDataTypes(t *testing.T) {
 		bson.D{{"ts", bson.Timestamp{T: 1234, I: 5678}}},
 		bson.D{{"rx", bson.Regex{Pattern: `foo*"bar"`, Options: "i"}}},
 	}
-	_, err := coll.InsertMany(t.Context(), docs)
-	require.NoError(t, err)
+	_, err := coll.InsertMany(s.Context(), docs)
+	s.Require().NoError(err)
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+	s.Require().NoError(err)
 
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -131,30 +123,30 @@ func TestRoundTripDataTypes(t *testing.T) {
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
 	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(tmpFile.Close())
 
-	require.NoError(t, coll.Drop(t.Context()))
+	s.Require().NoError(coll.Drop(s.Context()))
 
 	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := mongoimport.New(mongoimport.Options{
 		ToolOptions:   importToolOptions,
 		InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name()},
 		IngestOptions: &mongoimport.IngestOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 9, imported, "should import all 9 documents")
+	s.Require().NoError(err)
+	s.Assert().EqualValues(9, imported, "should import all 9 documents")
 
-	count, err := coll.CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 9, count, "collection should have all 9 documents after round-trip")
+	count, err := coll.CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(9, count, "collection should have all 9 documents after round-trip")
 
 	for _, q := range []bson.D{
 		{{"num", 1}},
@@ -164,32 +156,30 @@ func TestRoundTripDataTypes(t *testing.T) {
 		{{"arr", bson.A{0, 1}}},
 		{{"rx", bson.D{{"$exists", true}}}},
 	} {
-		c, err := coll.CountDocuments(t.Context(), q)
-		require.NoError(t, err)
-		assert.EqualValues(t, 1, c, "document matching %v should exist after round-trip", q)
+		c, err := coll.CountDocuments(s.Context(), q)
+		s.Require().NoError(err)
+		s.Assert().EqualValues(1, c, "document matching %v should exist after round-trip", q)
 	}
 }
 
 // TestRoundTripDecimal128 verifies that a Decimal128 value survives an
 // export-then-import round-trip.
-func TestRoundTripDecimal128(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestRoundTripDecimal128() {
 	const dbName = "mongoimport_decimal128_test"
 	const collName = "dec128"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	dec, err := bson.ParseDecimal128("123456789012345678901234567890")
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	testDoc := bson.D{{"_id", "foo"}, {"x", dec}}
 
 	coll := client.Database(dbName).Collection(collName)
-	_, err = coll.InsertOne(t.Context(), testDoc)
-	require.NoError(t, err)
+	_, err = coll.InsertOne(s.Context(), testDoc)
+	s.Require().NoError(err)
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -199,43 +189,41 @@ func TestRoundTripDecimal128(t *testing.T) {
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+	s.Require().NoError(err)
 	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(tmpFile.Close())
 
-	require.NoError(t, coll.Drop(t.Context()))
+	s.Require().NoError(coll.Drop(s.Context()))
 
 	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := mongoimport.New(mongoimport.Options{
 		ToolOptions:   importToolOptions,
 		InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
 		IngestOptions: &mongoimport.IngestOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 1, imported, "should import 1 document")
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, imported, "should import 1 document")
 
 	var result bson.D
-	err = coll.FindOne(t.Context(), bson.D{{"_id", "foo"}}).Decode(&result)
-	require.NoError(t, err)
-	assert.Equal(t, testDoc, result, "imported doc should match original")
+	err = coll.FindOne(s.Context(), bson.D{{"_id", "foo"}}).Decode(&result)
+	s.Require().NoError(err)
+	s.Assert().Equal(testDoc, result, "imported doc should match original")
 }
 
 // TestRoundTripViewExport verifies that mongoexport correctly exports documents
 // from a MongoDB view, and that mongoimport can restore them.
-func TestRoundTripViewExport(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-
+func (s *ImportExportSuite) TestRoundTripViewExport() {
 	const dbName = "mongoimport_roundtrip_views_test"
 
-	client := newTestClient(t, dbName)
+	client := s.newClient(dbName)
 
 	db := client.Database(dbName)
 
@@ -250,8 +238,8 @@ func TestRoundTripViewExport(t *testing.T) {
 		bson.D{{"city", "Cupertino"}, {"state", "CA"}},
 		bson.D{{"city", "San Francisco"}, {"state", "CA"}},
 	}
-	_, err := db.Collection("cities").InsertMany(t.Context(), cities)
-	require.NoError(t, err)
+	_, err := db.Collection("cities").InsertMany(s.Context(), cities)
+	s.Require().NoError(err)
 
 	for _, view := range []struct{ name, state string }{
 		{"citiesID", "ID"},
@@ -259,26 +247,26 @@ func TestRoundTripViewExport(t *testing.T) {
 		{"citiesCA", "CA"},
 	} {
 		pipeline := bson.A{bson.D{{"$match", bson.D{{"state", view.state}}}}}
-		err = db.CreateView(t.Context(), view.name, "cities", pipeline)
-		require.NoError(t, err)
+		err = db.CreateView(s.Context(), view.name, "cities", pipeline)
+		s.Require().NoError(err)
 	}
 
-	n, err := db.Collection("citiesID").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, n, "should have 3 cities in Idaho view")
-	n, err = db.Collection("citiesNY").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 2, n, "should have 2 cities in New York view")
-	n, err = db.Collection("citiesCA").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 4, n, "should have 4 cities in California view")
+	n, err := db.Collection("citiesID").CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(3, n, "should have 3 cities in Idaho view")
+	n, err = db.Collection("citiesNY").CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(2, n, "should have 2 cities in New York view")
+	n, err = db.Collection("citiesCA").CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(4, n, "should have 4 cities in California view")
 
 	exportToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "citiesCA"}
 
-	tmpFile, err := os.CreateTemp(t.TempDir(), "export-*.json")
-	require.NoError(t, err)
+	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+	s.Require().NoError(err)
 
 	me, err := mongoexport.New(mongoexport.Options{
 		ToolOptions: exportToolOptions,
@@ -288,28 +276,28 @@ func TestRoundTripViewExport(t *testing.T) {
 		},
 		InputOptions: &mongoexport.InputOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	defer me.Close()
 	_, err = me.Export(tmpFile)
-	require.NoError(t, err)
-	require.NoError(t, tmpFile.Close())
+	s.Require().NoError(err)
+	s.Require().NoError(tmpFile.Close())
 
-	require.NoError(t, db.Drop(t.Context()))
+	s.Require().NoError(db.Drop(s.Context()))
 
 	importToolOptions, err := testutil.GetToolOptions()
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "CACities"}
 	mi, err := mongoimport.New(mongoimport.Options{
 		ToolOptions:   importToolOptions,
 		InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name()},
 		IngestOptions: &mongoimport.IngestOptions{},
 	})
-	require.NoError(t, err)
+	s.Require().NoError(err)
 	imported, _, err := mi.ImportDocuments()
-	require.NoError(t, err)
-	assert.EqualValues(t, 4, imported, "import should succeed")
+	s.Require().NoError(err)
+	s.Assert().EqualValues(4, imported, "import should succeed")
 
-	n, err = db.Collection("CACities").CountDocuments(t.Context(), bson.D{})
-	require.NoError(t, err)
-	assert.EqualValues(t, 4, n, "restored view should have correct number of rows")
+	n, err = db.Collection("CACities").CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(4, n, "restored view should have correct number of rows")
 }
