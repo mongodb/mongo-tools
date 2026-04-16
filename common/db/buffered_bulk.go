@@ -16,9 +16,18 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
-// The default value of maxMessageSizeBytes
+// MAX_MESSAGE_SIZE_BYTES default value of maxMessageSizeBytes
 // See: https://docs.mongodb.com/manual/reference/command/hello/#mongodb-data-hello.maxMessageSizeBytes
 const MAX_MESSAGE_SIZE_BYTES = 48000000
+
+// MSG_OVERHEAD_BYTES Overhead budget for the OP_MSG wire message wrapping a bulk write.
+// The Go driver v2 Batches.AppendBatchSequence checks only the cumulative
+// document size against MaxMessageSize without subtracting the
+// already-written command header, so we must reserve enough room for the
+// wire message header, command body (insert command, $db, collection name,
+// session, clusterTime, ordered, additionalCmd fields), and
+// document-sequence framing.
+const MSG_OVERHEAD_BYTES = 4 * 1024 * 1024
 
 // BufferedBulkInserter implements a bufio.Writer-like design for queuing up
 // documents and inserting them in bulk when the given doc limit (or max
@@ -71,14 +80,11 @@ func newBufferedBulkInserter(
 	}
 
 	bb := &BufferedBulkInserter{
-		serverVersion: serverVersion,
-		collection:    collection,
-		bulkWriteOpts: bulkOpts,
-		docLimit:      docLimit,
-		// We set the byte limit to be slightly lower than maxMessageSizeBytes so it can fit in one OP_MSG.
-		// This may not always be perfect, e.g. we don't count update selectors in byte totals, but it should
-		// be good enough to keep memory consumption in check.
-		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 100,
+		serverVersion:      serverVersion,
+		collection:         collection,
+		bulkWriteOpts:      bulkOpts,
+		docLimit:           docLimit,
+		byteLimit:          MAX_MESSAGE_SIZE_BYTES - MSG_OVERHEAD_BYTES,
 		writeModels:        make([]mongo.WriteModel, 0, docLimit),
 		canDoZeroTimestamp: zeroTimestampOk,
 	}
