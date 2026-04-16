@@ -37,7 +37,7 @@ func TestByteLimitMarginCoversOPMSGOverhead(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fixedOverhead := 82
 			totalOverhead := fixedOverhead + len(tc.db) + len(tc.collection)
-			margin := MAX_MESSAGE_SIZE_BYTES - (MAX_MESSAGE_SIZE_BYTES - 1024)
+			margin := 1024 * 1024 // 1MB
 
 			assert.Greater(t, margin, totalOverhead,
 				"margin of %d bytes should exceed overhead of %d bytes for %s.%s",

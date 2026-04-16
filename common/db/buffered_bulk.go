@@ -76,10 +76,7 @@ func newBufferedBulkInserter(
 		bulkWriteOpts: bulkOpts,
 		docLimit:      docLimit,
 		// Leave room for OP_MSG wire overhead (header, command body, namespace, etc).
-		// The previous margin of 100 was too small -- namespaces longer than ~11 chars
-		// total pushed the actual message past maxMessageSizeBytes. 1024 is conservative
-		// but safe for any realistic namespace.
-		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 1024,
+		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 1024*1024,
 		writeModels:        make([]mongo.WriteModel, 0, docLimit),
 		canDoZeroTimestamp: zeroTimestampOk,
 	}
