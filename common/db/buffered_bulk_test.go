@@ -30,7 +30,11 @@ func TestByteLimitMarginCoversOPMSGOverhead(t *testing.T) {
 		{"short namespace", "test", "t"},
 		{"medium namespace", "myapp", "user_sessions"},
 		{"long namespace", "production_analytics", "user_engagement_event_tracking_v2"},
-		{"very long namespace", "a_database_with_a_very_long_name_for_testing", "a_collection_name_that_is_also_extremely_long_to_test_the_overhead_boundaries"},
+		{
+			"very long namespace",
+			"a_database_with_a_very_long_name_for_testing",
+			"a_collection_name_that_is_also_extremely_long_to_test_the_overhead_boundaries",
+		},
 	}
 
 	for _, tc := range cases {
