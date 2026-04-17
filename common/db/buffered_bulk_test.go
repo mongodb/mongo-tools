@@ -141,15 +141,21 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 		// the server allows, and verify the resulting BulkWrite succeeds (i.e. the
 		// 1 MB margin is sufficient to cover OP_MSG overhead).
 		//
-		// Sharded clusters enforce a 235-byte namespace limit; standalone/replica
-		// sets allow 255 bytes. Using db "t" (1 char) leaves room for the dot, so
-		// the collection name is (limit - 2) chars.
+		// MongoDB 4.2 and earlier enforce a 120-byte namespace limit. From 4.4+,
+		// standalone/replica sets allow 255 bytes and sharded clusters allow 235 bytes.
+		// Using db "t" (1 char) leaves room for the dot, so the collection name is
+		// (limit - 2) chars.
 		longDB := "t"
 		collLen := 253 // 1 + "." + 253 = 255-byte full namespace
-		isMongos, err := provider.IsMongos()
-		require.NoError(t, err)
-		if isMongos {
-			collLen = 233 // 1 + "." + 233 = 235-byte full namespace
+		if serverVersion.LT(Version{4, 4, 0}) {
+			// MongoDB 4.2 and earlier enforce a 120-byte namespace limit.
+			collLen = 118 // 1 + "." + 118 = 120-byte full namespace
+		} else {
+			isMongos, err := provider.IsMongos()
+			require.NoError(t, err)
+			if isMongos {
+				collLen = 233 // 1 + "." + 233 = 235-byte full namespace
+			}
 		}
 		longColl := strings.Repeat("x", collLen)
 
