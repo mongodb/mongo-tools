@@ -7,6 +7,7 @@
 package db
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
@@ -133,6 +134,49 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 			require.NoError(t, err)
 			assert.EqualValues(t, 1, testDoc["_id"])
 		})
+	})
+
+	t.Run("full buffer with max-length namespace", func(t *testing.T) {
+		// Fill the buffer to byteLimit with small docs against the longest namespace
+		// the server allows, and verify the resulting BulkWrite succeeds (i.e. the
+		// 1 MB margin is sufficient to cover OP_MSG overhead).
+		//
+		// Sharded clusters enforce a 235-byte namespace limit; standalone/replica
+		// sets allow 255 bytes. Using db "t" (1 char) leaves room for the dot, so
+		// the collection name is (limit - 2) chars.
+		longDB := "t"
+		collLen := 253 // 1 + "." + 253 = 255-byte full namespace
+		isMongos, err := provider.IsMongos()
+		require.NoError(t, err)
+		if isMongos {
+			collLen = 233 // 1 + "." + 233 = 235-byte full namespace
+		}
+		longColl := strings.Repeat("x", collLen)
+
+		defer func() {
+			require.NoError(t, provider.DropDatabase(longDB))
+		}()
+
+		testCol := session.Database(longDB).Collection(longColl)
+		bufBulk := NewUnorderedBufferedBulkInserter(testCol, 10000, serverVersion)
+		require.NotNil(t, bufBulk)
+
+		// Each doc is ~5 KB; after ~9500 buffered the next triggers a byteLimit flush.
+		docPayload := strings.Repeat("y", 5000)
+		var flushed bool
+		for i := 0; i < 10000; i++ {
+			result, insertErr := bufBulk.Insert(t.Context(), bson.M{"data": docPayload})
+			require.NoError(t, insertErr)
+			if result != nil {
+				assert.Positive(t, result.InsertedCount)
+				flushed = true
+				break
+			}
+		}
+		require.True(t, flushed, "expected buffer to flush within 10000 docs")
+
+		_, flushErr := bufBulk.Flush(t.Context())
+		require.NoError(t, flushErr)
 	})
 
 	t.Run("byte limit 1", func(t *testing.T) {
