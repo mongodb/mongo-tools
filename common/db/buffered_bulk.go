@@ -76,6 +76,8 @@ func newBufferedBulkInserter(
 		bulkWriteOpts: bulkOpts,
 		docLimit:      docLimit,
 		// Leave room for OP_MSG wire overhead (header, command body, namespace, etc).
+		// The overhead depends on length of the namespace (max 255 bytes) and the number of
+		// documents. The estimation is set to 1MB to be conservative.
 		byteLimit:          MAX_MESSAGE_SIZE_BYTES - 1024*1024,
 		writeModels:        make([]mongo.WriteModel, 0, docLimit),
 		canDoZeroTimestamp: zeroTimestampOk,
