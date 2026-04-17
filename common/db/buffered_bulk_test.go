@@ -7,6 +7,7 @@
 package db
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
@@ -15,54 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
-
-// The OP_MSG overhead is roughly 82 bytes of fixed structure (header, flagBits,
-// command scaffolding, document sequence header) plus the db and collection name
-// lengths. The byteLimit margin needs to cover all of that.
-func TestByteLimitMarginCoversOPMSGOverhead(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	cases := []struct {
-		name       string
-		db         string
-		collection string
-	}{
-		{"short namespace", "test", "t"},
-		{"medium namespace", "myapp", "user_sessions"},
-		{"long namespace", "production_analytics", "user_engagement_event_tracking_v2"},
-		{
-			"very long namespace",
-			"a_database_with_a_very_long_name_for_testing",
-			"a_collection_name_that_is_also_extremely_long_to_test_the_overhead_boundaries",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			fixedOverhead := 82
-			totalOverhead := fixedOverhead + len(tc.db) + len(tc.collection)
-			margin := 1024 * 1024 // 1MB
-
-			assert.Greater(t, margin, totalOverhead,
-				"margin of %d bytes should exceed overhead of %d bytes for %s.%s",
-				margin, totalOverhead, tc.db, tc.collection)
-		})
-	}
-}
-
-// Sanity check: the old margin of 100 bytes was too small for any namespace
-// longer than ~11 chars combined. e.g. "testdb.large_documents" produces ~107
-// bytes of overhead, which is why mongorestore would fail with
-// "message msgLen is invalid" on collections with many large documents.
-func TestOldByteLimitMarginWasInsufficient(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	oldMargin := 100
-	overhead := 82 + len("testdb") + len("large_documents")
-
-	assert.Greater(t, overhead, oldMargin, "old margin was too small")
-	assert.Less(t, overhead, 1024, "new margin handles it fine")
-}
 
 func TestBufferedBulkInserterInserts(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
@@ -181,6 +134,49 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 			require.NoError(t, err)
 			assert.EqualValues(t, 1, testDoc["_id"])
 		})
+	})
+
+	t.Run("full buffer with max-length namespace", func(t *testing.T) {
+		// Fill the buffer to byteLimit with small docs against the longest namespace
+		// the server allows, and verify the resulting BulkWrite succeeds (i.e. the
+		// 1 MB margin is sufficient to cover OP_MSG overhead).
+		//
+		// Sharded clusters enforce a 235-byte namespace limit; standalone/replica
+		// sets allow 255 bytes. Using db "t" (1 char) leaves room for the dot, so
+		// the collection name is (limit - 2) chars.
+		longDB := "t"
+		collLen := 253 // 1 + "." + 253 = 255-byte full namespace
+		isMongos, err := provider.IsMongos()
+		require.NoError(t, err)
+		if isMongos {
+			collLen = 233 // 1 + "." + 233 = 235-byte full namespace
+		}
+		longColl := strings.Repeat("x", collLen)
+
+		defer func() {
+			require.NoError(t, provider.DropDatabase(longDB))
+		}()
+
+		testCol := session.Database(longDB).Collection(longColl)
+		bufBulk := NewUnorderedBufferedBulkInserter(testCol, 10000, serverVersion)
+		require.NotNil(t, bufBulk)
+
+		// Each doc is ~5 KB; after ~9500 buffered the next triggers a byteLimit flush.
+		docPayload := strings.Repeat("y", 5000)
+		var flushed bool
+		for i := 0; i < 10000; i++ {
+			result, insertErr := bufBulk.Insert(t.Context(), bson.M{"data": docPayload})
+			require.NoError(t, insertErr)
+			if result != nil {
+				assert.Positive(t, result.InsertedCount)
+				flushed = true
+				break
+			}
+		}
+		require.True(t, flushed, "expected buffer to flush within 10000 docs")
+
+		_, flushErr := bufBulk.Flush(t.Context())
+		require.NoError(t, flushErr)
 	})
 
 	t.Run("byte limit 1", func(t *testing.T) {
