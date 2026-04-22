@@ -1672,7 +1672,14 @@ func downloadArtifacts(v string, artifactNames []string) {
 	)
 	check(err, "git clone")
 
-	githash, err := run("git", "-C", "mongo-release", "log", "--pretty=format:%H", grepArg)
+	githash, err := run(
+		"git",
+		"-C", "mongo-release",
+		"log",
+		"-n", "1",
+		"--pretty=format:%H",
+		grepArg,
+	)
 
 	check(err, "get git hash")
 	fmt.Printf("Git hash: %s\n", githash)
