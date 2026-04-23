@@ -6,7 +6,7 @@
 
 [tools]
 # Go and Go tools
-go = "1.25.7"
+go = "1.25.9"
 "go:golang.org/x/tools/cmd/goimports" = "0.29.0"
 "github:golangci/golangci-lint" = "2.6.2"
 "github:securego/gosec" = "2.22.10"
