@@ -1,5 +1,41 @@
 # Database Tools Changelog
 
+## 100.16.1
+
+_Released 2026-04-24_
+
+We are pleased to announce version 100.16.1 of the MongoDB Database Tools.
+
+This patch release includes a fix for a message size overflow in `BufferedBulkInserter`, along with internal 
+maintenance updates such as rewriting JavaScript tests in Go, improving `mongoexport` Extended JSON marshalling, and 
+upgrading to Go 1.25.9.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+### Bug
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4142'>TOOLS-4142</a>] -         Fix OP_MSG size overflow in BufferedBulkInserter
+</li>
+</ul>
+
+### Task
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4148'>TOOLS-4148</a>] -         Rewrite JS tests in Go
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4184'>TOOLS-4184</a>] -         Use simple MarshalExtJSON in mongoexport
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4194'>TOOLS-4194</a>] -         Upgrade to go 1.25.9
+</li>
+</ul>
+
 ## 100.16.0
 
 _Released 2026-04-01_
