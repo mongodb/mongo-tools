@@ -2682,7 +2682,7 @@ buildvariants:
   - name: rhel10
     display_name: RHEL 10
     run_on:
-      - rhel10-small
+      - rhel10.0-small
     tasks:
       - name: "dist"
       - name: "sign"
@@ -2949,7 +2949,7 @@ buildvariants:
   - name: rhel10-aarch64
     display_name: RHEL 10 ARM
     run_on:
-      - rhel10-arm64-small
+      - rhel10.0-arm64-small
     stepback: false
     tasks:
       - name: "dist"
