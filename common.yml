@@ -2679,6 +2679,17 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: rhel10
+    display_name: RHEL 10
+    run_on:
+      - rhel10-small
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   - name: amazon2023
     display_name: Amazon Linux 2023
     run_on:
@@ -2927,6 +2938,18 @@ buildvariants:
     display_name: RHEL 9.3 ARM
     run_on:
       - rhel93-arm64-small
+    stepback: false
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
+  - name: rhel10-aarch64
+    display_name: RHEL 10 ARM
+    run_on:
+      - rhel10-arm64-small
     stepback: false
     tasks:
       - name: "dist"
