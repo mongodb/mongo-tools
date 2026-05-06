@@ -6,6 +6,7 @@ Script for assuming an aws role.
 import argparse
 import uuid
 import logging
+import os
 
 import boto3
 
@@ -14,6 +15,9 @@ LOGGER = logging.getLogger(__name__)
 STS_DEFAULT_ROLE_NAME = "arn:aws:iam::579766882180:role/mark.benvenuto"
 
 def _assume_role(role_name):
+    # Clear any inherited session token so it doesn't contaminate the long-term
+    # IAM user credentials set in the environment by the caller.
+    os.environ.pop('AWS_SESSION_TOKEN', None)
     sts_client = boto3.client("sts")
 
     response = sts_client.assume_role(RoleArn=role_name, RoleSessionName=str(uuid.uuid4()), DurationSeconds=900)
