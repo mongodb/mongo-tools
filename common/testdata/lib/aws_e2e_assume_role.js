@@ -12,17 +12,12 @@ load("aws_e2e_lib.js");
   function getAssumeCredentials() {
     const config = readSetupJson();
 
-    const env = {
-      AWS_ACCESS_KEY_ID: config["iam_auth_assume_aws_account"],
-      AWS_SECRET_ACCESS_KEY: config["iam_auth_assume_aws_secret_access_key"],
-    };
-
     const role_name = config["iam_auth_assume_role_name"];
 
     const python_command = getPython3Binary() +
       ` -u aws_assume_role.py --role_name=${role_name} > creds.json`;
 
-    const ret = runShellCmdWithEnv(python_command, env);
+    const ret = runShellCmdWithEnv(python_command, {});
     assert.eq(ret, 0, "Failed to assume role on the current machine");
 
     const result = cat("creds.json");

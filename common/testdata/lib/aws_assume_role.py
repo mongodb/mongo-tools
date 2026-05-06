@@ -6,8 +6,6 @@ Script for assuming an aws role.
 import argparse
 import uuid
 import logging
-import os
-import sys
 
 import boto3
 
@@ -16,19 +14,7 @@ LOGGER = logging.getLogger(__name__)
 STS_DEFAULT_ROLE_NAME = "arn:aws:iam::579766882180:role/mark.benvenuto"
 
 def _assume_role(role_name):
-    # Pass credentials explicitly to bypass boto3's credential chain (IMDS, files, inherited tokens).
-    access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
-    secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
-
-    if not access_key_id or not secret_access_key:
-        LOGGER.error("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set in the environment")
-        sys.exit(1)
-
-    sts_client = boto3.client(
-        "sts",
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
-    )
+    sts_client = boto3.client("sts")
 
     response = sts_client.assume_role(RoleArn=role_name, RoleSessionName=str(uuid.uuid4()), DurationSeconds=900)
 
