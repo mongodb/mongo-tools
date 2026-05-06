@@ -15,6 +15,7 @@ load("aws_e2e_lib.js");
     const env = {
       AWS_ACCESS_KEY_ID: config["iam_auth_assume_aws_account"],
       AWS_SECRET_ACCESS_KEY: config["iam_auth_assume_aws_secret_access_key"],
+      AWS_SESSION_TOKEN: "",
     };
 
     const role_name = config["iam_auth_assume_role_name"];
