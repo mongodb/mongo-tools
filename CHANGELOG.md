@@ -6,9 +6,9 @@ _Released 2026-04-24_
 
 We are pleased to announce version 100.16.1 of the MongoDB Database Tools.
 
-This patch release includes a fix for a message size overflow in `BufferedBulkInserter`, along with internal 
-maintenance updates such as rewriting JavaScript tests in Go, improving `mongoexport` Extended JSON marshalling, and 
-upgrading to Go 1.25.9.
+This patch release includes a fix for a message size overflow in `BufferedBulkInserter`, along with
+internal maintenance updates such as rewriting JavaScript tests in Go, improving `mongoexport`
+Extended JSON marshalling, and upgrading to Go 1.25.9.
 
 The Database Tools are available on the
 [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
@@ -21,12 +21,14 @@ in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list
 can be found.
 
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4142'>TOOLS-4142</a>] -         Fix OP_MSG size overflow in BufferedBulkInserter
 </li>
 </ul>
 
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4148'>TOOLS-4148</a>] -         Rewrite JS tests in Go
 </li>
