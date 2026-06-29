@@ -3,26 +3,6 @@ module github.com/mongodb/mongo-tools
 go 1.25.9
 
 require (
-	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943
-	github.com/deckarep/golang-set/v2 v2.6.0
-	github.com/google/go-cmp v0.6.0
-	github.com/jessevdk/go-flags v1.5.0
-	github.com/mitchellh/go-wordwrap v1.0.1
-	github.com/nsf/termbox-go v1.1.1
-	github.com/pkg/errors v0.9.1
-	github.com/smartystreets/goconvey v1.8.1
-	github.com/stretchr/testify v1.11.1
-	github.com/urfave/cli/v2 v2.27.2
-	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
-	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
-	golang.org/x/mod v0.29.0
-	golang.org/x/term v0.37.0
-	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.1
-)
-
-require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
 	github.com/aws/aws-sdk-go-v2 v1.36.5
@@ -30,10 +10,27 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.81
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.81.0
 	github.com/ccoveille/go-safecast/v2 v2.0.0
+	github.com/craiggwilson/goke v0.0.0-20240206162536-b1c58122d943
+	github.com/deckarep/golang-set/v2 v2.6.0
+	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
+	github.com/jessevdk/go-flags v1.5.0
+	github.com/mitchellh/go-wordwrap v1.0.1
+	github.com/nsf/termbox-go v1.1.1
+	github.com/pkg/errors v0.9.1
 	github.com/samber/lo v1.49.1
+	github.com/smartystreets/goconvey v1.8.1
+	github.com/stretchr/testify v1.11.1
+	github.com/urfave/cli/v2 v2.27.2
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	go.mongodb.org/mongo-driver/v2 v2.5.0
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
+	golang.org/x/mod v0.29.0
 	golang.org/x/sync v0.18.0
+	golang.org/x/term v0.37.0
+	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
