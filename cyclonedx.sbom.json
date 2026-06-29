@@ -536,7 +536,7 @@
       "version": "v2.5.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.45.0",
+      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.53.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -544,7 +544,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/crypto@v0.45.0"
+          "url": "https://pkg.go.dev/golang.org/x/crypto@v0.53.0"
         }
       ],
       "group": "golang.org/x",
@@ -556,9 +556,9 @@
         }
       ],
       "name": "crypto",
-      "purl": "pkg:golang/golang.org/x/crypto@v0.45.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.53.0",
       "type": "library",
-      "version": "v0.45.0"
+      "version": "v0.53.0"
     },
     {
       "bom-ref": "pkg:golang/golang.org/x/exp@v0.0.0-20250128182459-e0ece0dbea4c",
@@ -586,7 +586,7 @@
       "version": "v0.0.0-20250128182459-e0ece0dbea4c"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/net@v0.47.0",
+      "bom-ref": "pkg:golang/golang.org/x/net@v0.56.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -594,7 +594,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/net@v0.47.0"
+          "url": "https://pkg.go.dev/golang.org/x/net@v0.56.0"
         }
       ],
       "group": "golang.org/x",
@@ -606,12 +606,12 @@
         }
       ],
       "name": "net",
-      "purl": "pkg:golang/golang.org/x/net@v0.47.0",
+      "purl": "pkg:golang/golang.org/x/net@v0.56.0",
       "type": "library",
-      "version": "v0.47.0"
+      "version": "v0.56.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/sync@v0.18.0",
+      "bom-ref": "pkg:golang/golang.org/x/sync@v0.21.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -619,7 +619,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/sync@v0.18.0"
+          "url": "https://pkg.go.dev/golang.org/x/sync@v0.21.0"
         }
       ],
       "group": "golang.org/x",
@@ -631,12 +631,12 @@
         }
       ],
       "name": "sync",
-      "purl": "pkg:golang/golang.org/x/sync@v0.18.0",
+      "purl": "pkg:golang/golang.org/x/sync@v0.21.0",
       "type": "library",
-      "version": "v0.18.0"
+      "version": "v0.21.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/sys@v0.38.0",
+      "bom-ref": "pkg:golang/golang.org/x/sys@v0.46.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -644,7 +644,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/sys@v0.38.0"
+          "url": "https://pkg.go.dev/golang.org/x/sys@v0.46.0"
         }
       ],
       "group": "golang.org/x",
@@ -656,12 +656,12 @@
         }
       ],
       "name": "sys",
-      "purl": "pkg:golang/golang.org/x/sys@v0.38.0",
+      "purl": "pkg:golang/golang.org/x/sys@v0.46.0",
       "type": "library",
-      "version": "v0.38.0"
+      "version": "v0.46.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/term@v0.37.0",
+      "bom-ref": "pkg:golang/golang.org/x/term@v0.44.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -669,7 +669,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/term@v0.37.0"
+          "url": "https://pkg.go.dev/golang.org/x/term@v0.44.0"
         }
       ],
       "group": "golang.org/x",
@@ -681,12 +681,12 @@
         }
       ],
       "name": "term",
-      "purl": "pkg:golang/golang.org/x/term@v0.37.0",
+      "purl": "pkg:golang/golang.org/x/term@v0.44.0",
       "type": "library",
-      "version": "v0.37.0"
+      "version": "v0.44.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/text@v0.31.0",
+      "bom-ref": "pkg:golang/golang.org/x/text@v0.38.0",
       "externalReferences": [
         {
           "type": "vcs",
@@ -694,7 +694,7 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/text@v0.31.0"
+          "url": "https://pkg.go.dev/golang.org/x/text@v0.38.0"
         }
       ],
       "group": "golang.org/x",
@@ -706,9 +706,9 @@
         }
       ],
       "name": "text",
-      "purl": "pkg:golang/golang.org/x/text@v0.31.0",
+      "purl": "pkg:golang/golang.org/x/text@v0.38.0",
       "type": "library",
-      "version": "v0.31.0"
+      "version": "v0.38.0"
     },
     {
       "bom-ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
@@ -803,25 +803,25 @@
       "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.5.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/crypto@v0.45.0"
+      "ref": "pkg:golang/golang.org/x/crypto@v0.53.0"
     },
     {
       "ref": "pkg:golang/golang.org/x/exp@v0.0.0-20250128182459-e0ece0dbea4c"
     },
     {
-      "ref": "pkg:golang/golang.org/x/net@v0.47.0"
+      "ref": "pkg:golang/golang.org/x/net@v0.56.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/sync@v0.18.0"
+      "ref": "pkg:golang/golang.org/x/sync@v0.21.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/sys@v0.38.0"
+      "ref": "pkg:golang/golang.org/x/sys@v0.46.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/term@v0.37.0"
+      "ref": "pkg:golang/golang.org/x/term@v0.44.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/text@v0.31.0"
+      "ref": "pkg:golang/golang.org/x/text@v0.38.0"
     },
     {
       "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
@@ -831,7 +831,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-04-23T19:40:03.844715+00:00",
+    "timestamp": "2026-06-29T16:48:09.230580+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -875,7 +875,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 42,
+  "version": 45,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
