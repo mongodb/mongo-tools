@@ -4,8 +4,6 @@ package s3
 
 import (
 	"context"
-	"fmt"
-	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	s3cust "github.com/aws/aws-sdk-go-v2/service/s3/internal/customizations"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -14,17 +12,15 @@ import (
 	"time"
 )
 
-// End of support notice: Beginning October 1, 2025, Amazon S3 will discontinue
-// support for creating new Email Grantee Access Control Lists (ACL). Email Grantee
-// ACLs created prior to this date will continue to work and remain accessible
-// through the Amazon Web Services Management Console, Command Line Interface
-// (CLI), SDKs, and REST API. However, you will no longer be able to create new
-// Email Grantee ACLs.
+// End of support notice: As of October 1, 2025, Amazon S3 has discontinued
+// support for Email Grantee Access Control Lists (ACLs). If you attempt to use an
+// Email Grantee ACL in a request after October 1, 2025, the request will receive
+// an HTTP 405 (Method Not Allowed) error.
 //
 // This change affects the following Amazon Web Services Regions: US East (N.
-// Virginia) Region, US West (N. California) Region, US West (Oregon) Region, Asia
-// Pacific (Singapore) Region, Asia Pacific (Sydney) Region, Asia Pacific (Tokyo)
-// Region, Europe (Ireland) Region, and South America (São Paulo) Region.
+// Virginia), US West (N. California), US West (Oregon), Asia Pacific (Singapore),
+// Asia Pacific (Sydney), Asia Pacific (Tokyo), Europe (Ireland), and South America
+// (São Paulo).
 //
 // This action initiates a multipart upload and returns an upload ID. This upload
 // ID is used to associate all of the parts in the specific multipart upload. You
@@ -213,6 +209,10 @@ import (
 // [ListParts]
 //
 // [ListMultipartUploads]
+//
+// You must URL encode any signed header values that contain spaces. For example,
+// if your header value is my file.txt , containing two spaces after my , you must
+// URL encode this value to my%20%20file.txt .
 //
 // [Concepts for directory buckets in Local Zones]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-lzs-for-directory-buckets.html
 // [ListParts]: https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListParts.html
@@ -619,9 +619,8 @@ type CreateMultipartUploadInput struct {
 	// Confirms that the requester knows that they will be charged for the request.
 	// Bucket owners need not specify this parameter in their requests. If either the
 	// source or destination S3 bucket has Requester Pays enabled, the requester will
-	// pay for corresponding charges to copy the object. For information about
-	// downloading objects from Requester Pays buckets, see [Downloading Objects in Requester Pays Buckets]in the Amazon S3 User
-	// Guide.
+	// pay for the corresponding charges. For information about downloading objects
+	// from Requester Pays buckets, see [Downloading Objects in Requester Pays Buckets]in the Amazon S3 User Guide.
 	//
 	// This functionality is not supported for directory buckets.
 	//
@@ -686,7 +685,7 @@ type CreateMultipartUploadInput struct {
 	SSEKMSKeyId *string
 
 	// The server-side encryption algorithm used when you store this object in Amazon
-	// S3 (for example, AES256 , aws:kms ).
+	// S3 or Amazon FSx.
 	//
 	//   - Directory buckets - For directory buckets, there are only two supported
 	//   options for server-side encryption: server-side encryption with Amazon S3
@@ -718,6 +717,13 @@ type CreateMultipartUploadInput struct {
 	//   request. So in the Zonal endpoint API calls (except [CopyObject]and [UploadPartCopy]), the encryption
 	//   request headers must match the default encryption configuration of the directory
 	//   bucket.
+	//
+	//   - S3 access points for Amazon FSx - When accessing data stored in Amazon FSx
+	//   file systems using S3 access points, the only valid server side encryption
+	//   option is aws:fsx . All Amazon FSx file systems have encryption configured by
+	//   default and are encrypted at rest. Data is automatically encrypted before being
+	//   written to the file system, and automatically decrypted as it is read. These
+	//   processes are handled transparently by Amazon FSx.
 	//
 	// [Specifying server-side encryption with KMS for new object uploads]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-express-specifying-kms-encryption.html
 	// [Protecting data with server-side encryption]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-express-serv-side-encryption.html
@@ -838,7 +844,10 @@ type CreateMultipartUploadOutput struct {
 	SSEKMSKeyId *string
 
 	// The server-side encryption algorithm used when you store this object in Amazon
-	// S3 (for example, AES256 , aws:kms ).
+	// S3 or Amazon FSx.
+	//
+	// When accessing data stored in Amazon FSx file systems using S3 access points,
+	// the only valid server side encryption option is aws:fsx .
 	ServerSideEncryption types.ServerSideEncryption
 
 	// ID for the initiated multipart upload.
@@ -851,9 +860,6 @@ type CreateMultipartUploadOutput struct {
 }
 
 func (c *Client) addOperationCreateMultipartUploadMiddlewares(stack *middleware.Stack, options Options) (err error) {
-	if err := stack.Serialize.Add(&setOperationInputMiddleware{}, middleware.After); err != nil {
-		return err
-	}
 	err = stack.Serialize.Add(&awsRestxml_serializeOpCreateMultipartUpload{}, middleware.After)
 	if err != nil {
 		return err
@@ -862,17 +868,8 @@ func (c *Client) addOperationCreateMultipartUploadMiddlewares(stack *middleware.
 	if err != nil {
 		return err
 	}
-	if err := addProtocolFinalizerMiddlewares(stack, options, "CreateMultipartUpload"); err != nil {
-		return fmt.Errorf("add protocol finalizers: %v", err)
-	}
 
 	if err = addlegacyEndpointContextSetter(stack, options); err != nil {
-		return err
-	}
-	if err = addSetLoggerMiddleware(stack, options); err != nil {
-		return err
-	}
-	if err = addClientRequestID(stack); err != nil {
 		return err
 	}
 	if err = addComputeContentLength(stack); err != nil {
@@ -884,19 +881,7 @@ func (c *Client) addOperationCreateMultipartUploadMiddlewares(stack *middleware.
 	if err = addComputePayloadSHA256(stack); err != nil {
 		return err
 	}
-	if err = addRetry(stack, options); err != nil {
-		return err
-	}
-	if err = addRawResponseToMetadata(stack); err != nil {
-		return err
-	}
 	if err = addRecordResponseTiming(stack); err != nil {
-		return err
-	}
-	if err = addSpanRetryLoop(stack, options); err != nil {
-		return err
-	}
-	if err = addClientUserAgent(stack, options); err != nil {
 		return err
 	}
 	if err = smithyhttp.AddErrorCloseResponseBodyMiddleware(stack); err != nil {
@@ -905,16 +890,7 @@ func (c *Client) addOperationCreateMultipartUploadMiddlewares(stack *middleware.
 	if err = smithyhttp.AddCloseResponseBodyMiddleware(stack); err != nil {
 		return err
 	}
-	if err = addSetLegacyContextSigningOptionsMiddleware(stack); err != nil {
-		return err
-	}
 	if err = addPutBucketContextMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addTimeOffsetBuild(stack, c); err != nil {
-		return err
-	}
-	if err = addUserAgentRetryMode(stack, options); err != nil {
 		return err
 	}
 	if err = addIsExpressUserAgent(stack); err != nil {
@@ -926,13 +902,10 @@ func (c *Client) addOperationCreateMultipartUploadMiddlewares(stack *middleware.
 	if err = addOpCreateMultipartUploadValidationMiddleware(stack); err != nil {
 		return err
 	}
-	if err = stack.Initialize.Add(newServiceMetadataMiddleware_opCreateMultipartUpload(options.Region), middleware.Before); err != nil {
+	if err = stack.Initialize.Add(newServiceMetadataMiddleware(options.Region, "CreateMultipartUpload"), middleware.Before); err != nil {
 		return err
 	}
 	if err = addMetadataRetrieverMiddleware(stack); err != nil {
-		return err
-	}
-	if err = addRecursionDetection(stack); err != nil {
 		return err
 	}
 	if err = addCreateMultipartUploadUpdateEndpoint(stack, options); err != nil {
@@ -959,16 +932,7 @@ func (c *Client) addOperationCreateMultipartUploadMiddlewares(stack *middleware.
 	if err = addSetCreateMPUChecksumAlgorithm(stack); err != nil {
 		return err
 	}
-	if err = addSpanInitializeStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanInitializeEnd(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestStart(stack); err != nil {
-		return err
-	}
-	if err = addSpanBuildRequestEnd(stack); err != nil {
+	if err = addInterceptors(stack, options); err != nil {
 		return err
 	}
 	return nil
@@ -979,14 +943,6 @@ func (v *CreateMultipartUploadInput) bucket() (string, bool) {
 		return "", false
 	}
 	return *v.Bucket, true
-}
-
-func newServiceMetadataMiddleware_opCreateMultipartUpload(region string) *awsmiddleware.RegisterServiceMetadata {
-	return &awsmiddleware.RegisterServiceMetadata{
-		Region:        region,
-		ServiceID:     ServiceID,
-		OperationName: "CreateMultipartUpload",
-	}
 }
 
 // getCreateMultipartUploadBucketMember returns a pointer to string denoting a

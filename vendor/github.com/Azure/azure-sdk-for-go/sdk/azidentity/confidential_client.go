@@ -1,6 +1,3 @@
-//go:build go1.18
-// +build go1.18
-
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
@@ -111,14 +108,14 @@ func (c *confidentialClient) GetToken(ctx context.Context, tro policy.TokenReque
 			authFailedErr  *AuthenticationFailedError
 			unavailableErr credentialUnavailable
 		)
-		if !(errors.As(err, &unavailableErr) || errors.As(err, &authFailedErr)) {
+		if !errors.As(err, &unavailableErr) && !errors.As(err, &authFailedErr) {
 			err = newAuthenticationFailedErrorFromMSAL(c.name, err)
 		}
 	} else {
-		msg := fmt.Sprintf("%s.GetToken() acquired a token for scope %q", c.name, strings.Join(ar.GrantedScopes, ", "))
+		msg := fmt.Sprintf(scopeLogFmt, c.name, strings.Join(ar.GrantedScopes, ", "))
 		log.Write(EventAuthentication, msg)
 	}
-	return azcore.AccessToken{Token: ar.AccessToken, ExpiresOn: ar.ExpiresOn.UTC()}, err
+	return azcore.AccessToken{Token: ar.AccessToken, ExpiresOn: ar.ExpiresOn.UTC(), RefreshOn: ar.Metadata.RefreshOn.UTC()}, err
 }
 
 func (c *confidentialClient) client(tro policy.TokenRequestOptions) (msalConfidentialClient, *sync.Mutex, error) {
