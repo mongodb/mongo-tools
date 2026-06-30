@@ -49,7 +49,7 @@ func RequireConvert[NumOut Number, NumIn Number](t TestingT, orig NumIn) (conver
 //
 // # Errors when conversion is not possible, the following errors are wrapped in the returned error:
 //
-//   - [ErrorUnsupportedConversion] when the conversion is not possible for the desired type (example: NaN to int).
+//   - [ErrUnsupportedConversion] when the conversion is not possible for the desired type (example: NaN to int).
 //   - [ErrStringConversion] when the conversion from string fails (example: "abc" to int).
 //
 // # General errors wrapped on conversion failure:
@@ -89,14 +89,18 @@ func Convert[NumOut Number, NumIn Number](orig NumIn, opts ...ConvertOption) (Nu
 		return converted, getRangeError[NumOut](orig)
 	}
 
-	if !sameSign(orig, converted) {
-		return converted, getRangeError[NumOut](orig)
-	}
-
-	// and compare
 	base := orig
 	if isFloat[NumIn]() {
 		base = NumIn(math.Trunc(float64(orig)))
+	}
+
+	if !sameSign(orig, converted) {
+		if isFloat[NumIn]() && base == 0 {
+			// small fractional values like -0.1 that truncate to 0
+			// are considered to be within range, even if the original value is negative
+			return converted, nil
+		}
+		return converted, getRangeError[NumOut](orig)
 	}
 
 	// convert back to the original type

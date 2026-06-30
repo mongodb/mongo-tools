@@ -34,10 +34,10 @@ func shouldEqual(actual, expected any) string {
 	}
 	renderedExpected, renderedActual := render.Render(expected), render.Render(actual)
 	if renderedActual == renderedExpected {
-		message := fmt.Sprintf(shouldHaveResembledButTypeDiff, renderedExpected, renderedActual)
+		message := fmt.Sprintf(shouldHaveBeenEqualButTypeDiff, renderedExpected, renderedActual)
 		return serializer.serializeDetailed(expected, actual, message)
 	}
-	message := fmt.Sprintf(shouldHaveResembled, renderedExpected, renderedActual) +
+	message := fmt.Sprintf(shouldHaveBeenEqual, renderedExpected, renderedActual) +
 		composePrettyDiff(renderedExpected, renderedActual)
 	return serializer.serializeDetailed(expected, actual, message)
 }
