@@ -1890,8 +1890,6 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		t.Skip("Requires server with FCV 5.0 or later")
 	}
 
-	t.Skip("TODO (TOOLS-4228): these tests broken by recent server CVE fixes")
-
 	testdb := session.Database(dbName)
 	dataColl := testdb.Collection("foo_ts")
 	bucketsColl := testdb.Collection(common.TimeseriesBucketPrefix + "foo_ts")
@@ -1943,6 +1941,8 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			require.NoError(t, err)
 			runTest(t, restore)
 		})
+
+		t.Skip("TODO (TOOLS-4228): these tests broken by recent server CVE fixes")
 
 		t.Run("archive", func(t *testing.T) {
 			args := []string{ArchiveOption + "=testdata/timeseries_tests/dump.archive"}
@@ -2001,6 +2001,8 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 	t.Run("oplogReplay and system.buckets", func(t *testing.T) {
 		defer dropTestDB(t)
+
+		t.Skip("TODO (TOOLS-4228): these tests broken by recent server CVE fixes")
 
 		args := []string{
 			DirectoryOption,
