@@ -1890,8 +1890,6 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		t.Skip("Requires server with FCV 5.0 or later")
 	}
 
-	t.Skip("TODO (TOOLS-4228): these tests broken by recent server CVE fixes")
-
 	testdb := session.Database(dbName)
 	dataColl := testdb.Collection("foo_ts")
 	bucketsColl := testdb.Collection(common.TimeseriesBucketPrefix + "foo_ts")
