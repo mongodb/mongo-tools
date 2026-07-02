@@ -2000,8 +2000,6 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	t.Run("oplogReplay and system.buckets", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		t.Skip("TODO (TOOLS-4228): these tests broken by recent server CVE fixes")
-
 		args := []string{
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump_with_oplog",
