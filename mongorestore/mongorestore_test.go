@@ -1942,8 +1942,6 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			runTest(t, restore)
 		})
 
-		t.Skip("TODO (TOOLS-4228): these tests broken by recent server CVE fixes")
-
 		t.Run("archive", func(t *testing.T) {
 			args := []string{ArchiveOption + "=testdata/timeseries_tests/dump.archive"}
 			restore, err := getRestoreWithArgs(args...)
