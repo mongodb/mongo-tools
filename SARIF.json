@@ -1,7 +1,72 @@
 {
 	"runs": [
 		{
-			"results": [],
+			"results": [
+				{
+					"level": "error",
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "bindata.go"
+								},
+								"region": {
+									"endColumn": 15,
+									"endLine": 41,
+									"snippet": {
+										"text": "arg0 := byte(args[0].Uint())"
+									},
+									"sourceLanguage": "go",
+									"startColumn": 15,
+									"startLine": 41
+								}
+							}
+						}
+					],
+					"message": {
+						"text": "integer overflow conversion uint64 -\u003e byte"
+					},
+					"ruleId": "G115",
+					"suppressions": [
+						{
+							"justification": "args[0] was constructed with reflect type byteType, so\nits Kind is always Uint8 and Uint() can only return a byte-range value.",
+							"kind": "inSource"
+						}
+					]
+				},
+				{
+					"level": "error",
+					"locations": [
+						{
+							"physicalLocation": {
+								"artifactLocation": {
+									"uri": "bsondump.go"
+								},
+								"region": {
+									"endColumn": 64,
+									"endLine": 245,
+									"snippet": {
+										"text": "fmt.Fprintf(out, \"%v\\t\\t\\ttype: %4d size: %v\\n\", indent, int8(value.Type), len(rawElem))"
+									},
+									"sourceLanguage": "go",
+									"startColumn": 64,
+									"startLine": 245
+								}
+							}
+						}
+					],
+					"message": {
+						"text": "integer overflow conversion byte -\u003e int8"
+					},
+					"ruleId": "G115",
+					"suppressions": [
+						{
+							"justification": "the bson.Type type always fits in an int8",
+							"kind": "inSource"
+						}
+					]
+				}
+			],
 			"taxonomies": [
 				{
 					"downloadUri": "https://cwe.mitre.org/data/xml/cwec_v4.4.xml.zip",
@@ -16,6 +81,19 @@
 					"shortDescription": {
 						"text": "The MITRE Common Weakness Enumeration"
 					},
+					"taxa": [
+						{
+							"fullDescription": {
+								"text": "The software performs a calculation that can produce an integer overflow or wraparound, when the logic assumes that the resulting value will always be larger than the original value. This can introduce other weaknesses when the calculation is used for resource management or execution control."
+							},
+							"guid": "c71e4fa0-720e-3e82-8b67-b2d44d0c604b",
+							"helpUri": "https://cwe.mitre.org/data/definitions/190.html",
+							"id": "190",
+							"shortDescription": {
+								"text": "Integer Overflow or Wraparound"
+							}
+						}
+					],
 					"version": "4.4"
 				}
 			],
@@ -24,14 +102,54 @@
 					"guid": "8b518d5f-906d-39f9-894b-d327b1a421c5",
 					"informationUri": "https://github.com/securego/gosec/",
 					"name": "gosec",
-					"semanticVersion": "2.22.10",
+					"rules": [
+						{
+							"defaultConfiguration": {
+								"level": "error"
+							},
+							"fullDescription": {
+								"text": "integer overflow conversion uint64 -\u003e byte"
+							},
+							"help": {
+								"text": "integer overflow conversion uint64 -\u003e byte\nSeverity: HIGH\nConfidence: MEDIUM\n"
+							},
+							"id": "G115",
+							"name": "Integer Overflow or Wraparound",
+							"properties": {
+								"precision": "medium",
+								"tags": [
+									"security",
+									"HIGH"
+								]
+							},
+							"relationships": [
+								{
+									"kinds": [
+										"superset"
+									],
+									"target": {
+										"guid": "c71e4fa0-720e-3e82-8b67-b2d44d0c604b",
+										"id": "190",
+										"toolComponent": {
+											"guid": "f2856fc0-85b7-373f-83e7-6f8582243547",
+											"name": "CWE"
+										}
+									}
+								}
+							],
+							"shortDescription": {
+								"text": "integer overflow conversion uint64 -\u003e byte"
+							}
+						}
+					],
+					"semanticVersion": "2.27.1",
 					"supportedTaxonomies": [
 						{
 							"guid": "f2856fc0-85b7-373f-83e7-6f8582243547",
 							"name": "CWE"
 						}
 					],
-					"version": "2.22.10"
+					"version": "2.27.1"
 				}
 			}
 		}

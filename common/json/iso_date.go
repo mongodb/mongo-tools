@@ -15,7 +15,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateIS is the state after reading `IS`.
-func stateIS(s *scanner, c int) int {
+func stateIS(s *scanner, c byte) int {
 	if c == 'O' {
 		s.step = stateISO
 		return scanContinue
@@ -24,7 +24,7 @@ func stateIS(s *scanner, c int) int {
 }
 
 // stateISO is the state after reading `ISO`.
-func stateISO(s *scanner, c int) int {
+func stateISO(s *scanner, c byte) int {
 	if c == 'D' {
 		s.step = stateD
 		return scanContinue

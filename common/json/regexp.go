@@ -18,7 +18,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateR is the state after reading `R`.
-func stateR(s *scanner, c int) int {
+func stateR(s *scanner, c byte) int {
 	if c == 'e' {
 		s.step = generateState("RegExp", []byte("gExp"), stateConstructor)
 		return scanContinue
@@ -27,7 +27,7 @@ func stateR(s *scanner, c int) int {
 }
 
 // stateInRegexpPattern is the state after reading `/`.
-func stateInRegexpPattern(s *scanner, c int) int {
+func stateInRegexpPattern(s *scanner, c byte) int {
 	if c == '/' {
 		s.step = stateInRegexpOptions
 		return scanRegexpOptions
@@ -43,7 +43,7 @@ func stateInRegexpPattern(s *scanner, c int) int {
 }
 
 // stateInRegexpPatternEsc is the state after reading `'\` during a regex pattern.
-func stateInRegexpPatternEsc(s *scanner, c int) int {
+func stateInRegexpPatternEsc(s *scanner, c byte) int {
 	switch c {
 	case 'b', 'f', 'n', 'r', 't', '\\', '/', '\'':
 		s.step = stateInRegexpPattern
@@ -57,7 +57,7 @@ func stateInRegexpPatternEsc(s *scanner, c int) int {
 }
 
 // stateInRegexpPatternEscU is the state after reading `'\u` during a regex pattern.
-func stateInRegexpPatternEscU(s *scanner, c int) int {
+func stateInRegexpPatternEscU(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInRegexpPatternEscU1
 		return scanRegexpPattern
@@ -67,7 +67,7 @@ func stateInRegexpPatternEscU(s *scanner, c int) int {
 }
 
 // stateInRegexpPatternEscU1 is the state after reading `'\u1` during a regex pattern.
-func stateInRegexpPatternEscU1(s *scanner, c int) int {
+func stateInRegexpPatternEscU1(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInRegexpPatternEscU12
 		return scanRegexpPattern
@@ -77,7 +77,7 @@ func stateInRegexpPatternEscU1(s *scanner, c int) int {
 }
 
 // stateInRegexpPatternEscU12 is the state after reading `'\u12` during a regex pattern.
-func stateInRegexpPatternEscU12(s *scanner, c int) int {
+func stateInRegexpPatternEscU12(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInRegexpPatternEscU123
 		return scanRegexpPattern
@@ -87,7 +87,7 @@ func stateInRegexpPatternEscU12(s *scanner, c int) int {
 }
 
 // stateInRegexpPatternEscU123 is the state after reading `'\u123` during a regex pattern.
-func stateInRegexpPatternEscU123(s *scanner, c int) int {
+func stateInRegexpPatternEscU123(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInRegexpPattern
 		return scanRegexpPattern
@@ -97,7 +97,7 @@ func stateInRegexpPatternEscU123(s *scanner, c int) int {
 }
 
 // stateInRegexpOptions is the state after reading `/foo/`.
-func stateInRegexpOptions(s *scanner, c int) int {
+func stateInRegexpOptions(s *scanner, c byte) int {
 	switch c {
 	case 'g', 'i', 'm', 's':
 		return scanRegexpOptions

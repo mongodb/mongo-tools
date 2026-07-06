@@ -124,7 +124,7 @@ Input:
 		// Look in the buffer for a new value.
 		for i, c := range dec.Buf[scanp:] {
 			dec.scan.bytes++
-			v := dec.scan.step(&dec.scan, int(c))
+			v := dec.scan.step(&dec.scan, c)
 			if v == scanEnd {
 				scanp += i
 				break Input

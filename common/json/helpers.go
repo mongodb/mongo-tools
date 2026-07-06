@@ -42,13 +42,17 @@ func isHexPrefix(s string) bool {
 // Otherwise returns a function that upon matching the first element
 // of x will generate another function to match the second, etc.
 // (or accept if no remaining elements).
-func generateState(name string, x []byte, accept func(*scanner, int) int) func(*scanner, int) int {
+func generateState(
+	name string,
+	x []byte,
+	accept func(*scanner, byte) int,
+) func(*scanner, byte) int {
 	if len(x) == 0 {
 		return accept
 	}
 
-	return func(s *scanner, c int) int {
-		if c == int(x[0]) {
+	return func(s *scanner, c byte) int {
+		if c == x[0] {
 			s.step = generateState(name, x[1:], accept)
 			return scanContinue
 		}
@@ -57,7 +61,7 @@ func generateState(name string, x []byte, accept func(*scanner, int) int) func(*
 }
 
 // stateOptionalConstructor is the state where there is the possibility of entering an empty constructor.
-func stateOptionalConstructor(s *scanner, c int) int {
+func stateOptionalConstructor(s *scanner, c byte) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		return scanContinue
 	}
@@ -69,7 +73,7 @@ func stateOptionalConstructor(s *scanner, c int) int {
 }
 
 // stateInParen is the state when inside a `(` waiting for a `)`.
-func stateInParen(s *scanner, c int) int {
+func stateInParen(s *scanner, c byte) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		return scanContinue
 	}

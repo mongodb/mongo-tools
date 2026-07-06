@@ -108,7 +108,7 @@ func (d Date) isFormatable() bool {
 	return int64(d) < int64(32535215999000)
 }
 
-func stateBeginExtendedValue(s *scanner, c int) int {
+func stateBeginExtendedValue(s *scanner, c byte) int {
 	switch c {
 	case 'u': // beginning of undefined
 		s.step = stateU
@@ -138,7 +138,7 @@ func stateBeginExtendedValue(s *scanner, c int) int {
 }
 
 // stateB is the state after reading `B`.
-func stateB(s *scanner, c int) int {
+func stateB(s *scanner, c byte) int {
 	if c == 'i' {
 		s.step = stateBi
 		return scanContinue
@@ -151,7 +151,7 @@ func stateB(s *scanner, c int) int {
 }
 
 // stateUpperN is the state after reading `N`.
-func stateUpperN(s *scanner, c int) int {
+func stateUpperN(s *scanner, c byte) int {
 	if c == 'a' {
 		s.step = stateUpperNa
 		return scanContinue
@@ -164,7 +164,7 @@ func stateUpperN(s *scanner, c int) int {
 }
 
 // stateM is the state after reading `M`.
-func stateM(s *scanner, c int) int {
+func stateM(s *scanner, c byte) int {
 	if c == 'a' {
 		s.step = stateUpperMa
 		return scanContinue
@@ -177,7 +177,7 @@ func stateM(s *scanner, c int) int {
 }
 
 // stateD is the state after reading `D`.
-func stateD(s *scanner, c int) int {
+func stateD(s *scanner, c byte) int {
 	switch c {
 	case 'a':
 		s.step = stateDa
@@ -192,7 +192,7 @@ func stateD(s *scanner, c int) int {
 }
 
 // stateDB is the state after reading `DB`.
-func stateDB(s *scanner, c int) int {
+func stateDB(s *scanner, c byte) int {
 	if c == 'R' {
 		s.step = stateDBR
 		return scanContinue
@@ -205,7 +205,7 @@ func stateDB(s *scanner, c int) int {
 }
 
 // stateI is the state after reading `I`.
-func stateI(s *scanner, c int) int {
+func stateI(s *scanner, c byte) int {
 	switch c {
 	case 'n':
 		s.step = stateIn

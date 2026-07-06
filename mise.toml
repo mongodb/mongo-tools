@@ -6,11 +6,11 @@
 
 [tools]
 # Go and Go tools
-go = "1.25.11"
+go = "1.26.4"
 "go:golang.org/x/tools/cmd/goimports" = "0.29.0"
 "go:golang.org/x/tools/gopls" = "0.21.1"
-"github:golangci/golangci-lint" = "2.6.2"
-"github:securego/gosec" = "2.22.10"
+"github:golangci/golangci-lint" = "2.12.2"
+"github:securego/gosec" = "2.27.1"
 "github:segmentio/golines" = "0.12.2"
 "github:houseabsolute/precious" = "0.10.2"
 

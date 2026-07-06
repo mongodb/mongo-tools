@@ -9,15 +9,15 @@ package json
 // Transition function for recognizing unquoted strings.
 // Adapted from encoding/json/scanner.go.
 
-func isBeginUnquotedString(c int) bool {
+func isBeginUnquotedString(c byte) bool {
 	return c == '$' || c == '_' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'
 }
 
-func isInUnquotedString(c int) bool {
+func isInUnquotedString(c byte) bool {
 	return isBeginUnquotedString(c) || '0' <= c && c <= '9'
 }
 
-func stateInUnquotedString(s *scanner, c int) int {
+func stateInUnquotedString(s *scanner, c byte) int {
 	if isInUnquotedString(c) {
 		return scanContinue
 	}

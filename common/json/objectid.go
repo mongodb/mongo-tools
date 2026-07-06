@@ -15,7 +15,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateO is the state after reading `O`.
-func stateO(s *scanner, c int) int {
+func stateO(s *scanner, c byte) int {
 	if c == 'b' {
 		s.step = generateState("ObjectId", []byte("jectId"), stateConstructor)
 		return scanContinue

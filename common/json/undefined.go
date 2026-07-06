@@ -10,7 +10,7 @@ package json
 // Adapted from encoding/json/scanner.go.
 
 // stateU is the state after reading `u`.
-func stateU(s *scanner, c int) int {
+func stateU(s *scanner, c byte) int {
 	if c == 'n' {
 		s.step = generateState("undefined", []byte("defined"), stateEndValue)
 		return scanContinue

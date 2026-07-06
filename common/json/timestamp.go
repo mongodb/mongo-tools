@@ -17,7 +17,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateUpperT is the state after reading `T`.
-func stateUpperT(s *scanner, c int) int {
+func stateUpperT(s *scanner, c byte) int {
 	if c == 'i' {
 		s.step = generateState("Timestamp", []byte("mestamp"), stateConstructor)
 		return scanContinue

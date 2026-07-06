@@ -240,7 +240,9 @@ func printBSON(raw bson.Raw, indentLevel int, out io.Writer) error {
 		// 3. The BSON value
 		// So size == 1 [size of type byte] +  1 [null byte for cstring key] + len(bson key) + len(bson value)
 		// see http://bsonspec.org/spec.html for more details
-		fmt.Fprintf(out, "%v\t\t\ttype: %4v size: %v\n", indent, int8(value.Type), len(rawElem))
+		//
+		// #nosec #G115 -- the bson.Type type always fits in an int8
+		fmt.Fprintf(out, "%v\t\t\ttype: %4d size: %v\n", indent, int8(value.Type), len(rawElem))
 
 		//For nested objects or arrays, recurse.
 		if value.Type == bson.TypeEmbeddedDocument || value.Type == bson.TypeArray {
