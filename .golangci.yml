@@ -6,6 +6,7 @@ linters:
     - errcheck
     - gocheckcompilerdirectives
     - godot
+    - govet
     - ineffassign
     - misspell
     - nolintlint
@@ -17,6 +18,10 @@ linters:
   settings:
     errcheck:
       check-type-assertions: true
+
+    govet:
+      disable:
+        - composites
 
     misspell:
       locale: US
@@ -50,6 +55,10 @@ linters:
         text: is deprecated
       - path: (.+)\.go$
         text: "composites: .+(bson.(Binary|Decimal128|E|Timestamp)|types.(Destination|Source)(Client|Database)) struct literal uses unkeyed fields"
+      - linters:
+          - govet
+        path: \.go$
+        text: "inline: cannot inline: type parameter inference is not yet supported"
     paths:
       - third_party$
       - builtin$
