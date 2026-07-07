@@ -4,7 +4,7 @@ set -o errexit
 set -o pipefail
 
 if [ -n "$GOSEC_SARIF_REPORT" ]; then
-    ./dev-bin/gosec -fmt sarif -track-suppressions $@ | tee SARIF.json
+    mise exec 'github:securego/gosec' -- gosec -fmt sarif -track-suppressions $@ | tee SARIF.json
 else
-    ./dev-bin/gosec $@
+    mise exec 'github:securego/gosec' -- gosec $@
 fi
