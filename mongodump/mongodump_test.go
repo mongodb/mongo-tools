@@ -1428,8 +1428,8 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		err = md.Init()
 		So(err, ShouldBeNil)
 
-		failpoint.ParseFailpoints("PauseBeforeDumping")
-		defer failpoint.Reset()
+		require.NoError(t, failpoint.DefaultManager.Parse("PauseBeforeDumping"))
+		defer failpoint.DefaultManager.Reset()
 
 		var disconnectErr error
 		canCheckErr := make(chan struct{})
@@ -2353,8 +2353,8 @@ func TestFailDuringResharding(t *testing.T) {
 		)
 
 		Convey("dump should fail if config.reshardingOperations created in oplog", func() {
-			failpoint.ParseFailpoints("PauseBeforeDumping")
-			defer failpoint.Reset()
+			require.NoError(t, failpoint.DefaultManager.Parse("PauseBeforeDumping"))
+			defer failpoint.DefaultManager.Reset()
 
 			var sessErr1, sessErr2 error
 			go func() {
@@ -2374,8 +2374,8 @@ func TestFailDuringResharding(t *testing.T) {
 		Convey(
 			"dump should fail if config.localReshardingOperations.donor created in oplog",
 			func() {
-				failpoint.ParseFailpoints("PauseBeforeDumping")
-				defer failpoint.Reset()
+				require.NoError(t, failpoint.DefaultManager.Parse("PauseBeforeDumping"))
+				defer failpoint.DefaultManager.Reset()
 
 				var sessErr1, sessErr2 error
 				go func() {
@@ -2399,8 +2399,8 @@ func TestFailDuringResharding(t *testing.T) {
 		Convey(
 			"dump should fail if config.localReshardingOperations.recipient created in oplog",
 			func() {
-				failpoint.ParseFailpoints("PauseBeforeDumping")
-				defer failpoint.Reset()
+				require.NoError(t, failpoint.DefaultManager.Parse("PauseBeforeDumping"))
+				defer failpoint.DefaultManager.Reset()
 
 				var sessErr1, sessErr2 error
 				go func() {
