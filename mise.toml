@@ -20,8 +20,8 @@ go = "1.26.4"
 # Node and npm tools
 node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm install --loglevel verbose" }
 "npm:eslint" = "8.57.0"
-"npm:prettier" = "3.4.2"
 "npm:github-codeowners" = "0.2.1"
+"npm:oxfmt" = "0.52.0"
 
 [settings]
 # This prevents us from upgrading to anything that was released less than 7 days ago. It gives us a

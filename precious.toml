@@ -82,32 +82,13 @@ cmd = [
 ok_exit_codes = [0]
 lint_failure_exit_codes = [1]
 
-[commands.prettier-yaml]
+[commands.oxfmt]
 type = "both"
 invoke = "once"
 working-dir = "root"
 path-args = "file"
-include = [ "**/*.yml", "**/*.yaml" ]
-cmd = "$PRECIOUS_ROOT/node_modules/.bin/prettier"
-lint-flags = "--check"
-tidy-flags = "--write"
-ok-exit-codes = [0]
-lint-failure-exit-codes = [1]
-ignore-stderr = ".*"
-labels = [ "default", "fast-tidy" ]
-
-[commands.prettier-md]
-type = "both"
-invoke = "once"
-working-dir = "root"
-path-args = "file"
-include = [ "*.md" ]
-exclude = [ "docs/superpowers/**/*.md" ]
-cmd = [
-    "$PRECIOUS_ROOT/node_modules/.bin/prettier",
-    "--print-width", "100",
-    "--prose-wrap", "always",
-]
+include = [ "*.md", "*.yaml", "*.yml" ]
+cmd = "$PRECIOUS_ROOT/node_modules/.bin/oxfmt"
 lint-flags = "--check"
 tidy-flags = "--write"
 ok-exit-codes = [0]
