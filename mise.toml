@@ -21,6 +21,11 @@ node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm ins
 "npm:prettier" = "3.4.2"
 "npm:github-codeowners" = "0.2.1"
 
+[settings]
+# This prevents us from upgrading to anything that was released less than 7 days ago. It gives us a
+# bit of protection against supply-chain attacks.
+minimum_release_age = "7d"
+
 [settings.node]
 # We turn off GPG verification for node because it has been flaky in CI, and also requires a local
 # GPG public key.
