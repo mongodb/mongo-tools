@@ -229,8 +229,6 @@ functions:
 
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
-          # The evergreen client binary lives in $HOME, and `sa:evgvalidate` shells out to it.
-          export PATH="$PATH:$HOME"
           $GO_EXEC_PREFIX go run build.go -v ${target}
 
   "download mongod and shell":
@@ -2375,20 +2373,12 @@ tasks:
         vars:
           target: sa:modtidy
 
-  - name: evergreen-validate
-    commands:
-      - func: "fetch source"
-      - func: "install mise and go"
-      - func: "create evergreen config file"
-      - func: "run make target"
-        vars:
-          target: sa:evgvalidate
-
   - name: lint
     commands:
       - func: "fetch source"
       - func: "install mise and go"
       - func: "install mise-managed tools"
+      - func: "create evergreen config file"
       - command: shell.exec
         type: test
         params:
@@ -2400,6 +2390,9 @@ tasks:
             set -o verbose
 
             ${_set_shell_env}
+            # The evergreen client binary lives in $HOME, and the evergreen-validate precious
+            # command shells out to it.
+            export PATH="$PATH:$HOME"
             mise exec 'github:houseabsolute/precious' -- precious lint --all
 
   - name: qa-tests-5.0
@@ -2691,7 +2684,6 @@ buildvariants:
     tasks:
       - name: lint
       - name: mod-tidy
-      - name: evergreen-validate
       - name: check-third-party-notices
       - name: check-sbom-lite
       - name: check-sarif-report

@@ -169,6 +169,15 @@ ok-exit-codes = 0
 lint-failure-exit-codes = 1
 labels = [ "default", "fast-tidy" ]
 
+[commands.evergreen-validate]
+type = "lint"
+invoke = "once"
+path-args = "none"
+include = [ "common.yml", "mongodump_passthrough/*.yml" ]
+cmd = [ "$PRECIOUS_ROOT/etc/evergreen-validate-wrapper.sh" ]
+ok-exit-codes = [0]
+lint-failure-exit-codes = [1]
+
 [commands.github-codeowners]
 type = "lint"
 invoke = "once"

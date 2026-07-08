@@ -51,9 +51,6 @@ func init() {
 	taskRegistry.Declare("sa:modtidy").
 		Description("runs go mod tidy").
 		Do(buildscript.SAModTidy)
-	taskRegistry.Declare("sa:evgvalidate").
-		Description("runs evergreen validate").
-		Do(buildscript.SAEvergreenValidate)
 
 	// Testing
 	taskRegistry.Declare("test:unit").
