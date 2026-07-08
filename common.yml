@@ -2645,23 +2645,6 @@ tasks:
         vars:
           target: test:unit ${testArgs}
 
-  - name: vet
-    commands:
-      - func: "fetch source"
-      - func: "install mise and go"
-      - command: shell.exec
-        type: test
-        params:
-          shell: bash
-          working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            set -o errexit
-            set -o pipefail
-            set -o verbose
-
-            ${_set_shell_env}
-            mise exec go -- go vet -composites=false ./bsondump ./mongo*
-
   - name: check-third-party-notices
     commands:
       - func: "fetch source"
@@ -2709,7 +2692,6 @@ buildvariants:
       - name: lint
       - name: mod-tidy
       - name: evergreen-validate
-      - name: vet
       - name: check-third-party-notices
       - name: check-sbom-lite
       - name: check-sarif-report

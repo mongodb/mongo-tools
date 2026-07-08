@@ -5,7 +5,6 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 //go:build !race
-// +build !race
 
 // Disable race detector since these tests are inherently racy
 package progress
