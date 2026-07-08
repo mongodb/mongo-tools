@@ -30,6 +30,7 @@ func newName(s string) Name {
 var (
 	PauseBeforeDumping = newName("PauseBeforeDumping")
 	SlowBSONDump       = newName("SlowBSONDump")
+	PauseUntilResumed  = newName("PauseUntilResumed")
 )
 
 // parseNames splits arg, a comma-separated list of failpoint names as

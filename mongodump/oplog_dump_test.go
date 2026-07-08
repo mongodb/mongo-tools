@@ -546,3 +546,61 @@ func convertIndexToTTL(ctx context.Context, t *testing.T) {
 	)
 	require.NoError(t, res.Err())
 }
+
+// TestOplogRollover verifies that mongodump refuses to produce a dump when
+// the oplog has rolled over during dumping and evicted the entry it captured
+// its starting timestamp from.
+//
+// jstests/dump/oplog_rollover_test.js used to test this by racing a fixed
+// 15-second sleep against a fixed amount of write load meant to overflow a
+// deliberately tiny (2MB) oplog, and needed several rounds of "make this
+// less racy" fixes over the years as host speed varied. That approach isn't
+// available here anyway: the shared replica set used by Go integration
+// tests can't be resized below 990MB (server-enforced), and forcing genuine
+// eviction against that cluster turned out to depend on WiredTiger
+// checkpoint/oldest-timestamp scheduling in ways that were empirically
+// unpredictable even when forcing checkpoints and using majority write
+// concern.
+//
+// Instead, this uses the PauseUntilResumed failpoint to block mongodump
+// after it has captured its real starting timestamp, overwrites that
+// timestamp with one guaranteed not to exist in the oplog, and resumes.
+// mongodump then runs the exact same overflow-detection logic
+// (checkOplogTimestampExists, in oplog_dump.go) it would in production,
+// deterministically and without needing to write any data at all.
+func TestOplogRollover(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	// Oplog is not available in a standalone topology.
+	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
+	md.ToolOptions.DB = ""
+	md.OutputOptions.Oplog = true
+	md.OutputOptions.Out = "oplog_rollover"
+	require.NoError(t, md.Init())
+	defer os.RemoveAll(md.OutputOptions.Out)
+
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	defer failpoint.DefaultManager.Reset()
+
+	dumpErrCh := make(chan error, 1)
+	go func() {
+		dumpErrCh <- md.Dump()
+	}()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	fp.Reached()
+	md.oplogStart = bson.Timestamp{T: 1, I: 1}
+	fp.Signal()
+
+	err = <-dumpErrCh
+	require.ErrorContains(
+		t,
+		err,
+		"oplog overflow: mongodump was unable to capture all new oplog entries during execution",
+		"mongodump should crash when the oplog rolls over during dumping",
+	)
+}
