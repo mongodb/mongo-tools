@@ -17,7 +17,7 @@ const CtorNumArgsErrorf = "expected %v argument%v to %v constructor, but %v rece
 // Adapted from encoding/json/scanner.go.
 
 // stateConstructor is the state after reading a constructor name.
-func stateConstructor(s *scanner, c int) int {
+func stateConstructor(s *scanner, c byte) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		return scanSkipSpace
 	}
@@ -30,7 +30,7 @@ func stateConstructor(s *scanner, c int) int {
 }
 
 // stateBeginCtorOrEmpty is the state after reading `(`.
-func stateBeginCtorOrEmpty(s *scanner, c int) int {
+func stateBeginCtorOrEmpty(s *scanner, c byte) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		return scanSkipSpace
 	}

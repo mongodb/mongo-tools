@@ -10,7 +10,7 @@ package json
 // Adapted from encoding/json/scanner.go.
 
 // stateUpperMi is the state after reading `Mi`.
-func stateUpperMi(s *scanner, c int) int {
+func stateUpperMi(s *scanner, c byte) int {
 	if c == 'n' {
 		s.step = generateState("MinKey", []byte("Key"), stateOptionalConstructor)
 		return scanContinue

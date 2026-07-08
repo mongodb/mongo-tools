@@ -341,7 +341,7 @@ func (d *decodeState) scanWhile(op int) int {
 			newOp = d.scan.eof()
 			d.off = len(d.data) + 1 // mark processed EOF with len+1
 		} else {
-			c := int(d.data[d.off])
+			c := d.data[d.off]
 			d.off++
 			newOp = d.scan.step(&d.scan, c)
 		}
@@ -1199,7 +1199,7 @@ func getu4(s []byte) rune {
 	if len(s) < 6 || s[0] != '\\' || s[1] != 'u' {
 		return -1
 	}
-	r, err := strconv.ParseUint(string(s[2:6]), 16, 64)
+	r, err := strconv.ParseUint(string(s[2:6]), 16, 16)
 	if err != nil {
 		return -1
 	}

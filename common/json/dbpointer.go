@@ -17,7 +17,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateDB is the state after reading `DB`.
-func stateDBP(s *scanner, c int) int {
+func stateDBP(s *scanner, c byte) int {
 	if c == 'o' {
 		s.step = generateState("DBPointer", []byte("inter"), stateConstructor)
 		return scanContinue

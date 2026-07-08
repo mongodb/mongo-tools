@@ -15,7 +15,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateUpperNu is the state after reading `Nu`.
-func stateUpperNu(s *scanner, c int) int {
+func stateUpperNu(s *scanner, c byte) int {
 	if c == 'm' {
 		s.step = generateState("Number", []byte("ber"), stateUpperNumber)
 		return scanContinue
@@ -24,7 +24,7 @@ func stateUpperNu(s *scanner, c int) int {
 }
 
 // stateUpperNumber is the state after reading `Number`.
-func stateUpperNumber(s *scanner, c int) int {
+func stateUpperNumber(s *scanner, c byte) int {
 	if c == 'I' {
 		s.step = generateState("NumberInt", []byte("nt"), stateConstructor)
 		return scanContinue

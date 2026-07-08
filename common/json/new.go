@@ -15,7 +15,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateNe is the state after reading `ne`.
-func stateNe(s *scanner, c int) int {
+func stateNe(s *scanner, c byte) int {
 	if c == 'w' {
 		s.step = stateNew
 		return scanContinue
@@ -25,7 +25,7 @@ func stateNe(s *scanner, c int) int {
 
 // stateNew is the state after reading `new`.
 // Ensures that there is a space after the new keyword.
-func stateNew(s *scanner, c int) int {
+func stateNew(s *scanner, c byte) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		s.step = stateBeginObjectValue
 		return scanContinue
@@ -34,7 +34,7 @@ func stateNew(s *scanner, c int) int {
 }
 
 // stateBeginObjectValue is the state after reading `new`.
-func stateBeginObjectValue(s *scanner, c int) int {
+func stateBeginObjectValue(s *scanner, c byte) int {
 	if c <= ' ' && isSpace(rune(c)) {
 		return scanSkipSpace
 	}
@@ -59,7 +59,7 @@ func stateBeginObjectValue(s *scanner, c int) int {
 }
 
 // stateNumberUpperN is the state after reading `N`.
-func stateNumberUpperN(s *scanner, c int) int {
+func stateNumberUpperN(s *scanner, c byte) int {
 	if c == 'u' {
 		s.step = stateUpperNu
 		return scanContinue

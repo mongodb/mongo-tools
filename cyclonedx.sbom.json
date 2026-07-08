@@ -750,17 +750,17 @@
       "version": "v2.4.0"
     },
     {
-      "bom-ref": "pkg:golang/std@go1.25.11",
+      "bom-ref": "pkg:golang/std@go1.26.4",
       "externalReferences": [
         {
           "type": "website",
-          "url": "https://pkg.go.dev/None/std@go1.25.11"
+          "url": "https://pkg.go.dev/None/std@go1.26.4"
         }
       ],
       "name": "std",
-      "purl": "pkg:golang/std@go1.25.11",
+      "purl": "pkg:golang/std@go1.26.4",
       "type": "library",
-      "version": "go1.25.11"
+      "version": "go1.26.4"
     }
   ],
   "dependencies": [
@@ -855,7 +855,7 @@
       "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
     },
     {
-      "ref": "pkg:golang/std@go1.25.11"
+      "ref": "pkg:golang/std@go1.26.4"
     }
   ],
   "metadata": {

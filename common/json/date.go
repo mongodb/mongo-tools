@@ -17,7 +17,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateDa is the state after reading `Da`.
-func stateDa(s *scanner, c int) int {
+func stateDa(s *scanner, c byte) int {
 	if c == 't' {
 		s.step = stateDat
 		return scanContinue
@@ -26,7 +26,7 @@ func stateDa(s *scanner, c int) int {
 }
 
 // stateDat is the state after reading `Dat`.
-func stateDat(s *scanner, c int) int {
+func stateDat(s *scanner, c byte) int {
 	if c == 'e' {
 		s.step = stateConstructor
 		return scanContinue

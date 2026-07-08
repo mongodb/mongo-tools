@@ -10,7 +10,7 @@ package json
 // Adapted from encoding/json/scanner.go.
 
 // stateInSingleQuotedString is the state after reading `'`.
-func stateInSingleQuotedString(s *scanner, c int) int {
+func stateInSingleQuotedString(s *scanner, c byte) int {
 	if c == '\'' {
 		s.step = stateEndValue
 		return scanContinue
@@ -26,7 +26,7 @@ func stateInSingleQuotedString(s *scanner, c int) int {
 }
 
 // stateInSingleQuotedStringEsc is the state after reading `'\` during a quoted string.
-func stateInSingleQuotedStringEsc(s *scanner, c int) int {
+func stateInSingleQuotedStringEsc(s *scanner, c byte) int {
 	switch c {
 	case 'b', 'f', 'n', 'r', 't', '\\', '/', '\'':
 		s.step = stateInSingleQuotedString
@@ -40,7 +40,7 @@ func stateInSingleQuotedStringEsc(s *scanner, c int) int {
 }
 
 // stateInSingleQuotedStringEscU is the state after reading `'\u` during a quoted string.
-func stateInSingleQuotedStringEscU(s *scanner, c int) int {
+func stateInSingleQuotedStringEscU(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInSingleQuotedStringEscU1
 		return scanContinue
@@ -50,7 +50,7 @@ func stateInSingleQuotedStringEscU(s *scanner, c int) int {
 }
 
 // stateInSingleQuotedStringEscU1 is the state after reading `'\u1` during a quoted string.
-func stateInSingleQuotedStringEscU1(s *scanner, c int) int {
+func stateInSingleQuotedStringEscU1(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInSingleQuotedStringEscU12
 		return scanContinue
@@ -60,7 +60,7 @@ func stateInSingleQuotedStringEscU1(s *scanner, c int) int {
 }
 
 // stateInSingleQuotedStringEscU12 is the state after reading `'\u12` during a quoted string.
-func stateInSingleQuotedStringEscU12(s *scanner, c int) int {
+func stateInSingleQuotedStringEscU12(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInSingleQuotedStringEscU123
 		return scanContinue
@@ -70,7 +70,7 @@ func stateInSingleQuotedStringEscU12(s *scanner, c int) int {
 }
 
 // stateInSingleQuotedStringEscU123 is the state after reading `'\u123` during a quoted string.
-func stateInSingleQuotedStringEscU123(s *scanner, c int) int {
+func stateInSingleQuotedStringEscU123(s *scanner, c byte) int {
 	if '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' {
 		s.step = stateInSingleQuotedString
 		return scanContinue

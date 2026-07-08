@@ -15,7 +15,7 @@ import (
 // Adapted from encoding/json/scanner.go.
 
 // stateBi is the state after reading `Bi`.
-func stateBi(s *scanner, c int) int {
+func stateBi(s *scanner, c byte) int {
 	if c == 'n' {
 		s.step = generateState("BinData", []byte("Data"), stateConstructor)
 		return scanContinue
@@ -36,6 +36,8 @@ func (d *decodeState) storeBinData(v reflect.Value) {
 	}
 	switch kind := v.Kind(); kind {
 	case reflect.Interface:
+		// #nosec G115 -- args[0] was constructed with reflect type byteType, so
+		// its Kind is always Uint8 and Uint() can only return a byte-range value.
 		arg0 := byte(args[0].Uint())
 		arg1 := args[1].String()
 		v.Set(reflect.ValueOf(BinData{arg0, arg1}))

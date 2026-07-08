@@ -10,7 +10,7 @@ package json
 // Adapted from encoding/json/scanner.go.
 
 // stateUpperMa is the state after reading `Ma`.
-func stateUpperMa(s *scanner, c int) int {
+func stateUpperMa(s *scanner, c byte) int {
 	if c == 'x' {
 		s.step = generateState("MaxKey", []byte("Key"), stateOptionalConstructor)
 		return scanContinue

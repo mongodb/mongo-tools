@@ -10,7 +10,7 @@ package json
 // Adapted from encoding/json/scanner.go.
 
 // stateUpperNa is the state after reading `Na`.
-func stateUpperNa(s *scanner, c int) int {
+func stateUpperNa(s *scanner, c byte) int {
 	if c == 'N' {
 		s.step = stateEndValue
 		return scanContinue
