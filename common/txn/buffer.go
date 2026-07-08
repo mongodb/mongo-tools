@@ -58,7 +58,7 @@ func (ts *txnState) purge() {
 }
 
 // Buffer stores transaction oplog entries until they are needed
-// to commit them to a desination.  It includes a WaitGroup for tracking
+// to commit them to a destination.  It includes a WaitGroup for tracking
 // all goroutines across all transactions for use in global shutdown.
 type Buffer struct {
 	sync.Mutex

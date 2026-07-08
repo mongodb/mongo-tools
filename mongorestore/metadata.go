@@ -225,7 +225,7 @@ func (restore *MongoRestore) CreateIndexes(
 	}
 
 	// if we're here, the connected server does not support the command, so we fall back
-	log.Logv(log.Info, "\tcreateIndexes command not supported, attemping legacy index insertion")
+	log.Logv(log.Info, "\tcreateIndexes command not supported, attempting legacy index insertion")
 	for _, idx := range indexes {
 		log.Logvf(log.Info, "\tmanually creating index %#q", idx.Options["name"])
 		err = restore.LegacyInsertIndex(dbName, idx)
@@ -654,7 +654,7 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			case int64:
 				return int(authVersion), nil
 			default:
-				return 0, fmt.Errorf("can't unmarshal system.version curentVersion as an int: %v", versionDoc["currentVersion"])
+				return 0, fmt.Errorf("can't unmarshal system.version currentVersion as an int: %v", versionDoc["currentVersion"])
 			}
 		}
 		log.Logvf(

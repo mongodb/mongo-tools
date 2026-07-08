@@ -1,0 +1,34 @@
+# These aren't typos: they're real identifiers (an Azure Kubernetes Service callback, an OpTime
+# receiver, a deliberately-truncated test struct field) or the deliberately-truncated JSON scanner
+# states (`stateTru`/`stateFals`) copied from Go's stdlib encoding/json scanner.
+[default.extend-identifiers]
+AKS = "AKS"
+ot = "ot"
+Fo = "Fo"
+fo = "fo"
+Tru = "Tru"
+tru = "tru"
+Fals = "Fals"
+fals = "fals"
+# mongorestore.go pairs `includer`/`excluder` (*ns.Matcher) for the include/exclude namespace
+# matchers; typos otherwise "corrects" this to `excluded`, changing its meaning.
+excluder = "excluder"
+
+[default.extend-words]
+AKS = "AKS"
+ot = "ot"
+fo = "fo"
+tru = "tru"
+fals = "fals"
+# The MongoDB `$nin` query operator.
+nin = "nin"
+# Test fixture field name fragments, not English words.
+ba = "ba"
+# From a test string ("TrUe") deliberately using mixed case to test parser robustness.
+Ue = "Ue"
+# From a test fixture filename containing a URL-encoded "café".
+caf = "caf"
+# Deliberately misspelled in a test case for rejecting unrecognized config fields.
+pasword = "pasword"
+# Informal plural of "from", paired with "tos", counting --nsFrom/--nsTo arguments.
+froms = "froms"

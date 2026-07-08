@@ -132,7 +132,7 @@ class HTTPHandler(object):
 
     def __init__(self, realm, url_root, username, password):
         """
-        Initializes the handler with the necessary authenticaton
+        Initializes the handler with the necessary authentication
         credentials.
         """
 

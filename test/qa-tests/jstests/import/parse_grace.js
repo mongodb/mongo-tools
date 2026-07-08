@@ -60,7 +60,7 @@
   assert.neq(ret, 0);
 
   // parseGrace=skipRow should not import the row
-  // with an un-coercable field
+  // with an un-coercible field
   c = d.testcoll2;
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
     "jstests/import/testdata/parse_grace.csv",
@@ -75,7 +75,7 @@
   assert.eq(c.count(), 2);
 
   // parseGrace=skipField should not import the
-  // an un-coercable field, but still keep the rest
+  // an un-coercible field, but still keep the rest
   // of the row
   c = d.testcoll3;
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
@@ -92,7 +92,7 @@
   assert.neq(c.findOne({a: "bar"}), null);
   assert.eq(c.findOne({a: "bar"}).c.xyz, undefined);
 
-  // parseGrace=autoCast should import the un-coercable field
+  // parseGrace=autoCast should import the un-coercible field
   c = d.testcoll4;
   ret = toolTest.runTool.apply(toolTest, ["import", "--file",
     "jstests/import/testdata/parse_grace.csv",

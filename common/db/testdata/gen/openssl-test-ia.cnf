@@ -15,7 +15,7 @@ default_keyfile = myTestCertificateKey.pem    ## The default private key file na
 default_md = sha256                           ## Use SHA-256 for Signatures
 distinguished_name = req_dn
 req_extensions = v3_req
-x509_extensions = v3_ca # The extentions to add to the self signed cert
+x509_extensions = v3_ca # The extensions to add to the self signed cert
 
 [ v3_req ]
 subjectKeyIdentifier  = hash

@@ -76,7 +76,7 @@ GeoNearRandomTest.prototype.testPt = function(pt, opts) {
     try {
       this.assertIsPrefix(last, ret);
     } catch (e) {
-      print("*** failed while compairing " + (i-1) + " and " + i);
+      print("*** failed while comparing " + (i-1) + " and " + i);
       printjson(cmd);
       throw e; // rethrow
     }

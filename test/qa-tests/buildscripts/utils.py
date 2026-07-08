@@ -230,7 +230,7 @@ def unicode_dammit(string, encoding='utf8'):
     # convert a string to a unicode, using the Python
     # representation of non-ascii bytes when necessary
     #
-    # name inpsired by BeautifulSoup's "UnicodeDammit"
+    # name inspired by BeautifulSoup's "UnicodeDammit"
     return string.decode(encoding, 'repr')
 
 def compare_semvers(version1, version2):

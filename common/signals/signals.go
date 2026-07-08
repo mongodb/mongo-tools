@@ -22,7 +22,7 @@ func Handle() chan struct{} {
 }
 
 // HandleWithInterrupt starts a goroutine which listens for SIGTERM, SIGINT, and SIGKILL. It also
-// calles signal.Ignore to explicitly ignore SIGPIPE. It calls the finalizer function when the first
+// calls signal.Ignore to explicitly ignore SIGPIPE. It calls the finalizer function when the first
 // signal is received and forcibly terminates the program after the second. If a nil function is
 // provided, the program will exit after the first signal.
 func HandleWithInterrupt(finalizer func()) chan struct{} {

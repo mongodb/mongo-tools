@@ -49,7 +49,7 @@ func (js JavaScript) MarshalJSON() ([]byte, error) {
 func (d Date) MarshalJSON() ([]byte, error) {
 	var data string
 	n := int64(d)
-	if d.isFormatable() {
+	if d.isFormattable() {
 		t := time.Unix(n/1e3, n%1e3*1e6)
 		data = fmt.Sprintf(`{ "$date": "%v" }`, t.UTC().Format(JSONDateFormat))
 	} else {

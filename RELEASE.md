@@ -307,7 +307,7 @@ automatically transitioned to "Remediation Complete" when the release is marked 
 can confirm this by searching for tickets in these two states and making sure that they have the
 expected status.
 
-VULN-linked tickets related to third party vulnerabilites should also have been updated
+VULN-linked tickets related to third party vulnerabilities should also have been updated
 automatically to set the "Security Level" to None once the Fix Version is marked as Released.
 
 #### Announce the release

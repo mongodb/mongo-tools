@@ -284,7 +284,7 @@ func addCACertsFromFile(cfg *tls.Config, file string) error {
 }
 
 // AKSCallback is a callback function that can be used to authenticate with Azure Kubernetes
-// Service. See https://github.com/pmeredit/atlas-azure-fed-auth for testing, speficially the go
+// Service. See https://github.com/pmeredit/atlas-azure-fed-auth for testing, specifically the go
 // test with AKS.
 func AKSCallback(
 	ctx context.Context,

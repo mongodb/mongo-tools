@@ -104,7 +104,7 @@ var (
 	orderedBSONType = reflect.TypeOf(bson.D{})
 )
 
-func (d Date) isFormatable() bool {
+func (d Date) isFormattable() bool {
 	return int64(d) < int64(32535215999000)
 }
 
@@ -340,7 +340,7 @@ func (d *decodeState) getExtendedLiteral(item []byte) (any, bool) {
 			return d.getDate(), true
 		case 'b': // Dbref
 			return d.getDBRef(), true
-		case 'B': // DBRef or DBPoiner
+		case 'B': // DBRef or DBPointer
 			switch item[2] {
 			case 'R': // DBRef
 				return d.getDBRef(), true

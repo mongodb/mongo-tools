@@ -471,7 +471,7 @@ func buildRPM() {
 
 	outputPath := filepath.Join(home, "rpmbuild", "RPMS", rpmFilename)
 
-	// ensure that the _topdir macro used by rpmbuild references a writeable location
+	// ensure that the _topdir macro used by rpmbuild references a writable location
 	topdirDefine := "_topdir " + filepath.Join(home, "rpmbuild")
 
 	// create the .rpm file.
