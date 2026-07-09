@@ -252,7 +252,7 @@ functions:
 
           ${_set_shell_env}
           ${_maybe_enable_devtoolset_7}
-          $GO_EXEC_PREFIX go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
+          mise exec go -- go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
         add_expansions_to_env: true
 
   "get buildnumber":
@@ -532,7 +532,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-          $GO_EXEC_PREFIX  go run release/release.go upload-release
+          mise exec go -- go run release/release.go upload-release
 
   "upload release json feed to s3":
     - command: shell.exec
@@ -545,7 +545,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-          $GO_EXEC_PREFIX go run release/release.go upload-json
+          mise exec go -- go run release/release.go upload-json
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -568,7 +568,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-         $GO_EXEC_PREFIX  go run release/release.go generate-full-json
+          mise exec go -- go run release/release.go generate-full-json
 
   "upload release packages to linux repos":
     - command: shell.exec
@@ -592,7 +592,7 @@ functions:
           set -o verbose
 
           ${_set_shell_env}
-          $GO_EXEC_PREFIX  go run release/release.go linux-release
+          mise exec go -- go run release/release.go linux-release
 
   "fetch source":
     - command: shell.exec
