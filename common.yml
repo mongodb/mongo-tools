@@ -255,19 +255,29 @@ functions:
         expansion_name: generated_token_mongo_release
         permissions:
           contents: read
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          ${_maybe_enable_devtoolset_7}
-          mise exec go -- go run release/release.go download-mongod-and-shell --server-version ${mongo_version}
-        add_expansions_to_env: true
+        args:
+          - "./scripts/download-mongod-and-shell.sh"
+        env:
+          AWS_ACCESS_KEY_ID: ${cdn_aws_access_key_id}
+          AWS_SECRET_ACCESS_KEY: ${cdn_aws_secret}
+          EVG_BUILD_ID: ${build_id}
+          EVG_IS_PATCH: ${is_patch}
+          EVG_KEY: ${evg_key}
+          EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+          EVG_USER: ${evg_user}
+          EVG_VARIANT: ${build_variant}
+          EVG_VERSION: ${version_id}
+          EVG_WORKDIR: ${workdir}
+          FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+          MONGO_VERSION: ${mongo_version}
+          PLATFORM_OVERRIDE: ${_platform}
+          generated_token_mongo_release: ${generated_token_mongo_release}
 
   "get buildnumber":
     command: keyval.inc
@@ -409,19 +419,23 @@ functions:
 
   "create release artifacts":
     # build release artifacts
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          ${_maybe_enable_devtoolset_7}
-          $GO_EXEC_PREFIX go run release/release.go build-archive
-          $GO_EXEC_PREFIX go run release/release.go build-packages
+        args:
+          - "./scripts/build-release-archive.sh"
+        env:
+          EVG_BUILD_ID: ${build_id}
+          EVG_IS_PATCH: ${is_patch}
+          EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+          EVG_VARIANT: ${build_variant}
+          EVG_VERSION: ${version_id}
+          EVG_WORKDIR: ${workdir}
+          FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+          PLATFORM_OVERRIDE: ${_platform}
 
     # temporary workaround for TOOLS-2606
     - command: shell.exec
@@ -535,30 +549,46 @@ functions:
         content_type: application/octet-stream
 
   "upload release packages to s3":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          mise exec go -- go run release/release.go upload-release
+        args:
+          - "./scripts/upload-release.sh"
+        env:
+          EVG_BUILD_ID: ${build_id}
+          EVG_IS_PATCH: ${is_patch}
+          EVG_KEY: ${evg_key}
+          EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+          EVG_USER: ${evg_user}
+          EVG_VARIANT: ${build_variant}
+          EVG_VERSION: ${version_id}
+          EVG_WORKDIR: ${workdir}
+          FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+          PLATFORM_OVERRIDE: ${_platform}
 
   "upload release json feed to s3":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          mise exec go -- go run release/release.go upload-json
+        args:
+          - "./scripts/upload-release-json.sh"
+        env:
+          EVG_BUILD_ID: ${build_id}
+          EVG_IS_PATCH: ${is_patch}
+          EVG_KEY: ${evg_key}
+          EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+          EVG_USER: ${evg_user}
+          EVG_VARIANT: ${build_variant}
+          EVG_VERSION: ${version_id}
+          EVG_WORKDIR: ${workdir}
+          FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+          PLATFORM_OVERRIDE: ${_platform}
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -571,17 +601,23 @@ functions:
         permissions: public-read
 
   "generate full JSON feed":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          mise exec go -- go run release/release.go generate-full-json
+        args:
+          - "./scripts/generate-full-json-feed.sh"
+        env:
+          EVG_BUILD_ID: ${build_id}
+          EVG_IS_PATCH: ${is_patch}
+          EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+          EVG_VARIANT: ${build_variant}
+          EVG_VERSION: ${version_id}
+          EVG_WORKDIR: ${workdir}
+          FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+          PLATFORM_OVERRIDE: ${_platform}
 
   "upload release packages to linux repos":
     - command: shell.exec
@@ -595,17 +631,27 @@ functions:
 
           curl -L -O http://boxes.10gen.com/build/curator/curator-dist-rhel70-latest.tar.gz
           tar -zxvf curator-dist-rhel70-latest.tar.gz
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          mise exec go -- go run release/release.go linux-release
+        args:
+          - "./scripts/linux-release.sh"
+        env:
+          BARQUE_API_KEY: ${barque_api_key}
+          BARQUE_USERNAME: ${barque_username}
+          EVG_BUILD_ID: ${build_id}
+          EVG_IS_PATCH: ${is_patch}
+          EVG_KEY: ${evg_key}
+          EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+          EVG_USER: ${evg_user}
+          EVG_VARIANT: ${build_variant}
+          EVG_VERSION: ${version_id}
+          EVG_WORKDIR: ${workdir}
+          FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+          PLATFORM_OVERRIDE: ${_platform}
 
   "fetch source":
     - command: shell.exec
