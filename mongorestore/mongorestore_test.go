@@ -1899,21 +1899,22 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	dataColl := testdb.Collection("foo_ts")
 	bucketsColl := testdb.Collection(common.TimeseriesBucketPrefix + "foo_ts")
 
-	// countBuckets returns the number of underlying timeseries buckets. On servers that support
-	// the rawData API (8.3+), the buckets are no longer accessible via a separate
-	// `system.buckets.*` namespace; direct access is rejected with
+	// countBuckets returns the number of underlying timeseries buckets for the given logical
+	// collection. On servers that support the rawData API (8.3+), the buckets are no longer
+	// accessible via a separate `system.buckets.*` namespace; direct access is rejected with
 	// CommandNotSupportedOnLegacyTimeseriesBucketsNamespace. Instead we read them from the logical
 	// collection using the rawData option.
-	countBuckets := func(t *testing.T) int64 {
+	countBuckets := func(t *testing.T, logicalColl string) int64 {
 		if serverVersion.SupportsRawData() {
 			opts := mopt.Count()
 			require.NoError(t, xoptions.SetInternalCountOptions(opts, "rawData", true))
-			count, err := dataColl.CountDocuments(t.Context(), bson.M{}, opts)
+			count, err := testdb.Collection(logicalColl).CountDocuments(t.Context(), bson.M{}, opts)
 			require.NoError(t, err)
 			return count
 		}
 
-		count, err := bucketsColl.CountDocuments(t.Context(), bson.M{})
+		count, err := testdb.Collection(common.TimeseriesBucketPrefix + logicalColl).
+			CountDocuments(t.Context(), bson.M{})
 		require.NoError(t, err)
 		return count
 	}
@@ -1934,7 +1935,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		assert.EqualValues(t, 10, countBuckets(t))
+		assert.EqualValues(t, 10, countBuckets(t, "foo_ts"))
 	}
 
 	// This checks that there are no docs in either the data or buckets collections.
@@ -1943,7 +1944,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, count)
 
-		assert.Zero(t, countBuckets(t))
+		assert.Zero(t, countBuckets(t, "foo_ts"))
 	}
 
 	t.Run("normal restore", func(t *testing.T) {
@@ -2158,10 +2159,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = testdb.Collection(common.TimeseriesBucketPrefix+"bar_ts").
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 10, count)
+		assert.EqualValues(t, 10, countBuckets(t, "bar_ts"))
 	})
 
 	t.Run("system.buckets BSON file as target with metadata", func(t *testing.T) {
@@ -2339,10 +2337,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = testdb.Collection(common.TimeseriesBucketPrefix+"foo_rename_ts").
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 10, count)
+		assert.EqualValues(t, 10, countBuckets(t, "foo_rename_ts"))
 	})
 
 	t.Run("refuse rename of system.bucket", func(t *testing.T) {
@@ -2373,10 +2368,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, count)
 
-		count, err = testdb.Collection(renameBucketsName).
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.Zero(t, count)
+		assert.Zero(t, countBuckets(t, "foo_rename_ts"))
 	})
 }
 
