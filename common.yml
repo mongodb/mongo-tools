@@ -2449,6 +2449,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-alpha1"
@@ -2645,6 +2646,7 @@ tasks:
       - func: "fetch source"
       - func: "get buildnumber"
       - func: "setup credentials"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-alpha1"
