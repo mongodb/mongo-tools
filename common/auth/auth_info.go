@@ -98,7 +98,7 @@ func VerifySystemAuthVersion(sessionProvider *db.SessionProvider) error {
 		Collection("system.version").
 		CountDocuments(context.TODO(), authSchemaQuery)
 	if err != nil {
-		return fmt.Errorf("error checking pressence of auth version: %w", err)
+		return fmt.Errorf("error checking presence of auth version: %w", err)
 	} else if count == 0 {
 		return fmt.Errorf("found no auth version")
 	}

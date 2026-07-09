@@ -5,7 +5,7 @@
   }
 
   if (dump_targets !== "standard") {
-    print('skipping test incompatable with archiving or compression');
+    print('skipping test incompatible with archiving or compression');
     return assert(true);
   }
 

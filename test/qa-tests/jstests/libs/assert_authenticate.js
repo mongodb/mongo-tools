@@ -2,7 +2,7 @@
 (function () {
   let oldAssertAuthenticate = authutil.assertAuthenticate;
   authutil.assertAuthenticate = function(conns, dbName, authParams) {
-    print("authutil.assertAuthenticate overriden in mongo-tools");
+    print("authutil.assertAuthenticate overridden in mongo-tools");
 
     if (authParams !== undefined && authParams.user === "__system") {
       authParams.mechanism = 'SCRAM-SHA-256';

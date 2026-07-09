@@ -1233,7 +1233,7 @@ func TestFixHashedIndexes(t *testing.T) {
 						} else if key.Key == "a.b" {
 							So(key.Value, ShouldEqual, 1)
 						} else if key.Key != "_id" {
-							t.Fatalf("Unexepected Index: %v", key.Key)
+							t.Fatalf("Unexpected Index: %v", key.Key)
 						}
 					}
 				}
@@ -1276,7 +1276,7 @@ func TestFixHashedIndexes(t *testing.T) {
 					} else if key.Key == "a.b" {
 						So(key.Value, ShouldEqual, "hashed")
 					} else if key.Key != "_id" {
-						t.Fatalf("Unexepected Index: %v", key.Key)
+						t.Fatalf("Unexpected Index: %v", key.Key)
 					}
 				}
 			}
@@ -1857,7 +1857,7 @@ func TestGeoHaystackIndexes(t *testing.T) {
 
 // ----------------------------------------------------------------------
 // All tests from this point onwards use testify, not convey. See the
-// CONTRIBUING.md file in the top level of the repo for details on how to
+// CONTRIBUTING.md file in the top level of the repo for details on how to
 // write tests using testify.
 // ----------------------------------------------------------------------
 

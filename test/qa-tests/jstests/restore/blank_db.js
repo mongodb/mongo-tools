@@ -5,7 +5,7 @@
   }
 
   if (dump_targets === "archive") {
-    print('skipping test incompatable with archiving');
+    print('skipping test incompatible with archiving');
     return assert(true);
   }
 

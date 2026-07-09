@@ -9,6 +9,7 @@
 exclude = [
   ".agents/**/*",
   ".claude/**/*",
+  ".gocache/**/*",
   "vendor/**/*",
 ]
 
@@ -128,6 +129,26 @@ cmd = "$PRECIOUS_ROOT/node_modules/.bin/eslint"
 tidy-flags = "--fix"
 ok-exit-codes = [0]
 lint-failure-exit-codes = [1]
+
+[commands.typos]
+type = "both"
+include = "**/*"
+exclude = [
+    ".golangci.yml",
+    "*.archive",
+    "*.bmp",
+    "*.bson",
+    "*.csr",
+    "*.gz",
+    "*.journal",
+    "**/bsondump/testdata/sample.json",
+    "**/mongofiles/testdata/lorem_ipsum_*.txt",
+]
+cmd = [ "mise", "exec", "github:crate-ci/typos", "--", "typos", "--sort" ]
+tidy-flags = "--write-changes"
+invoke = "once"
+ok-exit-codes = 0
+lint-failure-exit-codes = 2
 
 [commands.github-codeowners]
 type = "lint"

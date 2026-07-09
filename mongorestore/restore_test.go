@@ -75,7 +75,7 @@ func Test_removeDefaultIdIndex(t *testing.T) {
 	for _, curCase := range cases {
 		Convey(
 			fmt.Sprintf(
-				"Verfifying that default _id indexes are removed when needed: %s",
+				"Verifying that default _id indexes are removed when needed: %s",
 				curCase.Label,
 			),
 			t,

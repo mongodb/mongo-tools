@@ -1464,7 +1464,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 		dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
 
 		Convey("testing that --query is order-preserving", func() {
-			// If order is not preserved, probabalistically, some of these
+			// If order is not preserved, probabilistically, some of these
 			// loops will fail.
 			for i := 0; i < 100; i++ {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)

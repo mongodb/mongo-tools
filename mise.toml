@@ -13,6 +13,7 @@ go = "1.26.4"
 "github:securego/gosec" = "2.27.1"
 "github:segmentio/golines" = "0.12.2"
 "github:houseabsolute/precious" = "0.10.2"
+"github:crate-ci/typos" = "1.46.1"
 
 # Node and npm tools
 node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm install --loglevel verbose" }

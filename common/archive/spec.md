@@ -66,7 +66,7 @@ each document are defined here:
       string type
   }
   ```
-  - `db` - databse name.
+  - `db` - database name.
   - `collection` - collection name.
   - `metadata` - the collection metadata (including options, index definitions, and collection type)
     encoded in canonical
@@ -86,7 +86,7 @@ each document are defined here:
       int64 CRC
   }
   ```
-  - `db` - databse name.
+  - `db` - database name.
   - `collection` - collection name.
   - `EOF` - always `false`.
   - `CRC` - always `0`.
@@ -99,7 +99,7 @@ each document are defined here:
       int64 CRC
   }
   ```
-  - `db` - databse name.
+  - `db` - database name.
   - `collection` - collection name.
   - `EOF` - always `true`.
   - `CRC` - the CRC-64-ECMA of all documents in the namespace (across all `namespace-segment`s).

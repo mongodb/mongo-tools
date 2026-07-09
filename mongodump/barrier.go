@@ -16,7 +16,7 @@ import (
 // Wait until a file exists and can be opened for reading
 // This is used only for testing mongodump/mongorestore with resmoke
 // test infrastructure.  The tests will create the barrier file when they have
-// finshed writes to the source cluster.
+// finished writes to the source cluster.
 func waitForSourceWritesDoneBarrier(barrierName string) error {
 	// This code should only run in the resmoke testing environment. It's harmless and
 	// possibly useful to have verbose logging for testing; and if it accidentally runs

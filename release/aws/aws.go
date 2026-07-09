@@ -151,7 +151,7 @@ func newHashWriterAt() HashWriterAt {
 }
 
 // HashWriterAt is used to calculate md5, sha1, and sha256 hashes in parallel.
-// w is a MulitWriter that writes to all the Hash interfaces.
+// w is a MultiWriter that writes to all the Hash interfaces.
 type HashWriterAt struct {
 	MD5    hash.Hash
 	SHA1   hash.Hash
