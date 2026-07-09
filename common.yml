@@ -229,19 +229,23 @@ functions:
       add_expansions_to_env: true
 
   "run make target":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          ${_maybe_enable_devtoolset_7}
-          $GO_EXEC_PREFIX go run build.go -v ${target}
+        args:
+          - "./scripts/run-make-target.sh"
+        env:
+          EVG_BUILD_VARIANT: ${build_variant}
+          EVG_PLATFORM: ${_platform}
+          EVG_WORKDIR: ${workdir}
+          TARGET: ${target}
+          TOOLS_TESTING_AUTH_PASSWORD: ${auth_password}
+          TOOLS_TESTING_AUTH_USERNAME: ${auth_username}
+          TOOLS_TESTING_PKCS8_PASSWORD: ${pkcs8_password}
 
   "download mongod and shell":
     - command: github.generate_token
@@ -397,7 +401,6 @@ functions:
           set -o pipefail
           set -o verbose
 
-          ${_set_shell_env}
           MONGO_ARGS="${mongo_args}"
           if [ "${USE_TLS}" = "true" ]; then
             MONGO_ARGS="${mongo_args_tls}"
