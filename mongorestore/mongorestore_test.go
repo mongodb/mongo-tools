@@ -1913,7 +1913,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			return count
 		}
 
-		count, err := testdb.Collection(common.TimeseriesBucketPrefix + logicalColl).
+		count, err := testdb.Collection(common.TimeseriesBucketPrefix+logicalColl).
 			CountDocuments(t.Context(), bson.M{})
 		require.NoError(t, err)
 		return count
@@ -2019,6 +2019,16 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	})
 
 	t.Run("oplogReplay and system.buckets", func(t *testing.T) {
+		// This fixture's oplog contains CRUD ops against a legacy `system.buckets.*` namespace
+		// (dumped from a pre-viewless server). Servers that support the rawData API (8.3+) use
+		// viewless timeseries collections where that namespace no longer exists, and applyOps
+		// cannot apply those ops to the logical collection (it rejects the rawData option). So
+		// replaying a legacy system.buckets oplog into a viewless timeseries collection is
+		// unsupported.
+		if serverVersion.SupportsRawData() {
+			t.Skip("legacy system.buckets oplog replay is unsupported on viewless timeseries servers (8.3+)")
+		}
+
 		defer dropTestDB(t)
 
 		args := []string{

@@ -13,7 +13,6 @@ import (
 
 	"github.com/ccoveille/go-safecast/v2"
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/dumprestore"
@@ -448,23 +447,12 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 	ctx, cancel := restore.writeContext()
 	defer cancel()
 
-	// Servers that support the rawData API (8.3+) use viewless timeseries collections, so the
-	// legacy `system.buckets.*` namespace no longer exists as a separate target. Oplog entries
-	// dumped from older servers still reference it, so we rewrite the namespace to the logical
-	// collection and apply the op with rawData enabled.
-	op, rawData := restore.rewriteTimeseriesBucketOp(op)
-
-	applyOpsCmd := bson.D{
-		{"applyOps", []db.Oplog{op}},
-		{"bypassDocumentValidation", restore.OutputOptions.BypassDocumentValidation},
-	}
-	if rawData {
-		applyOpsCmd = append(applyOpsCmd, bson.E{Key: "rawData", Value: true})
-	}
-
 	singleRes := session.Database("admin").RunCommand(
 		ctx,
-		applyOpsCmd,
+		bson.D{
+			{"applyOps", []db.Oplog{op}},
+			{"bypassDocumentValidation", restore.OutputOptions.BypassDocumentValidation},
+		},
 	)
 	if err := singleRes.Err(); err != nil {
 		return fmt.Errorf("applyOps: %v", err)
@@ -478,33 +466,6 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 	}
 
 	return nil
-}
-
-// rewriteTimeseriesBucketOp redirects a CRUD oplog entry that targets a legacy
-// `<db>.system.buckets.<coll>` namespace to the logical `<db>.<coll>` namespace, for servers that
-// support the rawData API. It returns the (possibly rewritten) op and whether the applyOps command
-// should be run with rawData enabled. Ops that don't target a buckets namespace, or servers that
-// don't support rawData, are returned unchanged.
-func (restore *MongoRestore) rewriteTimeseriesBucketOp(op db.Oplog) (db.Oplog, bool) {
-	if !restore.serverVersion.SupportsRawData() {
-		return op, false
-	}
-
-	// Only CRUD ops address a collection's data directly; command ops are handled elsewhere.
-	switch op.Operation {
-	case "i", "u", "d":
-	default:
-		return op, false
-	}
-
-	dbName, collName, found := strings.Cut(op.Namespace, ".")
-	if !found || !strings.HasPrefix(collName, common.TimeseriesBucketPrefix) {
-		return op, false
-	}
-
-	logicalColl := strings.TrimPrefix(collName, common.TimeseriesBucketPrefix)
-	op.Namespace = dbName + "." + logicalColl
-	return op, true
 }
 
 // TimestampBeforeLimit returns true if the given timestamp is allowed to be
