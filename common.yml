@@ -1921,6 +1921,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-alpha1"
@@ -1947,6 +1948,7 @@ tasks:
           updates:
             - key: "mongod_args_tls"
               concat: " --auth"
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-alpha1"
@@ -1971,6 +1973,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-alpha1"
@@ -1990,6 +1993,7 @@ tasks:
     commands:
       - func: "fetch source"
       - command: expansions.update
+      - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
