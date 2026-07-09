@@ -30,9 +30,6 @@ if grep --quiet "is valid with warnings" "$TEMP_FILE"; then
         "WARNING: task 'commit-queue-workaround' defined but not used by any variants; consider using or disabling")
             continue
             ;;
-        "WARNING: task 'deliberate_fail_to_test_build_baron_context_rules' defined but not used by any variants; consider using or disabling")
-            continue
-            ;;
         "WARNING: task 't_resmoke_setup' defined but not used by any variants; consider using or disabling")
             continue
             ;;

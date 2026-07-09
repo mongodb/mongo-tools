@@ -31,17 +31,16 @@ variables:
         "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile
         common/db/testdata/test-server.pem"
       replsettest_ssl_config:
-        "sslMode: \\\"requireSSL\\\",sslPEMKeyFile: \\\"common/db/testdata/test-server.pem\\\",
-        sslCAFile: \\\"common/db/testdata/ca-ia.pem\\\", sslAllowInvalidHostnames: \\\"\\\""
+        'sslMode: "requireSSL",sslPEMKeyFile: "common/db/testdata/test-server.pem", sslCAFile:
+        "common/db/testdata/ca-ia.pem", sslAllowInvalidHostnames: ""'
       mongod_port: 33333
     tls: &mongod_tls_startup_args
       mongod_args_tls:
         "--tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile
         common/db/testdata/test-server.pem"
       replsettest_tls_config:
-        "tlsMode: \\\"requireTLS\\\",tlsCertificateKeyFile:
-        \\\"common/db/testdata/test-server.pem\\\", tlsCAFile: \\\"common/db/testdata/ca-ia.pem\\\",
-        tlsAllowInvalidHostnames: \\\"\\\""
+        'tlsMode: "requireTLS",tlsCertificateKeyFile: "common/db/testdata/test-server.pem",
+        tlsCAFile: "common/db/testdata/ca-ia.pem", tlsAllowInvalidHostnames: ""'
       mongod_port: 33333
 
   mongo_arguments:
@@ -648,10 +647,10 @@ functions:
           NODE_OPTIONS=""
           mkdir -p /data/db/
           if [ "${USE_TLS}" = "true" ]; then
-            NODE_OPTIONS="${replsettest_tls_config}"
+            NODE_OPTIONS='${replsettest_tls_config}'
             MONGO_ARGS="${mongo_args_tls}"
           elif [ "${USE_SSL}" = "true" ]; then
-            NODE_OPTIONS="${replsettest_ssl_config}"
+            NODE_OPTIONS='${replsettest_ssl_config}'
           fi
           # use jsconfig.json to set baseUrl to find libs
           mv test/shell_common/jsconfig.json ./
