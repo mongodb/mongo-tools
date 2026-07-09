@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 echo "107.23.89.149 kdc.10gen.me" | sudo tee -a /etc/hosts
 echo "127.0.0.1 testserver.10gen.me" | sudo tee -a /etc/hosts
 sudo hostname "testserver.10gen.me"

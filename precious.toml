@@ -150,6 +150,25 @@ invoke = "once"
 ok-exit-codes = 0
 lint-failure-exit-codes = 2
 
+[commands.shellcheck]
+type = "lint"
+include = "**/*.sh"
+exclude = "etc/mise.run.sh"
+cmd = [ "mise", "exec", "github:koalaman/shellcheck", "--", "shellcheck", "--color=always", "--external-sources" ]
+ok-exit-codes = 0
+lint-failure-exit-codes = 1
+
+[commands.shfmt]
+type = "both"
+include = "**/*.sh"
+exclude = "etc/mise.run.sh"
+cmd = [ "mise", "exec", "github:mvdan/sh", "--", "shfmt", "--simplify", "--indent", "4" ]
+lint-flags = "--diff"
+tidy-flags = "--write"
+ok-exit-codes = 0
+lint-failure-exit-codes = 1
+labels = [ "default", "fast-tidy" ]
+
 [commands.github-codeowners]
 type = "lint"
 invoke = "once"

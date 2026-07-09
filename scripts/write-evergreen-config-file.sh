@@ -4,7 +4,7 @@
 # by Evergreen anyway).
 set +x
 
-cat <<EOF > "$HOME/.evergreen.yml"
+cat <<EOF >"$HOME/.evergreen.yml"
 user: "$EVG_USER"
 api_key: "$EVG_KEY"
 api_server_host: "https://evergreen.mongodb.com/api"

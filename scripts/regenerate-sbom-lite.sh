@@ -6,8 +6,8 @@ set -x
 
 rm -f purls.txt
 
-BINARY_DIRS="$( mise exec go -- go run release/release.go print-binary-paths )"
-OS_ARCH_COMBOS="$( mise exec go -- go run release/release.go print-os-arch-combos )"
+BINARY_DIRS="$(mise exec go -- go run release/release.go print-binary-paths)"
+OS_ARCH_COMBOS="$(mise exec go -- go run release/release.go print-os-arch-combos)"
 
 # This set of piped commands generates a file that contains each dependency as a purl
 # (https://github.com/package-url/purl-spec), one per line. This is used as input for the `silkbomb`
