@@ -94,8 +94,7 @@ variables:
       bucket: mciuploads
       local_file: src/mongosync/migration_verifier
 
-  f_make_migration_verifier_binary_executable:
-    &f_make_migration_verifier_binary_executable
+  f_make_migration_verifier_binary_executable: &f_make_migration_verifier_binary_executable
     command: shell.exec
     params:
       shell: bash
