@@ -31,6 +31,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 const (
@@ -1890,9 +1892,31 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		t.Skip("Requires server with FCV 5.0 or later")
 	}
 
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "can get server version")
+
 	testdb := session.Database(dbName)
 	dataColl := testdb.Collection("foo_ts")
 	bucketsColl := testdb.Collection(common.TimeseriesBucketPrefix + "foo_ts")
+
+	// countBuckets returns the number of underlying timeseries buckets. On servers that support
+	// the rawData API (8.3+), the buckets are no longer accessible via a separate
+	// `system.buckets.*` namespace; direct access is rejected with
+	// CommandNotSupportedOnLegacyTimeseriesBucketsNamespace. Instead we read them from the logical
+	// collection using the rawData option.
+	countBuckets := func(t *testing.T) int64 {
+		if serverVersion.SupportsRawData() {
+			opts := mopt.Count()
+			require.NoError(t, xoptions.SetInternalCountOptions(opts, "rawData", true))
+			count, err := dataColl.CountDocuments(t.Context(), bson.M{}, opts)
+			require.NoError(t, err)
+			return count
+		}
+
+		count, err := bucketsColl.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err)
+		return count
+	}
 
 	dropTestDB := func(t *testing.T) {
 		err := testdb.Drop(t.Context())
@@ -1910,9 +1934,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = bucketsColl.CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 10, count)
+		assert.EqualValues(t, 10, countBuckets(t))
 	}
 
 	// This checks that there are no docs in either the data or buckets collections.
@@ -1921,9 +1943,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, count)
 
-		count, err = bucketsColl.CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.Zero(t, count)
+		assert.Zero(t, countBuckets(t))
 	}
 
 	t.Run("normal restore", func(t *testing.T) {
