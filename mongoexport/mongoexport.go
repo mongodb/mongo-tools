@@ -402,18 +402,22 @@ func (exp *MongoExport) verifyCollectionExists() (bool, error) {
 // Internal function that handles exporting to the given writer. Used primarily
 // for testing, because it bypasses writing to the file system.
 func (exp *MongoExport) exportInternal(out io.Writer) (int64, error) {
-	// Check if the collection exists before starting export
-	exists, err := exp.verifyCollectionExists()
-	if err != nil || !exists {
-		return 0, err
-	}
-
+	// Servers that support the rawData API (8.3+) use viewless timeseries collections, where the
+	// legacy system.buckets namespace no longer exists. This is checked before verifying that the
+	// collection exists, since verifyCollectionExists would otherwise report it as missing and
+	// return early without surfacing the more useful error below.
 	if exp.version.SupportsRawData() &&
 		strings.HasPrefix(exp.ToolOptions.Collection, common.TimeseriesBucketPrefix) {
 		return 0, fmt.Errorf(
 			"mongoexport does not support exporting system.buckets collections with server versions 8.3+ (detected version: %s)",
 			exp.version,
 		)
+	}
+
+	// Check if the collection exists before starting export
+	exists, err := exp.verifyCollectionExists()
+	if err != nil || !exists {
+		return 0, err
 	}
 
 	max, err := exp.getCount()

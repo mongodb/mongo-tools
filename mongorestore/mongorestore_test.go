@@ -2026,7 +2026,9 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		// replaying a legacy system.buckets oplog into a viewless timeseries collection is
 		// unsupported.
 		if serverVersion.SupportsRawData() {
-			t.Skip("legacy system.buckets oplog replay is unsupported on viewless timeseries servers (8.3+)")
+			t.Skip(
+				"legacy system.buckets oplog replay is unsupported on viewless timeseries servers (8.3+)",
+			)
 		}
 
 		defer dropTestDB(t)
