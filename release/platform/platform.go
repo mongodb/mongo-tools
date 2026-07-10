@@ -508,6 +508,14 @@ var platforms = []Platform{
 		ServerVariantNames: mapset.NewSet("enterprise-debian12-64"),
 	},
 	{
+		Name:      "debian13",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgDeb,
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
 		Name:                  "debian92",
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,
@@ -695,6 +703,14 @@ var platforms = []Platform{
 	},
 	{
 		Name:      "suse15",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoEnterprise, RepoOrg},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "suse16",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
