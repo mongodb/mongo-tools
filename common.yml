@@ -1924,7 +1924,7 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "9.0.0-alpha1"
+          mongo_version: "9.0.0-alpha2"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1951,7 +1951,7 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "9.0.0-alpha1"
+          mongo_version: "9.0.0-alpha2"
       - func: "start mongod"
         vars:
           USE_TLS: "true"
@@ -1976,7 +1976,7 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "9.0.0-alpha1"
+          mongo_version: "9.0.0-alpha2"
       - func: "create repl_set"
         vars:
           USE_TLS: "true"
@@ -1997,7 +1997,7 @@ tasks:
       - func: "download mongod and shell"
         vars:
           edition: "enterprise"
-          mongo_version: "9.0.0-alpha1"
+          mongo_version: "9.0.0-alpha2"
       - func: "start mongod"
         vars:
           AWS_AUTH: "true"
@@ -2452,7 +2452,7 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "9.0.0-alpha1"
+          mongo_version: "9.0.0-alpha2"
       - func: "run make target"
         vars:
           target: build
@@ -2649,7 +2649,7 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          mongo_version: "9.0.0-alpha1"
+          mongo_version: "9.0.0-alpha2"
       - func: "run make target"
         vars:
           target: build

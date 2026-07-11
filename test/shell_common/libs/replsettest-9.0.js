@@ -1,4 +1,6 @@
-/* Changes to replsettest.js copied over from mongodb/mongo repo at tag r9.0.0-alpha1.
+/* Changes to replsettest.js copied over from mongodb/mongo repo at tag r9.0.0-alpha1 (the
+ * closest published 9.0 source tag; the 9.0.0-alpha2 server binary we test against has no
+ * source tag).
  * 1. Change the `Thread` import path to the vendored parallelTester-9.0.js.
  * 2. Replace the top-level (load-time) imports that reference server jstest libraries not
  *    vendored into mongo-tools (fail_point_util.js, hook_appname.js, replicated_truncates_utils.js)
@@ -3707,6 +3709,11 @@ export class ReplSetTest {
         ) {
             opts = Object.assign({}, opts, {skipCheckDBHashes: true, skipValidation: true});
         }
+        // for use in mongo-tools jstests, always set skipValidation to true. This avoids
+        // _validateNodes(), which spawns threads that import server jstest hooks
+        // (command_sequence_with_retries.js, validate_collections.js) that are not vendored into
+        // mongo-tools; those imports would throw in the thread and abort the shell.
+        opts.skipValidation = true;
 
         // Check to make sure data is the same on all nodes.
         const skipChecks = jsTest.options().skipCheckDBHashes || (opts && opts.skipCheckDBHashes);
