@@ -702,6 +702,15 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
+		Name:                  "suse16",
+		Arch:                  ArchX86_64,
+		OS:                    OSLinux,
+		Pkg:                   PkgRPM,
+		Repos:                 []Repo{RepoEnterprise, RepoOrg},
+		BuildTags:             defaultBuildTags,
+		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
 		Name:                  "ubuntu1604",
 		Arch:                  ArchArm64,
 		OS:                    OSLinux,
