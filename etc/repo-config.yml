@@ -327,6 +327,7 @@ repos:
     component: multiverse
     architectures:
       - x86_64
+      - arm64
     repos:
       - apt/ubuntu/dists/resolute/mongodb-org
 
@@ -614,5 +615,6 @@ repos:
     component: multiverse
     architectures:
       - x86_64
+      - arm64
     repos:
       - apt/ubuntu/dists/resolute/mongodb-enterprise

@@ -789,6 +789,15 @@ var platforms = []Platform{
 	},
 	{
 		Name:                  "ubuntu2604",
+		Arch:                  ArchArm64,
+		OS:                    OSLinux,
+		Pkg:                   PkgDeb,
+		Repos:                 []Repo{RepoEnterprise, RepoOrg},
+		BuildTags:             defaultBuildTags,
+		MinLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
+	},
+	{
+		Name:                  "ubuntu2604",
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,
 		Pkg:                   PkgDeb,
