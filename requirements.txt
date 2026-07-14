@@ -1,0 +1,4 @@
+boto3
+pymongo==3.12.1
+pywin32; sys_platform == "win32"
+pyyaml

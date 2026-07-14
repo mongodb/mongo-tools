@@ -217,6 +217,8 @@ functions:
       working_dir: src/github.com/mongodb/mongo-tools
       args:
         - "./scripts/run_qa.sh"
+      env:
+        EVG_WORKDIR: ${workdir}
       add_expansions_to_env: true
 
   "run native-cert-ssl":
@@ -226,6 +228,8 @@ functions:
       working_dir: src/github.com/mongodb/mongo-tools
       args:
         - "./scripts/run_native_cert_ssl.sh"
+      env:
+        EVG_WORKDIR: ${workdir}
       add_expansions_to_env: true
 
   "run make target":
@@ -737,6 +741,7 @@ functions:
           set -o pipefail
           set -o verbose
 
+          ${_set_shell_env}
           PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
           python="python3"
           if [ "Windows_NT" = "$OS" ]; then
@@ -746,27 +751,9 @@ functions:
           # The aws_e2e_assume_role script requires python3 with boto3.
           # Set up or use an existing python virtualenv for boto3.
           venv='venv'
-          venvNonWindows () { . "$venv"/bin/activate; python -m pip install boto3; }
-          venvWindows () { . "$venv"/Scripts/activate; pip install boto3; }
-
-          if [ -f "$venv"/bin/activate ]; then
-            echo 'activating existing virtualenv'
-            venvNonWindows
-          elif [ -f "$venv"/Scripts/activate ]; then
-            echo 'activating existing virtualenv'
-            dos2unix "$venv"/Scripts/activate
-            venvWindows
-          elif $python -m venv "$venv"; then
-            echo 'creating new virtualenv'
-            if [ -f "$venv"/bin/activate ]; then
-              echo 'activating new virtualenv'
-              venvNonWindows
-            elif [ -f "$venv"/Scripts/activate ]; then
-              echo 'activating new virtualenv'
-              dos2unix "$venv"/Scripts/activate
-              venvWindows
-            fi
-          fi
+          mise exec python -- python3 -m venv "$venv"
+          . "$venv"/bin/activate
+          pip install boto3
 
           $python -m pip list
 
@@ -783,6 +770,7 @@ functions:
           set -o pipefail
           set -o verbose
 
+          # There's no need to use mise here, since this will work with any version of Python.
           PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
           python="python3"
           if [ "Windows_NT" = "$OS" ]; then
@@ -963,8 +951,6 @@ pre:
   - command: expansions.update
     params:
       updates:
-        - key: python
-          value: "/opt/mongodbtoolchain/v4/bin/python3"
         - key: resmoke_dir
           value: "src/resmoke"
         - key: resmoke_venv_dir
