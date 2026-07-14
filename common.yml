@@ -3028,6 +3028,17 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: ubuntu2604
+    display_name: Ubuntu 26.04
+    run_on:
+      - ubuntu2604-small
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   #######################################
   #        Windows Buildvariants        #
   #######################################
