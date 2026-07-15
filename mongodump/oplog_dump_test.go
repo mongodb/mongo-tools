@@ -71,8 +71,8 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	require.NoError(t, md.Init())
 
 	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints("PauseBeforeDumping")
-	defer failpoint.Reset()
+	require.NoError(t, failpoint.DefaultManager.Parse("PauseBeforeDumping"))
+	defer failpoint.DefaultManager.Reset()
 
 	require.NoError(t, vectoredInsert(ctx))
 	//nolint:errcheck
@@ -172,8 +172,8 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 	require.NoError(t, md.Init())
 
 	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints(failpoint.PauseBeforeDumping)
-	defer failpoint.Reset()
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseBeforeDumping.String()))
+	defer failpoint.DefaultManager.Reset()
 
 	go func() {
 		require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
@@ -330,8 +330,8 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	require.NoError(t, md.Init())
 
 	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints(failpoint.PauseBeforeDumping)
-	defer failpoint.Reset()
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseBeforeDumping.String()))
+	defer failpoint.DefaultManager.Reset()
 
 	go func() {
 		createCollectionWithValidatorAndInsertBypassValidation(ctx, t)
@@ -480,8 +480,8 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	require.NoError(t, md.Init())
 
 	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints(failpoint.PauseBeforeDumping)
-	defer failpoint.Reset()
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseBeforeDumping.String()))
+	defer failpoint.DefaultManager.Reset()
 
 	go func() {
 		convertIndexToTTL(ctx, t)
