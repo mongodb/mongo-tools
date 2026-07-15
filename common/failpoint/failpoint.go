@@ -7,7 +7,11 @@
 // Package failpoint implements triggers for custom debugging behavior.
 package failpoint
 
-import "sync"
+import (
+	"context"
+	"fmt"
+	"sync"
+)
 
 // pauseSignal coordinates a single pause: reached is closed by wait to
 // signal that the paused code has arrived at its pause point, and signal is
@@ -30,19 +34,31 @@ func newPauseSignal() *pauseSignal {
 
 // wait closes reachedCh (so a concurrent call to reached returns) and then
 // blocks until signal is called.
-func (p *pauseSignal) wait() {
+func (p *pauseSignal) wait(ctx context.Context) error {
 	p.mu.Lock()
 	p.reachedOnce.Do(func() {
 		close(p.reachedCh)
 	})
 	p.mu.Unlock()
 
-	<-p.signalCh
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("context canceled while waiting for signal to be called: %w", ctx.Err())
+	case <-p.signalCh:
+	}
+
+	return nil
 }
 
 // reached blocks until wait has been called.
-func (p *pauseSignal) reached() {
-	<-p.reachedCh
+func (p *pauseSignal) reached(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("context canceled while waiting for wait to be called: %w", ctx.Err())
+	case <-p.reachedCh:
+	}
+
+	return nil
 }
 
 // signal releases a call blocked in wait. Safe to call more than once.
@@ -69,13 +85,19 @@ func newFailpoint() *Failpoint {
 
 // Wait signals that the caller has reached this pause point (so a concurrent
 // call to Reached returns) and then blocks until Signal is called.
-func (fp *Failpoint) Wait() { fp.pause.wait() }
+func (fp *Failpoint) Wait(ctx context.Context) error {
+	return fp.pause.wait(ctx)
+}
 
 // Reached blocks until Wait has been called.
-func (fp *Failpoint) Reached() { fp.pause.reached() }
+func (fp *Failpoint) Reached(ctx context.Context) error {
+	return fp.pause.reached(ctx)
+}
 
 // Signal releases a call blocked in Wait. Safe to call more than once.
-func (fp *Failpoint) Signal() { fp.pause.signal() }
+func (fp *Failpoint) Signal() {
+	fp.pause.signal()
+}
 
 // Manager tracks which failpoints are currently enabled.
 type Manager interface {
