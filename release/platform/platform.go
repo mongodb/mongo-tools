@@ -508,6 +508,15 @@ var platforms = []Platform{
 		ServerVariantNames: mapset.NewSet("enterprise-debian12-64"),
 	},
 	{
+		Name:                  "debian13",
+		Arch:                  ArchX86_64,
+		OS:                    OSLinux,
+		Pkg:                   PkgDeb,
+		Repos:                 []Repo{RepoEnterprise},
+		BuildTags:             defaultBuildTags,
+		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
 		Name:                  "debian92",
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,

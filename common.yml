@@ -2789,6 +2789,17 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: debian13
+    display_name: Debian 13
+    run_on:
+      - debian13-small
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   #######################################
   #      macOS x86_64 Buildvariant      #
   #######################################
