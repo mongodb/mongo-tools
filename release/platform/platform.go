@@ -565,6 +565,15 @@ var platforms = []Platform{
 	},
 	{
 		Name:                  "rhel10",
+		Arch:                  ArchPpc64le,
+		OS:                    OSLinux,
+		Pkg:                   PkgRPM,
+		Repos:                 []Repo{RepoEnterprise},
+		BuildTags:             defaultBuildTags,
+		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
+		Name:                  "rhel10",
 		Arch:                  ArchS390x,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
