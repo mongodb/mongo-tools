@@ -3288,6 +3288,20 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: rhel10-ppc64le
+    display_name: ZAP PPC64LE RHEL 10
+    run_on:
+      - rhel10-power-small
+    stepback: false
+    tasks:
+      - name: "dist-without-mise"
+      - name: "sign"
+        run_on: rhel87-small
+        depends_on:
+          - name: dist-without-mise
+      - name: "push"
+        run_on: rhel80-small
+
   #######################################
   #     Z (s390x) Buildvariants         #
   #######################################
