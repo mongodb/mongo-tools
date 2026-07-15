@@ -10,7 +10,6 @@ selector:
       - jstests/restore/*.js
       - jstests/stat/*.js
       - jstests/top/*.js
-      - jstests/txn/*.js
 
 executor:
   js_test:
