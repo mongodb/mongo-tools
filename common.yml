@@ -2979,6 +2979,17 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  - name: suse16
+    display_name: SUSE 16
+    run_on:
+      - suse16-small
+    tasks:
+      - name: "dist"
+      - name: "sign"
+        run_on: rhel87-small
+      - name: "push"
+        run_on: rhel80-small
+
   #######################################
   #    Ubuntu x86_64 Buildvariants      #
   #######################################
