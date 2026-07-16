@@ -70,15 +70,25 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	require.NoError(t, failpoint.DefaultManager.Parse("PauseBeforeDumping"))
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries that are guaranteed to fall inside the dump
+	// window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
 	defer failpoint.DefaultManager.Reset()
 
-	require.NoError(t, vectoredInsert(ctx))
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	fp.Reached()
+	require.NoError(t, vectoredInsert(ctx))
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -96,13 +106,25 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	require.NoError(t, err)
 	defer oplogFile.Close()
 
-	contents, err := io.ReadAll(oplogFile)
-	require.NoError(t, err)
-
-	var oplog bson.D
-	require.NoError(t, bson.Unmarshal(contents, &oplog))
-
-	require.Equal(t, int32(1), bsonutil.ToMap(oplog)["multiOpType"])
+	// The vectored insert happens during the dump window, so its oplog entry is
+	// somewhere in the dumped oplog but not necessarily the first entry. Scan all
+	// entries and assert that one of them is the vectored (multiOp) insert.
+	bsonSrc := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(oplogFile))
+	foundMultiOpInsert := false
+	var entry bson.M
+	for bsonSrc.Next(&entry) {
+		require.NoError(t, bsonSrc.Err())
+		if entry["multiOpType"] == int32(1) {
+			foundMultiOpInsert = true
+			break
+		}
+	}
+	require.NoError(t, bsonSrc.Err())
+	require.True(
+		t,
+		foundMultiOpInsert,
+		"oplog dump should contain a vectored insert entry with multiOpType == 1",
+	)
 }
 
 func vectoredInsert(ctx context.Context) error {
@@ -171,18 +193,24 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseBeforeDumping.String()))
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries during the dump window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
 	defer failpoint.DefaultManager.Reset()
-
-	go func() {
-		require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
-	}()
 
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	fp.Reached()
+	require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -329,18 +357,24 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseBeforeDumping.String()))
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries during the dump window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
 	defer failpoint.DefaultManager.Reset()
-
-	go func() {
-		createCollectionWithValidatorAndInsertBypassValidation(ctx, t)
-	}()
 
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	fp.Reached()
+	createCollectionWithValidatorAndInsertBypassValidation(ctx, t)
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -479,18 +513,24 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseBeforeDumping.String()))
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries during the dump window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
 	defer failpoint.DefaultManager.Reset()
-
-	go func() {
-		convertIndexToTTL(ctx, t)
-	}()
 
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	fp.Reached()
+	convertIndexToTTL(ctx, t)
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
