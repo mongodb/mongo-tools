@@ -14,7 +14,6 @@ selector:
       - jstests/top/mongotop_sharded.js
       - jstests/top/mongotop_stress.js
       - jstests/top/mongotop_validation.js
-      - jstests/txn/*.js
 
 executor:
   js_test:
