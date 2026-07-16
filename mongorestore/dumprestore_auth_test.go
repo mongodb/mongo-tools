@@ -908,6 +908,73 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 	})
 }
 
+// TestRestoreWithDBUserPreservesIndexes covers the parts of the legacy
+// restorewithauth.js (SERVER-4972) that TestDumpRestoreEnforcesAuthRoles does
+// not: restoring as a non-admin, per-database user, and confirming that
+// secondary indexes survive the round trip. A collection with an extra index
+// ends up with both _id and that index, while a collection with only _id keeps
+// just _id.
+func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+
+	const (
+		dbName = "testdr_restorewithauth"
+		dbUser = "restorewithauth_user"
+	)
+
+	adminClient, err := testutil.GetBareSession()
+	require.NoError(t, err)
+
+	adminDB := adminClient.Database("admin")
+	testDB := adminClient.Database(dbName)
+	barColl := testDB.Collection("bar")
+	bazColl := testDB.Collection("baz")
+
+	cleanup := func() {
+		silentDropUser(adminDB, dbUser)
+		_ = testDB.Drop(context.Background())
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	ctx := context.Background()
+	for i := 0; i < 4; i++ {
+		_, err = barColl.InsertOne(ctx, bson.D{{Key: "x", Value: i}})
+		require.NoError(t, err)
+		_, err = bazColl.InsertOne(ctx, bson.D{{Key: "x", Value: i}})
+		require.NoError(t, err)
+	}
+	_, err = barColl.Indexes().
+		CreateOne(ctx, mongo.IndexModel{Keys: bson.D{{Key: "x", Value: 1}}})
+	require.NoError(t, err, "creating secondary index on bar")
+
+	// readWrite includes the createCollection/createIndex/insert privileges that
+	// mongorestore needs to restore data and indexes into a single database.
+	mustCreateUser(t, adminDB, dbUser, "password", bson.A{dbRole("readWrite", dbName)})
+
+	dumpDir, cleanDump := testutil.MakeTempDir(t)
+	defer cleanDump()
+
+	dumpOpts := baseToolOpts(t)
+	dumpOpts.Namespace = &options.Namespace{DB: dbName}
+	require.NoError(t, runDump(t, dumpOpts, dumpDir, nil), "dump db as admin")
+
+	require.NoError(t, testDB.Drop(ctx), "dropping db before restore")
+
+	restoreOpts := toolOptsForUser(t, dbUser, "password")
+	require.NoError(
+		t,
+		runRestore(t, restoreOpts, dumpDir, nil),
+		"restore as a non-admin per-db user",
+	)
+
+	assert.Equal(t, int64(4), docCount(t, barColl), "bar restored with 4 documents")
+	assert.Equal(t, int64(4), docCount(t, bazColl), "baz restored with 4 documents")
+	assert.Equal(t, 2, countIndexes(t, barColl), "bar has _id and x indexes after restore")
+	assert.Equal(t, 1, countIndexes(t, bazColl), "baz has only its _id index after restore")
+}
+
 // baseToolOpts returns a fresh set of tool options from the environment.
 func baseToolOpts(t *testing.T) *options.ToolOptions {
 	t.Helper()
@@ -1023,6 +1090,16 @@ func docCount(t *testing.T, coll *mongo.Collection) int64 {
 	count, err := coll.CountDocuments(context.Background(), bson.D{})
 	require.NoError(t, err)
 	return count
+}
+
+// countIndexes returns the number of indexes on the collection.
+func countIndexes(t *testing.T, coll *mongo.Collection) int {
+	t.Helper()
+	cursor, err := coll.Indexes().List(context.Background())
+	require.NoError(t, err, "listing indexes")
+	var indexes []bson.D
+	require.NoError(t, cursor.All(context.Background(), &indexes), "reading index list")
+	return len(indexes)
 }
 
 // mustCreateUser runs a createUser command on db, failing the test on error.
