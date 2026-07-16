@@ -96,27 +96,27 @@ macos_sign_maybe_notarize() {
         --out-path "$PWD/$pkgname.zip"
 }
 
-case $MONGO_OS in
-"osx")
-    macos_sign_maybe_notarize
-    ;;
-
-"windows-64")
+# The signing task doesn't always run on the same OS as the artifacts it signs:
+# Windows (and every Linux) variant signs on a Linux host, while the macOS
+# variants sign on a Mac. So we can't rely on `uname` alone to pick the signing
+# mode. Instead we detect the target from the artifacts present: only Windows
+# builds produce a .msi; the macOS signer is the only one running on Darwin;
+# everything else is a Linux package set signed with PGP.
+if ls mongodb-database-tools*.msi >/dev/null 2>&1; then
     setup_garasign_authentication
     msifile=$(ls mongodb-database-tools*.msi)
     authenticode_sign "$msifile"
     zipfile=$(ls mongodb-database-tools*.zip)
     pgp_sign "$zipfile" "$zipfile.sig"
-    ;;
-
-*)
+elif [ "$(uname -s)" = "Darwin" ]; then
+    macos_sign_maybe_notarize
+else
     setup_garasign_authentication
     for file in mongodb-database-tools*.{tgz,deb,rpm}; do
         [ -e "$file" ] || continue
 
         pgp_sign "$file" "$file.sig"
     done
-    ;;
-esac
+fi
 
 ls -la
