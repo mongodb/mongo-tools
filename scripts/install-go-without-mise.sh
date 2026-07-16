@@ -15,8 +15,8 @@ source "$SCRIPT_DIR/functions.sh"
 # for a Go matching what we pin in mise.toml; failing that, we download it directly from Google's Go
 # distribution (the same source mise's own core:go backend uses).
 #
-# Either way, we end up with a symlink or extracted toolchain at $go_dir/go/bin/go, so common.yml's
-# `_set_shell_env` only ever needs to check that one fixed location.
+# Either way, we end up with a symlink or extracted toolchain at $go_dir/go/bin/go, so
+# scripts/ci-env.sh only ever needs to check that one fixed location.
 
 # We're managing the toolchain ourselves here, so don't let Go silently fetch a different version on
 # its own (e.g. because go.mod requires a newer version than whatever go we find) - that would

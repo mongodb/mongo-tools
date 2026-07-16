@@ -257,17 +257,16 @@ functions:
   # into src/mongosync/dist. We use the same shell setup and go toolchain
   # as in mongo-tools/common.yml "run make target"
   "build mongodump and mongorestore":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          ${_set_shell_env}
-          ${_maybe_enable_devtoolset_7}
-          PATH=$PATH:$HOME
-          go run build.go -v build
-          # Copy mongodump and mongorestore to mongosync/dist
-          mkdir -p ${workdir}/src/mongosync/dist
-          cp -p bin/mongodump bin/mongorestore ${workdir}/src/mongosync/dist
+        args:
+          - "./scripts/build-mongodump-and-mongorestore.sh"
+        env:
+          EVG_WORKDIR: ${workdir}
 
   f_repo_with_modules_fetch:
     - command: git.get_project

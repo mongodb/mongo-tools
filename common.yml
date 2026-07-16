@@ -499,26 +499,25 @@ functions:
         bucket: mciuploads
 
   "sign artifacts":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/sign_artifacts.sh"
         env:
-          MONGO_OS: ${mongo_os}
-          MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
-          MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
           ARTIFACTORY_PASSWORD: ${artifactory_password}
           ARTIFACTORY_USERNAME: ${artifactory_username}
+          AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
+          EVG_TASK_ID: ${task_id}
+          EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
           GARASIGN_PASSWORD: ${garasign_password}
           GARASIGN_USERNAME: ${garasign_username}
-          AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          ./scripts/sign_artifacts.sh
+          MACOS_NOTARY_KEY: ${MACOS_NOTARY_KEY}
+          MACOS_NOTARY_SECRET: ${MACOS_NOTARY_SECRET}
+          MONGO_OS: ${mongo_os}
 
   "upload signed release artifacts":
     # temporary workaround for TOOLS-2606
@@ -858,46 +857,44 @@ functions:
           echo -n "$MONGOD_URI" > MONGOD_URI
 
   "check sbom lite":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          ./scripts/regenerate-and-diff-sbom-lite.sh
+        args:
+          - "./scripts/regenerate-and-diff-sbom-lite.sh"
+        env:
+          EVG_WORKDIR: ${workdir}
 
   "check sarif report":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          ./scripts/regenerate-and-diff-sarif-report.sh
+        args:
+          - "./scripts/regenerate-and-diff-sarif-report.sh"
+        env:
+          EVG_WORKDIR: ${workdir}
 
   "create evergreen config file":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ${_set_shell_env}
-          ./scripts/write-evergreen-config-file.sh
+        args:
+          - "./scripts/write-evergreen-config-file.sh"
+        env:
+          EVG_KEY: ${evg_key}
+          EVG_USER: ${evg_user}
 
   "set silkbomb credentials":
     - command: ec2.assume_role
@@ -936,78 +933,6 @@ pre:
         ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
         rm -rf src /data/db/*
         exit 0
-  - command: shell.exec
-    params:
-      shell: bash
-      script: |
-        cat <<EOT > expansions.yml
-        _set_shell_env: |
-          export EVG_WORKDIR="${workdir}"
-          # cgo needs a mingw-w64 toolchain and some Windows-specific flags on Windows. This
-          # replaces logic that used to live in set_goenv.sh before we switched to mise. We also
-          # normalize the working directory through cygpath here, since Evergreen's workdir
-          # expansion on Windows sometimes lacks a drive letter, and Go's os/exec refuses to run
-          # an executable found via a PATH entry it can't prove is absolute.
-          case "\$(PATH=/usr/bin:/bin uname -s)" in
-          CYGWIN*)
-            EVG_WORKDIR="\$(cygpath -am "\$EVG_WORKDIR")"
-            export CGO_CFLAGS="-D_WIN32_WINNT=0x0601 -DNTDDI_VERSION=0x06010000"
-            export GOCACHE="C:/windows/temp"
-            export PATH="\$PATH:/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-            ;;
-          esac
-          # mise has no builds at all for ppc64le or s390x. On those architectures we download Go
-          # ourselves instead (see install-go-without-mise.sh), so shared functions that need to
-          # run go use GO_EXEC_PREFIX rather than hardcoding "mise exec go --".
-          case "\$(uname -m)" in
-          ppc64le | s390x)
-            export PATH="\$EVG_WORKDIR/.local/share/go-toolchain/go/bin:\$PATH"
-            export GO_EXEC_PREFIX=""
-            # We're managing the toolchain ourselves on these architectures, so don't let Go
-            # silently fetch a different version on its own (e.g. because go.mod requires a newer
-            # version than what we've provisioned).
-            export GOTOOLCHAIN=local
-            ;;
-          *)
-            export GO_EXEC_PREFIX="mise exec go --"
-            ;;
-          esac
-          export PATH="\$EVG_WORKDIR/.local/bin:\$PATH"
-          export MISE_DATA_DIR="\$EVG_WORKDIR/.local/share/mise"
-          export EVG_IS_PATCH='${is_patch}'
-          export EVG_TRIGGERED_BY_TAG='${triggered_by_git_tag}'
-          if [ -n "${fake_tag_for_release_testing}" ]; then
-            export EVG_TRIGGERED_BY_TAG="${fake_tag_for_release_testing}"
-            export IS_FAKE_TAG=1
-          fi
-          export EVG_BUILD_ID='${build_id}'
-          export EVG_VERSION='${version_id}'
-          export EVG_VARIANT='${build_variant}'
-          if [ '${_platform}' != '' ]; then
-            export EVG_VARIANT='${_platform}'
-          fi
-          export EVG_USER='${evg_user}'
-          export EVG_KEY='${evg_key}'
-          export EVG_TASK_ID='${task_id}'
-          export AWS_ACCESS_KEY_ID='${cdn_aws_access_key_id}'
-          export AWS_SECRET_ACCESS_KEY='${cdn_aws_secret}'
-          export BARQUE_USERNAME='${barque_username}'
-          export BARQUE_API_KEY='${barque_api_key}'
-          export TOOLS_TESTING_AUTH_USERNAME='${auth_username}'
-          export TOOLS_TESTING_AUTH_PASSWORD='${auth_password}'
-          export MONGODB_KERBEROS_PASSWORD='${kerberos_password}'
-          export TOOLS_TESTING_PKCS8_PASSWORD='${pkcs8_password}'
-          set -o xtrace
-          set -o verbose
-          set -o errexit
-        _maybe_enable_devtoolset_7: |
-          if [ -f /opt/rh/devtoolset-7/enable ]; then
-            source /opt/rh/devtoolset-7/enable
-          fi
-        EOT
-  - command: expansions.update
-    params:
-      file: expansions.yml
   # Extra pre steps needed for mongodump passthrough.
   - command: expansions.update
     params:
@@ -1166,18 +1091,17 @@ tasks:
       - command: expansions.update
       - func: "set silkbomb credentials"
       - func: "install mise and go"
-      - command: shell.exec
+      - command: subprocess.exec
         params:
-          shell: bash
+          # binary must be bash (with the script passed via args), not the script
+          # directly: Windows can't execute a shebang script as a native binary.
+          binary: bash
           working_dir: src/github.com/mongodb/mongo-tools
+          args:
+            - "./scripts/regenerate-and-diff-augmented-sbom.sh"
           include_expansions_in_env: [KONDUKTO_TOKEN]
-          script: |
-            set -o errexit
-            set -o pipefail
-            set -o verbose
-
-            ${_set_shell_env}
-            ./scripts/regenerate-and-diff-augmented-sbom.sh
+          env:
+            EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
 
   - name: release-json
     tags: ["git_tag"]
@@ -2439,21 +2363,17 @@ tasks:
       - func: "install mise and go"
       - func: "install mise-managed tools"
       - func: "create evergreen config file"
-      - command: shell.exec
+      - command: subprocess.exec
         type: test
         params:
-          shell: bash
+          # binary must be bash (with the script passed via args), not the script
+          # directly: Windows can't execute a shebang script as a native binary.
+          binary: bash
           working_dir: src/github.com/mongodb/mongo-tools
-          script: |
-            set -o errexit
-            set -o pipefail
-            set -o verbose
-
-            ${_set_shell_env}
-            # The evergreen client binary lives in $HOME, and the evergreen-validate precious
-            # command shells out to it.
-            export PATH="$PATH:$HOME"
-            mise exec 'github:houseabsolute/precious' -- precious lint --all
+          args:
+            - "./scripts/lint.sh"
+          env:
+            EVG_WORKDIR: ${workdir}
 
   - name: qa-tests-5.0
     tags: ["5.0"]
