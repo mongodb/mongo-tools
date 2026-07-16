@@ -9,4 +9,6 @@ SCRIPT_DIR=$(dirname "$0")
 # shellcheck source=scripts/release-env.sh
 . "$SCRIPT_DIR/release-env.sh"
 
+: "${MONGO_VERSION:?}"
+
 $GO_EXEC_PREFIX go run release/release.go download-mongod-and-shell --server-version "$MONGO_VERSION"

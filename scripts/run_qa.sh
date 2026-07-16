@@ -4,6 +4,9 @@ set -x
 set -v
 set -e
 
+# shellcheck disable=SC2154 # resmoke_suite is an Evergreen expansion (add_expansions_to_env)
+: "${resmoke_suite:?}"
+
 chmod +x bin/*
 mv bin/* test/qa-tests/
 cd test/qa-tests
