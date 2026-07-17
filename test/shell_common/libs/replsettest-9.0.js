@@ -937,7 +937,7 @@ export class ReplSetTest {
      * If 'expectedPrimaryNode' is provided, ensure that every node is seeing this node as the
      * primary. Otherwise, ensure that all the nodes in the set agree with the first node on the
      * identity of the primary.
-     * This call does not guarantee that the agreed upon primary is writeable.
+     * This call does not guarantee that the agreed upon primary is writable.
      */
     awaitNodesAgreeOnPrimary(timeout, nodes, expectedPrimaryNode, runHangAnalyzerOnTimeout = true) {
         timeout = timeout || this.timeoutMS;
@@ -1056,7 +1056,7 @@ export class ReplSetTest {
     }
 
     /**
-     * Blocks until all nodes agree on who the primary is and the primary is writeable.
+     * Blocks until all nodes agree on who the primary is and the primary is writable.
      * This includes waiting for the optional primary catchup process to complete, which
      * getPrimary() ensures.
      * Returns the primary.
