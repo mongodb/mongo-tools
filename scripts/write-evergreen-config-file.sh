@@ -4,6 +4,8 @@
 # by Evergreen anyway).
 set +x
 
+: "${EVG_USER:?}" "${EVG_KEY:?}"
+
 cat <<EOF >"$HOME/.evergreen.yml"
 user: "$EVG_USER"
 api_key: "$EVG_KEY"
