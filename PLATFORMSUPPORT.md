@@ -23,22 +23,12 @@ In this tutorial, we will add a new platform support for Ubuntu2004-arm64.
     <<: *mongo_ssl_startup_args
     <<: *mongod_tls_startup_args
     <<: *mongo_tls_startup_args
-    mongo_edition: "targeted"
-    mongo_arch: "aarch64"
     build_tags: "failpoints"
     resmoke_use_tls: _tls
     excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
     resmoke_args: -j 2
-    edition: ssl
     USE_SSL: "true"
   tasks: *ubuntu2004_arm64_tasks
-```
-
-To set up enterprise version testing, add the extra fields to `expansions`
-
-```
-    mongo_edition: "enterprise"
-    edition: enterprise
 ```
 
 3. Add following in `release/platform.go` to support release script
@@ -59,7 +49,6 @@ To set up enterprise version testing, add the extra fields to `expansions`
   - name: ubuntu2004
     type: deb
     code_name: "bionic"
-    edition: org
     bucket: repo.mongodb.org
     component: multiverse
     architectures:

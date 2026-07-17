@@ -1189,7 +1189,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "5.0"
       - func: "start mongod"
         vars:
@@ -1282,7 +1281,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "6.0"
       - func: "start mongod"
         vars:
@@ -1375,7 +1373,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "7.0"
       - func: "start mongod"
         vars:
@@ -1468,7 +1465,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "8.0"
       - func: "start mongod"
         vars:
@@ -1562,7 +1558,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "8.1.0"
       - func: "start mongod"
         vars:
@@ -1656,7 +1651,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "8.2.0"
       - func: "start mongod"
         vars:
@@ -1750,7 +1744,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "8.3.0-rc4"
       - func: "start mongod"
         vars:
@@ -1986,7 +1979,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "latest"
       - func: "start mongod"
         vars:
@@ -2008,7 +2000,6 @@ tasks:
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
-          edition: "enterprise"
           mongo_version: "4.4"
       - func: "start mongod"
         vars:
@@ -2691,9 +2682,7 @@ buildvariants:
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
         ]
-      mongo_edition: "enterprise"
       resmoke_use_tls: _tls
-      edition: enterprise
       run_kinit: true
       resmoke_args: --jobs 4
     tasks:
@@ -2727,10 +2716,8 @@ buildvariants:
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
         ]
-      mongo_edition: "enterprise"
       testArgs: "-race=true"
       resmoke_use_tls: _tls
-      edition: enterprise
       run_kinit: true
       resmoke_args: --jobs 4
     tasks:
@@ -2905,13 +2892,11 @@ buildvariants:
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
         ]
-      mongo_edition: "enterprise"
       mongo_target: "windows"
       python_binary: "/cygdrive/c/python/Python311/python"
       resmoke_args: --jobs 4
       resmoke_use_tls: _tls
       excludes: requires_large_ram,requires_mongo_24
-      edition: enterprise
       extension: .exe
       preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
       USE_SSL: "true"
