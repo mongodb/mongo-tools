@@ -338,84 +338,58 @@ functions:
         cp mci.buildlogger test/qa-tests
 
   "start mongod":
-    command: shell.exec
+    command: subprocess.exec
     params:
-      shell: bash
+      # binary must be bash (with the script passed via args), not the script
+      # directly: Windows can't execute a shebang script as a native binary.
+      binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
       background: true
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
-
-        rm -rf mongodb/db_files mongodb/${logfile|run.log}
-        mkdir -p mongodb/db_files
-        MONGOD_ARGS="${mongod_args}"
-        if [ "${USE_TLS}" = "true" ]; then
-          MONGOD_ARGS="${mongod_args_tls}"
-        elif [ "${AWS_AUTH}" = "true" ]; then
-          MONGOD_ARGS="--auth --setParameter authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256"
-        fi;
-        echo "Starting mongod..."
-        storage_args=''
-        if [ "${STORAGE_ENGINE}" != '' ]; then
-          storage_args='--storageEngine ${STORAGE_ENGINE}'
-        fi
-        PATH=$PWD/bin:$PATH ./bin/mongod${extension}  --port ${mongod_port} $MONGOD_ARGS ${additional_args} --dbpath mongodb/db_files --setParameter=enableTestCommands=1 $storage_args
+      args:
+        - "./scripts/start-mongod.sh"
+      env:
+        ADDITIONAL_ARGS: ${additional_args}
+        AWS_AUTH: ${AWS_AUTH}
+        EXTENSION: ${extension}
+        LOGFILE: ${logfile|run.log}
+        MONGOD_ARGS: ${mongod_args}
+        MONGOD_ARGS_TLS: ${mongod_args_tls}
+        MONGOD_PORT: ${mongod_port}
+        STORAGE_ENGINE: ${STORAGE_ENGINE}
+        USE_TLS: ${USE_TLS}
 
   "wait for mongod to be ready":
-    command: shell.exec
+    command: subprocess.exec
     params:
-      shell: bash
+      # binary must be bash (with the script passed via args), not the script
+      # directly: Windows can't execute a shebang script as a native binary.
+      binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
-
-        SECS=0
-        MONGO_ARGS="${mongo_args}"
-        if [ "${USE_TLS}" = "true" ]; then
-          MONGO_ARGS="${mongo_args_tls}"
-        elif [ "${AWS_AUTH}" = "true" ]; then
-          MONGO_ARGS="--port 33333"
-        fi;
-        while true ; do
-            set +o errexit
-            ./bin/mongo${extension} $MONGO_ARGS --eval 'true;'
-            status=$?
-            # This overwrites "$?".
-            set -o errexit
-
-            if [ "$status" = "0" ]; then
-                echo "mongod ready";
-                exit 0
-            else
-                SECS=`expr $SECS + 1`
-                if [ $SECS -gt 100 ]; then
-                    echo "mongod not ready after 100 seconds"
-                    exit 1
-                fi
-                echo "waiting for mongod $MONGO_ARGS to be ready..."  ;
-                sleep 1 ;
-            fi
-        done
+      args:
+        - "./scripts/wait-for-mongod.sh"
+      env:
+        AWS_AUTH: ${AWS_AUTH}
+        EXTENSION: ${extension}
+        MONGO_ARGS: ${mongo_args}
+        MONGO_ARGS_TLS: ${mongo_args_tls}
+        USE_TLS: ${USE_TLS}
 
   "create mongod users":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          MONGO_ARGS="${mongo_args}"
-          if [ "${USE_TLS}" = "true" ]; then
-            MONGO_ARGS="${mongo_args_tls}"
-          fi
-          echo "db.createUser({ user: '${auth_username}', pwd: '${auth_password}', roles: [{ role: '__system', db: 'admin' }] });" | ./bin/mongo${extension} $MONGO_ARGS admin
+        args:
+          - "./scripts/create-mongod-users.sh"
+        env:
+          AUTH_PASSWORD: ${auth_password}
+          AUTH_USERNAME: ${auth_username}
+          EXTENSION: ${extension}
+          MONGO_ARGS: ${mongo_args}
+          MONGO_ARGS_TLS: ${mongo_args_tls}
+          USE_TLS: ${USE_TLS}
 
   "create release artifacts":
     # build release artifacts
@@ -680,78 +654,66 @@ functions:
           mkdir -p bin
 
   "create repl_set":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
         background: true
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
+        args:
+          - "./scripts/create-repl-set.sh"
+        env:
+          LOAD_LIBS_VERSION: ${load_libs_version}
+          MONGOD_PORT: ${mongod_port}
+          MONGO_ARGS: ${mongo_args}
+          MONGO_ARGS_TLS: ${mongo_args_tls}
+          REPLSETTEST_SSL_CONFIG: ${replsettest_ssl_config}
+          REPLSETTEST_TLS_CONFIG: ${replsettest_tls_config}
+          USE_SSL: ${USE_SSL}
+          USE_TLS: ${USE_TLS}
 
-          echo "starting repl set"
-          MONGO_ARGS="${mongo_args}"
-          NODE_OPTIONS=""
-          mkdir -p /data/db/
-          if [ "${USE_TLS}" = "true" ]; then
-            NODE_OPTIONS='${replsettest_tls_config}'
-            MONGO_ARGS="${mongo_args_tls}"
-          elif [ "${USE_SSL}" = "true" ]; then
-            NODE_OPTIONS='${replsettest_ssl_config}'
-          fi
-          # use jsconfig.json to set baseUrl to find libs
-          mv test/shell_common/jsconfig.json ./
-          if [ -n "${load_libs_version}" ]; then
-            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
-          fi
-          PATH=./bin:$PATH ./bin/mongo $MONGO_ARGS --nodb --eval "$IMPORT_LOAD_LIBS; TestData = new Object(); TestData.minPort=\"${mongod_port}\"; var repl = new ReplSetTest({nodes:1, name:'repltester', nodeOptions: {$NODE_OPTIONS}});repl.startSet();repl.initiate();repl.awaitSecondaryNodes();while(true){sleep(1000);}"
-
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          MONGO_ARGS="${mongo_args}"
-          if [ "${USE_TLS}" = "true" ]; then
-            MONGO_ARGS="${mongo_args_tls}"
-          fi;
-          ./bin/mongo $MONGO_ARGS --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+        args:
+          - "./scripts/wait-for-cluster.sh"
+        env:
+          MONGOD_PORT: ${mongod_port}
+          MONGO_ARGS: ${mongo_args}
+          MONGO_ARGS_TLS: ${mongo_args_tls}
+          USE_TLS: ${USE_TLS}
 
   "create sharded cluster":
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
         background: true
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
+        args:
+          - "./scripts/create-sharded-cluster.sh"
+        env:
+          LOAD_LIBS_VERSION: ${load_libs_version}
+          MONGOD_PORT: ${mongod_port}
 
-          echo "starting sharded cluster"
-          mkdir -p /data/db/
-          # use jsconfig.json to set baseUrl to find libs
-          mv test/shell_common/jsconfig.json ./
-          if [ -n "${load_libs_version}" ]; then
-            IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
-          fi
-          PATH=./bin:$PATH ./bin/mongo --port ${mongod_port} --nodb --eval "$IMPORT_LOAD_LIBS; var st = new ShardingTest({name: \"tools_sharded_cluster\", shards: 1, mongos: [{port: ${mongod_port}}], other: {rsOptions: {}, configOptions: {}}}); while(true){sleep(1000);}"
-
-    - command: shell.exec
+    - command: subprocess.exec
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          ./bin/mongo --port ${mongod_port} --nodb --eval 'assert.soon(function(x){try{var d = new Mongo("localhost:${mongod_port}"); return true} catch(e){return false}}, "timed out connection")'
+        args:
+          - "./scripts/wait-for-cluster.sh"
+        env:
+          MONGOD_PORT: ${mongod_port}
+          MONGO_ARGS: ""
+          MONGO_ARGS_TLS: ""
+          USE_TLS: ""
 
   "add-aws-auth-variables-to-file":
     - command: shell.exec
