@@ -195,6 +195,20 @@ func SkipIfFCVLessThan(t *testing.T, versionStr string, reason string) {
 	}
 }
 
+// SkipUnlessStandalone skips the test unless it is connected to a standalone
+// server. Some operations (e.g. writing local.oplog.rs as a collection) are
+// only permitted on a standalone: a replica set rejects direct oplog writes and
+// mongos rejects writes to the local database.
+func SkipUnlessStandalone(t *testing.T) {
+	sessionProvider, _, err := GetBareSessionProvider()
+	require.NoError(t, err)
+	nodeType, err := sessionProvider.GetNodeType()
+	require.NoError(t, err)
+	if nodeType != db.Standalone {
+		t.Skipf("Skipping test because it requires a standalone server, not %q", nodeType)
+	}
+}
+
 func dottedStringToSlice(s string) ([]int, error) {
 	parts := make([]int, 0, 2)
 	for _, v := range strings.Split(s, ".") {
