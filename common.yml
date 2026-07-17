@@ -708,87 +708,26 @@ functions:
           IAM_AUTH_ASSUME_ROLE_NAME: ${iam_auth_assume_role_name}
 
   "setup-aws-auth-test-with-assume-role-credentials":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         # silent: true
-        working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
-          python="python3"
-          if [ "Windows_NT" = "$OS" ]; then
-            python="/cygdrive/c/python/Python311/python"
-          fi
-
-          # The aws_e2e_assume_role script requires python3 with boto3.
-          # Set up or use an existing python virtualenv for boto3.
-          venv='venv'
-          venvNonWindows () { . "$venv"/bin/activate; python -m pip install boto3; }
-          venvWindows () { . "$venv"/Scripts/activate; pip install boto3; }
-
-          if [ -f "$venv"/bin/activate ]; then
-            echo 'activating existing virtualenv'
-            venvNonWindows
-          elif [ -f "$venv"/Scripts/activate ]; then
-            echo 'activating existing virtualenv'
-            dos2unix "$venv"/Scripts/activate
-            venvWindows
-          elif $python -m venv "$venv"; then
-            echo 'creating new virtualenv'
-            if [ -f "$venv"/bin/activate ]; then
-              echo 'activating new virtualenv'
-              venvNonWindows
-            elif [ -f "$venv"/Scripts/activate ]; then
-              echo 'activating new virtualenv'
-              dos2unix "$venv"/Scripts/activate
-              venvWindows
-            fi
-          fi
-
-          $python -m pip list
-
-          ../../../bin/mongo --nodb aws_e2e_assume_role.js
-
-    - command: shell.exec
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/setup-aws-auth-assume-role.sh"
+    - command: subprocess.exec
       type: test
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         silent: true
-        working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
-          python="python3"
-          if [ "Windows_NT" = "$OS" ]; then
-            python="/cygdrive/c/python/Python311/python"
-          fi
-
-          jsonkey () { $python -c "import sys, json; sys.stdout.write(json.load(sys.stdin)['$1'])" < creds.json; }
-          urlencode () { $python -c "import sys, urllib.parse as ul; sys.stdout.write(ul.quote_plus('$1'))"; }
-
-          USER=$(jsonkey AccessKeyId)
-          USER=$(urlencode $USER)
-
-          PASS=$(jsonkey SecretAccessKey)
-          PASS=$(urlencode $PASS)
-
-          MONGOD_URI="mongodb://$USER:$PASS@localhost:33333/?authMechanism=MONGODB-AWS"
-
-          SESSION_TOKEN=$(jsonkey SessionToken)
-          SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
-          if [ -n $SESSION_TOKEN ]; then
-              MONGOD_URI="$MONGOD_URI&authMechanismProperties=AWS_SESSION_TOKEN:$SESSION_TOKEN"
-          fi
-
-          echo -n "$MONGOD_URI" > MONGOD_URI
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/build-aws-auth-mongod-uri.sh"
 
   "check sbom lite":
     - command: subprocess.exec
