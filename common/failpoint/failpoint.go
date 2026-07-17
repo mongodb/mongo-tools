@@ -14,11 +14,11 @@ import "sync"
 // closed by signal to release it. mu guards the two closed flags so that
 // closing either channel more than once is a safe no-op rather than a panic.
 type pauseSignal struct {
-	mu            sync.Mutex
-	reachedCh     chan struct{}
-	reachedClosed bool
-	signalCh      chan struct{}
-	signalClosed  bool
+	mu          sync.Mutex
+	reachedOnce sync.Once
+	reachedCh   chan struct{}
+	signalOnce  sync.Once
+	signalCh    chan struct{}
 }
 
 func newPauseSignal() *pauseSignal {
@@ -32,10 +32,9 @@ func newPauseSignal() *pauseSignal {
 // blocks until signal is called.
 func (p *pauseSignal) wait() {
 	p.mu.Lock()
-	if !p.reachedClosed {
+	p.reachedOnce.Do(func() {
 		close(p.reachedCh)
-		p.reachedClosed = true
-	}
+	})
 	p.mu.Unlock()
 
 	<-p.signalCh
@@ -50,10 +49,9 @@ func (p *pauseSignal) reached() {
 func (p *pauseSignal) signal() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if !p.signalClosed {
+	p.signalOnce.Do(func() {
 		close(p.signalCh)
-		p.signalClosed = true
-	}
+	})
 }
 
 // Failpoint represents one named failpoint's runtime state — for failpoints
