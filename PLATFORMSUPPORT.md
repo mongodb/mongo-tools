@@ -23,7 +23,6 @@ In this tutorial, we will add a new platform support for Ubuntu2004-arm64.
     <<: *mongo_ssl_startup_args
     <<: *mongod_tls_startup_args
     <<: *mongo_tls_startup_args
-    mongo_os: "ubuntu2004"
     mongo_edition: "targeted"
     mongo_arch: "aarch64"
     build_tags: "failpoints"
