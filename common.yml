@@ -192,23 +192,18 @@ functions:
         remote_path: mongo-tools/mise-cache
 
   "run legacy tests":
-    command: shell.exec
+    command: subprocess.exec
     type: test
     params:
-      shell: bash
+      # binary must be bash (with the script passed via args), not the script
+      # directly: Windows can't execute a shebang script as a native binary.
+      binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
-
-        chmod +x bin/*
-        mv bin/* ${test_path}/
-        cd ${test_path}
-        if [ -n "${load_libs_version}" ]; then
-          IMPORT_LOAD_LIBS="await import(\"../shell_common/libs/load_libs-${load_libs_version}.js\");"
-        fi
-        ./mongo --nodb --eval "$IMPORT_LOAD_LIBS" lib/run_mongod.js jstests/tool/*.js
+      args:
+        - "./scripts/run-legacy-tests.sh"
+      env:
+        LOAD_LIBS_VERSION: ${load_libs_version}
+        TEST_PATH: ${test_path}
 
   "run qa-tests":
     command: subprocess.exec
@@ -286,56 +281,37 @@ functions:
       destination: "builder_num"
 
   "setup integration test":
-    command: shell.exec
+    command: subprocess.exec
     params:
-      shell: bash
+      # binary must be bash (with the script passed via args), not the script
+      # directly: Windows can't execute a shebang script as a native binary.
+      binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
       # Set up Kerberos stuff: run kinit if necessary, and add KDC to registry
       # on Windows (see https://wiki.mongodb.com/display/DH/Testing+Kerberos)
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
-
-        # export sensitive info before `set -x`
-        if [ '${run_kinit}' = 'true' ]; then
-            # BUILD-3830
-            mkdir -p "$(pwd)/.evergreen"
-            touch "$(pwd)/.evergreen/krb5.conf.empty"
-            export KRB5_CONFIG="$(pwd)/.evergreen/krb5.conf.empty"
-
-            echo "Writing keytab"
-            echo ${kerberos_keytab} | base64 -d > "$(pwd)/.evergreen/drivers.keytab"
-            echo "Running kinit"
-            kinit -k -t "$(pwd)/.evergreen/drivers.keytab" -p drivers@LDAPTEST.10GEN.CC;
-        fi;
-        set -x
-        set -v
-        if [ "Windows_NT" = "$OS" ]; then
-          cmd /c "REG ADD HKLM\SYSTEM\ControlSet001\Control\Lsa\Kerberos\Domains\LDAPTEST.10GEN.CC /v KdcNames /d ldaptest.10gen.cc /t REG_MULTI_SZ /f"
-        fi;
+      args:
+        - "./scripts/setup-integration-test.sh"
+      env:
+        KERBEROS_KEYTAB: ${kerberos_keytab}
+        RUN_KINIT: ${run_kinit}
 
   "setup credentials":
-    command: shell.exec
+    command: subprocess.exec
     params:
-      shell: bash
+      # binary must be bash (with the script passed via args), not the script
+      # directly: Windows can't execute a shebang script as a native binary.
+      binary: bash
       working_dir: src/github.com/mongodb/mongo-tools
       silent: true
-      script: |
-        set -o errexit
-        set -o pipefail
-        set -o verbose
-
-        cat > mci.buildlogger <<END_OF_CREDS
-        slavename='${slave}'
-        passwd='${passwd}'
-        builder='MCI_${build_variant}'
-        build_num=${builder_num}
-        build_phase='${task_name}_${execution}'
-        END_OF_CREDS
-        # Resmoke hardcodes the location of this file so we need to copy it to the working directory
-        # we run resmoke from.
-        cp mci.buildlogger test/qa-tests
+      args:
+        - "./scripts/setup-credentials.sh"
+      env:
+        BUILDER_NUM: ${builder_num}
+        BUILD_VARIANT: ${build_variant}
+        EXECUTION: ${execution}
+        PASSWD: ${passwd}
+        SLAVE: ${slave}
+        TASK_NAME: ${task_name}
 
   "start mongod":
     command: subprocess.exec
@@ -716,24 +692,20 @@ functions:
           USE_TLS: ""
 
   "add-aws-auth-variables-to-file":
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
-        shell: bash
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
         silent: true
-        working_dir: src/github.com/mongodb/mongo-tools/common/testdata/lib
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          cat <<EOF > $(pwd)/aws_e2e_setup.json
-          {
-            "iam_auth_assume_aws_account": "${iam_auth_assume_aws_account}",
-            "iam_auth_assume_aws_secret_access_key": "${iam_auth_assume_aws_secret_access_key}",
-            "iam_auth_assume_role_name": "${iam_auth_assume_role_name}"
-          }
-          EOF
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/add-aws-auth-variables-to-file.sh"
+        env:
+          IAM_AUTH_ASSUME_AWS_ACCOUNT: ${iam_auth_assume_aws_account}
+          IAM_AUTH_ASSUME_AWS_SECRET_ACCESS_KEY: ${iam_auth_assume_aws_secret_access_key}
+          IAM_AUTH_ASSUME_ROLE_NAME: ${iam_auth_assume_role_name}
 
   "setup-aws-auth-test-with-assume-role-credentials":
     - command: shell.exec
@@ -951,23 +923,17 @@ post:
   - func: f_mongo_coredumps_save
 
 timeout:
-  - command: shell.exec
+  - command: subprocess.exec
     params:
-      shell: bash
+      # binary must be bash (with the script passed via args), not the script
+      # directly: Windows can't execute a shebang script as a native binary.
+      binary: bash
       silent: true
-      script: |
-        # This script intentionally doesn't set errexit or pipefail, since these commands can fail and that's ok.
-        set -o verbose
-
-        # don't attempt to abort on any distro which has a special way of
-        # killing everything (i.e. using taskkill on Windows)
-        if [ "${killall_mci}" = "" ]; then
-          all_tools="bsondump mongodump mongoexport mongofiles mongoimport mongorestore mongostat mongotop"
-          # send SIGABRT to print a stacktrace for any hung tool
-          pkill -ABRT "^($(echo -n $all_tools | tr ' ' '|'))\$"
-          # git the processes a second or two to dump their stacks
-          sleep 10
-        fi
+      working_dir: src/github.com/mongodb/mongo-tools
+      args:
+        - "./scripts/timeout-abort-hung-tools.sh"
+      env:
+        KILLALL_MCI: ${killall_mci}
   # Extra timeout steps needed for mongodump passthrough.
   - func: f_expansions_write
   - func: "wait for resmoke to shutdown"
