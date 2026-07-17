@@ -132,7 +132,7 @@ func TestParsing(t *testing.T) {
 		assert.False(t, tc.eof)
 	})
 
-	t.Run("error progagation from consumer through parser", func(t *testing.T) {
+	t.Run("error propagation from consumer through parser", func(t *testing.T) {
 		parser, tc, _ := setup()
 		tc.eof = true
 		err := parser.ReadAllBlocks(tc)

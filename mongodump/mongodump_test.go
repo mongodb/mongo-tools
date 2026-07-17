@@ -21,7 +21,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
@@ -1428,27 +1427,24 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		err = md.Init()
 		So(err, ShouldBeNil)
 
-		failpoint.ParseFailpoints("PauseBeforeDumping")
-		defer failpoint.Reset()
+		require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+		defer failpoint.DefaultManager.Reset()
 
-		var disconnectErr error
-		canCheckErr := make(chan struct{})
-		// with the failpoint PauseBeforeDumping, Mongodump will pause 15 seconds before starting dumping. We will close the connection
-		// during this period. Before the fix, the process will panic with Nil pointer error since it fails to getCollectionInfo.
-		go func() {
-			time.Sleep(2 * time.Second)
-			session, _ := md.SessionProvider.GetSession()
-			disconnectErr = session.Disconnect(t.Context())
-			close(canCheckErr)
-		}()
+		dumpErrCh := make(chan error, 1)
+		go func() { dumpErrCh <- md.Dump() }()
 
-		err = md.Dump()
-		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
+		fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+		So(ok, ShouldBeTrue)
+		require.NoError(t, fp.Reached(context.TODO()))
+		session, _ := md.SessionProvider.GetSession()
+		disconnectErr := session.Disconnect(t.Context())
+		So(disconnectErr, ShouldBeNil)
+		fp.Signal()
+
+		err = <-dumpErrCh
+		// Mongodump should not panic, but return correct the error if getCollectionInfo failed.
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "client is disconnected")
-
-		<-canCheckErr
-		So(disconnectErr, ShouldBeNil)
 	})
 }
 
@@ -1464,7 +1460,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 		dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
 
 		Convey("testing that --query is order-preserving", func() {
-			// If order is not preserved, probabalistically, some of these
+			// If order is not preserved, probabilistically, some of these
 			// loops will fail.
 			for i := 0; i < 100; i++ {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
@@ -2353,17 +2349,20 @@ func TestFailDuringResharding(t *testing.T) {
 		)
 
 		Convey("dump should fail if config.reshardingOperations created in oplog", func() {
-			failpoint.ParseFailpoints("PauseBeforeDumping")
-			defer failpoint.Reset()
+			require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+			defer failpoint.DefaultManager.Reset()
 
-			var sessErr1, sessErr2 error
-			go func() {
-				time.Sleep(2 * time.Second)
-				sessErr1 = session.Database("config").CreateCollection(ctx, "reshardingOperations")
-				sessErr2 = session.Database("config").Collection("reshardingOperations").Drop(ctx)
-			}()
+			dumpErrCh := make(chan error, 1)
+			go func() { dumpErrCh <- md.Dump() }()
 
-			err = md.Dump()
+			fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+			So(ok, ShouldBeTrue)
+			require.NoError(t, fp.Reached(context.TODO()))
+			sessErr1 := session.Database("config").CreateCollection(ctx, "reshardingOperations")
+			sessErr2 := session.Database("config").Collection("reshardingOperations").Drop(ctx)
+			fp.Signal()
+
+			err = <-dumpErrCh
 
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
@@ -2374,20 +2373,26 @@ func TestFailDuringResharding(t *testing.T) {
 		Convey(
 			"dump should fail if config.localReshardingOperations.donor created in oplog",
 			func() {
-				failpoint.ParseFailpoints("PauseBeforeDumping")
-				defer failpoint.Reset()
+				require.NoError(
+					t,
+					failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()),
+				)
+				defer failpoint.DefaultManager.Reset()
 
-				var sessErr1, sessErr2 error
-				go func() {
-					time.Sleep(2 * time.Second)
-					sessErr1 = session.Database("config").
-						CreateCollection(ctx, "localReshardingOperations.donor")
-					sessErr2 = session.Database("config").
-						Collection("localReshardingOperations.donor").
-						Drop(ctx)
-				}()
+				dumpErrCh := make(chan error, 1)
+				go func() { dumpErrCh <- md.Dump() }()
 
-				err = md.Dump()
+				fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+				So(ok, ShouldBeTrue)
+				require.NoError(t, fp.Reached(context.TODO()))
+				sessErr1 := session.Database("config").
+					CreateCollection(ctx, "localReshardingOperations.donor")
+				sessErr2 := session.Database("config").
+					Collection("localReshardingOperations.donor").
+					Drop(ctx)
+				fp.Signal()
+
+				err = <-dumpErrCh
 
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
@@ -2399,20 +2404,26 @@ func TestFailDuringResharding(t *testing.T) {
 		Convey(
 			"dump should fail if config.localReshardingOperations.recipient created in oplog",
 			func() {
-				failpoint.ParseFailpoints("PauseBeforeDumping")
-				defer failpoint.Reset()
+				require.NoError(
+					t,
+					failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()),
+				)
+				defer failpoint.DefaultManager.Reset()
 
-				var sessErr1, sessErr2 error
-				go func() {
-					time.Sleep(2 * time.Second)
-					sessErr1 = session.Database("config").
-						CreateCollection(ctx, "localReshardingOperations.recipient")
-					sessErr2 = session.Database("config").
-						Collection("localReshardingOperations.recipient").
-						Drop(ctx)
-				}()
+				dumpErrCh := make(chan error, 1)
+				go func() { dumpErrCh <- md.Dump() }()
 
-				err = md.Dump()
+				fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+				So(ok, ShouldBeTrue)
+				require.NoError(t, fp.Reached(context.TODO()))
+				sessErr1 := session.Database("config").
+					CreateCollection(ctx, "localReshardingOperations.recipient")
+				sessErr2 := session.Database("config").
+					Collection("localReshardingOperations.recipient").
+					Drop(ctx)
+				fp.Signal()
+
+				err = <-dumpErrCh
 
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, OplogErrorMsg)

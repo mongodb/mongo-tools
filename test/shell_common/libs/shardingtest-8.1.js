@@ -1521,14 +1521,14 @@ export class ShardingTest {
             // replica set. Whenever possible, in parallel.
             //
             const shardsRS = this._rs.map(obj => obj.test);
-            var replSetToIntiateArr = [];
+            var replSetToInitiateArr = [];
             if (isConfigShardMode) {
-                replSetToIntiateArr = [...shardsRS];
+                replSetToInitiateArr = [...shardsRS];
             } else {
-                replSetToIntiateArr = [...shardsRS, this.configRS];
+                replSetToInitiateArr = [...shardsRS, this.configRS];
             }
 
-            const replicaSetsToInitiate = replSetToIntiateArr.map(rst => {
+            const replicaSetsToInitiate = replSetToInitiateArr.map(rst => {
                 const rstConfig = rst.getReplSetConfig();
 
                 // The mongo shell cannot authenticate as the internal __system user in tests that
@@ -1980,7 +1980,7 @@ export class ShardingTest {
                     });
                 }
             } catch (e) {
-                // Clean up the running procceses on failure
+                // Clean up the running processes on failure
                 jsTest.log.info("Failed to add shards, stopping cluster.");
                 this.stop();
                 throw e;

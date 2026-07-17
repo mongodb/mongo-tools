@@ -57,6 +57,7 @@ each document are defined here:
   - `tool_version` - the version of mongodump that created the archive.
 
 - `collection-metadata`:
+
   ```
   {
       string db,
@@ -66,7 +67,8 @@ each document are defined here:
       string type
   }
   ```
-  - `db` - databse name.
+
+  - `db` - database name.
   - `collection` - collection name.
   - `metadata` - the collection metadata (including options, index definitions, and collection type)
     encoded in canonical
@@ -75,9 +77,11 @@ each document are defined here:
   - `size` - the total uncompressed size of the collection in bytes.
   - `type` - set to `"timeseries"` for timeseries collections, `"view"` for views, and `""`
     otherwise.
+
 - `namespace-data`: One or more BSON documents from the collection. The collection's documents can
   be split across multiple segments.
 - `namespace-header`:
+
   ```
   {
       string db,
@@ -86,11 +90,14 @@ each document are defined here:
       int64 CRC
   }
   ```
-  - `db` - databse name.
+
+  - `db` - database name.
   - `collection` - collection name.
   - `EOF` - always `false`.
   - `CRC` - always `0`.
+
 - `eof-header`:
+
   ```
   {
       string db,
@@ -99,7 +106,8 @@ each document are defined here:
       int64 CRC
   }
   ```
-  - `db` - databse name.
+
+  - `db` - database name.
   - `collection` - collection name.
   - `EOF` - always `true`.
   - `CRC` - the CRC-64-ECMA of all documents in the namespace (across all `namespace-segment`s).

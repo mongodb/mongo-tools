@@ -11,7 +11,7 @@ load('jstests/files/util/mongofiles_common.js');
     var sslOptions = ['--ssl', '--sslPEMKeyFile=jstests/libs/client.pem',
       '--sslCAFile=jstests/libs/ca.pem', '--sslAllowInvalidHostnames'];
 
-    jsTest.log('Running with file with invalid options onw passthrough ' + passthrough.name);
+    jsTest.log('Running with file with invalid options on passthrough ' + passthrough.name);
 
     // run with invalid option
     assert.neq(runMongoProgram.apply(this, ['mongofiles',

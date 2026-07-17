@@ -521,7 +521,9 @@ func (opts *ToolOptions) ParseArgs(args []string) ([]string, error) {
 		}
 	}
 
-	failpoint.ParseFailpoints(opts.Failpoints)
+	if err := failpoint.DefaultManager.Parse(opts.Failpoints); err != nil {
+		return []string{}, err
+	}
 
 	err = opts.NormalizeOptionsAndURI()
 	if err != nil {

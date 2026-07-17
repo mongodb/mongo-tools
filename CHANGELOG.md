@@ -842,7 +842,7 @@ _Released 2023-07-21_
 
 We are pleased to announce version 100.7.4 of the MongoDB Database Tools.
 
-This release fixes issues with mongorestore that ommitted all namespaces containing "admin" when
+This release fixes issues with mongorestore that omitted all namespaces containing "admin" when
 restoring to an Atlas Proxy Cluster. This release also fixes an issue with mongodump where the
 process failed against clusters using Atlas Online Archive.
 
@@ -871,7 +871,7 @@ _Released 2023-06-26_
 
 We are pleased to announce version 100.7.3 of the MongoDB Database Tools.
 
-This release fixes an issue introduced in 100.7.1 where specifying `mongodump --db=confg` will not
+This release fixes an issue introduced in 100.7.1 where specifying `mongodump --db=config` will not
 dump the entire config collection.
 
 The Database Tools are available on the
@@ -1809,7 +1809,7 @@ can be found.
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2366'>TOOLS-2366</a>] -         ^C isn&#39;t handled by mongodump
 </li>
-<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2494'>TOOLS-2494</a>] -         mongorestore thorw error &quot;panic: close of closed channel&quot;
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-2494'>TOOLS-2494</a>] -         mongorestore throw error &quot;panic: close of closed channel&quot;
 </li>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2531'>TOOLS-2531</a>] -         mongorestore hung if restoring views with --preserveUUID --drop options
 </li>

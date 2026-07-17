@@ -101,7 +101,7 @@ type StorageOptions struct {
 	LocalFileName string `long:"local" value-name:"<filename>" short:"l" description:"local filename for put|get"`
 
 	// 'ContentType' is an option that specifies the Content/MIME type to use for 'put'
-	ContentType string `long:"type" value-nane:"<content-type>" short:"t" description:"content/MIME type for put (optional)"`
+	ContentType string `long:"type" value-name:"<content-type>" short:"t" description:"content/MIME type for put (optional)"`
 
 	// if set, 'Replace' will remove other files with same name after 'put'
 	Replace bool `long:"replace" short:"r" description:"remove other files with same name after put"`

@@ -13,12 +13,20 @@ go = "1.26.4"
 "github:securego/gosec" = "2.27.1"
 "github:segmentio/golines" = "0.12.2"
 "github:houseabsolute/precious" = "0.10.2"
+"github:crate-ci/typos" = "1.46.1"
+"github:koalaman/shellcheck" = "0.11.0"
+"github:mvdan/sh" = { version = "3.13.1", bin = "shfmt" }
 
 # Node and npm tools
 node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm install --loglevel verbose" }
 "npm:eslint" = "8.57.0"
-"npm:prettier" = "3.4.2"
 "npm:github-codeowners" = "0.2.1"
+"npm:oxfmt" = "0.52.0"
+
+[settings]
+# This prevents us from upgrading to anything that was released less than 7 days ago. It gives us a
+# bit of protection against supply-chain attacks.
+minimum_release_age = "7d"
 
 [settings.node]
 # We turn off GPG verification for node because it has been flaky in CI, and also requires a local

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-progpath=$(dirname $0)
+progpath=$(dirname "$0")
 
 toolbin=$1
 if [ -z "$toolbin" ]; then
@@ -15,20 +15,20 @@ if [ -z "$mongobin" ]; then
         echo "Couldn't find $prog"
         exit 1
     fi
-    mongobin=$(dirname $prog)
+    mongobin=$(dirname "$prog")
 fi
 
 echo "Copying tools from $toolbin"
 
 for i in bsondump mongostat mongofiles mongoexport mongoimport mongorestore mongodump mongotop; do
     f="$toolbin/$i"
-    echo "  - $(basename $f)"
-    cp $f $progpath
+    echo "  - $(basename "$f")"
+    cp "$f" "$progpath"
 done
 
 echo "Copying mongod, mongos and mongo from $mongobin"
 for p in mongo mongos mongod; do
     prog="$mongobin/$p"
-    echo "  - $(basename $prog)"
-    cp $prog $progpath
+    echo "  - $(basename "$prog")"
+    cp "$prog" "$progpath"
 done

@@ -4,7 +4,7 @@
     load('jstests/configs/plain_28.config.js');
   }
 
-  jsTest.log('Testing namespaces escludes, includes, and mappings during restore');
+  jsTest.log('Testing namespaces excludes, includes, and mappings during restore');
 
   var toolTest = getToolTest('namespaces');
   var commonToolArgs = getCommonToolArguments();
@@ -96,7 +96,7 @@
 
   destDB.dropDatabase();
 
-  // Inclode only *.coll1
+  // Include only *.coll1
   ret = performRestoreWithArgs('--nsInclude', '*.coll1', '--nsFrom', 'source$db-num$.coll$coll-num$', '--nsTo', 'dest.coll_$db-num$_$coll-num$');
   assert.eq(0, ret);
 

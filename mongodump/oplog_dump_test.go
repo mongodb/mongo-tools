@@ -70,15 +70,25 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints("PauseBeforeDumping")
-	defer failpoint.Reset()
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries that are guaranteed to fall inside the dump
+	// window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	defer failpoint.DefaultManager.Reset()
 
-	require.NoError(t, vectoredInsert(ctx))
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	require.NoError(t, fp.Reached(context.TODO()))
+	require.NoError(t, vectoredInsert(ctx))
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -96,13 +106,24 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	require.NoError(t, err)
 	defer oplogFile.Close()
 
-	contents, err := io.ReadAll(oplogFile)
-	require.NoError(t, err)
-
-	var oplog bson.D
-	require.NoError(t, bson.Unmarshal(contents, &oplog))
-
-	require.Equal(t, int32(1), bsonutil.ToMap(oplog)["multiOpType"])
+	// The vectored insert happens during the dump window, so its oplog entry is
+	// somewhere in the dumped oplog but not necessarily the first entry. Scan all
+	// entries and assert that one of them is the vectored (multiOp) insert.
+	bsonSrc := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(oplogFile))
+	foundMultiOpInsert := false
+	var entry bson.M
+	for bsonSrc.Next(&entry) {
+		if entry["multiOpType"] == int32(1) {
+			foundMultiOpInsert = true
+			break
+		}
+	}
+	require.NoError(t, bsonSrc.Err())
+	require.True(
+		t,
+		foundMultiOpInsert,
+		"oplog dump should contain a vectored insert entry with multiOpType == 1",
+	)
 }
 
 func vectoredInsert(ctx context.Context) error {
@@ -171,18 +192,24 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints(failpoint.PauseBeforeDumping)
-	defer failpoint.Reset()
-
-	go func() {
-		require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
-	}()
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries during the dump window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	defer failpoint.DefaultManager.Reset()
 
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	require.NoError(t, fp.Reached(context.TODO()))
+	require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -329,18 +356,24 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints(failpoint.PauseBeforeDumping)
-	defer failpoint.Reset()
-
-	go func() {
-		createCollectionWithValidatorAndInsertBypassValidation(ctx, t)
-	}()
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries during the dump window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	defer failpoint.DefaultManager.Reset()
 
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	require.NoError(t, fp.Reached(context.TODO()))
+	createCollectionWithValidatorAndInsertBypassValidation(ctx, t)
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -479,18 +512,24 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 
 	require.NoError(t, md.Init())
 
-	// Enable a failpoint so that the test can create oplogs during dump.
-	failpoint.ParseFailpoints(failpoint.PauseBeforeDumping)
-	defer failpoint.Reset()
-
-	go func() {
-		convertIndexToTTL(ctx, t)
-	}()
+	// Pause mongodump right after it captures the oplog start time so that the
+	// test can create oplog entries during the dump window, then let it resume.
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	defer failpoint.DefaultManager.Reset()
 
 	//nolint:errcheck
 	defer tearDownMongoDumpTestData(t)
 
-	require.NoError(t, md.Dump())
+	dumpErrCh := make(chan error, 1)
+	go func() { dumpErrCh <- md.Dump() }()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	require.NoError(t, fp.Reached(context.TODO()))
+	convertIndexToTTL(ctx, t)
+	fp.Signal()
+
+	require.NoError(t, <-dumpErrCh)
 
 	path, err := os.Getwd()
 	require.NoError(t, err)
@@ -545,4 +584,62 @@ func convertIndexToTTL(ctx context.Context, t *testing.T) {
 		},
 	)
 	require.NoError(t, res.Err())
+}
+
+// TestOplogRollover verifies that mongodump refuses to produce a dump when
+// the oplog has rolled over during dumping and evicted the entry it captured
+// its starting timestamp from.
+//
+// jstests/dump/oplog_rollover_test.js used to test this by racing a fixed
+// 15-second sleep against a fixed amount of write load meant to overflow a
+// deliberately tiny (2MB) oplog, and needed several rounds of "make this
+// less racy" fixes over the years as host speed varied. That approach isn't
+// available here anyway: the shared replica set used by Go integration
+// tests can't be resized below 990MB (server-enforced), and forcing genuine
+// eviction against that cluster turned out to depend on WiredTiger
+// checkpoint/oldest-timestamp scheduling in ways that were empirically
+// unpredictable even when forcing checkpoints and using majority write
+// concern.
+//
+// Instead, this uses the PauseUntilResumed failpoint to block mongodump
+// after it has captured its real starting timestamp, overwrites that
+// timestamp with one guaranteed not to exist in the oplog, and resumes.
+// mongodump then runs the exact same overflow-detection logic
+// (checkOplogTimestampExists, in oplog_dump.go) it would in production,
+// deterministically and without needing to write any data at all.
+func TestOplogRollover(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	// Oplog is not available in a standalone topology.
+	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
+	md.ToolOptions.DB = ""
+	md.OutputOptions.Oplog = true
+	md.OutputOptions.Out = "oplog_rollover"
+	require.NoError(t, md.Init())
+	defer os.RemoveAll(md.OutputOptions.Out)
+
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	defer failpoint.DefaultManager.Reset()
+
+	dumpErrCh := make(chan error, 1)
+	go func() {
+		dumpErrCh <- md.Dump()
+	}()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
+	require.NoError(t, fp.Reached(context.TODO()))
+	md.oplogStart = bson.Timestamp{T: 1, I: 1}
+	fp.Signal()
+
+	err = <-dumpErrCh
+	require.ErrorContains(
+		t,
+		err,
+		"oplog overflow: mongodump was unable to capture all new oplog entries during execution",
+		"mongodump should crash when the oplog rolls over during dumping",
+	)
 }

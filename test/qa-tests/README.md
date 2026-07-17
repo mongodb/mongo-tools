@@ -9,7 +9,6 @@
 - To list test suites: `python buildscripts/resmoke.py -l`
 
 - To run a suite: `python buildscripts/resmoke.py --suites=<suite>`
-
   - Consider adding `--continueOnFailure` or `--dryRun=tests` as desired
 
 - To run a particular test: `python buildscripts/resmoke.py --executor=core <path/to/test.js>`

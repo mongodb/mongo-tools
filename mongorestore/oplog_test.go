@@ -622,7 +622,7 @@ type testTable struct {
 	output bool
 }
 
-func TestShouldIgnoreNamespacee(t *testing.T) {
+func TestShouldIgnoreNamespace(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	tests := []testTable{
 		{

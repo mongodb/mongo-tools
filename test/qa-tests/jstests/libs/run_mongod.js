@@ -2,7 +2,7 @@
 (function () {
   let oldRunMongod = MongoRunner.runMongod;
   MongoRunner.runMongod = function(opts) {
-    print("MongoRunner.runMongod overriden in mongo-tools");
+    print("MongoRunner.runMongod overridden in mongo-tools");
 
     if (opts !== undefined && opts.journal !== undefined) {
       delete opts.journal;

@@ -60,7 +60,7 @@ set -o errexit
 
 if [ -n "$MISE_PATH" ]; then
     MISE_VERSION_OUTPUT=$(mise --version)
-    if [[ "$MISE_VERSION_OUTPUT" == *"$WANT_MISE_VERSION"* ]]; then
+    if [[ $MISE_VERSION_OUTPUT == *"$WANT_MISE_VERSION"* ]]; then
         echo "mise $WANT_MISE_VERSION is already installed, skipping installation"
         INSTALL_MISE=""
     else

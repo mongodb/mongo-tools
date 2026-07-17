@@ -165,7 +165,7 @@ func (bd *BSONDump) JSON() (int, error) {
 			}
 		}
 		numFound++
-		if failpoint.Enabled(failpoint.SlowBSONDump) {
+		if _, ok := failpoint.DefaultManager.Get(failpoint.SlowBSONDump); ok {
 			time.Sleep(2 * time.Second)
 		}
 	}

@@ -33,7 +33,8 @@ if [ -n "$CLUSTER_TYPE" ]; then
     TYPE="\"clusterType\": \"$CLUSTER_TYPE\","
 fi
 
-JSON_BODY=$(cat <<EOF
+JSON_BODY=$(
+    cat <<EOF
 {
   "name": "$CLUSTER_ID",
   $TYPE
@@ -61,9 +62,9 @@ echo $CLUSTER_URI
 # Make the API call using the new Atlas v2 preview API
 echo "Creating cluster '$CLUSTER_ID' with $NODE_COUNT node(s)..."
 curl --user "$API_CREDENTIALS" \
-     --digest \
-     -X POST \
-     -H "Content-Type: application/json" \
-     -H "Accept: application/vnd.atlas.preview+json" \
-     -d "$JSON_BODY" \
-     $CLUSTER_URI
+    --digest \
+    -X POST \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/vnd.atlas.preview+json" \
+    -d "$JSON_BODY" \
+    $CLUSTER_URI

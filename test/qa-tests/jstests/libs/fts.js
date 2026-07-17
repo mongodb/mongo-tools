@@ -16,7 +16,7 @@ function queryIDS(coll, search, filter, extra) {
   if (extra) {
     Object.extend(cmd, extra);
   }
-  lastCommadResult = coll.runCommand("text", cmd);
+  lastCommandResult = coll.runCommand("text", cmd);
 
-  return getIDS(lastCommadResult);
+  return getIDS(lastCommandResult);
 }

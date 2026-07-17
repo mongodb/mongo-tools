@@ -186,6 +186,13 @@ repos:
     repos:
       - zypper/suse/15/mongodb-org
 
+  - name: suse16
+    type: rpm
+    edition: org
+    bucket: repo.mongodb.org
+    repos:
+      - zypper/suse/16/mongodb-org
+
   - name: debian92
     type: deb
     code_name: "stretch"
@@ -318,6 +325,18 @@ repos:
       - arm64
     repos:
       - apt/ubuntu/dists/noble/mongodb-org
+
+  - name: ubuntu2604
+    type: deb
+    code_name: "resolute"
+    edition: org
+    bucket: repo.mongodb.org
+    component: multiverse
+    architectures:
+      - x86_64
+      - arm64
+    repos:
+      - apt/ubuntu/dists/resolute/mongodb-org
 
   ####################
   #
@@ -455,6 +474,13 @@ repos:
     repos:
       - zypper/suse/15/mongodb-enterprise
 
+  - name: suse16
+    type: rpm
+    edition: enterprise
+    bucket: repo.mongodb.com
+    repos:
+      - zypper/suse/16/mongodb-enterprise
+
   - name: debian10
     type: deb
     edition: enterprise
@@ -487,6 +513,17 @@ repos:
       - amd64
     repos:
       - apt/debian/dists/bookworm/mongodb-enterprise
+
+  - name: debian13
+    type: deb
+    edition: enterprise
+    code_name: "trixie"
+    bucket: repo.mongodb.com
+    component: main
+    architectures:
+      - x86_64
+    repos:
+      - apt/debian/dists/trixie/mongodb-enterprise
 
   - name: debian92
     type: deb
@@ -594,3 +631,15 @@ repos:
       - arm64
     repos:
       - apt/ubuntu/dists/noble/mongodb-enterprise
+
+  - name: ubuntu2604
+    type: deb
+    code_name: "resolute"
+    edition: enterprise
+    bucket: repo.mongodb.com
+    component: multiverse
+    architectures:
+      - x86_64
+      - arm64
+    repos:
+      - apt/ubuntu/dists/resolute/mongodb-enterprise

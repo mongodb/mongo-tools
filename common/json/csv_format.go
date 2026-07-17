@@ -28,7 +28,7 @@ func (js JavaScript) String() string {
 }
 
 func (d Date) String() string {
-	if d.isFormatable() {
+	if d.isFormattable() {
 		n := int64(d)
 		t := time.Unix(n/1e3, n%1e3*1e6)
 		return t.UTC().Format(JSONDateFormat)

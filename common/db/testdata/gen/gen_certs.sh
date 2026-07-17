@@ -17,9 +17,9 @@ openssl x509 -sha256 -req -days 3650 -in ../mongodb-test-ia.csr \
     -extfile openssl-test-ca.cnf \
     -extensions v3_ca
 
-cat ../mongodb-test-ca.crt  > ../ca.pem
-cat ../mongodb-test-ia.crt  > ../ia.pem
-cat ../mongodb-test-ia.crt ../mongodb-test-ca.crt > ../ca-ia.pem
+cat ../mongodb-test-ca.crt >../ca.pem
+cat ../mongodb-test-ia.crt >../ia.pem
+cat ../mongodb-test-ia.crt ../mongodb-test-ca.crt >../ca-ia.pem
 
 # Server
 openssl genrsa -out ../mongodb-test-server1.key 4096
@@ -33,7 +33,7 @@ openssl x509 -sha256 -req -days 3650 -in ../mongodb-test-server1.csr \
     -extfile openssl-test-server.cnf \
     -extensions v3_req
 
-cat ../mongodb-test-server1.crt ../mongodb-test-server1.key > ../test-server.pem
+cat ../mongodb-test-server1.crt ../mongodb-test-server1.key >../test-server.pem
 
 # Client
 openssl genrsa -out ../mongodb-test-client.key 4096
@@ -47,11 +47,11 @@ openssl x509 -sha256 -req -days 3650 -in ../mongodb-test-client.csr \
     -extfile openssl-test-client.cnf \
     -extensions v3_req
 
-cat ../mongodb-test-client.crt ../mongodb-test-client.key > ../test-client.pem
+cat ../mongodb-test-client.crt ../mongodb-test-client.key >../test-client.pem
 
 # PKCS8
 openssl pkcs8 -v2 des3 -topk8 -passout pass:passwordIsTacoCat -inform PEM -outform PEM -in ../test-client.pem -out ../test-client-pkcs8-encrypted.key
-cat ../mongodb-test-client.crt ../test-client-pkcs8-encrypted.key > ../test-client-pkcs8-encrypted.pem
+cat ../mongodb-test-client.crt ../test-client-pkcs8-encrypted.key >../test-client-pkcs8-encrypted.pem
 
 openssl pkcs8 -topk8 -nocrypt -inform PEM -outform PEM -in ../test-client.pem -out ../test-client-pkcs8-unencrypted.key
-cat ../mongodb-test-client.crt ../test-client-pkcs8-unencrypted.key > ../test-client-pkcs8-unencrypted.pem
+cat ../mongodb-test-client.crt ../test-client-pkcs8-unencrypted.key >../test-client-pkcs8-unencrypted.pem

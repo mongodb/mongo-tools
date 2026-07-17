@@ -13,36 +13,29 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFailpointParsing(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	args := "foo=bar,baz,biz=,=a"
-	ParseFailpoints(args)
+	require.NoError(t, DefaultManager.Parse(""))
+	defer DefaultManager.Reset()
 
-	assert.True(t, Enabled("foo"))
-	assert.True(t, Enabled("baz"))
-	assert.True(t, Enabled("biz"))
-	assert.True(t, Enabled(""))
-	assert.False(t, Enabled("bar"))
+	require.NoError(
+		t,
+		DefaultManager.Parse(string(PauseBeforeDumping)+","+string(SlowBSONDump)),
+	)
 
-	val, ok := Get("foo")
-	assert.Equal(t, "bar", val)
+	_, ok := DefaultManager.Get(PauseBeforeDumping)
 	assert.True(t, ok)
 
-	val, ok = Get("baz")
-	assert.Equal(t, "", val)
+	_, ok = DefaultManager.Get(SlowBSONDump)
 	assert.True(t, ok)
 
-	val, ok = Get("biz")
-	assert.Equal(t, "", val)
-	assert.True(t, ok)
-
-	val, ok = Get("")
-	assert.Equal(t, "a", val)
-	assert.True(t, ok)
-
-	_, ok = Get("bar")
+	_, ok = DefaultManager.Get("NotARealFailpoint")
 	assert.False(t, ok)
+
+	err := DefaultManager.Parse("NotARealFailpoint")
+	assert.ErrorContains(t, err, "unknown failpoint")
 }

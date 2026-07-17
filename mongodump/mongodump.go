@@ -342,9 +342,14 @@ func (dump *MongoDump) Dump() (err error) {
 		}
 	}
 
-	if failpoint.Enabled(failpoint.PauseBeforeDumping) {
+	if _, ok := failpoint.DefaultManager.Get(failpoint.PauseBeforeDumping); ok {
 		log.Logvf(log.Info, "failpoint.PauseBeforeDumping: sleeping 15 sec")
 		time.Sleep(15 * time.Second)
+	} else if fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed); ok {
+		log.Logvf(log.Info, "failpoint.PauseUntilResumed: waiting for resume signal")
+		if err := fp.Wait(context.TODO()); err != nil {
+			return err
+		}
 	}
 
 	// switch on what kind of execution to do

@@ -9,6 +9,7 @@
 exclude = [
   ".agents/**/*",
   ".claude/**/*",
+  ".gocache/**/*",
   "vendor/**/*",
 ]
 
@@ -81,32 +82,13 @@ cmd = [
 ok_exit_codes = [0]
 lint_failure_exit_codes = [1]
 
-[commands.prettier-yaml]
+[commands.oxfmt]
 type = "both"
 invoke = "once"
 working-dir = "root"
 path-args = "file"
-include = [ "**/*.yml", "**/*.yaml" ]
-cmd = "$PRECIOUS_ROOT/node_modules/.bin/prettier"
-lint-flags = "--check"
-tidy-flags = "--write"
-ok-exit-codes = [0]
-lint-failure-exit-codes = [1]
-ignore-stderr = ".*"
-labels = [ "default", "fast-tidy" ]
-
-[commands.prettier-md]
-type = "both"
-invoke = "once"
-working-dir = "root"
-path-args = "file"
-include = [ "*.md" ]
-exclude = [ "docs/superpowers/**/*.md" ]
-cmd = [
-    "$PRECIOUS_ROOT/node_modules/.bin/prettier",
-    "--print-width", "100",
-    "--prose-wrap", "always",
-]
+include = [ "*.md", "*.yaml", "*.yml" ]
+cmd = "$PRECIOUS_ROOT/node_modules/.bin/oxfmt"
 lint-flags = "--check"
 tidy-flags = "--write"
 ok-exit-codes = [0]
@@ -126,6 +108,54 @@ path-args = "file"
 include = "test/qa-tests/jstests/**/*.js"
 cmd = "$PRECIOUS_ROOT/node_modules/.bin/eslint"
 tidy-flags = "--fix"
+ok-exit-codes = [0]
+lint-failure-exit-codes = [1]
+
+[commands.typos]
+type = "both"
+include = "**/*"
+exclude = [
+    ".golangci.yml",
+    "*.archive",
+    "*.bmp",
+    "*.bson",
+    "*.csr",
+    "*.gz",
+    "*.journal",
+    "**/bsondump/testdata/sample.json",
+    "**/mongofiles/testdata/lorem_ipsum_*.txt",
+]
+cmd = [ "mise", "exec", "github:crate-ci/typos", "--", "typos", "--sort" ]
+tidy-flags = "--write-changes"
+invoke = "once"
+ok-exit-codes = 0
+lint-failure-exit-codes = 2
+
+[commands.shellcheck]
+type = "lint"
+include = "**/*.sh"
+exclude = "etc/mise.run.sh"
+cmd = [ "mise", "exec", "github:koalaman/shellcheck", "--", "shellcheck", "--color=always", "--external-sources" ]
+ok-exit-codes = 0
+lint-failure-exit-codes = 1
+
+[commands.shfmt]
+type = "both"
+include = "**/*.sh"
+exclude = "etc/mise.run.sh"
+cmd = [ "mise", "exec", "github:mvdan/sh", "--", "shfmt", "--simplify", "--indent", "4" ]
+lint-flags = "--diff"
+tidy-flags = "--write"
+ok-exit-codes = 0
+lint-failure-exit-codes = 1
+labels = [ "default", "fast-tidy" ]
+
+[commands.evergreen-validate]
+type = "lint"
+invoke = "once"
+path-args = "none"
+include = [ "common.yml", "mongodump_passthrough/*.yml" ]
+cmd = [ "$PRECIOUS_ROOT/etc/evergreen-validate-wrapper.sh" ]
 ok-exit-codes = [0]
 lint-failure-exit-codes = [1]
 

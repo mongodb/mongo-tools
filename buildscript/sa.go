@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/craiggwilson/goke/pkg/sh"
 	"github.com/craiggwilson/goke/task"
@@ -65,42 +64,6 @@ func SAModTidy(ctx *task.Context) error {
 		return errors.New(
 			"go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes",
 		)
-	}
-
-	return nil
-}
-
-// SAEvergreenValidate runs `evergreen validate` on common.yml and ensures the file is valid.
-func SAEvergreenValidate(ctx *task.Context) error {
-	output, err := sh.RunOutput(
-		ctx,
-		"evergreen",
-		"validate",
-		"--file",
-		"common.yml",
-		"-p",
-		"mongo-tools",
-	)
-	if err != nil {
-		return fmt.Errorf("error from `evergreen validate`: %s: %w", output, err)
-	}
-
-	if strings.HasSuffix(output, "is valid with warnings") {
-		for _, line := range strings.Split(output, "\n") {
-			if strings.HasPrefix(line, "WARNING: ") &&
-				strings.HasSuffix(
-					line,
-					"defined but not used by any variants; consider using or disabling",
-				) {
-				continue
-			}
-
-			if strings.HasSuffix(line, "is valid with warnings") {
-				continue
-			}
-
-			return fmt.Errorf("error from `evergreen validate`: %s", output)
-		}
 	}
 
 	return nil

@@ -135,7 +135,7 @@ func (f *stdoutFile) Close() error {
 // If you set --db=config then everything is included.
 // If you set --db=config --collection=foo, then shouldSkipSystemNamespace() is
 // never hit since CreateCollectionIntent() is run directly. In this case
-// config.foo will be the olny collection dumped.
+// config.foo will be the only collection dumped.
 func (dump *MongoDump) shouldSkipSystemNamespace(dbName, collName string) bool {
 	// ignore <db>.system.* except for admin; ignore other specific
 	// collections in config and admin databases used for 3.6 features.

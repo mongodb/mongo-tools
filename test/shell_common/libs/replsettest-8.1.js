@@ -931,7 +931,7 @@ export class ReplSetTest {
     }
 
     /**
-     * Calls stop() on the node identifed by nodeId and removes it from the list of nodes managed by
+     * Calls stop() on the node identified by nodeId and removes it from the list of nodes managed by
      * ReplSetTest.
      */
     remove(nodeId) {
@@ -1509,7 +1509,7 @@ export class ReplSetTest {
 
     /**
      * Runs replSetInitiate on the replica set and requests the first node to step up as primary.
-     * This version should be prefered where possible but requires all connections in the
+     * This version should be preferred where possible but requires all connections in the
      * ReplSetTest to be authorized to run replSetGetStatus.
      */
     _initiateWithNodeZeroAsPrimary(cfg, initCmd, {
