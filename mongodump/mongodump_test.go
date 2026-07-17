@@ -1433,22 +1433,18 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 		dumpErrCh := make(chan error, 1)
 		go func() { dumpErrCh <- md.Dump() }()
 
-		// With the PauseUntilResumed failpoint, mongodump pauses before it starts
-		// dumping. We close the connection while it is paused. Before the fix, the
-		// process would panic with a nil pointer error because it failed to
-		// getCollectionInfo.
 		fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 		So(ok, ShouldBeTrue)
-		fp.Reached()
+		require.NoError(t, fp.Reached(context.TODO()))
 		session, _ := md.SessionProvider.GetSession()
 		disconnectErr := session.Disconnect(t.Context())
+		So(disconnectErr, ShouldBeNil)
 		fp.Signal()
 
 		err = <-dumpErrCh
-		// Mongodump should not panic, but return correct error if failed to getCollectionInfo
+		// Mongodump should not panic, but return correct the error if getCollectionInfo failed.
 		So(err, ShouldNotBeNil)
 		So(err.Error(), ShouldContainSubstring, "client is disconnected")
-		So(disconnectErr, ShouldBeNil)
 	})
 }
 
@@ -2361,7 +2357,7 @@ func TestFailDuringResharding(t *testing.T) {
 
 			fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 			So(ok, ShouldBeTrue)
-			fp.Reached()
+			require.NoError(t, fp.Reached(context.TODO()))
 			sessErr1 := session.Database("config").CreateCollection(ctx, "reshardingOperations")
 			sessErr2 := session.Database("config").Collection("reshardingOperations").Drop(ctx)
 			fp.Signal()
@@ -2388,7 +2384,7 @@ func TestFailDuringResharding(t *testing.T) {
 
 				fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 				So(ok, ShouldBeTrue)
-				fp.Reached()
+				require.NoError(t, fp.Reached(context.TODO()))
 				sessErr1 := session.Database("config").
 					CreateCollection(ctx, "localReshardingOperations.donor")
 				sessErr2 := session.Database("config").
@@ -2419,7 +2415,7 @@ func TestFailDuringResharding(t *testing.T) {
 
 				fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 				So(ok, ShouldBeTrue)
-				fp.Reached()
+				require.NoError(t, fp.Reached(context.TODO()))
 				sessErr1 := session.Database("config").
 					CreateCollection(ctx, "localReshardingOperations.recipient")
 				sessErr2 := session.Database("config").

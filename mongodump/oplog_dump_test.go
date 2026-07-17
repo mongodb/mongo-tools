@@ -84,7 +84,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 
 	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
-	fp.Reached()
+	require.NoError(t, fp.Reached(context.TODO()))
 	require.NoError(t, vectoredInsert(ctx))
 	fp.Signal()
 
@@ -113,7 +113,6 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	foundMultiOpInsert := false
 	var entry bson.M
 	for bsonSrc.Next(&entry) {
-		require.NoError(t, bsonSrc.Err())
 		if entry["multiOpType"] == int32(1) {
 			foundMultiOpInsert = true
 			break
@@ -206,7 +205,7 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 
 	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
-	fp.Reached()
+	require.NoError(t, fp.Reached(context.TODO()))
 	require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
 	fp.Signal()
 
@@ -370,7 +369,7 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 
 	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
-	fp.Reached()
+	require.NoError(t, fp.Reached(context.TODO()))
 	createCollectionWithValidatorAndInsertBypassValidation(ctx, t)
 	fp.Signal()
 
@@ -526,7 +525,7 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 
 	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
-	fp.Reached()
+	require.NoError(t, fp.Reached(context.TODO()))
 	convertIndexToTTL(ctx, t)
 	fp.Signal()
 
@@ -632,7 +631,7 @@ func TestOplogRollover(t *testing.T) {
 
 	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
-	fp.Reached()
+	require.NoError(t, fp.Reached(context.TODO()))
 	md.oplogStart = bson.Timestamp{T: 1, I: 1}
 	fp.Signal()
 
