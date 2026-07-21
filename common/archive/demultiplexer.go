@@ -57,8 +57,15 @@ type Demultiplexer struct {
 	IsAtlasProxy    bool
 }
 
+// CreateDemux builds a Demultiplexer for an archive. sourceVersion must be the
+// server version that *produced* the archive (from the archive prelude), not the
+// destination server version. The physical namespace that timeseries data is
+// stored under in the archive is determined by the source server: pre-8.3 sources
+// store it under "system.buckets.<coll>", while viewless-timeseries sources (8.3+)
+// store it under "<coll>". This must match how PreludeExplorer derives the
+// receiver namespace, otherwise the demux listens on the wrong namespace.
 func CreateDemux(
-	version db.Version,
+	sourceVersion db.Version,
 	namespaceMetadatas []*CollectionMetadata,
 	in io.Reader,
 	isAtlasProxy bool,
@@ -75,8 +82,9 @@ func CreateDemux(
 		}
 
 		var ns string
-		if cm.Type == "timeseries" && !version.SupportsRawData() {
-			// 8.3+ supports viewless timeseries.
+		if cm.Type == "timeseries" && !sourceVersion.SupportsRawData() {
+			// Sources older than 8.3 store timeseries data under system.buckets;
+			// 8.3+ sources use viewless timeseries stored under the collection name.
 			ns = cm.Database + "." + common.TimeseriesBucketPrefix + cm.Collection
 		} else {
 			ns = cm.Database + "." + cm.Collection

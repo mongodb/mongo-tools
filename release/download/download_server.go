@@ -9,7 +9,7 @@ import (
 )
 
 // Increase this as needed for new server versions.
-var maxServerVersion = version.Version{8, 3, 999, ""}
+var maxServerVersion = version.Version{9, 0, 999, ""}
 
 // JSONFeed represents the structure of the JSON
 // document consumed by the MongoDB downloads center.
@@ -105,6 +105,13 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 				}
 			}
 		}
+	}
+
+	// If nothing in the feed matched the requested major.minor (e.g. a brand-new
+	// unreleased version like an alpha that isn't in the feed yet), fall back to the
+	// requested version so the caller can look it up by git tag in mongo-release.
+	if versionGuess == "" {
+		versionGuess = serverVersion
 	}
 
 	return "", "", versionGuess, ServerURLMissingError

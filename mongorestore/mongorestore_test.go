@@ -31,6 +31,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 const (
@@ -1890,9 +1892,32 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		t.Skip("Requires server with FCV 5.0 or later")
 	}
 
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "can get server version")
+
 	testdb := session.Database(dbName)
 	dataColl := testdb.Collection("foo_ts")
 	bucketsColl := testdb.Collection(common.TimeseriesBucketPrefix + "foo_ts")
+
+	// countBuckets returns the number of underlying timeseries buckets for the given logical
+	// collection. On servers that support the rawData API (8.3+), the buckets are no longer
+	// accessible via a separate `system.buckets.*` namespace; direct access is rejected with
+	// CommandNotSupportedOnLegacyTimeseriesBucketsNamespace. Instead we read them from the logical
+	// collection using the rawData option.
+	countBuckets := func(t *testing.T, logicalColl string) int64 {
+		if serverVersion.SupportsRawData() {
+			opts := mopt.Count()
+			require.NoError(t, xoptions.SetInternalCountOptions(opts, "rawData", true))
+			count, err := testdb.Collection(logicalColl).CountDocuments(t.Context(), bson.M{}, opts)
+			require.NoError(t, err)
+			return count
+		}
+
+		count, err := testdb.Collection(common.TimeseriesBucketPrefix+logicalColl).
+			CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err)
+		return count
+	}
 
 	dropTestDB := func(t *testing.T) {
 		err := testdb.Drop(t.Context())
@@ -1910,9 +1935,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = bucketsColl.CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 10, count)
+		assert.EqualValues(t, 10, countBuckets(t, "foo_ts"))
 	}
 
 	// This checks that there are no docs in either the data or buckets collections.
@@ -1921,9 +1944,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, count)
 
-		count, err = bucketsColl.CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.Zero(t, count)
+		assert.Zero(t, countBuckets(t, "foo_ts"))
 	}
 
 	t.Run("normal restore", func(t *testing.T) {
@@ -1998,6 +2019,18 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	})
 
 	t.Run("oplogReplay and system.buckets", func(t *testing.T) {
+		// This fixture's oplog contains CRUD ops against a legacy `system.buckets.*` namespace
+		// (dumped from a pre-viewless server). Servers that support the rawData API (8.3+) use
+		// viewless timeseries collections where that namespace no longer exists, and applyOps
+		// cannot apply those ops to the logical collection (it rejects the rawData option). So
+		// replaying a legacy system.buckets oplog into a viewless timeseries collection is
+		// unsupported.
+		if serverVersion.SupportsRawData() {
+			t.Skip(
+				"legacy system.buckets oplog replay is unsupported on viewless timeseries servers (8.3+)",
+			)
+		}
+
 		defer dropTestDB(t)
 
 		args := []string{
@@ -2138,10 +2171,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = testdb.Collection(common.TimeseriesBucketPrefix+"bar_ts").
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 10, count)
+		assert.EqualValues(t, 10, countBuckets(t, "bar_ts"))
 	})
 
 	t.Run("system.buckets BSON file as target with metadata", func(t *testing.T) {
@@ -2319,10 +2349,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		count, err = testdb.Collection(common.TimeseriesBucketPrefix+"foo_rename_ts").
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 10, count)
+		assert.EqualValues(t, 10, countBuckets(t, "foo_rename_ts"))
 	})
 
 	t.Run("refuse rename of system.bucket", func(t *testing.T) {
@@ -2353,10 +2380,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, count)
 
-		count, err = testdb.Collection(renameBucketsName).
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.Zero(t, count)
+		assert.Zero(t, countBuckets(t, "foo_rename_ts"))
 	})
 }
 

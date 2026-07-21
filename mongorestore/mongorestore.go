@@ -458,8 +458,17 @@ func (restore *MongoRestore) Restore() Result {
 	// Create the demux before intent creation, because muted archive intents need
 	// to register themselves with the demux directly
 	if restore.InputOptions.Archive != "" {
+		// The demux must listen on the namespace that the archive data was written
+		// under, which is determined by the server version that produced the archive
+		// (the same version PreludeExplorer uses to derive the receiver namespace),
+		// not the destination server version. Archives too old to record a parseable
+		// version predate viewless timeseries, so they always used system.buckets.
+		sourceVersion, verErr := db.StrToVersion(restore.archive.Prelude.Header.ServerVersion)
+		if verErr != nil {
+			sourceVersion = db.Version{}
+		}
 		restore.archive.Demux = archive.CreateDemux(
-			restore.serverVersion,
+			sourceVersion,
 			restore.archive.Prelude.NamespaceMetadatas,
 			restore.archive.In,
 			restore.isAtlasProxy,

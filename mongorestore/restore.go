@@ -183,6 +183,9 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 			fixDottedHashedIndexes(indexes)
 		}
 		for _, index := range indexes {
+			// A v:1 index dumped from a 9.0+ server carries a redundant simple collation that the
+			// server refuses to create alongside v:1; strip it before building the index.
+			stripSimpleCollation(index.Options)
 			log.Logvf(log.Always, "index: %#v", index)
 		}
 		err = restore.CreateIndexes(namespace.DB, namespace.Collection, indexes)
@@ -420,6 +423,9 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			if !restore.OutputOptions.KeepIndexVersion && !restore.OutputOptions.PreserveUUID {
 				delete(IDIndex.Options, "v")
 			}
+			// A v:1 _id index dumped from a 9.0+ server carries a redundant simple collation
+			// that the server refuses to create alongside v:1; strip it before creating.
+			stripSimpleCollation(IDIndex.Options)
 			IDIndex.Options["ns"] = intent.Namespace()
 
 			// If the collection has an idIndex, then we are about to create it, so
@@ -521,6 +527,56 @@ func (restore *MongoRestore) convertLegacyIndexes(
 		indexesConverted = append(indexesConverted, index)
 	}
 	return indexesConverted
+}
+
+// stripSimpleCollation removes a redundant simple collation ({locale: "simple"}) from a v:1 index's
+// options. Starting in MongoDB 9.0, listIndexes reports collation: {locale: "simple"} for indexes
+// created without an explicit collation, whereas older servers omit it entirely. The server rejects
+// creating a v:1 index that carries any collation option ("cannot create an index with the
+// 'collation' option and v=1"), so a v:1 index dumped from a 9.0+ server cannot be restored as-is.
+// Simple collation is the default and semantically equivalent to no collation, so dropping it for
+// v:1 indexes is safe and keeps index round-trips working.
+//
+// This only applies to v:1 indexes: for v>=2, a simple collation may be meaningful (e.g. it is
+// added deliberately so an index does not inherit a non-simple default collection collation) and
+// must be preserved.
+func stripSimpleCollation(options bson.M) {
+	if !indexVersionIsV1(options) {
+		return
+	}
+	if collation, ok := options["collation"]; ok && isSimpleCollation(collation) {
+		delete(options, "collation")
+	}
+}
+
+// indexVersionIsV1 reports whether the index's "v" option is 1. The value may be decoded as any of
+// the numeric types depending on the source.
+func indexVersionIsV1(options bson.M) bool {
+	switch v := options["v"].(type) {
+	case int:
+		return v == 1
+	case int32:
+		return v == 1
+	case int64:
+		return v == 1
+	case float64:
+		return v == 1
+	}
+	return false
+}
+
+// isSimpleCollation reports whether the given collation subdocument is the simple collation
+// ({locale: "simple"}). The value may be decoded as either a bson.D or bson.M depending on the
+// source, so both are handled.
+func isSimpleCollation(collation any) bool {
+	switch c := collation.(type) {
+	case bson.D:
+		locale, err := bsonutil.FindValueByKey("locale", &c)
+		return err == nil && locale == "simple"
+	case bson.M:
+		return c["locale"] == "simple"
+	}
+	return false
 }
 
 func fixDottedHashedIndexes(indexes []*idx.IndexDocument) {
