@@ -77,8 +77,9 @@ or update tools. But we _also_ manage these in CI via code in `buildscript`, so 
 in sync with the `mise.toml` file.
 
 ```bash
-go run build.go sa:lint      # runs precious (golangci-lint, gosec, goimports, golines)
-go run build.go sa:modtidy   # go mod tidy
+go run build.go sa:lint              # runs precious (golangci-lint, gosec, goimports, golines)
+go run build.go sa:modtidy           # go mod tidy
+go run build.go sa:checkVendoredCode # checks for unexpected changes under vendor/
 ```
 
 ## Code Conventions

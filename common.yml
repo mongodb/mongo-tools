@@ -234,6 +234,7 @@ functions:
         args:
           - "./scripts/run-make-target.sh"
         env:
+          EVG_BRANCH_NAME: ${branch_name}
           EVG_BUILD_VARIANT: ${build_variant}
           EVG_PLATFORM: ${_platform}
           EVG_WORKDIR: ${workdir}
@@ -2624,6 +2625,14 @@ tasks:
 
             git diff --exit-code
 
+  - name: check-vendored-code
+    commands:
+      - func: "fetch source"
+      - func: "install mise and go"
+      - func: "run make target"
+        vars:
+          target: sa:checkVendoredCode
+
   - name: check-sbom-lite
     commands:
       - func: "fetch source"
@@ -2651,6 +2660,7 @@ buildvariants:
     tasks:
       - name: lint
       - name: mod-tidy
+      - name: check-vendored-code
       - name: check-third-party-notices
       - name: check-sbom-lite
       - name: check-sarif-report
