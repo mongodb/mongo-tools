@@ -4,6 +4,15 @@ set -e
 set -x
 set -o pipefail
 
+# In CI, authentication with the DevProd Platforms ECR registry happens once
+# at the Evergreen task level before this script runs. Locally, we log in
+# here using a named AWS SSO profile.
+if [ -z "${EVG_TASK_ID:-}" ]; then
+    profile="${DEVPROD_PLATFORMS_ECR_AWS_PROFILE:-ECRScopedAccess-901841024863}"
+    aws ecr get-login-password --region us-east-1 --profile "$profile" |
+        podman login --username AWS --password-stdin 901841024863.dkr.ecr.us-east-1.amazonaws.com
+fi
+
 TAG="$EVG_TRIGGERED_BY_TAG"
 if [ -z "$TAG" ]; then
     echo "Cannot regenerate the Augmented SBOM file without a tag"
@@ -30,7 +39,7 @@ podman run \
     --platform linux/amd64 \
     -v "${PWD}":/pwd \
     --env-file silkbomb.env \
-    artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
+    901841024863.dkr.ecr.us-east-1.amazonaws.com/release-infrastructure/silkbomb:2.0 \
     augment \
     --sbom-in /pwd/cyclonedx.sbom.json \
     --repo mongodb/mongo-tools \
