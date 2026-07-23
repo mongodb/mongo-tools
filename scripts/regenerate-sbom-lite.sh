@@ -37,6 +37,8 @@ fi
 mise exec go -- go version |
     sed 's|^go version \([^ ]*\) *.*|pkg:golang/std@\1|' >>purls.txt
 
+./scripts/authenticate-devprod-platforms-ecr.sh
+
 # The arguments to the silkbomb program start at "update".
 #
 # shellcheck disable=SC2068 # we don't want to quote `$@`.
@@ -44,7 +46,7 @@ podman run \
     --rm \
     --platform linux/amd64 \
     -v "${PWD}":/pwd \
-    artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
+    901841024863.dkr.ecr.us-east-1.amazonaws.com/release-infrastructure/silkbomb:2.0 \
     update \
     --sbom-in /pwd/cyclonedx.sbom.json \
     --purls /pwd/purls.txt \
