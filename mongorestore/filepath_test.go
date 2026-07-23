@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -375,7 +375,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 		log.SetWriter(&buff)
 
 		Convey("running CreateIntentForCollection on a file without metadata", func() {
-			ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/db1/c2.bson"))
+			ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c2.bson"))
 			So(err, ShouldBeNil)
 			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
 			So(err, ShouldBeNil)
@@ -386,7 +386,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 				So(i0, ShouldNotBeNil)
 				So(i0.DB, ShouldEqual, "myDB")
 				So(i0.C, ShouldEqual, "myC")
-				ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/db1/c2.bson"))
+				ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c2.bson"))
 				So(err, ShouldBeNil)
 				So(i0.Location, ShouldEqual, ddl.Path())
 				i1 := mr.manager.Pop()
@@ -401,7 +401,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 		})
 
 		Convey("running CreateIntentForCollection on a file *with* metadata", func() {
-			ddl, err := newActualPath(util.ToUniversalPath("testdata/testdirs/db1/c1.bson"))
+			ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c1.bson"))
 			So(err, ShouldBeNil)
 			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
 			So(err, ShouldBeNil)
@@ -412,7 +412,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 				So(i0, ShouldNotBeNil)
 				So(i0.DB, ShouldEqual, "myDB")
 				So(i0.C, ShouldEqual, "myC")
-				So(i0.Location, ShouldEqual, util.ToUniversalPath("testdata/testdirs/db1/c1.bson"))
+				So(i0.Location, ShouldEqual, filepath.FromSlash("testdata/testdirs/db1/c1.bson"))
 				i1 := mr.manager.Pop()
 				So(i1, ShouldBeNil)
 
@@ -420,7 +420,7 @@ func TestCreateIntentsForCollection(t *testing.T) {
 					So(
 						i0.MetadataLocation,
 						ShouldEqual,
-						util.ToUniversalPath("testdata/testdirs/db1/c1.metadata.json"),
+						filepath.FromSlash("testdata/testdirs/db1/c1.metadata.json"),
 					)
 					logs := buff.String()
 					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
@@ -478,7 +478,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 			"running CreateIntentForCollection on a system.buckets file *with* metadata",
 			func() {
 				ddl, err := newActualPath(
-					util.ToUniversalPath(
+					filepath.FromSlash(
 						"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
 					),
 				)
@@ -503,7 +503,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 					So(i0, ShouldNotBeNil)
 					So(i0.DB, ShouldEqual, mr.ToolOptions.DB)
 					So(i0.C, ShouldEqual, "foo_ts")
-					So(i0.Location, ShouldEqual, util.ToUniversalPath(ddl.Path()))
+					So(i0.Location, ShouldEqual, filepath.FromSlash(ddl.Path()))
 					i1 := mr.manager.Pop()
 					So(i1, ShouldBeNil)
 
@@ -511,7 +511,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 						So(
 							i0.MetadataLocation,
 							ShouldEqual,
-							util.ToUniversalPath(
+							filepath.FromSlash(
 								"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
 							),
 						)
@@ -538,7 +538,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 							So(
 								i0.MetadataLocation,
 								ShouldEqual,
-								util.ToUniversalPath(
+								filepath.FromSlash(
 									"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
 								),
 							)
@@ -574,7 +574,7 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 			"running CreateIntentForCollection on a truncated bson file without metadata",
 			func() {
 				ddl, err := newActualPath(
-					util.ToUniversalPath("testdata/longcollectionname/" + longInvalidBson),
+					filepath.FromSlash("testdata/longcollectionname/" + longInvalidBson),
 				)
 				So(err, ShouldBeNil)
 				err = mr.CreateIntentForCollection("myDB", "myC", ddl)
@@ -589,7 +589,7 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 			"running CreateIntentForCollection on a truncated bson file *with* metadata",
 			func() {
 				ddl, err := newActualPath(
-					util.ToUniversalPath("testdata/longcollectionname/db1/" + longBsonName),
+					filepath.FromSlash("testdata/longcollectionname/db1/" + longBsonName),
 				)
 				So(err, ShouldBeNil)
 				err = mr.CreateIntentForCollection("myDB", "myC", ddl)
@@ -604,7 +604,7 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 					So(
 						i0.Location,
 						ShouldEqual,
-						util.ToUniversalPath("testdata/longcollectionname/db1/"+longBsonName),
+						filepath.FromSlash("testdata/longcollectionname/db1/"+longBsonName),
 					)
 					i1 := mr.manager.Pop()
 					So(i1, ShouldBeNil)
@@ -613,7 +613,7 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 						So(
 							i0.MetadataLocation,
 							ShouldEqual,
-							util.ToUniversalPath(
+							filepath.FromSlash(
 								"testdata/longcollectionname/db1/"+longMetadataName,
 							),
 						)

@@ -10,9 +10,7 @@ import (
 	"bufio"
 	"context"
 	"io"
-	"net/url"
 	"os"
-	"path/filepath"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -35,21 +33,6 @@ func GetFieldsFromFile(path string) ([]string, error) {
 		return nil, err
 	}
 	return fields, nil
-}
-
-// ToUniversalPath returns the result of replacing each slash ('/') character
-// in "path" with an OS-specific separator character. Multiple slashes are
-// replaced by multiple separators.
-func ToUniversalPath(path string) string {
-	return filepath.FromSlash(path)
-}
-
-func EscapeCollectionName(collName string) string {
-	return url.QueryEscape(collName)
-}
-
-func UnescapeCollectionName(escapedCollName string) (string, error) {
-	return url.QueryUnescape(escapedCollName)
 }
 
 type WrappedReadCloser struct {

@@ -22,7 +22,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -1005,9 +1004,9 @@ func TestMongoFilesCommands(t *testing.T) {
 
 		Convey("Testing the 'put' command with multiple lorem ipsum files bytes should", func() {
 			localTestFiles := []string{
-				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_0.txt"),
-				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_1.txt"),
-				util.ToUniversalPath("testdata/lorem_ipsum_multi_args_2.txt"),
+				filepath.FromSlash("testdata/lorem_ipsum_multi_args_0.txt"),
+				filepath.FromSlash("testdata/lorem_ipsum_multi_args_1.txt"),
+				filepath.FromSlash("testdata/lorem_ipsum_multi_args_2.txt"),
 			}
 
 			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", localTestFiles...)
@@ -1213,7 +1212,7 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 
 	So(err, ShouldBeNil)
 	So(mongoFilesInstance, ShouldNotBeNil)
-	mongoFilesInstance.StorageOptions.LocalFileName = util.ToUniversalPath(
+	mongoFilesInstance.StorageOptions.LocalFileName = filepath.FromSlash(
 		"testdata/lorem_ipsum_287613_bytes.txt",
 	)
 
@@ -1242,7 +1241,7 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 	So(str, ShouldEqual, "")
 	So(buff.Len(), ShouldNotEqual, 0)
 
-	loremIpsumOrig, err := os.Open(util.ToUniversalPath("testdata/lorem_ipsum_287613_bytes.txt"))
+	loremIpsumOrig, err := os.Open(filepath.FromSlash("testdata/lorem_ipsum_287613_bytes.txt"))
 	So(err, ShouldBeNil)
 
 	loremIpsumCopy, err := os.Open("lorem_ipsum_copy.txt")

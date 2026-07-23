@@ -10,6 +10,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -259,7 +260,7 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	}
 
 	// Unescape the finalized collection name and return it.
-	unescapedCollName, err = util.UnescapeCollectionName(collName)
+	unescapedCollName, err = url.QueryUnescape(collName)
 	if err != nil {
 		return "", UnknownFileType, fmt.Errorf(
 			"error parsing collection name from filename %#q: %v",

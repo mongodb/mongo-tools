@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -60,7 +60,7 @@ func (WriteNopCloser) Close() error { return nil }
 // or nil if none is set. The caller is responsible for closing it.
 func (oo *OutputOptions) GetWriter() (io.WriteCloser, error) {
 	if oo.OutFileName != "" {
-		file, err := os.Create(util.ToUniversalPath(oo.OutFileName))
+		file, err := os.Create(filepath.FromSlash(oo.OutFileName))
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func (oo *OutputOptions) GetWriter() (io.WriteCloser, error) {
 // or nil if none is set. The caller is responsible for closing it.
 func (oo *OutputOptions) GetBSONReader() (io.ReadCloser, error) {
 	if oo.BSONFileName != "" {
-		file, err := os.Open(util.ToUniversalPath(oo.BSONFileName))
+		file, err := os.Open(filepath.FromSlash(oo.BSONFileName))
 		if err != nil {
 			return nil, fmt.Errorf("couldn't open BSON file: %v", err)
 		}

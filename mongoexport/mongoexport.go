@@ -239,7 +239,7 @@ func (exp *MongoExport) GetOutputWriter() (io.WriteCloser, error) {
 			return nil, err
 		}
 
-		file, err := os.Create(util.ToUniversalPath(exp.OutputOpts.OutputFile))
+		file, err := os.Create(filepath.FromSlash(exp.OutputOpts.OutputFile))
 		if err != nil {
 			return nil, err
 		}

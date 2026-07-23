@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,7 +33,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -204,7 +204,7 @@ func readBSONIntoDatabase(t *testing.T, dir, restoreDBName string) error {
 			continue
 		}
 
-		collectionName, err := util.UnescapeCollectionName(
+		collectionName, err := url.QueryUnescape(
 			fileName[:strings.LastIndex(fileName, ".bson")],
 		)
 		if err != nil {
@@ -505,8 +505,8 @@ func testQuery(t *testing.T, md *MongoDump, session *mongo.Client) string {
 	path, err := os.Getwd()
 	So(err, ShouldBeNil)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+	dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 	So(fileDirExists(dumpDir), ShouldBeTrue)
 	So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
@@ -534,11 +534,11 @@ func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
 	path, err := os.Getwd()
 	So(err, ShouldBeNil)
 
-	absDumpDir := util.ToUniversalPath(filepath.Join(path, dumpDir))
+	absDumpDir := filepath.FromSlash(filepath.Join(path, dumpDir))
 	So(os.RemoveAll(absDumpDir), ShouldBeNil)
 	So(fileDirExists(absDumpDir), ShouldBeFalse)
 
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 	So(fileDirExists(dumpDBDir), ShouldBeFalse)
 
 	md.OutputOptions.Out = dumpDir
@@ -747,8 +747,8 @@ func TestMongoDumpBSON(t *testing.T) {
 							path, err := os.Getwd()
 							So(err, ShouldBeNil)
 
-							dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-							dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+							dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+							dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 							So(fileDirExists(dumpDir), ShouldBeTrue)
 							So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
@@ -774,8 +774,8 @@ func TestMongoDumpBSON(t *testing.T) {
 							path, err := os.Getwd()
 							So(err, ShouldBeNil)
 
-							dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-							dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, "nottestdb"))
+							dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+							dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, "nottestdb"))
 
 							So(fileDirExists(dumpDir), ShouldBeFalse)
 							So(fileDirExists(dumpDBDir), ShouldBeFalse)
@@ -891,11 +891,11 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 				path, err := os.Getwd()
 				So(err, ShouldBeNil)
 
-				absDumpDir := util.ToUniversalPath(filepath.Join(path, "dump_slash"))
+				absDumpDir := filepath.FromSlash(filepath.Join(path, "dump_slash"))
 				So(os.RemoveAll(absDumpDir), ShouldBeNil)
 				So(fileDirExists(absDumpDir), ShouldBeFalse)
 
-				dumpDBDir := util.ToUniversalPath(filepath.Join("dump_slash", testDB))
+				dumpDBDir := filepath.FromSlash(filepath.Join("dump_slash", testDB))
 				So(fileDirExists(dumpDBDir), ShouldBeFalse)
 
 				md.OutputOptions.Out = "dump_slash"
@@ -905,7 +905,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 
 				Convey("to a bson file", func() {
 					oneBsonFile, err := os.Open(
-						util.ToUniversalPath(filepath.Join(dumpDBDir, longBsonName)),
+						filepath.FromSlash(filepath.Join(dumpDBDir, longBsonName)),
 					)
 					So(err, ShouldBeNil)
 					oneBsonFile.Close()
@@ -913,7 +913,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 
 				Convey("to a metadata file", func() {
 					oneMetaFile, err := os.Open(
-						util.ToUniversalPath(filepath.Join(dumpDBDir, longMetadataName)),
+						filepath.FromSlash(filepath.Join(dumpDBDir, longMetadataName)),
 					)
 					So(err, ShouldBeNil)
 					oneMetaFile.Close()
@@ -941,7 +941,7 @@ func testPreludeMetadata(md *MongoDump, dir string, serverVersion string) {
 	}
 	So(fileDirExists(preludeFilepath), ShouldBeTrue)
 	var reader io.Reader
-	preludeFile, err := os.Open(util.ToUniversalPath(preludeFilepath))
+	preludeFile, err := os.Open(filepath.FromSlash(preludeFilepath))
 	So(err, ShouldBeNil)
 	reader = preludeFile
 	defer preludeFile.Close()
@@ -983,7 +983,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 			md.ToolOptions.Collection = ""
 
 			Convey("when dumping to the default directory", func() {
-				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+				dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
 				Convey("writes prelude.json to dump directory", func() {
@@ -1001,7 +1001,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 			})
 
 			Convey("when output directory is specified", func() {
-				dumpDir := util.ToUniversalPath(filepath.Join(path, "dump_output"))
+				dumpDir := filepath.FromSlash(filepath.Join(path, "dump_output"))
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
 				Convey("writes prelude.json to output directory", func() {
@@ -1019,8 +1019,8 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 			md, err := simpleMongoDumpInstance()
 			So(err, ShouldBeNil)
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 			So(os.RemoveAll(dumpDir), ShouldBeNil)
 
 			Convey("writes prelude.json to dump directory", func() {
@@ -1034,8 +1034,8 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 
 		Convey("when the dump directory is not created", func() {
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, "nottestdb"))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, "nottestdb"))
 
 			Convey("the dump does not fail and prelude.json should not be created", func() {
 				md, err := simpleMongoDumpInstance()
@@ -1092,8 +1092,8 @@ func TestMongoDumpMetaData(t *testing.T) {
 
 			path, err := os.Getwd()
 			So(err, ShouldBeNil)
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 			So(fileDirExists(dumpDir), ShouldBeTrue)
 			So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
@@ -1112,7 +1112,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 					So(len(metaFiles), ShouldBeGreaterThan, 0)
 
 					oneMetaFile, err := os.Open(
-						util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])),
+						filepath.FromSlash(filepath.Join(dumpDBDir, metaFiles[0])),
 					)
 					defer oneMetaFile.Close()
 					So(err, ShouldBeNil)
@@ -1192,8 +1192,8 @@ func TestMongoDumpOplog(t *testing.T) {
 			path, err := os.Getwd()
 			So(err, ShouldBeNil)
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpOplogFile := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpOplogFile := filepath.FromSlash(filepath.Join(dumpDir, "oplog.bson"))
 
 			err = os.RemoveAll(dumpDir)
 			So(err, ShouldBeNil)
@@ -1457,7 +1457,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 		So(err, ShouldBeNil)
 		path, err := os.Getwd()
 		So(err, ShouldBeNil)
-		dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+		dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
 
 		Convey("testing that --query is order-preserving", func() {
 			// If order is not preserved, probabilistically, some of these
@@ -1477,7 +1477,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 				err = md.Dump()
 				So(err, ShouldBeNil)
 
-				dumpBSON := util.ToUniversalPath(
+				dumpBSON := filepath.FromSlash(
 					filepath.Join(dumpDir, testDB, testCollectionNames[0]+".bson"),
 				)
 
@@ -1540,8 +1540,8 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 			path, err := os.Getwd()
 			So(err, ShouldBeNil)
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 			So(fileDirExists(dumpDir), ShouldBeTrue)
 			So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
@@ -1612,8 +1612,8 @@ func TestMongoDumpViews(t *testing.T) {
 			path, err := os.Getwd()
 			So(err, ShouldBeNil)
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 			So(fileDirExists(dumpDir), ShouldBeTrue)
 			So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
@@ -1726,7 +1726,7 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 			assert.Len(t, fileComponents, 3)
 
 			filePath := fileComponents[len(fileComponents)-1]
-			assert.Equal(t, util.EscapeCollectionName(colName)[:208]+"%24", filePath[:211])
+			assert.Equal(t, url.QueryEscape(colName)[:208]+"%24", filePath[:211])
 
 			hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
 			hash := sha1.Sum([]byte(colName))
@@ -1839,7 +1839,7 @@ func TestTimeseriesCollections(t *testing.T) {
 			path, err := os.Getwd()
 			require.NoError(t, err)
 
-			archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+			archiveFilePath := filepath.FromSlash(filepath.Join(path, "dump.archive"))
 
 			archiveFile, err := os.Open(archiveFilePath)
 			require.NoError(t, err)
@@ -1928,14 +1928,14 @@ func TestTimeseriesCollections(t *testing.T) {
 			path, err := os.Getwd()
 			require.NoError(t, err)
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
-			metadataFile := util.ToUniversalPath(
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, dbName))
+			metadataFile := filepath.FromSlash(
 				filepath.Join(dumpDBDir, colName+".metadata.json"),
 			)
 
 			expectedCollFile := timeseriesCollName(serverVersion, colName)
-			bsonFile := util.ToUniversalPath(
+			bsonFile := filepath.FromSlash(
 				filepath.Join(dumpDBDir, expectedCollFile+".bson"),
 			)
 			assert.True(t, fileDirExists(dumpDir))
@@ -1990,7 +1990,7 @@ func TestTimeseriesCollections(t *testing.T) {
 			path, err := os.Getwd()
 			require.NoError(t, err)
 
-			archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+			archiveFilePath := filepath.FromSlash(filepath.Join(path, "dump.archive"))
 
 			archiveFile, err := os.Open(archiveFilePath)
 			require.NoError(t, err)
@@ -2033,7 +2033,7 @@ func TestTimeseriesCollections(t *testing.T) {
 			path, err := os.Getwd()
 			require.NoError(t, err)
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
 			assert.False(t, fileDirExists(dumpDir))
 
 			require.NoError(t, os.RemoveAll(dumpDir))
@@ -2078,12 +2078,12 @@ func TestTimeseriesCollections(t *testing.T) {
 			path, err := os.Getwd()
 			require.NoError(t, err)
 
-			dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-			dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, dbName))
-			metadataFile := util.ToUniversalPath(
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, dbName))
+			metadataFile := filepath.FromSlash(
 				filepath.Join(dumpDBDir, colName+".metadata.json"),
 			)
-			bsonFile := util.ToUniversalPath(
+			bsonFile := filepath.FromSlash(
 				filepath.Join(dumpDBDir, timeseriesCollName(serverVersion, colName)+".bson"),
 			)
 			assert.True(t, fileDirExists(dumpDir))
@@ -2213,7 +2213,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	archiveFilePath := util.ToUniversalPath(filepath.Join(path, "dump.archive"))
+	archiveFilePath := filepath.FromSlash(filepath.Join(path, "dump.archive"))
 
 	archiveFile, err := os.Open(archiveFilePath)
 	require.NoError(t, err)
@@ -2499,8 +2499,8 @@ func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, "dump"))
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
+	dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
 	require.True(t, fileDirExists(dumpDir))
 	require.True(t, fileDirExists(dumpDBDir))
 
@@ -2508,7 +2508,7 @@ func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
 	require.NoError(t, err)
 	require.Equal(t, len(metaFiles), 1)
 
-	metaFile, err := os.Open(util.ToUniversalPath(filepath.Join(dumpDBDir, metaFiles[0])))
+	metaFile, err := os.Open(filepath.FromSlash(filepath.Join(dumpDBDir, metaFiles[0])))
 
 	require.NoError(t, err)
 	contents, err := io.ReadAll(metaFile)

@@ -8,11 +8,11 @@ package mongorestore
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/util"
 )
 
 // Usage describes basic usage of mongorestore.
@@ -175,7 +175,7 @@ func ParseOptions(rawArgs []string, versionStr, gitCommit string) (Options, erro
 	if err != nil {
 		return Options{}, fmt.Errorf("error parsing positional arguments: %v", err)
 	}
-	targetDir = util.ToUniversalPath(targetDir)
+	targetDir = filepath.FromSlash(targetDir)
 
 	wc, err := db.NewMongoWriteConcern(outputOpts.WriteConcern, opts.ParsedConnString())
 	if err != nil {
