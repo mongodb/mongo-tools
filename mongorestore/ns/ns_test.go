@@ -12,7 +12,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -25,124 +26,183 @@ func init() {
 func TestEscape(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("with a few strings", t, func() {
-		So(Escape("(blah)"), ShouldEqual, "(blah)")
-		So(Escape(""), ShouldEqual, "")
-		So(Escape(`bl*h*\\`), ShouldEqual, `bl\*h\*\\\\`)
-		So(Escape("blah**"), ShouldEqual, `blah\*\*`)
-	})
+	cases := []struct {
+		in       string
+		expected string
+	}{
+		{"(blah)", "(blah)"},
+		{"", ""},
+		{`bl*h*\\`, `bl\*h\*\\\\`},
+		{"blah**", `blah\*\*`},
+	}
+
+	for _, tc := range cases {
+		assert.Equal(t, tc.expected, Escape(tc.in), "should escape %q", tc.in)
+	}
 }
 
 func TestUnescape(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("with a few escaped strings", t, func() {
-		So(Unescape("(blah)"), ShouldEqual, "(blah)")
-		So(Unescape(""), ShouldEqual, "")
-		So(Unescape(`bl\*h\*\\\\`), ShouldEqual, `bl*h*\\`)
-		So(Unescape(`blah\*\*`), ShouldEqual, "blah**")
-	})
+	cases := []struct {
+		in       string
+		expected string
+	}{
+		{"(blah)", "(blah)"},
+		{"", ""},
+		{`bl\*h\*\\\\`, `bl*h*\\`},
+		{`blah\*\*`, "blah**"},
+	}
+
+	for _, tc := range cases {
+		assert.Equal(t, tc.expected, Unescape(tc.in), "should unescape %q", tc.in)
+	}
 }
 
 func TestReplacer(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("with replacements", t, func() {
-		Convey(`'$db$.user$$' -> 'test.user$$_$db$', 'pr\*d\.*' -> 'st\*g\\ing.*'`, func() {
-			r, err := NewRenamer(
-				[]string{"$db$.user$$", `pr\*d\\.*`},
-				[]string{"test.user$$_$db$", `st\*g\\ing.*`},
-			)
-			So(r, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-			So(r.Get("stuff.user"), ShouldEqual, "test.user_stuff")
-			So(r.Get("stuff.users"), ShouldEqual, "test.users_stuff")
-			So(r.Get(`pr*d\.users`), ShouldEqual, `st*g\ing.users`)
-			So(r.Get(`pr*d\.turbo.encabulators`), ShouldEqual, `st*g\ing.turbo.encabulators`)
-			So(r.Get(`st*g\ing.turbo.encabulators`), ShouldEqual, `st*g\ing.turbo.encabulators`)
-		})
-		Convey(`'$:)*$.us(?:2)er$?$' -> 'test.us(?:2)er$?$_$:)*$'`, func() {
-			r, err := NewRenamer(
-				[]string{"$:)*$.us(?:2)er$?$"},
-				[]string{"test.us(?:2)er$?$_$:)*$"},
-			)
-			So(r, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-			So(r.Get("stuff.us(?:2)er"), ShouldEqual, "test.us(?:2)er_stuff")
-			So(r.Get("stuff.us(?:2)ers"), ShouldEqual, "test.us(?:2)ers_stuff")
-		})
-		Convey("'*.*' -> '*_test.*'", func() {
-			r, err := NewRenamer([]string{"*.*"}, []string{"*_test.*"})
-			So(r, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-			So(r.Get("stuff.user"), ShouldEqual, "stuff_test.user")
-			So(r.Get("stuff.users"), ShouldEqual, "stuff_test.users")
-			So(r.Get("prod.turbo.encabulators"), ShouldEqual, "prod_test.turbo.encabulators")
-		})
-		Convey("special characters", func() {
-			r, err := NewRenamer([]string{`restaurants.cafés`, `ÿœz.tāx`, `normal.characters`},
-				[]string{`ÿœp.tāx`, `yes.tax`, `special.charâctęrs`})
-			So(r, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-			So(r.Get("restaurants.cafés"), ShouldEqual, "ÿœp.tāx")
-			So(r.Get("ÿœz.tāx"), ShouldEqual, "yes.tax")
-			So(r.Get("normal.characters"), ShouldEqual, "special.charâctęrs")
-		})
+	t.Run("with replacements", func(t *testing.T) {
+		cases := []struct {
+			name     string
+			from     []string
+			to       []string
+			expected map[string]string
+		}{
+			{
+				name: `'$db$.user$$' -> 'test.user$$_$db$', 'pr\*d\.*' -> 'st\*g\\ing.*'`,
+				from: []string{"$db$.user$$", `pr\*d\\.*`},
+				to:   []string{"test.user$$_$db$", `st\*g\\ing.*`},
+				expected: map[string]string{
+					"stuff.user":                  "test.user_stuff",
+					"stuff.users":                 "test.users_stuff",
+					`pr*d\.users`:                 `st*g\ing.users`,
+					`pr*d\.turbo.encabulators`:    `st*g\ing.turbo.encabulators`,
+					`st*g\ing.turbo.encabulators`: `st*g\ing.turbo.encabulators`,
+				},
+			},
+			{
+				name: "'$:)*$.us(?:2)er$?$' -> 'test.us(?:2)er$?$_$:)*$'",
+				from: []string{"$:)*$.us(?:2)er$?$"},
+				to:   []string{"test.us(?:2)er$?$_$:)*$"},
+				expected: map[string]string{
+					"stuff.us(?:2)er":  "test.us(?:2)er_stuff",
+					"stuff.us(?:2)ers": "test.us(?:2)ers_stuff",
+				},
+			},
+			{
+				name: "'*.*' -> '*_test.*'",
+				from: []string{"*.*"},
+				to:   []string{"*_test.*"},
+				expected: map[string]string{
+					"stuff.user":              "stuff_test.user",
+					"stuff.users":             "stuff_test.users",
+					"prod.turbo.encabulators": "prod_test.turbo.encabulators",
+				},
+			},
+			{
+				name: "special characters",
+				from: []string{`restaurants.cafés`, `ÿœz.tāx`, `normal.characters`},
+				to:   []string{`ÿœp.tāx`, `yes.tax`, `special.charâctęrs`},
+				expected: map[string]string{
+					"restaurants.cafés": "ÿœp.tāx",
+					"ÿœz.tāx":           "yes.tax",
+					"normal.characters": "special.charâctęrs",
+				},
+			},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				r, err := NewRenamer(tc.from, tc.to)
+				require.NoError(t, err, "should build a renamer")
+				require.NotNil(t, r, "should return a renamer")
+				for in, expected := range tc.expected {
+					assert.Equal(t, expected, r.Get(in), "should rename %q", in)
+				}
+			})
+		}
 	})
-	Convey("with invalid replacements", t, func() {
-		Convey("'$db$.user$db$' -> 'test.user-$db$'", func() {
-			_, err := NewRenamer([]string{"$db$.user$db$"}, []string{"test.user-$db$"})
-			So(err, ShouldNotBeNil)
-		})
-		Convey("'$db$.us$er$table$' -> 'test.user$table$_$db$'", func() {
-			_, err := NewRenamer([]string{"$db$.us$er$table$"}, []string{"test.user$table$_$db$"})
-			So(err, ShouldNotBeNil)
-		})
+
+	t.Run("with invalid replacements", func(t *testing.T) {
+		cases := []struct{ from, to string }{
+			{"$db$.user$db$", "test.user-$db$"},
+			{"$db$.us$er$table$", "test.user$table$_$db$"},
+		}
+		for _, tc := range cases {
+			_, err := NewRenamer([]string{tc.from}, []string{tc.to})
+			assert.Error(t, err, "should reject replacement %q -> %q", tc.from, tc.to)
+		}
 	})
 }
 
 func TestMatcher(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("with matcher", t, func() {
-		Convey(`'*.user*', 'pr\*d\.*'`, func() {
-			m, err := NewMatcher([]string{`*.user*`, `pr\*d\.*`})
-			So(m, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-			So(m.Has("stuff.user"), ShouldBeTrue)
-			So(m.Has("stuff.users"), ShouldBeTrue)
-			So(m.Has("pr*d.users"), ShouldBeTrue)
-			So(m.Has("pr*d.magic"), ShouldBeTrue)
-			So(m.Has(`pr*d\.magic`), ShouldBeFalse)
-			So(m.Has("prod.magic"), ShouldBeFalse)
-			So(m.Has("pr*d.turbo.encabulators"), ShouldBeTrue)
-			So(m.Has("st*ging.turbo.encabulators"), ShouldBeFalse)
-		})
-		Convey("'*.*'", func() {
-			m, err := NewMatcher([]string{"*.*"})
-			So(m, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-			So(m.Has("stuff"), ShouldBeFalse)
-			So(m.Has("stuff.user"), ShouldBeTrue)
-			So(m.Has("stuff.users"), ShouldBeTrue)
-			So(m.Has("prod.turbo.encabulators"), ShouldBeTrue)
-		})
-		Convey("special characters", func() {
-			m, err := NewMatcher([]string{`restaurants.cafés`, `ÿœp.tāx`})
-			So(m, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-			So(m.Has("restaurants.cafés"), ShouldBeTrue)
-			So(m.Has("ÿœp.tāx"), ShouldBeTrue)
-		})
+	t.Run("with matcher", func(t *testing.T) {
+		cases := []struct {
+			name     string
+			patterns []string
+			expected map[string]bool
+		}{
+			{
+				name:     `'*.user*', 'pr\*d\.*'`,
+				patterns: []string{`*.user*`, `pr\*d\.*`},
+				expected: map[string]bool{
+					"stuff.user":                 true,
+					"stuff.users":                true,
+					"pr*d.users":                 true,
+					"pr*d.magic":                 true,
+					`pr*d\.magic`:                false,
+					"prod.magic":                 false,
+					"pr*d.turbo.encabulators":    true,
+					"st*ging.turbo.encabulators": false,
+				},
+			},
+			{
+				name:     "'*.*'",
+				patterns: []string{"*.*"},
+				expected: map[string]bool{
+					"stuff":                   false,
+					"stuff.user":              true,
+					"stuff.users":             true,
+					"prod.turbo.encabulators": true,
+				},
+			},
+			{
+				name:     "special characters",
+				patterns: []string{`restaurants.cafés`, `ÿœp.tāx`},
+				expected: map[string]bool{
+					"restaurants.cafés": true,
+					"ÿœp.tāx":           true,
+				},
+			},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				m, err := NewMatcher(tc.patterns)
+				require.NoError(t, err, "should build a matcher")
+				require.NotNil(t, m, "should return a matcher")
+				for in, expected := range tc.expected {
+					assert.Equal(
+						t,
+						expected,
+						m.Has(in),
+						"should report %q as matching=%v",
+						in,
+						expected,
+					)
+				}
+			})
+		}
 	})
-	Convey("with invalid matcher", t, func() {
-		Convey("'$.user$'", func() {
-			_, err := NewMatcher([]string{"$.user$"})
-			So(err, ShouldNotBeNil)
-		})
-		Convey("'*.user$'", func() {
-			_, err := NewMatcher([]string{"*.user$"})
-			So(err, ShouldNotBeNil)
-		})
+
+	t.Run("with invalid matcher", func(t *testing.T) {
+		cases := []string{"$.user$", "*.user$"}
+		for _, pattern := range cases {
+			_, err := NewMatcher([]string{pattern})
+			assert.Error(t, err, "should reject pattern %q", pattern)
+		}
 	})
 }

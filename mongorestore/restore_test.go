@@ -7,13 +7,12 @@
 package mongorestore
 
 import (
-	"fmt"
 	"slices"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -73,26 +72,15 @@ func Test_removeDefaultIdIndex(t *testing.T) {
 	}
 
 	for _, curCase := range cases {
-		Convey(
-			fmt.Sprintf(
-				"Verifying that default _id indexes are removed when needed: %s",
-				curCase.Label,
-			),
-			t,
-			func() {
-				expect := slices.Clone(curCase.Input)
-				if curCase.DefaultIdIndexAt >= 0 {
-					expect = slices.Delete(
-						expect,
-						curCase.DefaultIdIndexAt,
-						1+curCase.DefaultIdIndexAt,
-					)
-				}
+		t.Run(curCase.Label, func(t *testing.T) {
+			expect := slices.Clone(curCase.Input)
+			if curCase.DefaultIdIndexAt >= 0 {
+				expect = slices.Delete(expect, curCase.DefaultIdIndexAt, 1+curCase.DefaultIdIndexAt)
+			}
 
-				got, err := removeDefaultIdIndex(slices.Clone(curCase.Input))
-				So(err, ShouldBeNil)
-				So(got, ShouldEqual, expect)
-			},
-		)
+			got, err := removeDefaultIdIndex(slices.Clone(curCase.Input))
+			require.NoError(t, err, "should remove the default _id index without error")
+			require.Equal(t, expect, got, "should remove the default _id index")
+		})
 	}
 }
