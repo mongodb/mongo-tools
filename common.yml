@@ -449,6 +449,10 @@ functions:
         bucket: mciuploads
 
   "sign artifacts":
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to pull from DevProd Platforms ECR
+      params:
+        role_arn: ${devprod_platforms_ecr_readonly_role_arn}
     - command: subprocess.exec
       params:
         # binary must be bash (with the script passed via args), not the script
@@ -457,9 +461,8 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         args:
           - "./scripts/sign_artifacts.sh"
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
         env:
-          ARTIFACTORY_PASSWORD: ${artifactory_password}
-          ARTIFACTORY_USERNAME: ${artifactory_username}
           AUTHENTICODE_KEY_NAME: ${authenticode_key_name}
           EVG_TASK_ID: ${task_id}
           EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
@@ -739,6 +742,7 @@ functions:
         args:
           - "./scripts/regenerate-and-diff-sbom-lite.sh"
         env:
+          EVG_TASK_ID: ${task_id}
           EVG_WORKDIR: ${workdir}
 
   "check sarif report":
@@ -792,6 +796,24 @@ functions:
       params:
         file: kondukto_token.yml
         redact_file_expansions: true
+
+  "login to devprod platforms ecr":
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to pull from DevProd Platforms ECR
+      params:
+        role_arn: ${devprod_platforms_ecr_readonly_role_arn}
+    - command: shell.exec
+      display_name: Log in to DevProd Platforms ECR
+      params:
+        shell: bash
+        silent: true
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        script: |
+          set -o errexit
+          set -o pipefail
+
+          aws ecr get-login-password --region us-east-1 |
+              podman login --username AWS --password-stdin 901841024863.dkr.ecr.us-east-1.amazonaws.com
 
 pre:
   - command: shell.exec
@@ -956,6 +978,7 @@ tasks:
       - func: "fetch source"
       - command: expansions.update
       - func: "set silkbomb credentials"
+      - func: "login to devprod platforms ecr"
       - func: "install mise and go"
       - command: subprocess.exec
         params:
@@ -967,6 +990,7 @@ tasks:
             - "./scripts/regenerate-and-diff-augmented-sbom.sh"
           include_expansions_in_env: [KONDUKTO_TOKEN]
           env:
+            EVG_TASK_ID: ${task_id}
             EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
 
   - name: release-json
@@ -2627,6 +2651,7 @@ tasks:
   - name: check-sbom-lite
     commands:
       - func: "fetch source"
+      - func: "login to devprod platforms ecr"
       - func: "install mise and go"
       - func: "check sbom lite"
 

@@ -4,6 +4,15 @@ set -e
 set -o pipefail
 set -x
 
+# In CI, authentication with the DevProd Platforms ECR registry happens once
+# at the Evergreen task level before this script runs. Locally, we log in
+# here using a named AWS SSO profile.
+if [ -z "${EVG_TASK_ID:-}" ]; then
+    profile="${DEVPROD_PLATFORMS_ECR_AWS_PROFILE:-ECRScopedAccess-901841024863}"
+    aws ecr get-login-password --region us-east-1 --profile "$profile" |
+        podman login --username AWS --password-stdin 901841024863.dkr.ecr.us-east-1.amazonaws.com
+fi
+
 rm -f purls.txt
 
 BINARY_DIRS="$(mise exec go -- go run release/release.go print-binary-paths)"
@@ -44,7 +53,7 @@ podman run \
     --rm \
     --platform linux/amd64 \
     -v "${PWD}":/pwd \
-    artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
+    901841024863.dkr.ecr.us-east-1.amazonaws.com/release-infrastructure/silkbomb:2.0 \
     update \
     --sbom-in /pwd/cyclonedx.sbom.json \
     --purls /pwd/purls.txt \
