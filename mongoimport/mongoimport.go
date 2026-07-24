@@ -284,7 +284,7 @@ func (imp *MongoImport) validateSettings() error {
 // reader supports it.
 func (imp *MongoImport) getSourceReader() (io.ReadCloser, int64, error) {
 	if imp.InputOptions.File != "" {
-		file, err := os.Open(util.ToUniversalPath(imp.InputOptions.File))
+		file, err := os.Open(filepath.FromSlash(imp.InputOptions.File))
 		if err != nil {
 			return nil, -1, err
 		}

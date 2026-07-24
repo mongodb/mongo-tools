@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"net/url"
 	"path/filepath"
 	"sync/atomic"
 
@@ -236,9 +237,9 @@ func (pe *PreludeExplorer) Name() string {
 		return pe.database
 	}
 	if pe.isMetadata {
-		return util.EscapeCollectionName(pe.collection) + ".metadata.json"
+		return url.QueryEscape(pe.collection) + ".metadata.json"
 	}
-	return util.EscapeCollectionName(pe.collection) + ".bson"
+	return url.QueryEscape(pe.collection) + ".bson"
 }
 
 // Path is part of the DirLike interface. It creates the full path for the "location" in the prelude.

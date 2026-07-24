@@ -19,7 +19,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,9 +92,9 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, "vectored_inserts"))
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-	oplogFilePath := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
+	dumpDir := filepath.FromSlash(filepath.Join(path, "vectored_inserts"))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
+	oplogFilePath := filepath.FromSlash(filepath.Join(dumpDir, "oplog.bson"))
 	require.True(t, fileDirExists(dumpDir))
 	require.True(t, fileDirExists(dumpDBDir))
 	require.True(t, fileDirExists(oplogFilePath))
@@ -214,9 +213,9 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, "collMod_indexUniqueness"))
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-	oplogFilePath := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
+	dumpDir := filepath.FromSlash(filepath.Join(path, "collMod_indexUniqueness"))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
+	oplogFilePath := filepath.FromSlash(filepath.Join(dumpDir, "oplog.bson"))
 	require.True(t, fileDirExists(dumpDir))
 	require.True(t, fileDirExists(dumpDBDir))
 	require.True(t, fileDirExists(oplogFilePath))
@@ -378,9 +377,9 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, "oplog_bypassDocumentValidation"))
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-	oplogFilePath := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
+	dumpDir := filepath.FromSlash(filepath.Join(path, "oplog_bypassDocumentValidation"))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
+	oplogFilePath := filepath.FromSlash(filepath.Join(dumpDir, "oplog.bson"))
 	require.True(t, fileDirExists(dumpDir))
 	require.True(t, fileDirExists(dumpDBDir))
 	require.True(t, fileDirExists(oplogFilePath))
@@ -534,9 +533,9 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	path, err := os.Getwd()
 	require.NoError(t, err)
 
-	dumpDir := util.ToUniversalPath(filepath.Join(path, md.OutputOptions.Out))
-	dumpDBDir := util.ToUniversalPath(filepath.Join(dumpDir, testDB))
-	oplogFilePath := util.ToUniversalPath(filepath.Join(dumpDir, "oplog.bson"))
+	dumpDir := filepath.FromSlash(filepath.Join(path, md.OutputOptions.Out))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
+	oplogFilePath := filepath.FromSlash(filepath.Join(dumpDir, "oplog.bson"))
 	require.True(t, fileDirExists(dumpDir))
 	require.True(t, fileDirExists(dumpDBDir))
 	require.True(t, fileDirExists(oplogFilePath))

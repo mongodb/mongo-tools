@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -206,7 +207,7 @@ func (dump *MongoDump) outputPath(dbName, colName string) string {
 	// than 255 bytes long. This includes the longest possible file extension: .metadata.json.gz
 	// The new format is <truncated-url-encoded-collection-name>%24<collection-name-hash-base64>
 	// where %24 represents a $ symbol delimiter (e.g. aVeryVery...VeryLongName%24oPpXMQ...).
-	escapedColName := util.EscapeCollectionName(colName)
+	escapedColName := url.QueryEscape(colName)
 	if len(escapedColName) > 238 {
 		colNameTruncated := escapedColName[:208]
 		// #nosec G401 -- we do not use this digest algorithm in a security-sensitive way.

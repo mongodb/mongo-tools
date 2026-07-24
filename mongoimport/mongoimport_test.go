@@ -25,7 +25,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -1372,10 +1371,10 @@ func nestedFieldsTestHelper(
 	expectedErr error,
 ) func() {
 	return func() {
-		err := os.WriteFile(util.ToUniversalPath("./temp_test_data.csv"), []byte(data), 0644)
+		err := os.WriteFile(filepath.FromSlash("./temp_test_data.csv"), []byte(data), 0644)
 		So(err, ShouldBeNil)
 		defer func() {
-			err = os.Remove(util.ToUniversalPath("./temp_test_data.csv"))
+			err = os.Remove(filepath.FromSlash("./temp_test_data.csv"))
 			So(err, ShouldBeNil)
 		}()
 
