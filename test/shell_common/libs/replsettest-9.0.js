@@ -1,6 +1,4 @@
-/* Changes to replsettest.js copied over from mongodb/mongo repo at tag r9.0.0-alpha1 (the
- * closest published 9.0 source tag; the 9.0.0-alpha2 server binary we test against has no
- * source tag).
+/* Changes to replsettest.js copied over from mongodb/mongo repo at tag r9.0.0-alpha1.
  * 1. Change the `Thread` import path to the vendored parallelTester-9.0.js.
  * 2. Replace the top-level (load-time) imports that reference server jstest libraries not
  *    vendored into mongo-tools (fail_point_util.js, hook_appname.js, replicated_truncates_utils.js)
