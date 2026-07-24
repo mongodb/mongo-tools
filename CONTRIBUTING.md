@@ -74,8 +74,8 @@ locally.
 ## Getting Started
 
 1. Create a [MongoDB JIRA account](https://jira.mongodb.org/secure/Signup!default.jspa).
-2. Create a [Github account](https://github.com/signup/free).
-3. [Fork](https://help.github.com/articles/fork-a-repo/) the repository on Github at
+2. Create a [GitHub account](https://github.com/signup/free).
+3. [Fork](https://help.github.com/articles/fork-a-repo/) the repository on GitHub at
    https://github.com/mongodb/mongo-tools.
 4. Sign the [MongoDB Contributor Agreement](https://www.mongodb.com/legal/contributor-agreement).
    This will allow us to review and accept contributions.
