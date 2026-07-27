@@ -223,6 +223,16 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 	//nolint:errcheck
 	defer session.Disconnect(t.Context())
 
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	if err != nil {
+		t.Fatalf("No session provider available")
+	}
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	if err != nil {
+		t.Fatalf("Could not get server version")
+	}
+
 	Convey("Index drop in oplog should delete it from indexCatalog", t, func() {
 		args := []string{
 			DirectoryOption, "testdata/coll_with_index",
@@ -303,48 +313,48 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 		So(indexCount, ShouldEqual, 0)
 	})
 
-	Convey("db drop in oplog should delete indexes from indexCatalog", t, func() {
-		// TODO: TOOLS-3016: do not skip once SERVER-62759 is done
+	// This will fail with pre-5.3.0 versions because of SERVER-62759.
+	if serverVersion.GTE(db.Version{5, 3, 0}) {
+		Convey("db drop in oplog should delete indexes from indexCatalog", t, func() {
+			args := []string{
+				DirectoryOption, "testdata/coll_with_index",
+				OplogReplayOption,
+				NumParallelCollectionsOption, "1",
+				NumInsertionWorkersOption, "1",
+				DropOption,
+				OplogFileOption, "testdata/oplogs/bson/drop_db.bson",
+			}
 
-		// args := []string{
-		// 	DirectoryOption, "testdata/coll_with_index",
-		// 	OplogReplayOption,
-		// 	NumParallelCollectionsOption, "1",
-		// 	NumInsertionWorkersOption, "1",
-		// 	DropOption,
-		// 	OplogFileOption, "testdata/oplogs/bson/drop_db.bson",
-		// }
+			restore, err := getRestoreWithArgs(args...)
+			So(err, ShouldBeNil)
+			defer restore.Close()
 
-		// restore, err := getRestoreWithArgs(args...)
-		// So(err, ShouldBeNil)
-		// defer restore.Close()
+			// Run mongorestore
+			result := restore.Restore()
+			So(result.Err, ShouldBeNil)
+			So(result.Failures, ShouldEqual, 0)
 
-		// // Run mongorestore
-		// result := restore.Restore()
-		// So(result.Err, ShouldBeNil)
-		// So(result.Failures, ShouldEqual, 0)
+			coll := session.Database("test").Collection("foo")
 
-		// coll := session.Database("test").Collection("foo")
+			ctx := t.Context()
+			// Verify restoration
+			count, err := coll.CountDocuments(ctx, bson.M{})
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
 
-		// ctx := t.Context()
-		// // Verify restoration
-		// count, err := coll.CountDocuments(ctx, bson.M{})
-		// So(err, ShouldBeNil)
-		// So(count, ShouldEqual, 0)
+			indexCursor, err := coll.Indexes().List(ctx)
+			So(err, ShouldBeNil)
 
-		// indexCursor, err := coll.Indexes().List(ctx)
-		// So(err, ShouldBeNil)
+			defer indexCursor.Close(ctx)
 
-		// defer indexCursor.Close(ctx)
+			indexCount := 0
+			for indexCursor.Next(ctx) {
+				indexCount++
+			}
 
-		// indexCount := 0
-		// for indexCursor.Next(ctx) {
-		// 	indexCount++
-		// }
-
-		// So(indexCount, ShouldEqual, 0)
-
-	})
+			So(indexCount, ShouldEqual, 0)
+		})
+	}
 
 	Convey("create indexes should update indexCatalog", t, func() {
 		args := []string{
