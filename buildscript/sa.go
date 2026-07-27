@@ -1,7 +1,6 @@
 package buildscript
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -29,42 +28,25 @@ func runPrecious(ctx *task.Context, args ...string) error {
 	return sh.RunCmd(ctx, c)
 }
 
-// SAModTidy runs go mod tidy and ensure no changes were made.
-// Copied from mongohouse: https://github.com/10gen/mongohouse/blob/333308814f96a0909c8125f71af7748b263e3263/buildscript/sa.go#L72
+// SAModTidy runs go mod tidy and ensures it did not change go.mod or go.sum.
+// Modeled on mongosync's Check.GeneratedFiles target:
+// https://github.com/10gen/mongosync/blob/b5e64e9ad/magefiles/check.go#L37
 func SAModTidy(ctx *task.Context) error {
-	// Save original contents in case they get modified. When
-	// https://github.com/golang/go/issues/27005 is done, we
-	// shouldn't need this anymore.
-	origGoMod, err := os.ReadFile("go.mod")
-	if err != nil {
-		return fmt.Errorf("error reading go.mod: %w", err)
-	}
-	origGoSum, err := os.ReadFile("go.sum")
-	if err != nil {
-		return fmt.Errorf("error reading go.sum: %w", err)
-	}
-
-	err = sh.Run(ctx, "go", "mod", "tidy")
-	if err != nil {
+	if err := sh.Run(ctx, "go", "mod", "tidy"); err != nil {
 		return err
 	}
 
-	newGoMod, err := os.ReadFile("go.mod")
-	if err != nil {
-		return fmt.Errorf("error reading go.mod: %w", err)
-	}
-	newGoSum, err := os.ReadFile("go.sum")
-	if err != nil {
-		return fmt.Errorf("error reading go.sum: %w", err)
-	}
-
-	if !bytes.Equal(origGoMod, newGoMod) || !bytes.Equal(origGoSum, newGoSum) {
-		// Restore originals, ignoring errors since they need tidying anyway.
-		_ = os.WriteFile("go.mod", origGoMod, 0600)
-		_ = os.WriteFile("go.sum", origGoSum, 0600)
-		return errors.New(
-			"go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes",
-		)
+	cmd := exec.CommandContext(ctx, "git", "diff", "--exit-code", "--", "go.mod", "go.sum")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := sh.RunCmd(ctx, cmd); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return errors.New(
+				"go.mod and/or go.sum needs changes: run `go mod tidy` and commit the changes",
+			)
+		}
+		return fmt.Errorf("error running `git diff --exit-code -- go.mod go.sum`: %w", err)
 	}
 
 	return nil
