@@ -1,2 +1,3 @@
 # Force gpm to always have lf endings even on Windows
 gpm text eol=lf
+vendor/** linguist-generated=true
