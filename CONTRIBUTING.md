@@ -122,6 +122,29 @@ This will update our `go.{mod,sum}` files, vendor the dependency, update the SBO
 Note that you _cannot_ just use `go get` to add or update dependencies, because it doesn't update
 all of these other files that need to be updated when dependencies change.
 
+### AWS Profile for SBOM Updates
+
+In order for the SBOM update script to work, you must have an AWS profile named
+"ECRScopedAccess-901841024863" configured. The config in your `~/.aws/config` file should look like
+this:
+
+```toml
+[profile ECRScopedAccess-901841024863]
+region = us-east-1
+sso_account_id = 901841024863
+sso_role_name = ECRScopedAccess
+sso_start_url = <same as other profiles or ask in Slack>
+sso_region = us-east-1
+```
+
+In order to actually log in to this profile, run this command:
+
+```
+aws sso login --profile ECRScopedAccess-901841024863
+```
+
+In order for this to succeed, you must be a member of the `devprod-platforms-ecr-users` Mana group.
+
 ## Testing
 
 You will need a MongoDB server listening on `localhost:33333` to run the integration tests locally.
