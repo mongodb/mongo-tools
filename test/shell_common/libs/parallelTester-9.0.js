@@ -1,5 +1,4 @@
-// parallelTester.js copied over from mongodb/mongo repo at tag r9.0.0-alpha1 (the closest
-// published 9.0 source tag; the 9.0.0-alpha2 server binary we test against has no source tag).
+// parallelTester.js copied over from mongodb/mongo repo at tag r9.0.0-alpha1.
 export var Thread;
 
 if (typeof _threadInject != "undefined") {
