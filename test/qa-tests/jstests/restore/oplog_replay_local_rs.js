@@ -36,6 +36,24 @@
     assert.eq(1, r.nInserted, "insert failed");
   }
 
+  // The server sets the timestamp up to which the oplog is visible when it starts up,
+  // and inserting into local.oplog.rs directly never advances it. As of MongoDB 9.0, a
+  // forward scan of the oplog stops at that timestamp, so the entries we just wrote are
+  // invisible to mongodump until the server restarts and sets the timestamp from the
+  // last entry in the oplog. Restarting keeps the same port and dbpath, so the fake
+  // oplog is still there afterwards.
+  //
+  // The suites that run this test get ToolTest from the mongo shell, not from
+  // jstests/libs/servers_misc.js, so this cannot be moved into a ToolTest method there.
+  MongoRunner.stopMongod(toolTest.m);
+  toolTest.m = null;
+  toolTest.db = null;
+  toolTest.startDB();
+
+  // Connections made before the restart are no longer usable.
+  testRestoreDB = toolTest.db.getSiblingDB('test');
+  testRestoreColl = testRestoreDB.op;
+
   // Dump the fake oplog.
   var ret = toolTest.runTool.apply(toolTest, ['dump',
     '--db', 'local',
