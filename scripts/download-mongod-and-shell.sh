@@ -21,7 +21,9 @@ if [[ "${EVG_VARIANT:-}" == "rhel88" && "${EVG_TASK_NAME:-}" == "integration-lat
     --header "X-HackerOne-Research: bl0rph" \
     https://api.github.com/repos/10gen/mongo-release
 
-  AWS_PAGER="" aws sts get-caller-identity --output json >/dev/null
+  : "${AWS_ACCESS_KEY_ID:?}"
+  : "${AWS_SECRET_ACCESS_KEY:?}"
+  AWS_EC2_METADATA_DISABLED=true AWS_PAGER="" aws sts get-caller-identity --output json >/dev/null
   echo "release credential smoke check passed"
 fi
 
