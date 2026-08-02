@@ -265,6 +265,7 @@ functions:
           EVG_BUILD_ID: ${build_id}
           EVG_IS_PATCH: ${is_patch}
           EVG_KEY: ${evg_key}
+          EVG_TASK_NAME: ${task_name}
           EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
           EVG_USER: ${evg_user}
           EVG_VARIANT: ${build_variant}
