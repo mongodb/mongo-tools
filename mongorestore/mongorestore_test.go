@@ -27,7 +27,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -1342,102 +1341,99 @@ func TestReadPreludeMetadata(t *testing.T) {
 func TestFixHashedIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
+
+	t.Run("with --fixHashedIndexes", func(t *testing.T) {
+		restore := restoreForFixHashedIndexes(t, session, FixDottedHashedIndexesOption)
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+
+		// the a.b key is dotted, so --fixHashedIndexes should change it from
+		// hashed to 1; a.a and b are not dotted and keep their original values.
+		assertHashedIndexKeys(
+			t,
+			session.Database("testdata").Collection("hashedIndexes"),
+			map[string]any{
+				"b":   "hashed",
+				"a.a": 1,
+				"a.b": 1,
+			},
+		)
+	})
+
+	t.Run("without --fixHashedIndexes", func(t *testing.T) {
+		restore := restoreForFixHashedIndexes(t, session)
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+
+		assertHashedIndexKeys(
+			t,
+			session.Database("testdata").Collection("hashedIndexes"),
+			map[string]any{
+				"b":   "hashed",
+				"a.a": 1,
+				"a.b": "hashed",
+			},
+		)
+	})
+}
+
+// restoreForFixHashedIndexes builds a restore instance targeting the shared
+// hashedIndexes fixture and registers its own teardown, so each subtest gets
+// a fresh restore instance and collection.
+func restoreForFixHashedIndexes(t *testing.T, session *mongo.Client, args ...string) *MongoRestore {
+	t.Helper()
+
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	t.Cleanup(restore.Close)
+
+	db := session.Database("testdata")
+	t.Cleanup(func() {
+		assert.NoError(
+			t,
+			db.Collection("hashedIndexes").Drop(context.Background()),
+			"should drop the test collection",
+		)
+	})
+
+	restore.TargetDirectory = "testdata/hashedIndexes.bson"
+
+	return restore
+}
+
+func assertHashedIndexKeys(t *testing.T, coll *mongo.Collection, expected map[string]any) {
+	t.Helper()
 
 	type indexRes struct {
 		Key bson.D
 	}
 
-	Convey("Test MongoRestore with hashed indexes and --fixHashedIndexes", t, func() {
-		args := []string{
-			FixDottedHashedIndexesOption,
-		}
+	indexes := coll.Indexes()
+	c, err := indexes.List(t.Context())
+	require.NoError(t, err, "should list the indexes")
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		db := session.Database("testdata")
-
-		defer func() {
-			dropErr := db.Collection("hashedIndexes").Drop(t.Context())
-			So(dropErr, ShouldBeNil)
-		}()
-
-		Convey(
-			"The index for a.b should be changed from 'hashed' to 1, since it is dotted",
-			func() {
-				restore.TargetDirectory = "testdata/hashedIndexes.bson"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				indexes := db.Collection("hashedIndexes").Indexes()
-				c, err := indexes.List(t.Context())
-				So(err, ShouldBeNil)
-				var res indexRes
-
-				for c.Next(t.Context()) {
-					err := c.Decode(&res)
-					So(err, ShouldBeNil)
-					for _, key := range res.Key {
-						if key.Key == "b" {
-							So(key.Value, ShouldEqual, "hashed")
-						} else if key.Key == "a.a" {
-							So(key.Value, ShouldEqual, 1)
-						} else if key.Key == "a.b" {
-							So(key.Value, ShouldEqual, 1)
-						} else if key.Key != "_id" {
-							t.Fatalf("Unexpected Index: %v", key.Key)
-						}
-					}
-				}
-			},
-		)
-	})
-
-	Convey("Test MongoRestore with hashed indexes without --fixHashedIndexes", t, func() {
-		args := []string{}
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		db := session.Database("testdata")
-
-		defer func() {
-			dropErr := db.Collection("hashedIndexes").Drop(t.Context())
-			So(dropErr, ShouldBeNil)
-		}()
-
-		Convey("All indexes should be unchanged", func() {
-			restore.TargetDirectory = "testdata/hashedIndexes.bson"
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-
-			indexes := db.Collection("hashedIndexes").Indexes()
-			c, err := indexes.List(t.Context())
-			So(err, ShouldBeNil)
-			var res indexRes
-
-			for c.Next(t.Context()) {
-				err := c.Decode(&res)
-				So(err, ShouldBeNil)
-				for _, key := range res.Key {
-					if key.Key == "b" {
-						So(key.Value, ShouldEqual, "hashed")
-					} else if key.Key == "a.a" {
-						So(key.Value, ShouldEqual, 1)
-					} else if key.Key == "a.b" {
-						So(key.Value, ShouldEqual, "hashed")
-					} else if key.Key != "_id" {
-						t.Fatalf("Unexpected Index: %v", key.Key)
-					}
-				}
+	for c.Next(t.Context()) {
+		var res indexRes
+		require.NoError(t, c.Decode(&res), "should decode each index document")
+		for _, key := range res.Key {
+			if key.Key == "_id" {
+				continue
 			}
-		})
-	})
+			want, ok := expected[key.Key]
+			require.True(t, ok, "should not create unexpected index key %q", key.Key)
+			assert.EqualValues(
+				t,
+				want,
+				key.Value,
+				"index key %q should have value %v",
+				key.Key,
+				want,
+			)
+		}
+	}
 }
 
 func TestAutoIndexIdLocalDB(t *testing.T) {
@@ -1445,14 +1441,10 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "must connect to the cluster")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
-	if err != nil {
-		t.Fatalf("Could not get Server version: %v", err)
-	}
+	require.NoError(t, err, "should get the server version")
 	if serverVersion.GTE(db.Version{8, 2, 0}) {
 		t.Skipf(
 			"createCollection no longer accepts autoIndexID as of Server version 8.2.0; testing with %s",
@@ -1461,53 +1453,50 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 	}
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	require.NoError(t, err, "must connect to the server")
+
+	dbName := session.Database("local")
+
+	// Drop the collection to clean up resources
+	//
+	//nolint:errcheck
+	defer dbName.Collection("test_auto_idx").Drop(ctx)
+
+	opts, err := ParseOptions(testutil.GetBareArgs(), "", "")
+	require.NoError(t, err, "should parse the options")
+
+	// Set retryWrites to false since it is unsupported on `local` db.
+	retryWrites := false
+	opts.RetryWrites = &retryWrites
+
+	restore, err := New(opts)
+	require.NoError(t, err, "should build a restore instance")
+
+	restore.TargetDirectory = "testdata/local/test_auto_idx.bson"
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
+
+	// Find the collection
+	filter := bson.D{{"name", "test_auto_idx"}}
+	cursor, err := session.Database("local").ListCollections(ctx, filter)
+	require.NoError(t, err, "should list the collections")
+
+	defer cursor.Close(ctx)
+
+	documentExists := cursor.Next(ctx)
+	require.True(t, documentExists, "should find the restored collection")
+
+	var collInfo struct {
+		Options bson.M
 	}
+	err = cursor.Decode(&collInfo)
+	require.NoError(t, err, "should decode the collection info")
 
-	Convey(
-		"Test MongoRestore with {autoIndexId: false} in a local database's collection",
+	assert.Equal(
 		t,
-		func() {
-			dbName := session.Database("local")
-
-			// Drop the collection to clean up resources
-			//
-			//nolint:errcheck
-			defer dbName.Collection("test_auto_idx").Drop(ctx)
-
-			opts, err := ParseOptions(testutil.GetBareArgs(), "", "")
-			So(err, ShouldBeNil)
-
-			// Set retryWrites to false since it is unsupported on `local` db.
-			retryWrites := false
-			opts.RetryWrites = &retryWrites
-
-			restore, err := New(opts)
-			So(err, ShouldBeNil)
-
-			restore.TargetDirectory = "testdata/local/test_auto_idx.bson"
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-
-			// Find the collection
-			filter := bson.D{{"name", "test_auto_idx"}}
-			cursor, err := session.Database("local").ListCollections(ctx, filter)
-			So(err, ShouldBeNil)
-
-			defer cursor.Close(ctx)
-
-			documentExists := cursor.Next(ctx)
-			So(documentExists, ShouldBeTrue)
-
-			var collInfo struct {
-				Options bson.M
-			}
-			err = cursor.Decode(&collInfo)
-			So(err, ShouldBeNil)
-
-			So(collInfo.Options["autoIndexId"], ShouldBeFalse)
-		},
+		false,
+		collInfo.Options["autoIndexId"],
+		"autoIndexId should remain false on a local database",
 	)
 }
 
@@ -1516,14 +1505,10 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "must connect to the cluster")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
-	if err != nil {
-		t.Fatalf("Could not get Server version: %v", err)
-	}
+	require.NoError(t, err, "should get the server version")
 	if serverVersion.GTE(db.Version{8, 2, 0}) {
 		t.Skipf(
 			"createCollection no longer accepts autoIndexID as of Server version 8.2.0; testing with %s",
@@ -1532,111 +1517,118 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 	}
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	require.NoError(t, err, "must connect to the server")
+
+	t.Run("do not set --preserveUUID", func(t *testing.T) {
+		dbName := session.Database("testdata")
+
+		// Drop the collection to clean up resources
+		//
+		//nolint:errcheck
+		defer dbName.Collection("test_auto_idx").Drop(ctx)
+
+		var args []string
+
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should build a restore instance")
+		defer restore.Close()
+
+		restore.TargetDirectory = "testdata/test_auto_idx.bson"
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+
+		// Find the collection
+		filter := bson.D{{"name", "test_auto_idx"}}
+		cursor, err := session.Database("testdata").ListCollections(ctx, filter)
+		require.NoError(t, err, "should list the collections")
+
+		defer cursor.Close(ctx)
+
+		documentExists := cursor.Next(ctx)
+		require.True(t, documentExists, "should find the restored collection")
+
+		var collInfo struct {
+			Options bson.M
+		}
+		err = cursor.Decode(&collInfo)
+		require.NoError(t, err, "should decode the collection info")
+
+		if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
+			assert.Equal(
+				t,
+				true,
+				collInfo.Options["autoIndexId"],
+				"autoIndexId should be flipped to true for server version >= 4.0",
+			)
+		} else {
+			assert.Equal(
+				t,
+				false,
+				collInfo.Options["autoIndexId"],
+				"autoIndexId should remain false for server version < 4.0",
+			)
+		}
+	})
+
+	dbName := session.Database("testdata")
+
+	// Drop the collection to clean up resources
+	//
+	//nolint:errcheck
+	defer dbName.Collection("test_auto_idx").Drop(ctx)
+
+	args := []string{
+		PreserveUUIDOption, "1",
+		DropOption,
 	}
 
-	Convey(
-		"Test MongoRestore with {autoIndexId: false} in a non-local database's collection",
-		t,
-		func() {
-			Convey("Do not set --preserveUUID\n", func() {
-				dbName := session.Database("testdata")
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-				// Drop the collection to clean up resources
-				//
-				//nolint:errcheck
-				defer dbName.Collection("test_auto_idx").Drop(ctx)
+	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
+		t.Run("set --preserveUUID if server version >= 4.0", func(t *testing.T) {
+			restore.TargetDirectory = "testdata/test_auto_idx.bson"
+			result := restore.Restore()
+			require.NoError(t, result.Err, "should restore without error")
 
-				var args []string
+			// Find the collection
+			filter := bson.D{{"name", "test_auto_idx"}}
+			cursor, err := session.Database("testdata").ListCollections(ctx, filter)
+			require.NoError(t, err, "should list the collections")
 
-				restore, err := getRestoreWithArgs(args...)
-				So(err, ShouldBeNil)
-				defer restore.Close()
+			defer cursor.Close(ctx)
 
-				restore.TargetDirectory = "testdata/test_auto_idx.bson"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
+			documentExists := cursor.Next(ctx)
+			require.True(t, documentExists, "should find the restored collection")
 
-				// Find the collection
-				filter := bson.D{{"name", "test_auto_idx"}}
-				cursor, err := session.Database("testdata").ListCollections(ctx, filter)
-				So(err, ShouldBeNil)
-
-				defer cursor.Close(ctx)
-
-				documentExists := cursor.Next(ctx)
-				So(documentExists, ShouldBeTrue)
-
-				var collInfo struct {
-					Options bson.M
-				}
-				err = cursor.Decode(&collInfo)
-				So(err, ShouldBeNil)
-
-				Convey(
-					"{autoIndexId: false} should be flipped to true if server version >= 4.0",
-					func() {
-						if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
-							So(collInfo.Options["autoIndexId"], ShouldBeTrue)
-						} else {
-							So(collInfo.Options["autoIndexId"], ShouldBeFalse)
-						}
-					},
-				)
-			})
-			dbName := session.Database("testdata")
-
-			// Drop the collection to clean up resources
-			//
-			//nolint:errcheck
-			defer dbName.Collection("test_auto_idx").Drop(ctx)
-
-			args := []string{
-				PreserveUUIDOption, "1",
-				DropOption,
+			var collInfo struct {
+				Options bson.M
 			}
+			err = cursor.Decode(&collInfo)
+			require.NoError(t, err, "should decode the collection info")
 
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
-			defer restore.Close()
-
+			// restore.serverVersion.GTE(db.Version{4, 0, 0}) is already true here
+			// (it gates the enclosing if), so this always takes the true branch;
+			// preserved as the original's shape rather than collapsed, since the
+			// original re-checked it as a nested Convey in the same way.
 			if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
-				Convey("Set --preserveUUID if server version >= 4.0\n", func() {
-					restore.TargetDirectory = "testdata/test_auto_idx.bson"
-					result := restore.Restore()
-					So(result.Err, ShouldBeNil)
-
-					// Find the collection
-					filter := bson.D{{"name", "test_auto_idx"}}
-					cursor, err := session.Database("testdata").ListCollections(ctx, filter)
-					So(err, ShouldBeNil)
-
-					defer cursor.Close(ctx)
-
-					documentExists := cursor.Next(ctx)
-					So(documentExists, ShouldBeTrue)
-
-					var collInfo struct {
-						Options bson.M
-					}
-					err = cursor.Decode(&collInfo)
-					So(err, ShouldBeNil)
-
-					Convey(
-						"{autoIndexId: false} should be flipped to true if server version >= 4.0",
-						func() {
-							if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
-								So(collInfo.Options["autoIndexId"], ShouldBeTrue)
-							} else {
-								So(collInfo.Options["autoIndexId"], ShouldBeFalse)
-							}
-						},
-					)
-				})
+				assert.Equal(
+					t,
+					true,
+					collInfo.Options["autoIndexId"],
+					"autoIndexId should be flipped to true for server version >= 4.0",
+				)
+			} else {
+				assert.Equal(
+					t,
+					false,
+					collInfo.Options["autoIndexId"],
+					"autoIndexId should remain false for server version < 4.0",
+				)
 			}
-		},
-	)
+		})
+	}
 }
 
 // TestSkipSystemCollections asserts that certain system collections like "config.systems.sessions" and the transaction
@@ -1646,78 +1638,65 @@ func TestSkipSystemCollections(t *testing.T) {
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "must connect to the cluster")
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
+	require.NoError(t, err, "must get a client from the session provider")
 
 	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
 		t.SkipNow()
 	}
 
 	_, err = sessionProvider.GetNodeType()
-	if err != nil {
-		t.Fatalf("Could not get node type")
+	require.NoError(t, err, "should get the node type")
+
+	db3 := session.Database("db3")
+
+	// Drop the collection to clean up resources
+	//
+	//nolint:errcheck
+	defer db3.Collection("c1").Drop(ctx)
+
+	args := []string{
+		DirectoryOption, "testdata/oplog_partial_skips",
+		OplogReplayOption,
+		DropOption,
 	}
 
-	Convey("With a test MongoRestore instance", t, func() {
-		db3 := session.Database("db3")
+	currentTS := uint32(time.Now().UTC().Unix())
 
-		// Drop the collection to clean up resources
-		//
-		//nolint:errcheck
-		defer db3.Collection("c1").Drop(ctx)
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		args := []string{
-			DirectoryOption, "testdata/oplog_partial_skips",
-			OplogReplayOption,
-			DropOption,
-		}
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
 
-		currentTS := uint32(time.Now().UTC().Unix())
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-
-		Convey(
-			"applyOps should skip certain system-related collections during mongorestore",
-			func() {
-				queryObj := bson.D{
-					{"$and",
-						bson.A{
-							bson.D{{"ts", bson.M{"$gte": bson.Timestamp{T: currentTS, I: 1}}}},
-							bson.D{{"$or", bson.A{
-								bson.D{
-									{"ns", bson.Regex{Pattern: "^config.system.sessions*"}},
-								},
-								bson.D{{"ns", bson.Regex{Pattern: "^config.cache.*"}}},
-							}}},
-						},
+	queryObj := bson.D{
+		{"$and",
+			bson.A{
+				bson.D{{"ts", bson.M{"$gte": bson.Timestamp{T: currentTS, I: 1}}}},
+				bson.D{{"$or", bson.A{
+					bson.D{
+						{"ns", bson.Regex{Pattern: "^config.system.sessions*"}},
 					},
-				}
-
-				cursor, err := session.Database("local").
-					Collection("oplog.rs").
-					Find(t.Context(), queryObj, nil)
-				So(err, ShouldBeNil)
-
-				flag := cursor.Next(ctx)
-				So(flag, ShouldBeFalse)
-
-				cursor.Close(ctx)
+					bson.D{{"ns", bson.Regex{Pattern: "^config.cache.*"}}},
+				}}},
 			},
-		)
-	})
+		},
+	}
+
+	cursor, err := session.Database("local").
+		Collection("oplog.rs").
+		Find(t.Context(), queryObj, nil)
+	require.NoError(t, err, "should query the oplog")
+
+	flag := cursor.Next(ctx)
+	assert.False(t, flag, "applyOps should skip system-related collections during mongorestore")
+
+	cursor.Close(ctx)
 }
 
 // TestSkipStartAndAbortIndexBuild asserts that all "startIndexBuild" and "abortIndexBuild" oplog
@@ -1727,65 +1706,64 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "must connect to the cluster")
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
+	require.NoError(t, err, "must get a client from the session provider")
 
 	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
 		t.SkipNow()
 	}
 
-	Convey("With a test MongoRestore instance", t, func() {
-		testdb := session.Database("test")
+	testdb := session.Database("test")
 
-		// Drop the collection to clean up resources
-		//
-		//nolint:errcheck
-		defer testdb.Collection("skip_index_entries").Drop(ctx)
+	// Drop the collection to clean up resources
+	//
+	//nolint:errcheck
+	defer testdb.Collection("skip_index_entries").Drop(ctx)
 
-		// oplog.bson only has startIndexBuild and abortIndexBuild entries
-		args := []string{
-			DirectoryOption, "testdata/oplog_ignore_index",
-			OplogReplayOption,
-			DropOption,
-		}
+	// oplog.bson only has startIndexBuild and abortIndexBuild entries
+	args := []string{
+		DirectoryOption, "testdata/oplog_ignore_index",
+		OplogReplayOption,
+		DropOption,
+	}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		if restore.serverVersion.GTE(db.Version{4, 4, 0}) {
-			// Run mongorestore
-			dbLocal := session.Database("local")
-			queryObj := bson.D{{
-				"and", bson.A{
-					bson.D{{"ns", bson.M{"$ne": "config.system.sessions"}}},
-					bson.D{{"op", bson.M{"$ne": "n"}}},
-				},
-			}}
+	if !restore.serverVersion.GTE(db.Version{4, 4, 0}) {
+		return
+	}
 
-			countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
-			So(err, ShouldBeNil)
+	// Run mongorestore
+	dbLocal := session.Database("local")
+	queryObj := bson.D{{
+		"and", bson.A{
+			bson.D{{"ns", bson.M{"$ne": "config.system.sessions"}}},
+			bson.D{{"op", bson.M{"$ne": "n"}}},
+		},
+	}}
 
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
+	countBeforeRestore, err := dbLocal.Collection("oplog.rs").CountDocuments(ctx, queryObj)
+	require.NoError(t, err, "should count oplog entries before restore")
 
-			Convey("No new oplog entries should be recorded", func() {
-				// Filter out no-ops
-				countAfterRestore, err := dbLocal.Collection("oplog.rs").
-					CountDocuments(ctx, queryObj)
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
 
-				So(err, ShouldBeNil)
-				So(countBeforeRestore, ShouldEqual, countAfterRestore)
-			})
-		}
-	})
+	// Filter out no-ops
+	countAfterRestore, err := dbLocal.Collection("oplog.rs").
+		CountDocuments(ctx, queryObj)
+	require.NoError(t, err, "should count oplog entries after restore")
+
+	assert.Equal(
+		t,
+		countBeforeRestore,
+		countAfterRestore,
+		"no new oplog entries should be recorded",
+	)
 }
 
 // TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands.
@@ -1795,15 +1773,11 @@ func TestCommitIndexBuild(t *testing.T) {
 	testDB := "commit_index"
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "must connect to the cluster")
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
+	require.NoError(t, err, "must get a client from the session provider")
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
@@ -1811,71 +1785,62 @@ func TestCommitIndexBuild(t *testing.T) {
 	}
 
 	_, err = sessionProvider.GetNodeType()
-	if err != nil {
-		t.Fatalf("Could not get node type")
+	require.NoError(t, err, "should get the node type")
+
+	testdb := session.Database(testDB)
+
+	// Drop the collection to clean up resources
+	//
+	//nolint:errcheck
+	defer testdb.Collection(testDB).Drop(ctx)
+
+	args := []string{
+		DirectoryOption, "testdata/commit_indexes_build",
+		OplogReplayOption,
+		DropOption,
 	}
 
-	Convey("With a test MongoRestore instance", t, func() {
-		testdb := session.Database(testDB)
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		// Drop the collection to clean up resources
-		//
-		//nolint:errcheck
-		defer testdb.Collection(testDB).Drop(ctx)
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
 
-		args := []string{
-			DirectoryOption, "testdata/commit_indexes_build",
-			OplogReplayOption,
-			DropOption,
-		}
+	destColl := session.Database("commit_index").Collection("test")
+	indexes, _ := destColl.Indexes().List(t.Context())
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+	type indexSpec struct {
+		Name, NS                string
+		Key                     bson.D
+		Unique                  bool    `bson:",omitempty"`
+		DropDups                bool    `bson:"dropDups,omitempty"`
+		Background              bool    `bson:",omitempty"`
+		Sparse                  bool    `bson:",omitempty"`
+		Bits                    int     `bson:",omitempty"`
+		Min                     float64 `bson:",omitempty"`
+		Max                     float64 `bson:",omitempty"`
+		BucketSize              float64 `bson:"bucketSize,omitempty"`
+		ExpireAfter             int     `bson:"expireAfterSeconds,omitempty"`
+		Weights                 bson.D  `bson:",omitempty"`
+		DefaultLanguage         string  `bson:"default_language,omitempty"`
+		LanguageOverride        string  `bson:"language_override,omitempty"`
+		TextIndexVersion        int     `bson:"textIndexVersion,omitempty"`
+		PartialFilterExpression bson.M  `bson:"partialFilterExpression,omitempty"`
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
+		Collation bson.D `bson:"collation,omitempty"`
+	}
 
-		Convey(
-			"RestoreOplog() should convert commitIndexBuild op to createIndexes cmd and build index",
-			func() {
-				destColl := session.Database("commit_index").Collection("test")
-				indexes, _ := destColl.Indexes().List(t.Context())
-
-				type indexSpec struct {
-					Name, NS                string
-					Key                     bson.D
-					Unique                  bool    `bson:",omitempty"`
-					DropDups                bool    `bson:"dropDups,omitempty"`
-					Background              bool    `bson:",omitempty"`
-					Sparse                  bool    `bson:",omitempty"`
-					Bits                    int     `bson:",omitempty"`
-					Min                     float64 `bson:",omitempty"`
-					Max                     float64 `bson:",omitempty"`
-					BucketSize              float64 `bson:"bucketSize,omitempty"`
-					ExpireAfter             int     `bson:"expireAfterSeconds,omitempty"`
-					Weights                 bson.D  `bson:",omitempty"`
-					DefaultLanguage         string  `bson:"default_language,omitempty"`
-					LanguageOverride        string  `bson:"language_override,omitempty"`
-					TextIndexVersion        int     `bson:"textIndexVersion,omitempty"`
-					PartialFilterExpression bson.M  `bson:"partialFilterExpression,omitempty"`
-
-					Collation bson.D `bson:"collation,omitempty"`
-				}
-
-				indexCnt := 0
-				for indexes.Next(t.Context()) {
-					var index indexSpec
-					err := indexes.Decode(&index)
-					So(err, ShouldBeNil)
-					indexCnt++
-				}
-				// Should create 3 indexes: _id and two others
-				So(indexCnt, ShouldEqual, 3)
-			},
-		)
-	})
+	indexCnt := 0
+	for indexes.Next(t.Context()) {
+		var index indexSpec
+		err := indexes.Decode(&index)
+		require.NoError(t, err, "should decode each index document")
+		indexCnt++
+	}
+	// Should create 3 indexes: _id and two others
+	assert.Equal(t, 3, indexCnt, "should create the id index plus two others")
 }
 
 // CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4.
@@ -1885,83 +1850,70 @@ func TestCreateIndexes(t *testing.T) {
 	testDB := "create_indexes"
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "must connect to the cluster")
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
+	require.NoError(t, err, "must get a client from the session provider")
 
 	_, err = sessionProvider.GetNodeType()
-	if err != nil {
-		t.Fatalf("Could not get node type")
+	require.NoError(t, err, "should get the node type")
+
+	testdb := session.Database(testDB)
+
+	// Drop the collection to clean up resources
+	//
+	//nolint:errcheck
+	defer testdb.Collection(testDB).Drop(ctx)
+
+	args := []string{
+		DirectoryOption, "testdata/create_indexes",
+		OplogReplayOption,
+		DropOption,
 	}
 
-	Convey("With a test MongoRestore instance", t, func() {
-		testdb := session.Database(testDB)
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
 
-		// Drop the collection to clean up resources
-		//
-		//nolint:errcheck
-		defer testdb.Collection(testDB).Drop(ctx)
+	defer restore.Close()
 
-		args := []string{
-			DirectoryOption, "testdata/create_indexes",
-			OplogReplayOption,
-			DropOption,
-		}
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+	destColl := session.Database("create_indexes").Collection("test")
+	indexes, _ := destColl.Indexes().List(t.Context())
 
-		defer restore.Close()
+	type indexSpec struct {
+		Name, NS                string
+		Key                     bson.D
+		Unique                  bool    `bson:",omitempty"`
+		DropDups                bool    `bson:"dropDups,omitempty"`
+		Background              bool    `bson:",omitempty"`
+		Sparse                  bool    `bson:",omitempty"`
+		Bits                    int     `bson:",omitempty"`
+		Min                     float64 `bson:",omitempty"`
+		Max                     float64 `bson:",omitempty"`
+		BucketSize              float64 `bson:"bucketSize,omitempty"`
+		ExpireAfter             int     `bson:"expireAfterSeconds,omitempty"`
+		Weights                 bson.D  `bson:",omitempty"`
+		DefaultLanguage         string  `bson:"default_language,omitempty"`
+		LanguageOverride        string  `bson:"language_override,omitempty"`
+		TextIndexVersion        int     `bson:"textIndexVersion,omitempty"`
+		PartialFilterExpression bson.M  `bson:"partialFilterExpression,omitempty"`
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
+		Collation bson.D `bson:"collation,omitempty"`
+	}
 
-		Convey(
-			"RestoreOplog() should convert commitIndexBuild op to createIndexes cmd and build index",
-			func() {
-				destColl := session.Database("create_indexes").Collection("test")
-				indexes, _ := destColl.Indexes().List(t.Context())
-
-				type indexSpec struct {
-					Name, NS                string
-					Key                     bson.D
-					Unique                  bool    `bson:",omitempty"`
-					DropDups                bool    `bson:"dropDups,omitempty"`
-					Background              bool    `bson:",omitempty"`
-					Sparse                  bool    `bson:",omitempty"`
-					Bits                    int     `bson:",omitempty"`
-					Min                     float64 `bson:",omitempty"`
-					Max                     float64 `bson:",omitempty"`
-					BucketSize              float64 `bson:"bucketSize,omitempty"`
-					ExpireAfter             int     `bson:"expireAfterSeconds,omitempty"`
-					Weights                 bson.D  `bson:",omitempty"`
-					DefaultLanguage         string  `bson:"default_language,omitempty"`
-					LanguageOverride        string  `bson:"language_override,omitempty"`
-					TextIndexVersion        int     `bson:"textIndexVersion,omitempty"`
-					PartialFilterExpression bson.M  `bson:"partialFilterExpression,omitempty"`
-
-					Collation bson.D `bson:"collation,omitempty"`
-				}
-
-				indexCnt := 0
-				for indexes.Next(t.Context()) {
-					var index indexSpec
-					err := indexes.Decode(&index)
-					So(err, ShouldBeNil)
-					indexCnt++
-				}
-				// Should create 3 indexes: _id and two others
-				So(indexCnt, ShouldEqual, 3)
-			},
-		)
-	})
+	indexCnt := 0
+	for indexes.Next(t.Context()) {
+		var index indexSpec
+		err := indexes.Decode(&index)
+		require.NoError(t, err, "should decode each index document")
+		indexCnt++
+	}
+	// Should create 3 indexes: _id and two others
+	assert.Equal(t, 3, indexCnt, "should create the id index plus two others")
 }
 
 func TestGeoHaystackIndexes(t *testing.T) {
@@ -1970,52 +1922,45 @@ func TestGeoHaystackIndexes(t *testing.T) {
 	dbName := "geohaystack_test"
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No cluster available: %v", err)
-	}
+	require.NoError(t, err, "must connect to the cluster")
 
 	defer sessionProvider.Close()
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("No client available")
-	}
+	require.NoError(t, err, "must get a client from the session provider")
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "5.0"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 5.0 or later")
 	}
 
-	Convey("With a test MongoRestore instance", t, func() {
-		testdb := session.Database(dbName)
+	testdb := session.Database(dbName)
 
-		// Drop the collection to clean up resources
-		//
-		//nolint:errcheck
-		defer testdb.Collection("foo").Drop(ctx)
+	// Drop the collection to clean up resources
+	//
+	//nolint:errcheck
+	defer testdb.Collection("foo").Drop(ctx)
 
-		args := []string{
-			DirectoryOption, "testdata/coll_with_geohaystack_index",
-			DropOption,
-		}
+	args := []string{
+		DirectoryOption, "testdata/coll_with_geohaystack_index",
+		DropOption,
+	}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldNotBeNil)
+	// Run mongorestore
+	result := restore.Restore()
+	require.Error(t, result.Err, "should fail to restore a geoHaystack index")
 
-		So(result.Err.Error(), ShouldContainSubstring, "found a geoHaystack index")
-	})
+	assert.Contains(
+		t,
+		result.Err.Error(),
+		"found a geoHaystack index",
+		"error should mention the geoHaystack index",
+	)
 }
-
-// ----------------------------------------------------------------------
-// All tests from this point onwards use testify, not convey. See the
-// CONTRIBUTING.md file in the top level of the repo for details on how to
-// write tests using testify.
-// ----------------------------------------------------------------------
 
 func createTimeseries(t *testing.T, dbName, coll string, client *mongo.Client) {
 	timeseriesOptions := bson.M{
