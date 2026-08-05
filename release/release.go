@@ -1312,9 +1312,17 @@ func linuxRelease(v version.Version) {
 	tasks, err := evergreen.GetTasksForBuild(buildID)
 	check(err, "get evergreen tasks")
 
+	var distTaskName string
+	switch pf.Arch {
+	case platform.ArchS390x, platform.ArchPpc64le:
+		distTaskName = "dist-without-mise"
+	default:
+		distTaskName = "dist"
+	}
+
 	distTasks := []evergreen.Task{}
 	for _, task := range tasks {
-		if task.IsPatch() || task.DisplayName != "dist" {
+		if task.IsPatch() || task.DisplayName != distTaskName {
 			continue
 		}
 
