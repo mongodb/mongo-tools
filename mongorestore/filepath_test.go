@@ -18,7 +18,8 @@ import (
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -61,62 +62,61 @@ func TestCreateAllIntents(t *testing.T) {
 	//   testdirs/db2/c1.bin
 	//   testdirs/db2/c2.txt
 
-	var mr *MongoRestore
-	var buff bytes.Buffer
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		mr = newMongoRestore()
-		log.SetWriter(&buff)
+	mr := newMongoRestore()
+	var buff bytes.Buffer
+	log.SetWriter(&buff)
 
-		Convey("running CreateAllIntents should succeed", func() {
-			ddl, err := newActualPath("testdata/testdirs/")
-			So(err, ShouldBeNil)
-			So(mr.CreateAllIntents(ddl), ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
+	ddl, err := newActualPath("testdata/testdirs/")
+	require.NoError(t, err, "should resolve the test directory")
+	require.NoError(t, mr.CreateAllIntents(ddl), "should create intents for every file in the tree")
+	mr.manager.Finalize(intents.Legacy)
 
-			Convey("and reading the intents should show alphabetical order", func() {
-				i0 := mr.manager.Pop()
-				So(i0.DB, ShouldEqual, "db1")
-				So(i0.C, ShouldEqual, "c1")
-				i1 := mr.manager.Pop()
-				So(i1.DB, ShouldEqual, "db1")
-				So(i1.C, ShouldEqual, "c2")
-				i2 := mr.manager.Pop()
-				So(i2.DB, ShouldEqual, "db1")
-				So(i2.C, ShouldEqual, "c3")
-				i3 := mr.manager.Pop()
-				So(i3.DB, ShouldEqual, "db1")
-				So(i3.C, ShouldEqual, "c4")
-				i4 := mr.manager.Pop()
-				So(i4.DB, ShouldEqual, "db2")
-				So(i4.C, ShouldEqual, "c1")
-				i5 := mr.manager.Pop()
-				So(i5, ShouldBeNil)
+	intentsList := []*intents.Intent{
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+	}
+	expected := []struct {
+		db, c       string
+		hasMetadata bool
+	}{
+		{"db1", "c1", true},
+		{"db1", "c2", false},
+		{"db1", "c3", true},
+		{"db1", "c4", true},
+		{"db2", "c1", false},
+	}
+	for i, want := range expected {
+		got := intentsList[i]
+		assert.Equal(t, want.db, got.DB, "intent %d should have the expected db", i)
+		assert.Equal(t, want.c, got.C, "intent %d should have the expected collection", i)
+		assert.NotEqual(t, "", got.Location, "intent %d should have a bson location", i)
+		if want.hasMetadata {
+			assert.NotEqual(
+				t,
+				"",
+				got.MetadataLocation,
+				"intent %d should have a metadata location",
+				i,
+			)
+		} else {
+			assert.Equal(t, "", got.MetadataLocation, "intent %d should have no metadata for this file", i)
+		}
+	}
+	require.Nil(t, mr.manager.Pop(), "should have no intents left after popping every expected one")
 
-				Convey("with all the proper metadata + bson merges", func() {
-					So(i0.Location, ShouldNotEqual, "")
-					So(i0.MetadataLocation, ShouldNotEqual, "")
-					So(i1.Location, ShouldNotEqual, "")
-					So(i1.MetadataLocation, ShouldEqual, "") // no metadata for this file
-					So(i2.Location, ShouldNotEqual, "")
-					So(i2.MetadataLocation, ShouldNotEqual, "")
-					So(i3.Location, ShouldNotEqual, "")
-					So(i3.MetadataLocation, ShouldNotEqual, "")
-					So(i4.Location, ShouldNotEqual, "")
-					So(i4.MetadataLocation, ShouldEqual, "") // no metadata for this file
-
-					Convey("and skipped files all present in the logs", func() {
-						logs := buff.String()
-						So(strings.Contains(logs, "badfile.txt"), ShouldEqual, true)
-						So(strings.Contains(logs, "baddir"), ShouldEqual, true)
-						So(strings.Contains(logs, "c2.txt"), ShouldEqual, true)
-					})
-				})
-			})
-		})
-	})
+	logs := buff.String()
+	assert.True(t, strings.Contains(logs, "badfile.txt"), "should log the skipped non-bson file")
+	assert.True(
+		t,
+		strings.Contains(logs, "baddir"),
+		"should log the skipped directory without bson files",
+	)
+	assert.True(t, strings.Contains(logs, "c2.txt"), "should log the skipped non-bson file in db2")
 }
 
 func TestCreateAllIntentsLongCollectionName(t *testing.T) {
@@ -129,33 +129,22 @@ func TestCreateAllIntentsLongCollectionName(t *testing.T) {
 	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson
 	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.metadata.json
 
-	var mr *MongoRestore
-	var buff bytes.Buffer
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		mr = newMongoRestore()
-		log.SetWriter(&buff)
+	mr := newMongoRestore()
+	var buff bytes.Buffer
+	log.SetWriter(&buff)
 
-		Convey("running CreateAllIntents should succeed", func() {
-			ddl, err := newActualPath("testdata/longcollectionname/")
-			So(err, ShouldBeNil)
-			So(mr.CreateAllIntents(ddl), ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
+	ddl, err := newActualPath("testdata/longcollectionname/")
+	require.NoError(t, err, "should resolve the test directory")
+	require.NoError(t, mr.CreateAllIntents(ddl), "should create intents for every file in the tree")
+	mr.manager.Finalize(intents.Legacy)
 
-			Convey("and reading the intents should show a long collection name", func() {
-				i0 := mr.manager.Pop()
-				So(i0.DB, ShouldEqual, "db1")
-				So(i0.C, ShouldEqual, longCollectionName)
-
-				Convey("with all the proper metadata + bson merges", func() {
-					So(i0.Location, ShouldNotEqual, "")
-					So(i0.MetadataLocation, ShouldNotEqual, "")
-				})
-			})
-		})
-	})
+	i0 := mr.manager.Pop()
+	assert.Equal(t, "db1", i0.DB, "intent should belong to db1")
+	assert.Equal(t, longCollectionName, i0.C, "intent should have the long collection name")
+	assert.NotEqual(t, "", i0.Location, "intent should have a bson location")
+	assert.NotEqual(t, "", i0.MetadataLocation, "intent should have a metadata location")
 }
 
 func TestCreateIntentsForDB(t *testing.T) {
@@ -171,59 +160,61 @@ func TestCreateIntentsForDB(t *testing.T) {
 	//   db1/c4.bson
 	//   db1/c4.metadata.json
 
-	var mr *MongoRestore
-	var buff bytes.Buffer
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		mr = newMongoRestore()
-		log.SetWriter(&buff)
+	mr := newMongoRestore()
+	var buff bytes.Buffer
+	log.SetWriter(&buff)
 
-		Convey("running CreateIntentsForDB should succeed", func() {
-			ddl, err := newActualPath("testdata/testdirs/db1")
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentsForDB("myDB", ddl)
-			So(err, ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
+	ddl, err := newActualPath("testdata/testdirs/db1")
+	require.NoError(t, err, "should resolve the test directory")
+	require.NoError(
+		t,
+		mr.CreateIntentsForDB("myDB", ddl),
+		"should create intents for every file in the db directory",
+	)
+	mr.manager.Finalize(intents.Legacy)
 
-			Convey("and reading the intents should show alphabetical order", func() {
-				i0 := mr.manager.Pop()
-				So(i0.C, ShouldEqual, "c1")
-				i1 := mr.manager.Pop()
-				So(i1.C, ShouldEqual, "c2")
-				i2 := mr.manager.Pop()
-				So(i2.C, ShouldEqual, "c3")
-				i3 := mr.manager.Pop()
-				So(i3.C, ShouldEqual, "c4")
-				i4 := mr.manager.Pop()
-				So(i4, ShouldBeNil)
+	intentsList := []*intents.Intent{
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+	}
+	expected := []struct {
+		c           string
+		hasMetadata bool
+	}{
+		{"c1", true},
+		{"c2", false},
+		{"c3", true},
+		{"c4", true},
+	}
+	for i, want := range expected {
+		got := intentsList[i]
+		assert.Equal(t, want.c, got.C, "intent %d should have the expected collection", i)
+		assert.Equal(t, "myDB", got.DB, "intent %d should have the supplied db name", i)
+		assert.NotEqual(t, "", got.Location, "intent %d should have a bson location", i)
+		if want.hasMetadata {
+			assert.NotEqual(
+				t,
+				"",
+				got.MetadataLocation,
+				"intent %d should have a metadata location",
+				i,
+			)
+		} else {
+			assert.Equal(t, "", got.MetadataLocation, "intent %d should have no metadata for this file", i)
+		}
+	}
+	require.Nil(t, mr.manager.Pop(), "should have no intents left after popping every expected one")
 
-				Convey("and all intents should have the supplied db name", func() {
-					So(i0.DB, ShouldEqual, "myDB")
-					So(i1.DB, ShouldEqual, "myDB")
-					So(i2.DB, ShouldEqual, "myDB")
-					So(i3.DB, ShouldEqual, "myDB")
-				})
-
-				Convey("with all the proper metadata + bson merges", func() {
-					So(i0.Location, ShouldNotEqual, "")
-					So(i0.MetadataLocation, ShouldNotEqual, "")
-					So(i1.Location, ShouldNotEqual, "")
-					So(i1.MetadataLocation, ShouldEqual, "") // no metadata for this file
-					So(i2.Location, ShouldNotEqual, "")
-					So(i2.MetadataLocation, ShouldNotEqual, "")
-					So(i3.Location, ShouldNotEqual, "")
-					So(i3.MetadataLocation, ShouldNotEqual, "")
-
-					Convey("and skipped files all present in the logs", func() {
-						logs := buff.String()
-						So(strings.Contains(logs, "baddir"), ShouldEqual, true)
-					})
-				})
-			})
-		})
-	})
+	logs := buff.String()
+	assert.True(
+		t,
+		strings.Contains(logs, "baddir"),
+		"should log the skipped directory without bson files",
+	)
 }
 
 func TestCreateIntentsForDBLongCollectionName(t *testing.T) {
@@ -235,393 +226,413 @@ func TestCreateIntentsForDBLongCollectionName(t *testing.T) {
 	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson
 	//   testdata/longcollectionname/db1/aVery...VeryLongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.metadata.json
 
-	var mr *MongoRestore
-	var buff bytes.Buffer
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		mr = newMongoRestore()
-		log.SetWriter(&buff)
+	mr := newMongoRestore()
+	var buff bytes.Buffer
+	log.SetWriter(&buff)
 
-		Convey("running CreateIntentsForDB should succeed", func() {
-			ddl, err := newActualPath("testdata/longcollectionname/db1")
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentsForDB("myDB", ddl)
-			So(err, ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
+	ddl, err := newActualPath("testdata/longcollectionname/db1")
+	require.NoError(t, err, "should resolve the test directory")
+	require.NoError(
+		t,
+		mr.CreateIntentsForDB("myDB", ddl),
+		"should create intents for every file in the db directory",
+	)
+	mr.manager.Finalize(intents.Legacy)
 
-			Convey("and reading the intents should show alphabetical order", func() {
-				i0 := mr.manager.Pop()
-				So(i0.C, ShouldEqual, longCollectionName)
-
-				Convey("and all intents should have the supplied db name", func() {
-					So(i0.DB, ShouldEqual, "myDB")
-				})
-
-				Convey("with all the proper metadata + bson merges", func() {
-					So(i0.Location, ShouldNotEqual, "")
-					So(i0.MetadataLocation, ShouldNotEqual, "")
-				})
-			})
-		})
-	})
+	i0 := mr.manager.Pop()
+	assert.Equal(t, longCollectionName, i0.C, "intent should have the long collection name")
+	assert.Equal(t, "myDB", i0.DB, "intent should have the supplied db name")
+	assert.NotEqual(t, "", i0.Location, "intent should have a bson location")
+	assert.NotEqual(t, "", i0.MetadataLocation, "intent should have a metadata location")
 }
 
 func TestCreateIntentsRenamed(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("With a test MongoRestore", t, func() {
-		mr := newMongoRestore()
-		mr.renamer, _ = ns.NewRenamer([]string{"db1.*"}, []string{"db4.test.*"})
 
-		Convey("running CreateAllIntents should succeed", func() {
-			ddl, err := newActualPath("testdata/testdirs/")
-			So(err, ShouldBeNil)
-			So(mr.CreateAllIntents(ddl), ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
+	mr := newMongoRestore()
+	mr.renamer, _ = ns.NewRenamer([]string{"db1.*"}, []string{"db4.test.*"})
 
-			Convey("and reading the intents should show new collection names", func() {
-				i0 := mr.manager.Pop()
-				So(i0.C, ShouldEqual, "test.c1")
-				i1 := mr.manager.Pop()
-				So(i1.C, ShouldEqual, "test.c2")
-				i2 := mr.manager.Pop()
-				So(i2.C, ShouldEqual, "test.c3")
-				i3 := mr.manager.Pop()
-				So(i3.C, ShouldEqual, "test.c4")
-				i4 := mr.manager.Pop()
-				So(i4.C, ShouldEqual, "c1")
-				i5 := mr.manager.Pop()
-				So(i5, ShouldBeNil)
+	ddl, err := newActualPath("testdata/testdirs/")
+	require.NoError(t, err, "should resolve the test directory")
+	require.NoError(t, mr.CreateAllIntents(ddl), "should create intents for every file in the tree")
+	mr.manager.Finalize(intents.Legacy)
 
-				Convey("and intents should have the renamed db", func() {
-					So(i0.DB, ShouldEqual, "db4")
-					So(i1.DB, ShouldEqual, "db4")
-					So(i2.DB, ShouldEqual, "db4")
-					So(i3.DB, ShouldEqual, "db4")
-					So(i4.DB, ShouldEqual, "db2")
-				})
-			})
-		})
-	})
+	intentsList := []*intents.Intent{
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+		mr.manager.Pop(),
+	}
+	expected := []struct{ c, db string }{
+		{"test.c1", "db4"},
+		{"test.c2", "db4"},
+		{"test.c3", "db4"},
+		{"test.c4", "db4"},
+		{"c1", "db2"},
+	}
+	for i, want := range expected {
+		got := intentsList[i]
+		assert.Equal(t, want.c, got.C, "intent %d should have the renamed collection", i)
+		assert.Equal(t, want.db, got.DB, "intent %d should have the renamed db", i)
+	}
+	require.Nil(t, mr.manager.Pop(), "should have no intents left after popping every expected one")
 }
 
 func TestHandlingBSON(t *testing.T) {
 	// Disabled: see TOOLS-2658
 	t.Skip()
 
-	var mr *MongoRestore
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		mr = newMongoRestore()
-
-		Convey("with a target path to a non-truncated bson file instead of a directory", func() {
-			err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c2.bson")
-			So(err, ShouldBeNil)
-
-			Convey("the proper DB and Coll should be inferred", func() {
-				So(mr.ToolOptions.DB, ShouldEqual, "db1")
-				So(mr.ToolOptions.Collection, ShouldEqual, "c2")
-			})
-		})
-
-		Convey("with a target path to a truncated bson file instead of a directory", func() {
-			err := mr.handleBSONInsteadOfDirectory(
-				"testdata/longcollectionname/db1/" + longBsonName,
+	t.Run(
+		"with a target path to a non-truncated bson file instead of a directory",
+		func(t *testing.T) {
+			mr := newMongoRestore()
+			require.NoError(
+				t,
+				mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c2.bson"),
+				"should infer the db and collection from the bson path",
 			)
-			So(err, ShouldBeNil)
+			assert.Equal(t, "db1", mr.ToolOptions.DB, "should infer the db from the path")
+			assert.Equal(
+				t,
+				"c2",
+				mr.ToolOptions.Collection,
+				"should infer the collection from the path",
+			)
+		},
+	)
 
-			Convey("the proper DB and Coll should be inferred", func() {
-				So(mr.ToolOptions.DB, ShouldEqual, "db1")
-				So(mr.ToolOptions.Collection, ShouldEqual, longCollectionName)
-			})
-		})
+	t.Run("with a target path to a truncated bson file instead of a directory", func(t *testing.T) {
+		mr := newMongoRestore()
+		require.NoError(
+			t,
+			mr.handleBSONInsteadOfDirectory("testdata/longcollectionname/db1/"+longBsonName),
+			"should infer the db and collection from the truncated bson path",
+		)
+		assert.Equal(t, "db1", mr.ToolOptions.DB, "should infer the db from the path")
+		assert.Equal(
+			t,
+			longCollectionName,
+			mr.ToolOptions.Collection,
+			"should infer the long collection name from the path",
+		)
+	})
 
-		Convey("but pre-existing settings should not be overwritten", func() {
-			mr.ToolOptions.DB = "a"
+	t.Run("pre-existing collection setting is not overwritten", func(t *testing.T) {
+		mr := newMongoRestore()
+		mr.ToolOptions.DB = "a"
+		mr.ToolOptions.Collection = "b"
+		require.NoError(
+			t,
+			mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson"),
+			"should still succeed when settings are pre-existing",
+		)
+		assert.Equal(t, "a", mr.ToolOptions.DB, "should not overwrite the pre-existing db")
+		assert.Equal(
+			t,
+			"b",
+			mr.ToolOptions.Collection,
+			"should not overwrite the pre-existing collection",
+		)
+	})
 
-			Convey("either collection settings", func() {
-				mr.ToolOptions.Collection = "b"
-				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
-				So(err, ShouldBeNil)
-				So(mr.ToolOptions.DB, ShouldEqual, "a")
-				So(mr.ToolOptions.Collection, ShouldEqual, "b")
-			})
-
-			Convey("or db settings", func() {
-				err := mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson")
-				So(err, ShouldBeNil)
-				So(mr.ToolOptions.DB, ShouldEqual, "a")
-				So(mr.ToolOptions.Collection, ShouldEqual, "c1")
-			})
-		})
+	t.Run("pre-existing db setting is not overwritten", func(t *testing.T) {
+		mr := newMongoRestore()
+		mr.ToolOptions.DB = "a"
+		require.NoError(
+			t,
+			mr.handleBSONInsteadOfDirectory("testdata/testdirs/db1/c1.bson"),
+			"should still succeed when the db setting is pre-existing",
+		)
+		assert.Equal(t, "a", mr.ToolOptions.DB, "should not overwrite the pre-existing db")
+		assert.Equal(
+			t,
+			"c1",
+			mr.ToolOptions.Collection,
+			"should infer the collection from the path",
+		)
 	})
 }
 
 func TestCreateIntentsForCollection(t *testing.T) {
-	var mr *MongoRestore
-	var buff bytes.Buffer
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		buff = bytes.Buffer{}
-		mr = &MongoRestore{
-			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{},
-			InputOptions: &InputOptions{},
-		}
-		log.SetWriter(&buff)
+	t.Run("on a file without metadata", func(t *testing.T) {
+		mr, buff := newCollectionIntentRestore()
 
-		Convey("running CreateIntentForCollection on a file without metadata", func() {
-			ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c2.bson"))
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
-			So(err, ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
+		ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c2.bson"))
+		require.NoError(t, err, "should resolve the bson file")
+		require.NoError(
+			t,
+			mr.CreateIntentForCollection("myDB", "myC", ddl),
+			"should create an intent for a file without metadata",
+		)
+		mr.manager.Finalize(intents.Legacy)
 
-			Convey("should create one intent with 'myDb' and 'myC' fields", func() {
-				i0 := mr.manager.Pop()
-				So(i0, ShouldNotBeNil)
-				So(i0.DB, ShouldEqual, "myDB")
-				So(i0.C, ShouldEqual, "myC")
-				ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c2.bson"))
-				So(err, ShouldBeNil)
-				So(i0.Location, ShouldEqual, ddl.Path())
-				i1 := mr.manager.Pop()
-				So(i1, ShouldBeNil)
+		i0 := mr.manager.Pop()
+		require.NotNil(t, i0, "should create one intent")
+		assert.Equal(t, "myDB", i0.DB, "intent should have the supplied db")
+		assert.Equal(t, "myC", i0.C, "intent should have the supplied collection")
+		ddl, err = newActualPath(filepath.FromSlash("testdata/testdirs/db1/c2.bson"))
+		require.NoError(t, err, "should resolve the bson file")
+		assert.Equal(t, ddl.Path(), i0.Location, "intent should point at the bson file")
+		require.Nil(t, mr.manager.Pop(), "should create only one intent")
 
-				Convey("and no Metadata path", func() {
-					So(i0.MetadataLocation, ShouldEqual, "")
-					logs := buff.String()
-					So(strings.Contains(logs, "without metadata"), ShouldEqual, true)
-				})
-			})
-		})
+		assert.Equal(t, "", i0.MetadataLocation, "intent should have no metadata path")
+		assert.True(
+			t,
+			strings.Contains(buff.String(), "without metadata"),
+			"should log that the file has no metadata",
+		)
+	})
 
-		Convey("running CreateIntentForCollection on a file *with* metadata", func() {
-			ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c1.bson"))
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentForCollection("myDB", "myC", ddl)
-			So(err, ShouldBeNil)
-			mr.manager.Finalize(intents.Legacy)
+	t.Run("on a file with metadata", func(t *testing.T) {
+		mr, buff := newCollectionIntentRestore()
 
-			Convey("should create one intent with 'myDb' and 'myC' fields", func() {
-				i0 := mr.manager.Pop()
-				So(i0, ShouldNotBeNil)
-				So(i0.DB, ShouldEqual, "myDB")
-				So(i0.C, ShouldEqual, "myC")
-				So(i0.Location, ShouldEqual, filepath.FromSlash("testdata/testdirs/db1/c1.bson"))
-				i1 := mr.manager.Pop()
-				So(i1, ShouldBeNil)
+		ddl, err := newActualPath(filepath.FromSlash("testdata/testdirs/db1/c1.bson"))
+		require.NoError(t, err, "should resolve the bson file")
+		require.NoError(
+			t,
+			mr.CreateIntentForCollection("myDB", "myC", ddl),
+			"should create an intent for a file with metadata",
+		)
+		mr.manager.Finalize(intents.Legacy)
 
-				Convey("and a set Metadata path", func() {
-					So(
-						i0.MetadataLocation,
-						ShouldEqual,
-						filepath.FromSlash("testdata/testdirs/db1/c1.metadata.json"),
-					)
-					logs := buff.String()
-					So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
-				})
-			})
-		})
+		i0 := mr.manager.Pop()
+		require.NotNil(t, i0, "should create one intent")
+		assert.Equal(t, "myDB", i0.DB, "intent should have the supplied db")
+		assert.Equal(t, "myC", i0.C, "intent should have the supplied collection")
+		assert.Equal(
+			t,
+			filepath.FromSlash("testdata/testdirs/db1/c1.bson"),
+			i0.Location,
+			"intent should point at the bson file",
+		)
+		require.Nil(t, mr.manager.Pop(), "should create only one intent")
 
-		Convey("running CreateIntentForCollection on a non-existent file", func() {
-			_, err := newActualPath("aaaaaaaaaaaaaa.bson")
-			Convey("should fail", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
+		assert.Equal(
+			t,
+			filepath.FromSlash("testdata/testdirs/db1/c1.metadata.json"),
+			i0.MetadataLocation,
+			"intent should point at the metadata file",
+		)
+		assert.True(
+			t,
+			strings.Contains(buff.String(), "found metadata"),
+			"should log that the metadata was found",
+		)
+	})
 
-		Convey("running CreateIntentForCollection on a directory", func() {
-			ddl, err := newActualPath("testdata")
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentForCollection(
-				"myDB", "myC", ddl)
+	t.Run("on a non-existent file", func(t *testing.T) {
+		_, err := newActualPath("aaaaaaaaaaaaaa.bson")
+		require.Error(t, err, "should reject a non-existent path")
+	})
 
-			Convey("should fail", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
+	t.Run("on a directory", func(t *testing.T) {
+		mr, _ := newCollectionIntentRestore()
 
-		Convey("running CreateIntentForCollection on non-bson file", func() {
-			ddl, err := newActualPath("testdata/testdirs/db1/c1.metadata.json")
-			So(err, ShouldBeNil)
-			err = mr.CreateIntentForCollection(
-				"myDB", "myC", ddl)
+		ddl, err := newActualPath("testdata")
+		require.NoError(t, err, "should resolve the directory")
+		err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+		require.Error(t, err, "should reject a directory")
+	})
 
-			Convey("should fail", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
+	t.Run("on a non-bson file", func(t *testing.T) {
+		mr, _ := newCollectionIntentRestore()
 
+		ddl, err := newActualPath("testdata/testdirs/db1/c1.metadata.json")
+		require.NoError(t, err, "should resolve the file")
+		err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+		require.Error(t, err, "should reject a non-bson file")
 	})
 }
 
 func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
-	var mr *MongoRestore
-	var buff bytes.Buffer
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("With a test MongoRestore", t, func() {
-		buff = bytes.Buffer{}
-		mr = &MongoRestore{
-			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{},
-			InputOptions: &InputOptions{},
-		}
-		log.SetWriter(&buff)
 
-		Convey(
-			"running CreateIntentForCollection on a system.buckets file *with* metadata",
-			func() {
-				ddl, err := newActualPath(
-					filepath.FromSlash(
-						"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
-					),
-				)
-				So(err, ShouldBeNil)
-				mr.ToolOptions.Namespace = &commonOpts.Namespace{}
+	t.Run("intent inferred from BSON name", func(t *testing.T) {
+		mr, buff, ddl := newTimeSeriesIntentRestore(t)
 
-				err = mr.handleBSONInsteadOfDirectory(ddl.Path())
-				So(err, ShouldBeNil)
-				So(mr.ToolOptions.DB, ShouldEqual, "timeseries_test")
-				So(mr.ToolOptions.Collection, ShouldEqual, "system.buckets.foo_ts")
+		err := mr.CreateIntentForCollection(
+			mr.ToolOptions.DB,
+			mr.ToolOptions.Collection,
+			ddl,
+		)
+		mr.manager.Finalize(intents.Legacy)
+		require.NoError(t, err, "should create an intent for the inferred db and collection")
 
-				Convey("should create one intent with inferred fields from BSON name", func() {
-					err = mr.CreateIntentForCollection(
-						mr.ToolOptions.DB,
-						mr.ToolOptions.Collection,
-						ddl,
-					)
-					mr.manager.Finalize(intents.Legacy)
-					So(err, ShouldBeNil)
+		i0 := mr.manager.Pop()
+		require.NotNil(t, i0, "should create one intent")
+		assert.Equal(t, mr.ToolOptions.DB, i0.DB, "intent should have the inferred db")
+		assert.Equal(
+			t,
+			"foo_ts",
+			i0.C,
+			"intent should strip the system.buckets prefix from the collection",
+		)
+		assert.Equal(
+			t,
+			filepath.FromSlash(ddl.Path()),
+			i0.Location,
+			"intent should point at the bson file",
+		)
+		require.Nil(t, mr.manager.Pop(), "should create only one intent")
 
-					i0 := mr.manager.Pop()
-					So(i0, ShouldNotBeNil)
-					So(i0.DB, ShouldEqual, mr.ToolOptions.DB)
-					So(i0.C, ShouldEqual, "foo_ts")
-					So(i0.Location, ShouldEqual, filepath.FromSlash(ddl.Path()))
-					i1 := mr.manager.Pop()
-					So(i1, ShouldBeNil)
-
-					Convey("and a set Metadata path", func() {
-						So(
-							i0.MetadataLocation,
-							ShouldEqual,
-							filepath.FromSlash(
-								"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
-							),
-						)
-						logs := buff.String()
-						So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
-					})
-				})
-
-				Convey(
-					"should create an intent correctly when input db and collection params contain 'system.buckets.' prefix",
-					func() {
-						err = mr.CreateIntentForCollection("myDB", "system.buckets.myC", ddl)
-						mr.manager.Finalize(intents.Legacy)
-						So(err, ShouldBeNil)
-						i0 := mr.manager.Pop()
-						So(i0, ShouldNotBeNil)
-						So(i0.DB, ShouldEqual, "myDB")
-						So(i0.C, ShouldEqual, "myC")
-						So(i0.Location, ShouldEqual, ddl.Path())
-						i1 := mr.manager.Pop()
-						So(i1, ShouldBeNil)
-
-						Convey("and a set Metadata path", func() {
-							So(
-								i0.MetadataLocation,
-								ShouldEqual,
-								filepath.FromSlash(
-									"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
-								),
-							)
-							logs := buff.String()
-							So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
-						})
-					},
-				)
-			},
+		assert.Equal(
+			t,
+			filepath.FromSlash(
+				"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
+			),
+			i0.MetadataLocation,
+			"intent should point at the metadata file",
+		)
+		assert.True(
+			t,
+			strings.Contains(buff.String(), "found metadata"),
+			"should log that the metadata was found",
 		)
 	})
+
+	t.Run(
+		"intent correct when input db and collection already contain the system.buckets prefix",
+		func(t *testing.T) {
+			mr, buff, ddl := newTimeSeriesIntentRestore(t)
+
+			err := mr.CreateIntentForCollection("myDB", "system.buckets.myC", ddl)
+			mr.manager.Finalize(intents.Legacy)
+			require.NoError(t, err, "should create an intent when the prefix is already present")
+
+			i0 := mr.manager.Pop()
+			require.NotNil(t, i0, "should create one intent")
+			assert.Equal(t, "myDB", i0.DB, "intent should have the supplied db")
+			assert.Equal(
+				t,
+				"myC",
+				i0.C,
+				"intent should strip the system.buckets prefix from the collection",
+			)
+			assert.Equal(t, ddl.Path(), i0.Location, "intent should point at the bson file")
+			require.Nil(t, mr.manager.Pop(), "should create only one intent")
+
+			assert.Equal(
+				t,
+				filepath.FromSlash(
+					"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
+				),
+				i0.MetadataLocation,
+				"intent should point at the metadata file",
+			)
+			assert.True(
+				t,
+				strings.Contains(buff.String(), "found metadata"),
+				"should log that the metadata was found",
+			)
+		},
+	)
+}
+
+// newTimeSeriesIntentRestore builds a fresh MongoRestore whose ToolOptions
+// already reflect a system.buckets bson path, matching the shared setup that
+// GoConvey re-ran for each of this test's two independent scenarios.
+func newTimeSeriesIntentRestore(t *testing.T) (*MongoRestore, *bytes.Buffer, *actualPath) {
+	t.Helper()
+
+	mr, buff := newCollectionIntentRestore()
+
+	ddl, err := newActualPath(
+		filepath.FromSlash(
+			"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
+		),
+	)
+	require.NoError(t, err, "should resolve the system.buckets bson file")
+	mr.ToolOptions.Namespace = &commonOpts.Namespace{}
+
+	require.NoError(
+		t,
+		mr.handleBSONInsteadOfDirectory(ddl.Path()),
+		"should infer the db and collection from the system.buckets path",
+	)
+	require.Equal(t, "timeseries_test", mr.ToolOptions.DB, "should infer the db from the path")
+	require.Equal(
+		t,
+		"system.buckets.foo_ts",
+		mr.ToolOptions.Collection,
+		"should infer the system.buckets collection from the path",
+	)
+
+	return mr, buff, ddl
 }
 
 func TestCreateIntentsForLongCollectionName(t *testing.T) {
 	// Disabled: see TOOLS-2658
 	t.Skip()
 
-	var mr *MongoRestore
-	var buff bytes.Buffer
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		buff = bytes.Buffer{}
-		mr = &MongoRestore{
-			manager:      intents.NewIntentManager(),
-			ToolOptions:  &commonOpts.ToolOptions{},
-			InputOptions: &InputOptions{},
-		}
-		log.SetWriter(&buff)
+	t.Run("on a truncated bson file without metadata", func(t *testing.T) {
+		mr, _ := newCollectionIntentRestore()
 
-		Convey(
-			"running CreateIntentForCollection on a truncated bson file without metadata",
-			func() {
-				ddl, err := newActualPath(
-					filepath.FromSlash("testdata/longcollectionname/" + longInvalidBson),
-				)
-				So(err, ShouldBeNil)
-				err = mr.CreateIntentForCollection("myDB", "myC", ddl)
-
-				Convey("should fail", func() {
-					So(err, ShouldNotBeNil)
-				})
-			},
+		ddl, err := newActualPath(
+			filepath.FromSlash("testdata/longcollectionname/" + longInvalidBson),
 		)
+		require.NoError(t, err, "should resolve the truncated bson file")
+		err = mr.CreateIntentForCollection("myDB", "myC", ddl)
+		require.Error(t, err, "should reject a truncated bson file without metadata")
+	})
 
-		Convey(
-			"running CreateIntentForCollection on a truncated bson file *with* metadata",
-			func() {
-				ddl, err := newActualPath(
-					filepath.FromSlash("testdata/longcollectionname/db1/" + longBsonName),
-				)
-				So(err, ShouldBeNil)
-				err = mr.CreateIntentForCollection("myDB", "myC", ddl)
-				So(err, ShouldBeNil)
-				mr.manager.Finalize(intents.Legacy)
+	t.Run("on a truncated bson file with metadata", func(t *testing.T) {
+		mr, buff := newCollectionIntentRestore()
 
-				Convey("should create one intent with 'myDb' and 'myC' fields", func() {
-					i0 := mr.manager.Pop()
-					So(i0, ShouldNotBeNil)
-					So(i0.DB, ShouldEqual, "myDB")
-					So(i0.C, ShouldEqual, "myC")
-					So(
-						i0.Location,
-						ShouldEqual,
-						filepath.FromSlash("testdata/longcollectionname/db1/"+longBsonName),
-					)
-					i1 := mr.manager.Pop()
-					So(i1, ShouldBeNil)
+		ddl, err := newActualPath(
+			filepath.FromSlash("testdata/longcollectionname/db1/" + longBsonName),
+		)
+		require.NoError(t, err, "should resolve the truncated bson file")
+		require.NoError(
+			t,
+			mr.CreateIntentForCollection("myDB", "myC", ddl),
+			"should create an intent for a truncated bson file with metadata",
+		)
+		mr.manager.Finalize(intents.Legacy)
 
-					Convey("and a set Metadata path", func() {
-						So(
-							i0.MetadataLocation,
-							ShouldEqual,
-							filepath.FromSlash(
-								"testdata/longcollectionname/db1/"+longMetadataName,
-							),
-						)
-						logs := buff.String()
-						So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
-					})
-				})
-			},
+		i0 := mr.manager.Pop()
+		require.NotNil(t, i0, "should create one intent")
+		assert.Equal(t, "myDB", i0.DB, "intent should have the supplied db")
+		assert.Equal(t, "myC", i0.C, "intent should have the supplied collection")
+		assert.Equal(
+			t,
+			filepath.FromSlash("testdata/longcollectionname/db1/"+longBsonName),
+			i0.Location,
+			"intent should point at the truncated bson file",
+		)
+		require.Nil(t, mr.manager.Pop(), "should create only one intent")
+
+		assert.Equal(
+			t,
+			filepath.FromSlash(
+				"testdata/longcollectionname/db1/"+longMetadataName,
+			),
+			i0.MetadataLocation,
+			"intent should point at the metadata file",
+		)
+		assert.True(
+			t,
+			strings.Contains(buff.String(), "found metadata"),
+			"should log that the metadata was found",
 		)
 	})
+}
+
+func newCollectionIntentRestore() (*MongoRestore, *bytes.Buffer) {
+	var buff bytes.Buffer
+	mr := &MongoRestore{
+		manager:      intents.NewIntentManager(),
+		ToolOptions:  &commonOpts.ToolOptions{},
+		InputOptions: &InputOptions{},
+	}
+	log.SetWriter(&buff)
+	return mr, &buff
 }
