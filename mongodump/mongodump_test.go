@@ -462,6 +462,17 @@ func tearDownMongoDumpTestData(t *testing.T) error {
 	return nil
 }
 
+// tearDownMongoDumpTestDataInCleanup mirrors tearDownMongoDumpTestData for use
+// inside a t.Cleanup body, where t.Context() is already canceled.
+func tearDownMongoDumpTestDataInCleanup() error {
+	session, err := testutil.GetBareSession()
+	if err != nil {
+		return err
+	}
+
+	return session.Database(testDB).Drop(context.Background())
+}
+
 func dropDB(t *testing.T, dbName string) error {
 	session, err := testutil.GetBareSession()
 	if err != nil {
@@ -484,7 +495,13 @@ func fileDirExists(name string) bool {
 	return true
 }
 
+// testQuery dumps each of testCollectionNames using --query* filters already
+// set on md, restores the dump, and checks that only the filtered documents
+// came back. It shares one restore database across every collection, so
+// callers own tearing that database down.
 func testQuery(t *testing.T, md *MongoDump, session *mongo.Client) string {
+	t.Helper()
+
 	origDB := session.Database(testDB)
 	restoredDB := session.Database(testRestoreDB)
 
@@ -495,96 +512,130 @@ func testQuery(t *testing.T, md *MongoDump, session *mongo.Client) string {
 	for _, testCollName := range testCollectionNames {
 		md.ToolOptions.Collection = testCollName
 
-		err := md.Init()
-		So(err, ShouldBeNil)
-
-		err = md.Dump()
-		So(err, ShouldBeNil)
+		require.NoError(t, md.Init(), "should initialize mongodump for %q", testCollName)
+		require.NoError(t, md.Dump(), "should dump %q with the query applied", testCollName)
 	}
 
 	path, err := os.Getwd()
-	So(err, ShouldBeNil)
+	require.NoError(t, err, "should get the working directory")
 
 	dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
 	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
-	So(fileDirExists(dumpDir), ShouldBeTrue)
-	So(fileDirExists(dumpDBDir), ShouldBeTrue)
+	require.True(t, fileDirExists(dumpDir), "should create the dump directory")
+	require.True(t, fileDirExists(dumpDBDir), "should create the database directory")
 
-	So(restoredDB.Drop(t.Context()), ShouldBeNil)
-	err = readBSONIntoDatabase(t, dumpDBDir, testRestoreDB)
-	So(err, ShouldBeNil)
+	require.NoError(
+		t,
+		restoredDB.Drop(t.Context()),
+		"should drop any pre-existing restore database",
+	)
+	require.NoError(
+		t,
+		readBSONIntoDatabase(t, dumpDBDir, testRestoreDB),
+		"should restore the dumped bson into the database",
+	)
 
 	for _, testCollName := range testCollectionNames {
 		// count filtered docs
 		origDocCount, err := origDB.Collection(testCollName).
 			CountDocuments(t.Context(), bsonQuery)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should count the original filtered documents for %q", testCollName)
 
 		// count number of all restored documents
 		restDocCount, err := restoredDB.Collection(testCollName).
 			CountDocuments(t.Context(), bson.D{})
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should count the restored documents for %q", testCollName)
 
-		So(restDocCount, ShouldEqual, origDocCount)
+		require.EqualValues(
+			t,
+			origDocCount,
+			restDocCount,
+			"should restore exactly the documents matching the query for %q",
+			testCollName,
+		)
 	}
 	return dumpDir
 }
 
+// testDumpOneCollection dumps md's configured collection to dumpDir, restores
+// it, and checks the restored collection matches the original. The two
+// checks below (count, then per-document content) read the same restored
+// data and don't need independent setup, so they run as one pass rather than
+// as separate scenarios.
 func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
+	t.Helper()
+
 	path, err := os.Getwd()
-	So(err, ShouldBeNil)
+	require.NoError(t, err, "should get the working directory")
 
 	absDumpDir := filepath.FromSlash(filepath.Join(path, dumpDir))
-	So(os.RemoveAll(absDumpDir), ShouldBeNil)
-	So(fileDirExists(absDumpDir), ShouldBeFalse)
+	require.NoError(t, os.RemoveAll(absDumpDir), "should remove any pre-existing dump directory")
+	require.False(t, fileDirExists(absDumpDir), "should not have a dump directory before dumping")
 
 	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
-	So(fileDirExists(dumpDBDir), ShouldBeFalse)
+	require.False(
+		t,
+		fileDirExists(dumpDBDir),
+		"should not have a database directory before dumping",
+	)
 
 	md.OutputOptions.Out = dumpDir
-	err = md.Dump()
-	So(err, ShouldBeNil)
-	So(fileDirExists(dumpDBDir), ShouldBeTrue)
+	require.NoError(t, md.Dump(), "should dump the collection")
+	require.True(t, fileDirExists(dumpDBDir), "should create the database directory")
 
 	session, err := testutil.GetBareSession()
-	So(err, ShouldBeNil)
+	require.NoError(t, err, "should connect to the server")
 
 	countColls, err := countNonIndexBSONFiles(dumpDBDir)
-	So(err, ShouldBeNil)
-	So(countColls, ShouldEqual, 1)
+	require.NoError(t, err, "should count the dumped bson files")
+	require.EqualValues(t, 1, countColls, "should dump exactly one collection")
 
 	collOriginal := session.Database(testDB).Collection(md.ToolOptions.Collection)
 
-	So(session.Database(testRestoreDB).Drop(t.Context()), ShouldBeNil)
+	require.NoError(
+		t,
+		session.Database(testRestoreDB).Drop(t.Context()),
+		"should drop any pre-existing restore database",
+	)
 	collRestore := session.Database(testRestoreDB).Collection(md.ToolOptions.Collection)
 
-	err = readBSONIntoDatabase(t, dumpDBDir, testRestoreDB)
-	So(err, ShouldBeNil)
+	require.NoError(
+		t,
+		readBSONIntoDatabase(t, dumpDBDir, testRestoreDB),
+		"should restore the dumped bson into the database",
+	)
 
-	Convey("with the correct number of documents", func() {
-		numDocsOrig, err := collOriginal.CountDocuments(t.Context(), bson.D{})
-		So(err, ShouldBeNil)
+	// with the correct number of documents
+	numDocsOrig, err := collOriginal.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err, "should count the original documents")
 
-		numDocsRestore, err := collRestore.CountDocuments(t.Context(), bson.D{})
-		So(err, ShouldBeNil)
+	numDocsRestore, err := collRestore.CountDocuments(t.Context(), bson.D{})
+	require.NoError(t, err, "should count the restored documents")
 
-		So(numDocsRestore, ShouldEqual, numDocsOrig)
-	})
+	require.EqualValues(
+		t,
+		numDocsOrig,
+		numDocsRestore,
+		"should restore the correct number of documents",
+	)
 
-	Convey("that are the same as the documents in the test database", func() {
-		iter, err := collOriginal.Find(t.Context(), bson.D{})
-		So(err, ShouldBeNil)
+	// that are the same as the documents in the test database
+	iter, err := collOriginal.Find(t.Context(), bson.D{})
+	require.NoError(t, err, "should query the original collection")
 
-		var result bson.D
-		for iter.Next(t.Context()) {
-			So(iter.Decode(&result), ShouldBeNil)
-			restoredCount, err := collRestore.CountDocuments(t.Context(), result)
-			So(err, ShouldBeNil)
-			So(restoredCount, ShouldNotEqual, 0)
-		}
-		So(iter.Err(), ShouldBeNil)
-		So(iter.Close(t.Context()), ShouldBeNil)
-	})
+	var result bson.D
+	for iter.Next(t.Context()) {
+		require.NoError(t, iter.Decode(&result), "should decode the original document")
+		restoredCount, err := collRestore.CountDocuments(t.Context(), result)
+		require.NoError(t, err, "should count matching restored documents")
+		require.NotZero(
+			t,
+			restoredCount,
+			"should find each original document in the restored collection",
+		)
+	}
+	require.NoError(t, iter.Err(), "should iterate every original document without error")
+	require.NoError(t, iter.Close(t.Context()), "should close the original cursor")
 }
 
 func TestMongoDumpValidateOptions(t *testing.T) {
@@ -666,189 +717,221 @@ func TestMongoDumpBSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData(t)
-		So(err, ShouldBeNil)
+	t.Run("dumps a particular collection to the default output directory", func(t *testing.T) {
+		setUpMongoDumpBSONSubtest(t)
+		md := newMongoDumpForBSONSubtest(t, testCollectionNames[0])
+		require.NoError(t, md.Init(), "should initialize mongodump")
+		testDumpOneCollection(t, md, "dump")
+	})
 
-		Convey(
-			"testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection",
-			func() {
-				md, err := simpleMongoDumpInstance()
-				So(err, ShouldBeNil)
+	t.Run("dumps a particular collection to a user-specified output directory", func(t *testing.T) {
+		setUpMongoDumpBSONSubtest(t)
+		md := newMongoDumpForBSONSubtest(t, testCollectionNames[0])
+		require.NoError(t, md.Init(), "should initialize mongodump")
+		testDumpOneCollection(t, md, "dump_user")
+	})
 
-				md.InputOptions.Query = ""
+	t.Run("dumps a particular collection to standard output", func(t *testing.T) {
+		setUpMongoDumpBSONSubtest(t)
+		md := newMongoDumpForBSONSubtest(t, testCollectionNames[0])
+		require.NoError(t, md.Init(), "should initialize mongodump")
 
-				Convey("and that for a particular collection", func() {
-					md.ToolOptions.Collection = testCollectionNames[0]
-					err = md.Init()
-					So(err, ShouldBeNil)
+		md.OutputOptions.Out = "-"
+		stdoutBuf := &bytes.Buffer{}
+		md.OutputWriter = stdoutBuf
+		require.NoError(t, md.Dump(), "should dump the collection to standard output")
 
-					Convey("it dumps to the default output directory", func() {
-						testDumpOneCollection(t, md, "dump")
-					})
+		var count int
+		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(io.NopCloser(stdoutBuf)))
+		defer bsonSource.Close()
 
-					Convey("it dumps to a user-specified output directory", func() {
-						testDumpOneCollection(t, md, "dump_user")
-					})
+		var result bson.Raw
+		for bsonSource.Next(&result) {
+			count++
+		}
+		require.NoError(t, bsonSource.Err(), "should read every dumped document")
+		// The 0th collection has 10 documents.
+		require.EqualValues(t, 10, count, "should dump every document in the collection")
+	})
 
-					Convey("it dumps to standard output", func() {
-						md.OutputOptions.Out = "-"
-						stdoutBuf := &bytes.Buffer{}
-						md.OutputWriter = stdoutBuf
-						err = md.Dump()
-						So(err, ShouldBeNil)
-						var count int
-						bsonSource := db.NewDecodedBSONSource(
-							db.NewBSONSource(io.NopCloser(stdoutBuf)),
-						)
-						defer bsonSource.Close()
+	t.Run("dumps a collection with a slash in its name to the filesystem", func(t *testing.T) {
+		setUpMongoDumpBSONSubtest(t)
+		md := newMongoDumpForBSONSubtest(t, testCollectionNames[2])
+		require.NoError(t, md.Init(), "should initialize mongodump")
+		testDumpOneCollection(t, md, "dump_slash")
+	})
 
-						var result bson.Raw
-						for bsonSource.Next(&result) {
-							count++
-						}
-						So(bsonSource.Err(), ShouldBeNil)
-						So(count, ShouldEqual, 10) //The 0th collection has 10 documents
+	t.Run(
+		"initializes a collection with a slash in its name for archive output",
+		func(t *testing.T) {
+			setUpMongoDumpBSONSubtest(t)
+			md := newMongoDumpForBSONSubtest(t, testCollectionNames[2])
+			md.OutputOptions.Archive = "dump_slash.archive"
+			require.NoError(t, md.Init(), "should initialize mongodump for archive output")
+		},
+	)
 
-						Reset(func() {
-						})
+	t.Run(
+		"dumps an entire database that exists, producing bson files for every collection",
+		func(t *testing.T) {
+			setUpMongoDumpBSONSubtest(t)
+			md := newMongoDumpForBSONSubtest(t, "")
+			require.NoError(t, md.Init(), "should initialize mongodump")
 
-					})
+			md.OutputOptions.Out = "dump"
+			require.NoError(t, md.Dump(), "should dump the whole database")
 
-				})
+			path, err := os.Getwd()
+			require.NoError(t, err, "should get the working directory")
 
-				Convey("and that it dumps a collection with a slash in its name", func() {
-					md.ToolOptions.Collection = testCollectionNames[2]
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
+			require.True(t, fileDirExists(dumpDir), "should create the dump directory")
+			require.True(t, fileDirExists(dumpDBDir), "should create the database directory")
 
-					Convey("to the filesystem", func() {
-						err = md.Init()
-						So(err, ShouldBeNil)
-						testDumpOneCollection(t, md, "dump_slash")
-					})
+			countColls, err := countNonIndexBSONFiles(dumpDBDir)
+			require.NoError(t, err, "should count the dumped bson files")
+			require.EqualValues(
+				t,
+				len(testCollectionNames),
+				countColls,
+				"should dump every collection",
+			)
 
-					Convey("to an archive", func() {
-						md.OutputOptions.Archive = "dump_slash.archive"
-						err = md.Init()
-						So(err, ShouldBeNil)
-					})
-				})
+			t.Cleanup(func() {
+				assert.NoError(t, os.RemoveAll(dumpDir), "should remove the dump directory")
+			})
+		},
+	)
 
-				Convey("for an entire database", func() {
-					md.ToolOptions.Collection = ""
-					err = md.Init()
-					So(err, ShouldBeNil)
+	t.Run(
+		"does not create a dump directory for a database that does not exist",
+		func(t *testing.T) {
+			setUpMongoDumpBSONSubtest(t)
+			md := newMongoDumpForBSONSubtest(t, "")
+			require.NoError(t, md.Init(), "should initialize mongodump")
 
-					Convey(
-						"that exists. The dumped directory should contain the necessary bson files",
-						func() {
-							md.OutputOptions.Out = "dump"
-							err = md.Dump()
-							So(err, ShouldBeNil)
-							path, err := os.Getwd()
-							So(err, ShouldBeNil)
+			md.OutputOptions.Out = "dump"
+			md.ToolOptions.DB = "nottestdb"
+			require.NoError(t, md.Dump(), "should succeed dumping a nonexistent database")
 
-							dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
-							dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
-							So(fileDirExists(dumpDir), ShouldBeTrue)
-							So(fileDirExists(dumpDBDir), ShouldBeTrue)
+			path, err := os.Getwd()
+			require.NoError(t, err, "should get the working directory")
 
-							countColls, err := countNonIndexBSONFiles(dumpDBDir)
-							So(err, ShouldBeNil)
-							So(countColls, ShouldEqual, len(testCollectionNames))
+			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, "nottestdb"))
+			require.False(t, fileDirExists(dumpDir), "should not create the dump directory")
+			require.False(
+				t,
+				fileDirExists(dumpDBDir),
+				"should not create the database directory",
+			)
+		},
+	)
 
-							Reset(func() {
-								So(os.RemoveAll(dumpDir), ShouldBeNil)
-							})
+	t.Run("using --query for all the collections in the database", func(t *testing.T) {
+		setUpMongoDumpBSONSubtest(t)
+		session, jsonQueryBytes := newMongoDumpQuerySubtestFixture(t)
+		md := newMongoDumpForBSONSubtest(t, "")
 
-						},
-					)
+		md.InputOptions.Query = string(jsonQueryBytes)
+		md.ToolOptions.DB = testDB
+		md.OutputOptions.Out = "dump"
+		dumpDir := testQuery(t, md, session)
 
-					Convey(
-						"that does not exist. The dumped directory shouldn't be created",
-						func() {
-							md.OutputOptions.Out = "dump"
-							md.ToolOptions.DB = "nottestdb"
-							err = md.Dump()
-							So(err, ShouldBeNil)
-
-							path, err := os.Getwd()
-							So(err, ShouldBeNil)
-
-							dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
-							dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, "nottestdb"))
-
-							So(fileDirExists(dumpDir), ShouldBeFalse)
-							So(fileDirExists(dumpDBDir), ShouldBeFalse)
-						},
-					)
-
-				})
-			},
-		)
-
-		Convey(
-			"testing that using MongoDump WITH a query dumps a subset of documents in a database and/or collection",
-			func() {
-				session, err := testutil.GetBareSession()
-				So(err, ShouldBeNil)
-				md, err := simpleMongoDumpInstance()
-				So(err, ShouldBeNil)
-
-				// expect 10 documents per collection
-				bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
-				jsonQuery, err := bsonutil.ConvertBSONValueToLegacyExtJSON(bsonQuery)
-				So(err, ShouldBeNil)
-				jsonQueryBytes, err := json.Marshal(jsonQuery)
-				So(err, ShouldBeNil)
-
-				Convey("using --query for all the collections in the database", func() {
-					md.InputOptions.Query = string(jsonQueryBytes)
-					md.ToolOptions.DB = testDB
-					md.OutputOptions.Out = "dump"
-					dumpDir := testQuery(t, md, session)
-
-					Reset(func() {
-						So(session.Database(testRestoreDB).Drop(t.Context()), ShouldBeNil)
-						So(os.RemoveAll(dumpDir), ShouldBeNil)
-					})
-
-				})
-
-				Convey("using --queryFile for all the collections in the database", func() {
-					err = os.WriteFile("example.json", jsonQueryBytes, 0777)
-					So(err, ShouldBeNil)
-					md.InputOptions.QueryFile = "example.json"
-					md.ToolOptions.DB = testDB
-					md.OutputOptions.Out = "dump"
-					dumpDir := testQuery(t, md, session)
-
-					Reset(func() {
-						So(session.Database(testRestoreDB).Drop(t.Context()), ShouldBeNil)
-						So(os.RemoveAll(dumpDir), ShouldBeNil)
-						So(os.Remove("example.json"), ShouldBeNil)
-					})
-
-				})
-			},
-		)
-
-		Convey("using MongoDump against a collection that doesn't exist succeeds", func() {
-			md, err := simpleMongoDumpInstance()
-			So(err, ShouldBeNil)
-
-			md.ToolOptions.DB = "nonExistentDB"
-			md.ToolOptions.Collection = "nonExistentColl"
-
-			err = md.Init()
-			So(err, ShouldBeNil)
-			err = md.Dump()
-			So(err, ShouldBeNil)
-		})
-
-		Reset(func() {
-			So(tearDownMongoDumpTestData(t), ShouldBeNil)
+		t.Cleanup(func() {
+			assert.NoError(
+				t,
+				session.Database(testRestoreDB).Drop(context.Background()),
+				"should drop the restore database",
+			)
+			assert.NoError(t, os.RemoveAll(dumpDir), "should remove the dump directory")
 		})
 	})
+
+	t.Run("using --queryFile for all the collections in the database", func(t *testing.T) {
+		setUpMongoDumpBSONSubtest(t)
+		session, jsonQueryBytes := newMongoDumpQuerySubtestFixture(t)
+		md := newMongoDumpForBSONSubtest(t, "")
+
+		require.NoError(
+			t,
+			os.WriteFile("example.json", jsonQueryBytes, 0777),
+			"should write the query file",
+		)
+		md.InputOptions.QueryFile = "example.json"
+		md.ToolOptions.DB = testDB
+		md.OutputOptions.Out = "dump"
+		dumpDir := testQuery(t, md, session)
+
+		t.Cleanup(func() {
+			assert.NoError(
+				t,
+				session.Database(testRestoreDB).Drop(context.Background()),
+				"should drop the restore database",
+			)
+			assert.NoError(t, os.RemoveAll(dumpDir), "should remove the dump directory")
+			assert.NoError(t, os.Remove("example.json"), "should remove the query file")
+		})
+	})
+
+	t.Run("using mongodump against a collection that doesn't exist succeeds", func(t *testing.T) {
+		setUpMongoDumpBSONSubtest(t)
+		md, err := simpleMongoDumpInstance()
+		require.NoError(t, err, "should build a mongodump instance")
+
+		md.ToolOptions.DB = "nonExistentDB"
+		md.ToolOptions.Collection = "nonExistentColl"
+
+		require.NoError(t, md.Init(), "should initialize mongodump")
+		require.NoError(t, md.Dump(), "should succeed dumping a nonexistent collection")
+	})
+}
+
+// setUpMongoDumpBSONSubtest inserts fresh test data for one TestMongoDumpBSON
+// subtest and registers its teardown, matching the setUp/Reset pair GoConvey
+// ran around every leaf of the original nested test.
+func setUpMongoDumpBSONSubtest(t *testing.T) {
+	t.Helper()
+
+	require.NoError(t, setUpMongoDumpTestData(t), "should set up test data")
+	t.Cleanup(func() {
+		assert.NoError(t, tearDownMongoDumpTestDataInCleanup(), "should tear down test data")
+	})
+}
+
+// newMongoDumpForBSONSubtest builds the MongoDump instance shared by the
+// WITHOUT-a-query subtests, with collName applied when it isn't empty.
+func newMongoDumpForBSONSubtest(t *testing.T, collName string) *MongoDump {
+	t.Helper()
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err, "should build a mongodump instance")
+
+	md.InputOptions.Query = ""
+	if collName != "" {
+		md.ToolOptions.Collection = collName
+	}
+
+	return md
+}
+
+// newMongoDumpQuerySubtestFixture builds the session and marshaled query
+// shared by the --query and --queryFile subtests.
+func newMongoDumpQuerySubtestFixture(t *testing.T) (*mongo.Client, []byte) {
+	t.Helper()
+
+	session, err := testutil.GetBareSession()
+	require.NoError(t, err, "should connect to the server")
+
+	// expect 10 documents per collection
+	bsonQuery := bson.M{"age": bson.M{"$lt": 10}}
+	jsonQuery, err := bsonutil.ConvertBSONValueToLegacyExtJSON(bsonQuery)
+	require.NoError(t, err, "should convert the query to extended json")
+	jsonQueryBytes, err := json.Marshal(jsonQuery)
+	require.NoError(t, err, "should marshal the query to json")
+
+	return session, jsonQueryBytes
 }
 
 func TestMongoDumpBSONLongCollectionName(t *testing.T) {
@@ -868,302 +951,308 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 
 	log.SetWriter(io.Discard)
 
-	Convey("With a MongoDump instance", t, func() {
-		err = setUpMongoDumpTestData(t)
-		So(err, ShouldBeNil)
-
-		md, err := simpleMongoDumpInstance()
-		So(err, ShouldBeNil)
-
-		Convey(
-			"testing that it dumps a collection with a name >238 bytes in the right format",
-			func() {
-				coll := session.Database(testDB).Collection(longCollectionName)
-				_, err = coll.InsertOne(t.Context(), bson.M{"a": 1})
-				So(err, ShouldBeNil)
-				//nolint:errcheck
-				defer coll.Drop(t.Context())
-
-				md.ToolOptions.Collection = longCollectionName
-				err = md.Init()
-				So(err, ShouldBeNil)
-
-				path, err := os.Getwd()
-				So(err, ShouldBeNil)
-
-				absDumpDir := filepath.FromSlash(filepath.Join(path, "dump_slash"))
-				So(os.RemoveAll(absDumpDir), ShouldBeNil)
-				So(fileDirExists(absDumpDir), ShouldBeFalse)
-
-				dumpDBDir := filepath.FromSlash(filepath.Join("dump_slash", testDB))
-				So(fileDirExists(dumpDBDir), ShouldBeFalse)
-
-				md.OutputOptions.Out = "dump_slash"
-				err = md.Dump()
-				So(err, ShouldBeNil)
-				So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-				Convey("to a bson file", func() {
-					oneBsonFile, err := os.Open(
-						filepath.FromSlash(filepath.Join(dumpDBDir, longBsonName)),
-					)
-					So(err, ShouldBeNil)
-					oneBsonFile.Close()
-				})
-
-				Convey("to a metadata file", func() {
-					oneMetaFile, err := os.Open(
-						filepath.FromSlash(filepath.Join(dumpDBDir, longMetadataName)),
-					)
-					So(err, ShouldBeNil)
-					oneMetaFile.Close()
-				})
-			},
-		)
-
-		Reset(func() {
-			So(tearDownMongoDumpTestData(t), ShouldBeNil)
-		})
+	require.NoError(t, setUpMongoDumpTestData(t), "should set up test data")
+	t.Cleanup(func() {
+		assert.NoError(t, tearDownMongoDumpTestDataInCleanup(), "should tear down test data")
 	})
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err, "should build a mongodump instance")
+
+	// testing that it dumps a collection with a name >238 bytes in the right format
+	coll := session.Database(testDB).Collection(longCollectionName)
+	_, err = coll.InsertOne(t.Context(), bson.M{"a": 1})
+	require.NoError(t, err, "should insert a document into the long-named collection")
+	//nolint:errcheck
+	defer coll.Drop(t.Context())
+
+	md.ToolOptions.Collection = longCollectionName
+	require.NoError(t, md.Init(), "should initialize mongodump")
+
+	path, err := os.Getwd()
+	require.NoError(t, err, "should get the working directory")
+
+	absDumpDir := filepath.FromSlash(filepath.Join(path, "dump_slash"))
+	require.NoError(t, os.RemoveAll(absDumpDir), "should remove any pre-existing dump directory")
+	require.False(t, fileDirExists(absDumpDir), "should not have a dump directory before dumping")
+
+	dumpDBDir := filepath.FromSlash(filepath.Join("dump_slash", testDB))
+	require.False(
+		t,
+		fileDirExists(dumpDBDir),
+		"should not have a database directory before dumping",
+	)
+
+	md.OutputOptions.Out = "dump_slash"
+	require.NoError(t, md.Dump(), "should dump the long-named collection")
+	require.True(t, fileDirExists(dumpDBDir), "should create the database directory")
+
+	// to a bson file
+	oneBsonFile, err := os.Open(filepath.FromSlash(filepath.Join(dumpDBDir, longBsonName)))
+	require.NoError(t, err, "should open the dumped bson file for the long collection name")
+	oneBsonFile.Close()
+
+	// to a metadata file
+	oneMetaFile, err := os.Open(filepath.FromSlash(filepath.Join(dumpDBDir, longMetadataName)))
+	require.NoError(t, err, "should open the dumped metadata file for the long collection name")
+	oneMetaFile.Close()
 }
 
-func testPreludeMetadata(md *MongoDump, dir string, serverVersion string) {
-	So(fileDirExists(dir), ShouldBeFalse)
-	err := md.Init()
-	So(err, ShouldBeNil)
+func testPreludeMetadata(t *testing.T, md *MongoDump, dir string, serverVersion string) {
+	t.Helper()
 
-	err = md.Dump()
-	So(err, ShouldBeNil)
+	require.False(t, fileDirExists(dir), "should not have a dump directory before dumping")
+	require.NoError(t, md.Init(), "should initialize mongodump")
+	require.NoError(t, md.Dump(), "should dump the database")
 
 	preludeFilepath := filepath.Join(dir, "prelude.json")
 	if md.OutputOptions.Gzip {
 		preludeFilepath += ".gz"
 	}
-	So(fileDirExists(preludeFilepath), ShouldBeTrue)
+	require.True(t, fileDirExists(preludeFilepath), "should write a prelude file")
+
 	var reader io.Reader
 	preludeFile, err := os.Open(filepath.FromSlash(preludeFilepath))
-	So(err, ShouldBeNil)
+	require.NoError(t, err, "should open the prelude file")
 	reader = preludeFile
 	defer preludeFile.Close()
 	if md.OutputOptions.Gzip {
 		zipfile, err := gzip.NewReader(preludeFile)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should open the gzipped prelude file")
 		defer zipfile.Close()
 		reader = zipfile
 	}
 	contents, err := io.ReadAll(reader)
-	So(err, ShouldBeNil)
+	require.NoError(t, err, "should read the prelude file")
+
 	var jsonResult map[string]any
-	err = json.Unmarshal(contents, &jsonResult)
-	So(err, ShouldBeNil)
-	So(jsonResult["ServerVersion"], ShouldEqual, serverVersion)
+	require.NoError(t, json.Unmarshal(contents, &jsonResult), "should unmarshal the prelude json")
+	require.EqualValues(
+		t,
+		serverVersion,
+		jsonResult["ServerVersion"],
+		"should record the connected server version in the prelude",
+	)
 }
 
 func TestDumpPreludeMetadataJson(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	Convey("With a MongoDump instance", t, func() {
-		path, err := os.Getwd()
-		So(err, ShouldBeNil)
+	t.Run(
+		"writes prelude.json to the dump directory when dumping all databases",
+		func(t *testing.T) {
+			setUpPreludeMetadataSubtest(t)
+			md, serverVersion := newMongoDumpForPreludeSubtest(t, "")
 
-		err = setUpMongoDumpTestData(t)
-		So(err, ShouldBeNil)
+			dumpDir := preludeSubtestDumpDir(t, "dump")
+			testPreludeMetadata(t, md, dumpDir, serverVersion)
+		},
+	)
 
-		sessionProvider, _, _ := testutil.GetBareSessionProvider()
-		So(sessionProvider, ShouldNotBeNil)
-		serverVersion, err := sessionProvider.ServerVersion()
-		So(err, ShouldBeNil)
+	t.Run(
+		"writes prelude.json.gz to the dump directory when dumping all databases with --gzip",
+		func(t *testing.T) {
+			setUpPreludeMetadataSubtest(t)
+			md, serverVersion := newMongoDumpForPreludeSubtest(t, "")
+			md.OutputOptions.Gzip = true
 
-		Convey("when dumping all databases", func() {
-			md, err := simpleMongoDumpInstance()
-			So(err, ShouldBeNil)
+			dumpDir := preludeSubtestDumpDir(t, "dump")
+			testPreludeMetadata(t, md, dumpDir, serverVersion)
+		},
+	)
 
-			md.ToolOptions.DB = ""
-			md.ToolOptions.Collection = ""
+	t.Run(
+		"writes prelude.json to a user-specified output directory when dumping all databases",
+		func(t *testing.T) {
+			setUpPreludeMetadataSubtest(t)
+			md, serverVersion := newMongoDumpForPreludeSubtest(t, "")
+			md.OutputOptions.Out = "dump_output"
 
-			Convey("when dumping to the default directory", func() {
-				dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
+			dumpDir := preludeSubtestDumpDir(t, "dump_output")
+			testPreludeMetadata(t, md, dumpDir, serverVersion)
+		},
+	)
 
-				Convey("writes prelude.json to dump directory", func() {
-					testPreludeMetadata(md, dumpDir, serverVersion)
-				})
+	t.Run("writes prelude.json to the dump directory when dumping one db", func(t *testing.T) {
+		setUpPreludeMetadataSubtest(t)
+		md, serverVersion := newMongoDumpForPreludeSubtest(t, testDB)
 
-				Convey("writes prelude.json.gz to dump directory when --gzip is used", func() {
-					md.OutputOptions.Gzip = true
-					testPreludeMetadata(md, dumpDir, serverVersion)
-				})
+		dumpDir := preludeSubtestDumpDir(t, "dump")
+		dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
+		testPreludeMetadata(t, md, dumpDBDir, serverVersion)
+	})
 
-				Reset(func() {
-					So(os.RemoveAll(dumpDir), ShouldBeNil)
-				})
-			})
+	t.Run(
+		"does not fail and does not create prelude.json when the dump directory is not created",
+		func(t *testing.T) {
+			setUpPreludeMetadataSubtest(t)
+			md, _ := newMongoDumpForPreludeSubtest(t, "nonExistentDB")
 
-			Convey("when output directory is specified", func() {
-				dumpDir := filepath.FromSlash(filepath.Join(path, "dump_output"))
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
-
-				Convey("writes prelude.json to output directory", func() {
-					md.OutputOptions.Out = "dump_output"
-					testPreludeMetadata(md, dumpDir, serverVersion)
-				})
-
-				Reset(func() {
-					So(os.RemoveAll(dumpDir), ShouldBeNil)
-				})
-			})
-		})
-
-		Convey("when dumping one db", func() {
-			md, err := simpleMongoDumpInstance()
-			So(err, ShouldBeNil)
-
-			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
-			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
-			So(os.RemoveAll(dumpDir), ShouldBeNil)
-
-			Convey("writes prelude.json to dump directory", func() {
-				testPreludeMetadata(md, dumpDBDir, serverVersion)
-			})
-
-			Reset(func() {
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
-			})
-		})
-
-		Convey("when the dump directory is not created", func() {
-
+			path, err := os.Getwd()
+			require.NoError(t, err, "should get the working directory")
 			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
 			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, "nottestdb"))
-
-			Convey("the dump does not fail and prelude.json should not be created", func() {
-				md, err := simpleMongoDumpInstance()
-				So(err, ShouldBeNil)
-
-				md.ToolOptions.DB = "nonExistentDB"
-
-				err = md.Init()
-				So(err, ShouldBeNil)
-				err = md.Dump()
-				So(err, ShouldBeNil)
-
-				So(fileDirExists(dumpDir), ShouldBeFalse)
-				So(fileDirExists(dumpDBDir), ShouldBeFalse)
-				So(fileDirExists(filepath.Join(dumpDir, "prelude.json")), ShouldBeFalse)
-				So(fileDirExists(filepath.Join(dumpDBDir, "prelude.json")), ShouldBeFalse)
+			t.Cleanup(func() {
+				assert.NoError(t, os.RemoveAll(dumpDir), "should remove the dump directory")
 			})
 
-			Reset(func() {
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
-			})
-		})
+			require.NoError(t, md.Init(), "should initialize mongodump")
+			require.NoError(t, md.Dump(), "should succeed dumping a nonexistent database")
 
-		Reset(func() {
-			So(tearDownMongoDumpTestData(t), ShouldBeNil)
-		})
+			assert.False(t, fileDirExists(dumpDir), "should not create the dump directory")
+			assert.False(t, fileDirExists(dumpDBDir), "should not create the database directory")
+			assert.False(
+				t,
+				fileDirExists(filepath.Join(dumpDir, "prelude.json")),
+				"should not create a prelude file in the dump directory",
+			)
+			assert.False(
+				t,
+				fileDirExists(filepath.Join(dumpDBDir, "prelude.json")),
+				"should not create a prelude file in the database directory",
+			)
+		},
+	)
+}
 
+// setUpPreludeMetadataSubtest inserts fresh test data for one
+// TestDumpPreludeMetadataJson subtest and registers its teardown.
+func setUpPreludeMetadataSubtest(t *testing.T) {
+	t.Helper()
+
+	require.NoError(t, setUpMongoDumpTestData(t), "should set up test data")
+	t.Cleanup(func() {
+		assert.NoError(t, tearDownMongoDumpTestDataInCleanup(), "should tear down test data")
 	})
+}
+
+// newMongoDumpForPreludeSubtest builds a MongoDump instance and reports the
+// connected server version. dbName, when non-empty, restricts the dump to
+// that database; empty clears both the database and collection so the whole
+// server gets dumped.
+func newMongoDumpForPreludeSubtest(t *testing.T, dbName string) (*MongoDump, string) {
+	t.Helper()
+
+	sessionProvider, _, _ := testutil.GetBareSessionProvider()
+	require.NotNil(t, sessionProvider, "should get a session provider")
+	serverVersion, err := sessionProvider.ServerVersion()
+	require.NoError(t, err, "should get the server version")
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err, "should build a mongodump instance")
+
+	if dbName != "" {
+		md.ToolOptions.DB = dbName
+	} else {
+		md.ToolOptions.DB = ""
+		md.ToolOptions.Collection = ""
+	}
+
+	return md, serverVersion
+}
+
+// preludeSubtestDumpDir removes any pre-existing dump directory named name
+// under the working directory and returns its absolute path, matching the
+// per-subtest cleanup GoConvey's Reset performed for each dump location.
+func preludeSubtestDumpDir(t *testing.T, name string) string {
+	t.Helper()
+
+	path, err := os.Getwd()
+	require.NoError(t, err, "should get the working directory")
+
+	dumpDir := filepath.FromSlash(filepath.Join(path, name))
+	require.NoError(t, os.RemoveAll(dumpDir), "should remove any pre-existing dump directory")
+
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(dumpDir), "should remove the dump directory")
+	})
+
+	return dumpDir
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	Convey("With a MongoDump instance", t, func() {
-		session, err := testutil.GetBareSession()
-		So(session, ShouldNotBeNil)
-		So(err, ShouldBeNil)
+	session, err := testutil.GetBareSession()
+	require.NotNil(t, session, "should get a session")
+	require.NoError(t, err, "should connect to the server")
 
-		err = setUpMongoDumpTestData(t)
-		So(err, ShouldBeNil)
-
-		Convey("testing that the dumped directory contains information about indexes", func() {
-
-			md, err := simpleMongoDumpInstance()
-			So(err, ShouldBeNil)
-
-			md.OutputOptions.Out = "dump"
-			err = md.Init()
-			So(err, ShouldBeNil)
-
-			err = md.Dump()
-			So(err, ShouldBeNil)
-
-			path, err := os.Getwd()
-			So(err, ShouldBeNil)
-			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
-			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
-			So(fileDirExists(dumpDir), ShouldBeTrue)
-			So(fileDirExists(dumpDBDir), ShouldBeTrue)
-
-			Convey("having one metadata file per collection", func() {
-				c1, err := countNonIndexBSONFiles(dumpDBDir)
-				So(err, ShouldBeNil)
-
-				c2, err := countMetaDataFiles(dumpDBDir)
-				So(err, ShouldBeNil)
-
-				So(c1, ShouldEqual, c2)
-
-				Convey("and that the JSON in a metadata file is valid", func() {
-					metaFiles, err := getMatchingFiles(dumpDBDir, ".*\\.metadata\\.json")
-					So(err, ShouldBeNil)
-					So(len(metaFiles), ShouldBeGreaterThan, 0)
-
-					oneMetaFile, err := os.Open(
-						filepath.FromSlash(filepath.Join(dumpDBDir, metaFiles[0])),
-					)
-					defer oneMetaFile.Close()
-					So(err, ShouldBeNil)
-					contents, err := io.ReadAll(oneMetaFile)
-					So(err, ShouldBeNil)
-					var jsonResult map[string]any
-					err = json.Unmarshal(contents, &jsonResult)
-					So(err, ShouldBeNil)
-
-					Convey("and contains an 'indexes' key", func() {
-						_, ok := jsonResult["indexes"]
-						So(ok, ShouldBeTrue)
-					})
-
-					Convey("and contains a 'collectionName' key", func() {
-						_, ok := jsonResult["collectionName"]
-						So(ok, ShouldBeTrue)
-					})
-
-					fcv := testutil.GetFCV(session)
-					cmp, err := testutil.CompareFCV(fcv, "3.6")
-					So(err, ShouldBeNil)
-					if cmp >= 0 {
-						Convey("and on FCV 3.6+, contains a 'uuid' key", func() {
-							uuid, ok := jsonResult["uuid"]
-							So(ok, ShouldBeTrue)
-							checkUUID := regexp.MustCompile(`(?i)^[a-z0-9]{32}$`)
-
-							uuidStr, ok := uuid.(string)
-							So(ok, ShouldBeTrue)
-
-							So(checkUUID.MatchString(uuidStr), ShouldBeTrue)
-							// XXX useless -- xdg, 2018-09-21
-							So(err, ShouldBeNil)
-						})
-					}
-
-				})
-
-			})
-
-			Reset(func() {
-				So(os.RemoveAll(dumpDir), ShouldBeNil)
-			})
-		})
-
-		Reset(func() {
-			So(tearDownMongoDumpTestData(t), ShouldBeNil)
-		})
-
+	require.NoError(t, setUpMongoDumpTestData(t), "should set up test data")
+	t.Cleanup(func() {
+		assert.NoError(t, tearDownMongoDumpTestDataInCleanup(), "should tear down test data")
 	})
+
+	// testing that the dumped directory contains information about indexes
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err, "should build a mongodump instance")
+
+	md.OutputOptions.Out = "dump"
+	require.NoError(t, md.Init(), "should initialize mongodump")
+	require.NoError(t, md.Dump(), "should dump the database")
+
+	path, err := os.Getwd()
+	require.NoError(t, err, "should get the working directory")
+	dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
+	dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, testDB))
+	require.True(t, fileDirExists(dumpDir), "should create the dump directory")
+	require.True(t, fileDirExists(dumpDBDir), "should create the database directory")
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(dumpDir), "should remove the dump directory")
+	})
+
+	// having one metadata file per collection
+	c1, err := countNonIndexBSONFiles(dumpDBDir)
+	require.NoError(t, err, "should count the dumped bson files")
+
+	c2, err := countMetaDataFiles(dumpDBDir)
+	require.NoError(t, err, "should count the dumped metadata files")
+
+	require.EqualValues(t, c2, c1, "should write one metadata file per collection")
+
+	// and that the JSON in a metadata file is valid
+	metaFiles, err := getMatchingFiles(dumpDBDir, ".*\\.metadata\\.json")
+	require.NoError(t, err, "should list the metadata files")
+	require.Greater(t, len(metaFiles), 0, "should find at least one metadata file")
+
+	oneMetaFile, err := os.Open(filepath.FromSlash(filepath.Join(dumpDBDir, metaFiles[0])))
+	require.NoError(t, err, "should open a metadata file")
+	defer oneMetaFile.Close()
+
+	contents, err := io.ReadAll(oneMetaFile)
+	require.NoError(t, err, "should read the metadata file")
+	var jsonResult map[string]any
+	require.NoError(t, json.Unmarshal(contents, &jsonResult), "should unmarshal the metadata json")
+
+	// and contains an 'indexes' key
+	_, ok := jsonResult["indexes"]
+	assert.True(t, ok, "should include an indexes key in the metadata")
+
+	// and contains a 'collectionName' key
+	_, ok = jsonResult["collectionName"]
+	assert.True(t, ok, "should include a collectionName key in the metadata")
+
+	fcv := testutil.GetFCV(session)
+	cmp, err := testutil.CompareFCV(fcv, "3.6")
+	require.NoError(t, err, "should compare the server's FCV")
+	if cmp >= 0 {
+		// and on FCV 3.6+, contains a 'uuid' key
+		uuid, ok := jsonResult["uuid"]
+		require.True(t, ok, "should include a uuid key in the metadata on FCV 3.6+")
+		checkUUID := regexp.MustCompile(`(?i)^[a-z0-9]{32}$`)
+
+		uuidStr, ok := uuid.(string)
+		require.True(t, ok, "should represent the uuid as a string")
+
+		assert.True(
+			t,
+			checkUUID.MatchString(uuidStr),
+			"should format the uuid as 32 hex characters",
+		)
+		// XXX useless -- xdg, 2018-09-21
+		assert.NoError(t, err, "should compare the server's FCV")
+	}
 }
 
 func TestMongoDumpOplog(t *testing.T) {
