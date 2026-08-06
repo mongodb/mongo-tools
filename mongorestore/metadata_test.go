@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -17,7 +18,7 @@ import (
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -27,9 +28,7 @@ const ExistsDB = "restore_collection_exists"
 func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
 	require.NoError(t, err)
@@ -68,215 +67,229 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 func TestCollectionExists(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 
-	Convey("With a test mongorestore", t, func() {
-		sessionProvider, _, err := testutil.GetBareSessionProvider()
-		So(err, ShouldBeNil)
-		defer sessionProvider.Close()
+	t.Run("collections that exist return true and others return false", func(t *testing.T) {
+		restore := newCollectionExistsRestore(t)
 
-		restore := &MongoRestore{
-			SessionProvider: sessionProvider,
+		session, err := restore.SessionProvider.GetSession()
+		require.NoError(t, err, "should get a session")
+		t.Cleanup(func() {
+			// t.Context() is already canceled by the time cleanups run.
+			assert.NoError(
+				t,
+				session.Database(ExistsDB).Drop(context.Background()),
+				"should drop the test database",
+			)
+		})
+
+		_, insertErr := session.Database(ExistsDB).
+			Collection("one").
+			InsertOne(t.Context(), bson.M{})
+		require.NoError(t, insertErr, "should insert into collection one")
+		_, insertErr = session.Database(ExistsDB).
+			Collection("two").
+			InsertOne(t.Context(), bson.M{})
+		require.NoError(t, insertErr, "should insert into collection two")
+		_, insertErr = session.Database(ExistsDB).
+			Collection("three").
+			InsertOne(t.Context(), bson.M{})
+		require.NoError(t, insertErr, "should insert into collection three")
+
+		exists, err := restore.CollectionExists(ExistsDB, "one")
+		require.NoError(t, err, "should check collection one")
+		assert.True(t, exists, "collection one should exist")
+		exists, err = restore.CollectionExists(ExistsDB, "two")
+		require.NoError(t, err, "should check collection two")
+		assert.True(t, exists, "collection two should exist")
+		exists, err = restore.CollectionExists(ExistsDB, "three")
+		require.NoError(t, err, "should check collection three")
+		assert.True(t, exists, "collection three should exist")
+
+		exists, err = restore.CollectionExists(ExistsDB, "four")
+		require.NoError(t, err, "should check a collection that was never created")
+		assert.False(t, exists, "collection four should not exist")
+	})
+
+	t.Run("a fake cache is used instead of the server when it exists", func(t *testing.T) {
+		restore := newCollectionExistsRestore(t)
+		restore.knownCollections = map[string][]string{
+			ExistsDB: {"cats", "dogs", "snakes"},
 		}
-
-		Convey("and some test data in a server", func() {
-			session, err := restore.SessionProvider.GetSession()
-			So(err, ShouldBeNil)
-			_, insertErr := session.Database(ExistsDB).
-				Collection("one").
-				InsertOne(t.Context(), bson.M{})
-			So(insertErr, ShouldBeNil)
-			_, insertErr = session.Database(ExistsDB).
-				Collection("two").
-				InsertOne(t.Context(), bson.M{})
-			So(insertErr, ShouldBeNil)
-			_, insertErr = session.Database(ExistsDB).
-				Collection("three").
-				InsertOne(t.Context(), bson.M{})
-			So(insertErr, ShouldBeNil)
-
-			Convey("collections that exist should return true", func() {
-				exists, err := restore.CollectionExists(ExistsDB, "one")
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-				exists, err = restore.CollectionExists(ExistsDB, "two")
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-				exists, err = restore.CollectionExists(ExistsDB, "three")
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-
-				Convey("and those that do not exist should return false", func() {
-					exists, err = restore.CollectionExists(ExistsDB, "four")
-					So(err, ShouldBeNil)
-					So(exists, ShouldBeFalse)
-				})
-			})
-
-			Reset(func() {
-				err = session.Database(ExistsDB).Drop(t.Context())
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("and a fake cache should be used instead of the server when it exists", func() {
-			restore.knownCollections = map[string][]string{
-				ExistsDB: {"cats", "dogs", "snakes"},
-			}
-			exists, err := restore.CollectionExists(ExistsDB, "dogs")
-			So(err, ShouldBeNil)
-			So(exists, ShouldBeTrue)
-			exists, err = restore.CollectionExists(ExistsDB, "two")
-			So(err, ShouldBeNil)
-			So(exists, ShouldBeFalse)
-		})
+		exists, err := restore.CollectionExists(ExistsDB, "dogs")
+		require.NoError(t, err, "should check a known collection")
+		assert.True(t, exists, "dogs should be reported present from the known collections cache")
+		exists, err = restore.CollectionExists(ExistsDB, "two")
+		require.NoError(t, err, "should check a collection not in the cache")
+		assert.False(
+			t,
+			exists,
+			"two should not be reported present since it is not in the known collections cache",
+		)
 	})
 }
 
-func TestGetDumpAuthVersion(t *testing.T) {
+// newCollectionExistsRestore returns a MongoRestore with a fresh session
+// provider and registers a cleanup that closes it, mirroring the original's
+// defer sessionProvider.Close(). Dropping ExistsDB is the caller's
+// responsibility: only the subtest that inserts data needs to register that
+// cleanup, matching the scope of the GoConvey Reset this replaces, which
+// only ran on the "and some test data in a server" leaf.
+func newCollectionExistsRestore(t *testing.T) *MongoRestore {
+	t.Helper()
 
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "should get a session provider")
+	t.Cleanup(sessionProvider.Close)
+
+	return &MongoRestore{SessionProvider: sessionProvider}
+}
+
+func TestGetDumpAuthVersion(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	restore := &MongoRestore{}
 
 	version := db.Version{8, 0, 0}
 
-	Convey("With a test mongorestore", t, func() {
-		Convey("and no --restoreDbUsersAndRoles", func() {
-			restore = &MongoRestore{
-				InputOptions: &InputOptions{},
-				ToolOptions:  &commonOpts.ToolOptions{},
-				NSOptions:    &NSOptions{},
-			}
-			Convey("auth version 1 should be detected", func() {
-				restore.manager = intents.NewIntentManager()
-				version, err := restore.GetDumpAuthVersion()
-				So(err, ShouldBeNil)
-				So(version, ShouldEqual, 1)
+	t.Run("and no --restoreDbUsersAndRoles", func(t *testing.T) {
+		cases := []struct {
+			name            string
+			authVersionFile string
+			expectedVersion int
+		}{
+			{"auth version 1 should be detected", "", 1},
+			{"auth version 3 should be detected", "testdata/auth_version_3.bson", 3},
+			{"auth version 5 should be detected", "testdata/auth_version_5.bson", 5},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				restore := &MongoRestore{
+					InputOptions: &InputOptions{},
+					ToolOptions:  &commonOpts.ToolOptions{},
+					NSOptions:    &NSOptions{},
+					manager:      intents.NewIntentManager(),
+				}
+				if tc.authVersionFile != "" {
+					putAuthVersionIntent(restore, version, tc.authVersionFile)
+				}
+
+				got, err := restore.GetDumpAuthVersion()
+				require.NoError(t, err, "should determine the auth version")
+				assert.Equal(
+					t,
+					tc.expectedVersion,
+					got,
+					"should detect auth version %d",
+					tc.expectedVersion,
+				)
 			})
-
-			Convey("auth version 3 should be detected", func() {
-				restore.manager = intents.NewIntentManager()
-				intent := &intents.Intent{
-					ServerVersion: version,
-					DB:            "admin",
-					C:             "system.version",
-					Location:      "testdata/auth_version_3.bson",
-				}
-				intent.BSONFile = &realBSONFile{
-					path:   "testdata/auth_version_3.bson",
-					intent: intent,
-				}
-				restore.manager.Put(intent)
-				version, err := restore.GetDumpAuthVersion()
-				So(err, ShouldBeNil)
-				So(version, ShouldEqual, 3)
-			})
-
-			Convey("auth version 5 should be detected", func() {
-				restore.manager = intents.NewIntentManager()
-				intent := &intents.Intent{
-					ServerVersion: version,
-					DB:            "admin",
-					C:             "system.version",
-					Location:      "testdata/auth_version_5.bson",
-				}
-				intent.BSONFile = &realBSONFile{
-					path:   "testdata/auth_version_5.bson",
-					intent: intent,
-				}
-				restore.manager.Put(intent)
-				version, err := restore.GetDumpAuthVersion()
-				So(err, ShouldBeNil)
-				So(version, ShouldEqual, 5)
-			})
-		})
-
-		Convey("using --restoreDbUsersAndRoles", func() {
-			restore = &MongoRestore{
-				InputOptions: &InputOptions{
-					RestoreDBUsersAndRoles: true,
-				},
-				ToolOptions: &commonOpts.ToolOptions{
-					Namespace: &commonOpts.Namespace{
-						DB: "TestDB",
-					},
-				},
-			}
-
-			Convey("auth version 3 should be detected when no file exists", func() {
-				restore.manager = intents.NewIntentManager()
-				version, err := restore.GetDumpAuthVersion()
-				So(err, ShouldBeNil)
-				So(version, ShouldEqual, 3)
-			})
-
-			Convey("auth version 3 should be detected when a version 3 file exists", func() {
-				restore.manager = intents.NewIntentManager()
-				intent := &intents.Intent{
-					ServerVersion: version,
-					DB:            "admin",
-					C:             "system.version",
-					Location:      "testdata/auth_version_3.bson",
-				}
-				intent.BSONFile = &realBSONFile{
-					path:   "testdata/auth_version_3.bson",
-					intent: intent,
-				}
-				restore.manager.Put(intent)
-				version, err := restore.GetDumpAuthVersion()
-				So(err, ShouldBeNil)
-				So(version, ShouldEqual, 3)
-			})
-
-			Convey("auth version 5 should be detected", func() {
-				restore.manager = intents.NewIntentManager()
-				intent := &intents.Intent{
-					ServerVersion: version,
-					DB:            "admin",
-					C:             "system.version",
-					Location:      "testdata/auth_version_5.bson",
-				}
-				intent.BSONFile = &realBSONFile{
-					path:   "testdata/auth_version_5.bson",
-					intent: intent,
-				}
-				restore.manager.Put(intent)
-				version, err := restore.GetDumpAuthVersion()
-				So(err, ShouldBeNil)
-				So(version, ShouldEqual, 5)
-			})
-
-			Convey("when system.version does not contain authSchema document", func() {
-				Convey("should return an error for dump server versions pre 8.1.0", func() {
-					restore.dumpServerVersion = db.Version{8, 0, 0}
-					restore.manager = intents.NewIntentManager()
-					intent := &intents.Intent{
-						ServerVersion: version,
-						DB:            "admin",
-						C:             "system.version",
-						Location:      "testdata/system.version.no_auth_schema.bson",
-					}
-					intent.BSONFile = &realBSONFile{
-						path:   "testdata/system.version.no_auth_schema.bson",
-						intent: intent,
-					}
-					restore.manager.Put(intent)
-					_, err := restore.GetDumpAuthVersion()
-					So(err, ShouldNotBeNil)
-				})
-
-				Convey("auth version 5 should be detected for dump server version 8.1.0+", func() {
-					restore.dumpServerVersion = db.Version{8, 1, 0}
-					version, err := restore.GetDumpAuthVersion()
-					So(err, ShouldBeNil)
-					So(version, ShouldEqual, 5)
-				})
-			})
-		})
+		}
 	})
 
+	t.Run("using --restoreDbUsersAndRoles", func(t *testing.T) {
+		cases := []struct {
+			name            string
+			authVersionFile string
+			expectedVersion int
+		}{
+			{"auth version 3 should be detected when no file exists", "", 3},
+			{
+				"auth version 3 should be detected when a version 3 file exists",
+				"testdata/auth_version_3.bson",
+				3,
+			},
+			{"auth version 5 should be detected", "testdata/auth_version_5.bson", 5},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				restore := newRestoreDBUsersAndRoles()
+				if tc.authVersionFile != "" {
+					putAuthVersionIntent(restore, version, tc.authVersionFile)
+				}
+
+				got, err := restore.GetDumpAuthVersion()
+				require.NoError(t, err, "should determine the auth version")
+				assert.Equal(
+					t,
+					tc.expectedVersion,
+					got,
+					"should detect auth version %d",
+					tc.expectedVersion,
+				)
+			})
+		}
+
+		t.Run(
+			"without an authSchema document should error for dump server versions pre 8.1.0",
+			func(t *testing.T) {
+				restore := newRestoreDBUsersAndRoles()
+				restore.dumpServerVersion = db.Version{8, 0, 0}
+				putAuthVersionIntent(
+					restore,
+					version,
+					"testdata/system.version.no_auth_schema.bson",
+				)
+
+				_, err := restore.GetDumpAuthVersion()
+				require.Error(
+					t,
+					err,
+					"should reject a dump with no authSchema document below server version 8.1.0",
+				)
+			},
+		)
+
+		t.Run(
+			"without an authSchema document should detect auth version 5 for dump server version 8.1.0+",
+			func(t *testing.T) {
+				restore := newRestoreDBUsersAndRoles()
+				restore.dumpServerVersion = db.Version{8, 1, 0}
+
+				got, err := restore.GetDumpAuthVersion()
+				require.NoError(t, err, "should determine the auth version")
+				assert.Equal(
+					t,
+					5,
+					got,
+					"should default to auth version 5 for dump server version 8.1.0+",
+				)
+			},
+		)
+	})
+}
+
+// putAuthVersionIntent adds an intent for testdata/system.version at the
+// given location, so GetDumpAuthVersion can read the authSchema document it
+// contains.
+func putAuthVersionIntent(restore *MongoRestore, version db.Version, location string) {
+	intent := &intents.Intent{
+		ServerVersion: version,
+		DB:            "admin",
+		C:             "system.version",
+		Location:      location,
+	}
+	intent.BSONFile = &realBSONFile{
+		path:   location,
+		intent: intent,
+	}
+	restore.manager.Put(intent)
+}
+
+// newRestoreDBUsersAndRoles builds the MongoRestore fixture shared by the
+// "using --restoreDbUsersAndRoles" scenarios.
+func newRestoreDBUsersAndRoles() *MongoRestore {
+	return &MongoRestore{
+		InputOptions: &InputOptions{
+			RestoreDBUsersAndRoles: true,
+		},
+		ToolOptions: &commonOpts.ToolOptions{
+			Namespace: &commonOpts.Namespace{
+				DB: "TestDB",
+			},
+		},
+		manager: intents.NewIntentManager(),
+	}
 }
 
 const indexCollationTestDataFile = "testdata/index_collation.json"
@@ -285,9 +298,7 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	metadata, err := readCollationTestData(indexCollationTestDataFile)
-	if err != nil {
-		t.Fatalf("Error reading data file: %v", err)
-	}
+	require.NoError(t, err, "should read the collation test data file")
 
 	dumpDir := testDumpDir{
 		dirName: "index_collation",
@@ -298,22 +309,18 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 	}
 
 	err = dumpDir.Create()
-	if err != nil {
-		t.Fatalf("Error reading data file: %v", err)
+	require.NoError(t, err, "should create the dump directory")
+
+	args := []string{
+		DropOption,
+		dumpDir.Path(),
 	}
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			DropOption,
-			dumpDir.Path(),
-		}
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-	})
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore the collection with its simple collation")
 }
 
 func TestAutoIndexIdHandling(t *testing.T) {

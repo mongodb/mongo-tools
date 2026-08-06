@@ -19,7 +19,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongodump"
 	"github.com/pkg/errors"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -46,108 +46,96 @@ var (
 func TestMongorestoreShortArchive(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	require.NoError(t, err, "must connect to the server")
+
+	args := []string{
+		ArchiveOption + "=" + testArchive,
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+		DropOption,
 	}
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			ArchiveOption + "=" + testArchive,
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			DropOption,
+	file, err := os.Open(testArchive)
+	require.NotNil(t, file, "should open the test archive")
+	require.NoError(t, err, "should open the test archive")
+
+	fi, err := file.Stat()
+	require.NotNil(t, fi, "should stat the test archive")
+	require.NoError(t, err, "should stat the test archive")
+
+	fileSize := fi.Size()
+
+	for i := fileSize; i >= 0; i -= fileSize / 10 {
+		log.Logvf(
+			log.Always,
+			"Restoring from the first %v bytes of a archive of size %v",
+			i,
+			fileSize,
+		)
+
+		_, err = file.Seek(0, 0)
+		require.NoError(t, err, "should seek back to the start of the archive")
+
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should build a restore instance")
+		defer restore.Close()
+
+		restore.archive = &archive.Reader{
+			Prelude: &archive.Prelude{},
+			In:      io.NopCloser(io.LimitReader(file, i)),
 		}
 
-		file, err := os.Open(testArchive)
-		So(file, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-
-		fi, err := file.Stat()
-		So(fi, ShouldNotBeNil)
-		So(err, ShouldBeNil)
-
-		fileSize := fi.Size()
-
-		for i := fileSize; i >= 0; i -= fileSize / 10 {
-			log.Logvf(
-				log.Always,
-				"Restoring from the first %v bytes of a archive of size %v",
-				i,
-				fileSize,
-			)
-
-			_, err = file.Seek(0, 0)
-			So(err, ShouldBeNil)
-
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
-			defer restore.Close()
-
-			restore.archive = &archive.Reader{
-				Prelude: &archive.Prelude{},
-				In:      io.NopCloser(io.LimitReader(file, i)),
-			}
-
-			result := restore.Restore()
-			if i == fileSize {
-				So(result.Err, ShouldBeNil)
-			} else {
-				So(result.Err, ShouldNotBeNil)
-			}
+		result := restore.Restore()
+		if i == fileSize {
+			require.NoError(t, result.Err, "should restore a complete archive")
+		} else {
+			require.Error(t, result.Err, "should error on a truncated archive")
 		}
-	})
+	}
 }
 
 func TestMongorestoreArchiveWithOplog(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	require.NoError(t, err, "must connect to the server")
+
+	args := []string{
+		ArchiveOption + "=" + testArchiveWithOplog,
+		OplogReplayOption,
+		DropOption,
 	}
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			ArchiveOption + "=" + testArchiveWithOplog,
-			OplogReplayOption,
-			DropOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
-		So(result.Successes, ShouldNotEqual, 0)
-	})
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore the archive with oplog replay")
+	assert.EqualValues(t, 0, result.Failures, "should have no restore failures")
+	assert.NotEqualValues(t, 0, result.Successes, "should have at least one successful restore")
 }
 
 func TestMongorestoreBadFormatArchive(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	require.NoError(t, err, "must connect to the server")
+
+	args := []string{
+		ArchiveOption + "=" + testBadFormatArchive,
+		DropOption,
 	}
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			ArchiveOption + "=" + testBadFormatArchive,
-			DropOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		result := restore.Restore()
-		Convey(
-			"A mongorestore on an archive with a bad format should error out instead of hang",
-			func() {
-				So(result.Err, ShouldNotBeNil)
-				So(result.Failures, ShouldEqual, 0)
-				So(result.Successes, ShouldEqual, 0)
-			},
-		)
-	})
+	result := restore.Restore()
+	require.Error(t, result.Err, "should error out instead of hang on a bad format archive")
+	assert.EqualValues(t, 0, result.Failures, "should report no failures for a bad format archive")
+	assert.EqualValues(
+		t,
+		0,
+		result.Successes,
+		"should report no successes for a bad format archive",
+	)
 }
 
 // ----------------------------------------------------------------------
@@ -216,13 +204,9 @@ func testRestoreAdminNamespaces(t *testing.T) {
 
 	defer func() {
 		err = testDB.Drop(t.Context())
-		if err != nil {
-			t.Fatalf("Failed to drop test database: %v", err)
-		}
+		require.NoError(err, "should drop the test database")
 		err = adminSuffixedDB.Drop(t.Context())
-		if err != nil {
-			t.Fatalf("Failed to drop admin suffixed database: %v", err)
-		}
+		require.NoError(err, "should drop the admin suffixed database")
 	}()
 
 	testCases := restoreNamespaceTestCases{
@@ -269,13 +253,9 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 	adminSuffixedDB := session.Database(adminSuffixedDBName)
 	defer func() {
 		err = testDB.Drop(t.Context())
-		if err != nil {
-			t.Fatalf("Failed to drop test database: %v", err)
-		}
+		require.NoError(err, "should drop the test database")
 		err = adminSuffixedDB.Drop(t.Context())
-		if err != nil {
-			t.Fatalf("Failed to drop admin suffixed database: %v", err)
-		}
+		require.NoError(err, "should drop the admin suffixed database")
 	}()
 
 	testCases := restoreNamespaceTestCases{
