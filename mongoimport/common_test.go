@@ -12,7 +12,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"golang.org/x/sync/errgroup"
 )
@@ -100,484 +101,557 @@ var (
 func TestValidateFields(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given an import input, in validating the headers", t, func() {
-		Convey("if the fields contain '..', an error should be thrown", func() {
-			So(validateFields([]string{"a..a"}, false), ShouldNotBeNil)
-		})
-		Convey("if the fields start/end in a '.', an error should be thrown", func() {
-			So(validateFields([]string{".a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a."}, false), ShouldNotBeNil)
-		})
-		Convey("if the fields start in a '$', an error should be thrown", func() {
-			So(validateFields([]string{"$.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"$"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"$a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a$a"}, false), ShouldBeNil)
-		})
-		Convey("if the fields collide, an error should be thrown", func() {
-			So(validateFields([]string{"a", "a.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a", "a.ba", "b.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a", "a.ba", "b.a"}, false), ShouldNotBeNil)
-			So(validateFields([]string{"a", "a.b.c"}, false), ShouldNotBeNil)
-		})
-		Convey("if the fields don't collide, no error should be thrown", func() {
-			So(validateFields([]string{"a", "aa"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "aa", "b.a", "b.c"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "ba", "ab", "b.a"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "ba", "ab", "b.a", "b.c.d"}, false), ShouldBeNil)
-			So(validateFields([]string{"a", "ab.c"}, false), ShouldBeNil)
-		})
-		Convey("if the fields contain the same keys, an error should be thrown", func() {
-			So(validateFields([]string{"a", "ba", "a"}, false), ShouldNotBeNil)
-		})
-	})
+	cases := []struct {
+		name    string
+		fields  []string
+		wantErr bool
+	}{
+		{"a field containing '..'", []string{"a..a"}, true},
+		{"a field starting in a '.'", []string{".a"}, true},
+		{"a field ending in a '.'", []string{"a."}, true},
+		{"a field starting with '$.'", []string{"$.a"}, true},
+		{"a field that is just '$'", []string{"$"}, true},
+		{"a field starting with '$'", []string{"$a"}, true},
+		{"a field with '$' not in the leading position", []string{"a$a"}, false},
+		{"fields colliding on a nested prefix", []string{"a", "a.a"}, true},
+		{"fields colliding on a shared nested prefix", []string{"a", "a.ba", "b.a"}, true},
+		{
+			"fields colliding on the same shared nested prefix again",
+			[]string{"a", "a.ba", "b.a"},
+			true,
+		},
+		{"fields colliding several levels deep", []string{"a", "a.b.c"}, true},
+		{"fields sharing only a common substring", []string{"a", "aa"}, false},
+		{"several fields sharing only common substrings", []string{"a", "aa", "b.a", "b.c"}, false},
+		{"unrelated top-level and nested fields", []string{"a", "ba", "ab", "b.a"}, false},
+		{
+			"unrelated top-level and deeply nested fields",
+			[]string{"a", "ba", "ab", "b.a", "b.c.d"},
+			false,
+		},
+		{"a top-level field and an unrelated nested field", []string{"a", "ab.c"}, false},
+		{"the same field repeated", []string{"a", "ba", "a"}, true},
+	}
+
+	for _, tc := range cases {
+		err := validateFields(tc.fields, false)
+		if tc.wantErr {
+			assert.Error(t, err, "should reject %s", tc.name)
+		} else {
+			assert.NoError(t, err, "should accept %s", tc.name)
+		}
+	}
 }
 
 func TestGetUpsertValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given a field and a BSON document, on calling getUpsertValue", t, func() {
-		Convey("the value of the key should be correct for unnested documents", func() {
-			bsonDocument := bson.D{{"a", 3}}
-			So(getUpsertValue("a", bsonDocument), ShouldEqual, 3)
-		})
-		Convey("the value of the key should be correct for nested document fields", func() {
-			inner := bson.D{{"b", 4}}
-			bsonDocument := bson.D{{"a", inner}}
-			So(getUpsertValue("a.b", bsonDocument), ShouldEqual, 4)
-		})
-		Convey("the value of the key should be correct for nested document pointer fields", func() {
-			inner := bson.D{{"b", 4}}
-			bsonDocument := bson.D{{"a", &inner}}
-			So(getUpsertValue("a.b", bsonDocument), ShouldEqual, 4)
-		})
-		Convey("the value of the key should be nil for unnested document "+
-			"fields that do not exist", func() {
-			bsonDocument := bson.D{{"a", 4}}
-			So(getUpsertValue("c", bsonDocument), ShouldBeNil)
-		})
-		Convey("the value of the key should be nil for nested document "+
-			"fields that do not exist", func() {
-			inner := bson.D{{"b", 4}}
-			bsonDocument := bson.D{{"a", inner}}
-			So(getUpsertValue("a.c", bsonDocument), ShouldBeNil)
-		})
-		Convey("the value of the key should be nil for nested document pointer "+
-			"fields that do not exist", func() {
-			inner := bson.D{{"b", 4}}
-			bsonDocument := bson.D{{"a", &inner}}
-			So(getUpsertValue("a.c", bsonDocument), ShouldBeNil)
-		})
-		Convey("the value of the key should be nil for nil document values", func() {
-			So(getUpsertValue("a", bson.D{{"a", nil}}), ShouldBeNil)
-		})
-	})
+	inner := bson.D{{"b", 4}}
+	cases := []struct {
+		name     string
+		doc      bson.D
+		key      string
+		expected any
+	}{
+		{"an unnested document", bson.D{{"a", 3}}, "a", 3},
+		{"a nested document", bson.D{{"a", inner}}, "a.b", 4},
+		{"a nested document pointer", bson.D{{"a", &inner}}, "a.b", 4},
+		{"an unnested key that does not exist", bson.D{{"a", 4}}, "c", nil},
+		{"a nested key that does not exist", bson.D{{"a", inner}}, "a.c", nil},
+		{"a nested document pointer key that does not exist", bson.D{{"a", &inner}}, "a.c", nil},
+		{"a nil document value", bson.D{{"a", nil}}, "a", nil},
+	}
+
+	for _, tc := range cases {
+		actual := getUpsertValue(tc.key, tc.doc)
+		if tc.expected == nil {
+			assert.Nil(t, actual, "should return the value of the key for %s", tc.name)
+		} else {
+			assert.Equal(t, tc.expected, actual, "should return the value of the key for %s", tc.name)
+		}
+	}
 }
 
 func TestConstructUpsertDocument(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given a set of upsert fields and a BSON document, on calling "+
-		"constructUpsertDocument", t, func() {
-		Convey("the key/value combination in the upsert document should be "+
-			"correct for unnested documents with single fields", func() {
-			bsonDocument := bson.D{{"a", 3}}
-			upsertFields := []string{"a"}
-			upsertDocument := constructUpsertDocument(upsertFields,
-				bsonDocument)
-			So(upsertDocument, ShouldResemble, bsonDocument)
+	cases := []struct {
+		name     string
+		doc      bson.D
+		fields   []string
+		expected bson.D
+	}{
+		{
+			name:     "a single field on an unnested document",
+			doc:      bson.D{{"a", 3}},
+			fields:   []string{"a"},
+			expected: bson.D{{"a", 3}},
+		},
+		{
+			name:     "one of several fields on an unnested document",
+			doc:      bson.D{{"a", 3}, {"b", "string value"}},
+			fields:   []string{"a"},
+			expected: bson.D{{"a", 3}},
+		},
+		{
+			name: "a nested field on a document with several fields",
+			doc: bson.D{
+				{"a", bson.D{{testCollection, 4}}},
+				{"b", "string value"},
+			},
+			fields:   []string{"a.c"},
+			expected: bson.D{{"a.c", 4}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			upsertDocument := constructUpsertDocument(tc.fields, tc.doc)
+			assert.Equal(t, tc.expected, upsertDocument, "should build the upsert document")
 		})
-		Convey("the key/value combination in the upsert document should be "+
-			"correct for unnested documents with several fields", func() {
-			bsonDocument := bson.D{{"a", 3}, {"b", "string value"}}
-			upsertFields := []string{"a"}
-			expectedDocument := bson.D{{"a", 3}}
-			upsertDocument := constructUpsertDocument(upsertFields,
-				bsonDocument)
-			So(upsertDocument, ShouldResemble, expectedDocument)
-		})
-		Convey("the key/value combination in the upsert document should be "+
-			"correct for nested documents with several fields", func() {
-			inner := bson.D{{testCollection, 4}}
-			bsonDocument := bson.D{{"a", inner}, {"b", "string value"}}
-			upsertFields := []string{"a.c"}
-			expectedDocument := bson.D{{"a.c", 4}}
-			upsertDocument := constructUpsertDocument(upsertFields,
-				bsonDocument)
-			So(upsertDocument, ShouldResemble, expectedDocument)
-		})
-		Convey("the upsert document should be nil if the key does not exist "+
-			"in the BSON document", func() {
-			bsonDocument := bson.D{{"a", 3}, {"b", "string value"}}
-			upsertFields := []string{testCollection}
-			upsertDocument := constructUpsertDocument(upsertFields, bsonDocument)
-			So(upsertDocument, ShouldBeNil)
-		})
+	}
+
+	t.Run("a key that does not exist in the document", func(t *testing.T) {
+		doc := bson.D{{"a", 3}, {"b", "string value"}}
+		upsertDocument := constructUpsertDocument([]string{testCollection}, doc)
+		assert.Nil(t, upsertDocument, "should return no upsert document when the key is absent")
 	})
 }
 
 func TestSetNestedDocumentValue(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given a field, its value, and an existing BSON document...", t, func() {
-		b := bson.D{{"c", "d"}}
-		currentDocument := bson.D{
-			{"a", 3},
-			{"b", &b},
-		}
-		Convey("ensure top level fields are set and others, unchanged", func() {
-			testDocument := &currentDocument
-			expectedDocument := bson.E{"c", 4}
-			err := setNestedDocumentValue([]string{"c"}, 4, testDocument, false)
-			So(err, ShouldBeNil)
-			newDocument := *testDocument
-			So(len(newDocument), ShouldEqual, 3)
-			So(newDocument[2], ShouldResemble, expectedDocument)
-		})
-		Convey("ensure new nested top-level fields are set and others, unchanged", func() {
-			testDocument := &currentDocument
-			expectedDocument := bson.D{{"b", "4"}}
-			err := setNestedDocumentValue([]string{"c", "b"}, "4", testDocument, false)
-			So(err, ShouldBeNil)
-			newDocument := *testDocument
-			So(len(newDocument), ShouldEqual, 3)
-			So(newDocument[2].Key, ShouldResemble, "c")
+	t.Run("top level fields are set and others unchanged", func(t *testing.T) {
+		testDocument := newNestedValueTestDocument()
+		expectedDocument := bson.E{"c", 4}
 
-			valMap, ok := newDocument[2].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
+		err := setNestedDocumentValue([]string{"c"}, 4, testDocument, false)
+		require.NoError(t, err, "should set the new top-level field")
 
-			So(*valMap, ShouldResemble, expectedDocument)
-		})
-		Convey("ensure existing nested level fields are set and others, unchanged", func() {
-			testDocument := &currentDocument
-			expectedDocument := bson.D{{"c", "d"}, {"d", 9}}
-			err := setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
-			So(err, ShouldBeNil)
-			newDocument := *testDocument
-			So(len(newDocument), ShouldEqual, 2)
-			So(newDocument[1].Key, ShouldResemble, "b")
-
-			valMap, ok := newDocument[1].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(*valMap, ShouldResemble, expectedDocument)
-		})
-		Convey("ensure subsequent calls update fields accordingly", func() {
-			testDocument := &currentDocument
-			expectedDocumentOne := bson.D{{"c", "d"}, {"d", 9}}
-			expectedDocumentTwo := bson.E{"f", 23}
-			err := setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
-			So(err, ShouldBeNil)
-			newDocument := *testDocument
-			So(len(newDocument), ShouldEqual, 2)
-			So(newDocument[1].Key, ShouldResemble, "b")
-
-			valDoc, ok := newDocument[1].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(*valDoc, ShouldResemble, expectedDocumentOne)
-			err = setNestedDocumentValue([]string{"f"}, 23, testDocument, false)
-			So(err, ShouldBeNil)
-			newDocument = *testDocument
-			So(len(newDocument), ShouldEqual, 3)
-			So(newDocument[2], ShouldResemble, expectedDocumentTwo)
-		})
+		newDocument := *testDocument
+		require.Equal(t, 3, len(newDocument), "should add exactly one field")
+		assert.Equal(t, expectedDocument, newDocument[2], "should set the field to the given value")
 	})
+
+	t.Run("new nested top-level fields are set and others unchanged", func(t *testing.T) {
+		testDocument := newNestedValueTestDocument()
+		expectedDocument := bson.D{{"b", "4"}}
+
+		err := setNestedDocumentValue([]string{"c", "b"}, "4", testDocument, false)
+		require.NoError(t, err, "should set the new nested field")
+
+		newDocument := *testDocument
+		require.Equal(t, 3, len(newDocument), "should add exactly one top-level field")
+		assert.Equal(t, "c", newDocument[2].Key, "should nest the new field under the given key")
+
+		valMap, ok := newDocument[2].Value.(*bson.D)
+		require.True(t, ok, "should store the nested field as a document pointer")
+
+		assert.Equal(t, expectedDocument, *valMap, "should set the nested field to the given value")
+	})
+
+	t.Run("existing nested level fields are set and others unchanged", func(t *testing.T) {
+		testDocument := newNestedValueTestDocument()
+		expectedDocument := bson.D{{"c", "d"}, {"d", 9}}
+
+		err := setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
+		require.NoError(t, err, "should set the existing nested field")
+
+		newDocument := *testDocument
+		require.Equal(t, 2, len(newDocument), "should not add a new top-level field")
+		assert.Equal(t, "b", newDocument[1].Key, "should update the existing nested key")
+
+		valMap, ok := newDocument[1].Value.(*bson.D)
+		require.True(t, ok, "should store the nested field as a document pointer")
+
+		assert.Equal(
+			t,
+			expectedDocument,
+			*valMap,
+			"should add the new nested field alongside the existing one",
+		)
+	})
+
+	t.Run("subsequent calls update fields accordingly", func(t *testing.T) {
+		testDocument := newNestedValueTestDocument()
+		expectedDocumentOne := bson.D{{"c", "d"}, {"d", 9}}
+		expectedDocumentTwo := bson.E{"f", 23}
+
+		err := setNestedDocumentValue([]string{"b", "d"}, 9, testDocument, false)
+		require.NoError(t, err, "should set the existing nested field")
+
+		newDocument := *testDocument
+		require.Equal(t, 2, len(newDocument), "should not add a new top-level field")
+		assert.Equal(t, "b", newDocument[1].Key, "should update the existing nested key")
+
+		valDoc, ok := newDocument[1].Value.(*bson.D)
+		require.True(t, ok, "should store the nested field as a document pointer")
+		assert.Equal(
+			t,
+			expectedDocumentOne,
+			*valDoc,
+			"should add the new nested field alongside the existing one",
+		)
+
+		err = setNestedDocumentValue([]string{"f"}, 23, testDocument, false)
+		require.NoError(t, err, "should set the second new top-level field")
+
+		newDocument = *testDocument
+		require.Equal(t, 3, len(newDocument), "should add exactly one more top-level field")
+		assert.Equal(
+			t,
+			expectedDocumentTwo,
+			newDocument[2],
+			"should set the second field to its own value",
+		)
+	})
+}
+
+// GoConvey re-built this document fresh for every leaf it ran, since
+// setNestedDocumentValue mutates it in place; each subtest needs the same
+// fresh start.
+func newNestedValueTestDocument() *bson.D {
+	b := bson.D{{"c", "d"}}
+	currentDocument := bson.D{
+		{"a", 3},
+		{"b", &b},
+	}
+
+	return &currentDocument
 }
 
 func TestRemoveBlankFields(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given an unordered BSON document", t, func() {
-		Convey("the same document should be returned if there are no blanks", func() {
-			bsonDocument := bson.D{{"a", 3}, {"b", "hello"}}
-			So(removeBlankFields(bsonDocument), ShouldResemble, bsonDocument)
-		})
-		Convey("a new document without blanks should be returned if there are "+
-			" blanks", func() {
-			d := bson.D{
-				{"a", ""},
-				{"b", ""},
-			}
-			e := bson.D{
-				{"a", ""},
-				{"b", 1},
-			}
-			bsonDocument := bson.D{
-				{"a", 0},
-				{"b", ""},
-				{"c", ""},
-				{"d", &d},
-				{"e", &e},
-			}
-			inner := bson.D{
-				{"b", 1},
-			}
-			expectedDocument := bson.D{
-				{"a", 0},
-				{"e", inner},
-			}
-			So(removeBlankFields(bsonDocument), ShouldResemble, expectedDocument)
-		})
-	})
+	unblankedDocument := bson.D{{"a", 3}, {"b", "hello"}}
+	assert.Equal(
+		t,
+		unblankedDocument,
+		removeBlankFields(unblankedDocument),
+		"should return the same document unchanged when there are no blanks",
+	)
+
+	d := bson.D{
+		{"a", ""},
+		{"b", ""},
+	}
+	e := bson.D{
+		{"a", ""},
+		{"b", 1},
+	}
+	bsonDocument := bson.D{
+		{"a", 0},
+		{"b", ""},
+		{"c", ""},
+		{"d", &d},
+		{"e", &e},
+	}
+	inner := bson.D{
+		{"b", 1},
+	}
+	expectedDocument := bson.D{
+		{"a", 0},
+		{"e", inner},
+	}
+	assert.Equal(
+		t,
+		expectedDocument,
+		removeBlankFields(bsonDocument),
+		"should drop blank fields including nested ones",
+	)
 }
 
 func TestTokensToBSON(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given an slice of column specs and tokens to convert to BSON", t, func() {
-		Convey("the expected ordered BSON should be produced for the given"+
-			"column specs and tokens", func() {
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			tokens := []string{"1", "2", "hello"}
-			expectedDocument := bson.D{
+	colSpecs := []ColumnSpec{
+		{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+		{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+		{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+	}
+	cases := []struct {
+		name     string
+		tokens   []string
+		expected bson.D
+	}{
+		{
+			name:   "the expected ordered BSON for the given column specs and tokens",
+			tokens: []string{"1", "2", "hello"},
+			expected: bson.D{
 				{"a", int32(1)},
 				{"b", int32(2)},
 				{"c", "hello"},
-			}
-			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false, false)
-			So(err, ShouldBeNil)
-			So(bsonD, ShouldResemble, expectedDocument)
-		})
-		Convey("if there are more tokens than fields, additional fields should be prefixed"+
-			" with 'fields' and an index indicating the header number", func() {
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			tokens := []string{"1", "2", "hello", "mongodb", "user"}
-			expectedDocument := bson.D{
+			},
+		},
+		{
+			name:   "additional tokens are prefixed with 'field' and an index",
+			tokens: []string{"1", "2", "hello", "mongodb", "user"},
+			expected: bson.D{
 				{"a", int32(1)},
 				{"b", int32(2)},
 				{"c", "hello"},
 				{"field3", "mongodb"},
 				{"field4", "user"},
-			}
-			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false, false)
-			So(err, ShouldBeNil)
-			So(bsonD, ShouldResemble, expectedDocument)
-		})
-		Convey("an error should be thrown if duplicate headers are found", func() {
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
-			}
-			tokens := []string{"1", "2", "hello", "mongodb", "user"}
-			_, err := tokensToBSON(colSpecs, tokens, uint64(0), false, false)
-			So(err, ShouldNotBeNil)
-		})
-		Convey("fields with nested values should be set appropriately", func() {
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c.a", new(FieldAutoParser), pgAutoCast, "auto", []string{"c", "a"}},
-			}
-			tokens := []string{"1", "2", "hello"}
-			c := bson.D{
-				{"a", "hello"},
-			}
-			expectedDocument := bson.D{
-				{"a", int32(1)},
-				{"b", int32(2)},
-				{"c", c},
-			}
-			bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false, false)
-			So(err, ShouldBeNil)
-			So(expectedDocument[0].Key, ShouldResemble, bsonD[0].Key)
-			So(expectedDocument[0].Value, ShouldResemble, bsonD[0].Value)
-			So(expectedDocument[1].Key, ShouldResemble, bsonD[1].Key)
-			So(expectedDocument[1].Value, ShouldResemble, bsonD[1].Value)
-			So(expectedDocument[2].Key, ShouldResemble, bsonD[2].Key)
+			},
+		},
+	}
 
-			valueD, ok := bsonD[2].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(expectedDocument[2].Value, ShouldResemble, *valueD)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			bsonD, err := tokensToBSON(colSpecs, tc.tokens, uint64(0), false, false)
+			require.NoError(t, err, "should convert the tokens without error")
+			assert.Equal(t, tc.expected, bsonD, "should produce the expected BSON document")
 		})
+	}
+
+	t.Run("an error is thrown if duplicate headers are found", func(t *testing.T) {
+		colSpecs := []ColumnSpec{
+			{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+			{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+			{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
+		}
+		tokens := []string{"1", "2", "hello", "mongodb", "user"}
+		_, err := tokensToBSON(colSpecs, tokens, uint64(0), false, false)
+		require.Error(t, err, "should reject the duplicate headers")
+	})
+
+	t.Run("fields with nested values are set appropriately", func(t *testing.T) {
+		colSpecs := []ColumnSpec{
+			{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+			{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+			{"c.a", new(FieldAutoParser), pgAutoCast, "auto", []string{"c", "a"}},
+		}
+		tokens := []string{"1", "2", "hello"}
+		c := bson.D{
+			{"a", "hello"},
+		}
+		expectedDocument := bson.D{
+			{"a", int32(1)},
+			{"b", int32(2)},
+			{"c", c},
+		}
+		bsonD, err := tokensToBSON(colSpecs, tokens, uint64(0), false, false)
+		require.NoError(t, err, "should convert the tokens without error")
+		for i := range 2 {
+			assert.Equal(
+				t,
+				bsonD[i].Key,
+				expectedDocument[i].Key,
+				"should keep field %d's key unchanged",
+				i,
+			)
+			assert.Equal(
+				t,
+				bsonD[i].Value,
+				expectedDocument[i].Value,
+				"should keep field %d's value unchanged",
+				i,
+			)
+		}
+		assert.Equal(
+			t,
+			bsonD[2].Key,
+			expectedDocument[2].Key,
+			"should keep the nested key unchanged",
+		)
+
+		valueD, ok := bsonD[2].Value.(*bson.D)
+		require.True(t, ok, "should store the nested field as a document pointer")
+
+		assert.Equal(t, *valueD, expectedDocument[2].Value, "should set the nested value")
 	})
 }
 
 func TestProcessDocuments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Given an import worker", t, func() {
-		index := uint64(0)
-		csvConverters := []CSVConverter{
-			{
-				colSpecs: []ColumnSpec{
-					{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
-					{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
-					{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
-				},
-				data:  []string{"a", "b", "c"},
-				index: index,
+	// read-only: subtests only ever send these converters into a channel
+	index := uint64(0)
+	csvConverters := []CSVConverter{
+		{
+			colSpecs: []ColumnSpec{
+				{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+				{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
+				{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
 			},
-			{
-				colSpecs: []ColumnSpec{
-					{"field4", new(FieldAutoParser), pgAutoCast, "auto", []string{"field4"}},
-					{"field5", new(FieldAutoParser), pgAutoCast, "auto", []string{"field5"}},
-					{"field6", new(FieldAutoParser), pgAutoCast, "auto", []string{"field6"}},
-				},
-				data:  []string{"d", "e", "f"},
-				index: index,
+			data:  []string{"a", "b", "c"},
+			index: index,
+		},
+		{
+			colSpecs: []ColumnSpec{
+				{"field4", new(FieldAutoParser), pgAutoCast, "auto", []string{"field4"}},
+				{"field5", new(FieldAutoParser), pgAutoCast, "auto", []string{"field5"}},
+				{"field6", new(FieldAutoParser), pgAutoCast, "auto", []string{"field6"}},
 			},
+			data:  []string{"d", "e", "f"},
+			index: index,
+		},
+	}
+	expectedDocuments := []bson.D{
+		{
+			{"field1", "a"},
+			{"field2", "b"},
+			{"field3", "c"},
+		}, {
+			{"field4", "d"},
+			{"field5", "e"},
+			{"field6", "f"},
+		},
+	}
+
+	t.Run("closes the input channel when ordered is true", func(t *testing.T) {
+		docsInChan := make(chan Converter, 100)
+		streamOutChan := make(chan bson.D, 100)
+		iw := &importWorker{
+			unprocessedDataChan:   docsInChan,
+			processedDocumentChan: streamOutChan,
 		}
-		expectedDocuments := []bson.D{
-			{
-				{"field1", "a"},
-				{"field2", "b"},
-				{"field3", "c"},
-			}, {
-				{"field4", "d"},
-				{"field5", "e"},
-				{"field6", "f"},
-			},
+		docsInChan <- csvConverters[0]
+		docsInChan <- csvConverters[1]
+		close(docsInChan)
+
+		require.NoError(
+			t,
+			iw.processDocuments(t.Context(), true),
+			"should process every queued document",
+		)
+
+		doc1, open := <-streamOutChan
+		assert.Equal(t, expectedDocuments[0], doc1, "should emit the first converted document")
+		assert.True(t, open, "should keep the output channel open after the first read")
+		doc2, open := <-streamOutChan
+		assert.Equal(t, expectedDocuments[1], doc2, "should emit the second converted document")
+		assert.True(t, open, "should keep the output channel open after the second read")
+		_, open = <-streamOutChan
+		assert.False(t, open, "should close the output channel once ordered processing finishes")
+	})
+
+	t.Run("leaves the input channel open when ordered is false", func(t *testing.T) {
+		docsInChan := make(chan Converter, 100)
+		streamOutChan := make(chan bson.D, 100)
+		iw := &importWorker{
+			unprocessedDataChan:   docsInChan,
+			processedDocumentChan: streamOutChan,
 		}
-		Convey("processDocuments should execute the expected conversion for documents, "+
-			"pass then on the output channel, and close the input channel if ordered is true", func() {
-			docsInChan := make(chan Converter, 100)
-			streamOutChan := make(chan bson.D, 100)
-			iw := &importWorker{
-				unprocessedDataChan:   docsInChan,
-				processedDocumentChan: streamOutChan,
-			}
-			docsInChan <- csvConverters[0]
-			docsInChan <- csvConverters[1]
-			close(docsInChan)
-			So(iw.processDocuments(t.Context(), true), ShouldBeNil)
-			doc1, open := <-streamOutChan
-			So(doc1, ShouldResemble, expectedDocuments[0])
-			So(open, ShouldEqual, true)
-			doc2, open := <-streamOutChan
-			So(doc2, ShouldResemble, expectedDocuments[1])
-			So(open, ShouldEqual, true)
-			_, open = <-streamOutChan
-			So(open, ShouldEqual, false)
-		})
-		Convey("processDocuments should execute the expected conversion for documents, "+
-			"pass then on the output channel, and leave the input channel open if ordered is false", func() {
-			docsInChan := make(chan Converter, 100)
-			streamOutChan := make(chan bson.D, 100)
-			iw := &importWorker{
-				unprocessedDataChan:   docsInChan,
-				processedDocumentChan: streamOutChan,
-			}
-			docsInChan <- csvConverters[0]
-			docsInChan <- csvConverters[1]
-			close(docsInChan)
-			So(iw.processDocuments(t.Context(), false), ShouldBeNil)
-			doc1, open := <-streamOutChan
-			So(doc1, ShouldResemble, expectedDocuments[0])
-			So(open, ShouldEqual, true)
-			doc2, open := <-streamOutChan
-			So(doc2, ShouldResemble, expectedDocuments[1])
-			So(open, ShouldEqual, true)
-			// close will throw a runtime error if streamOutChan is already closed
-			close(streamOutChan)
-		})
+		docsInChan <- csvConverters[0]
+		docsInChan <- csvConverters[1]
+		close(docsInChan)
+
+		require.NoError(
+			t,
+			iw.processDocuments(t.Context(), false),
+			"should process every queued document",
+		)
+
+		doc1, open := <-streamOutChan
+		assert.Equal(t, expectedDocuments[0], doc1, "should emit the first converted document")
+		assert.True(t, open, "should keep the output channel open after the first read")
+		doc2, open := <-streamOutChan
+		assert.Equal(t, expectedDocuments[1], doc2, "should emit the second converted document")
+		assert.True(t, open, "should keep the output channel open after the second read")
+
+		// close would panic if unordered processing had already closed streamOutChan
+		close(streamOutChan)
 	})
 }
 
 func TestDoSequentialStreaming(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey(
-		"Given some import workers, a Converters input channel and an bson.D output channel",
-		t,
-		func() {
-			docsInChan := make(chan Converter, 5)
-			streamOutChan := make(chan bson.D, 5)
-			workerInputChannel := []chan Converter{
-				make(chan Converter),
-				make(chan Converter),
-			}
-			workerOutputChannel := []chan bson.D{
-				make(chan bson.D),
-				make(chan bson.D),
-			}
-			importWorkers := []*importWorker{
-				{
-					unprocessedDataChan:   workerInputChannel[0],
-					processedDocumentChan: workerOutputChannel[0],
-				},
-				{
-					unprocessedDataChan:   workerInputChannel[1],
-					processedDocumentChan: workerOutputChannel[1],
-				},
-			}
-			Convey(
-				"documents moving through the input channel should be processed and returned in sequence",
-				func() {
-					eg, ctx := errgroup.WithContext(t.Context())
-
-					// start goroutines to do sequential processing
-					for _, iw := range importWorkers {
-						eg.Go(
-							func() error { return iw.processDocuments(ctx, true) },
-						)
-					}
-					// feed in a bunch of documents
-					for _, inputCSVDocument := range csvConverters {
-						docsInChan <- inputCSVDocument
-					}
-					close(docsInChan)
-					doSequentialStreaming(ctx, eg, importWorkers, docsInChan, streamOutChan)
-					for _, document := range expectedDocuments {
-						So(<-streamOutChan, ShouldResemble, document)
-					}
-				},
-			)
+	docsInChan := make(chan Converter, 5)
+	streamOutChan := make(chan bson.D, 5)
+	workerInputChannel := []chan Converter{
+		make(chan Converter),
+		make(chan Converter),
+	}
+	workerOutputChannel := []chan bson.D{
+		make(chan bson.D),
+		make(chan bson.D),
+	}
+	importWorkers := []*importWorker{
+		{
+			unprocessedDataChan:   workerInputChannel[0],
+			processedDocumentChan: workerOutputChannel[0],
 		},
-	)
+		{
+			unprocessedDataChan:   workerInputChannel[1],
+			processedDocumentChan: workerOutputChannel[1],
+		},
+	}
+
+	eg, ctx := errgroup.WithContext(t.Context())
+
+	// start goroutines to do sequential processing
+	for _, iw := range importWorkers {
+		eg.Go(
+			func() error { return iw.processDocuments(ctx, true) },
+		)
+	}
+	// feed in a bunch of documents
+	for _, inputCSVDocument := range csvConverters {
+		docsInChan <- inputCSVDocument
+	}
+	close(docsInChan)
+	doSequentialStreaming(ctx, eg, importWorkers, docsInChan, streamOutChan)
+	for _, document := range expectedDocuments {
+		assert.Equal(
+			t,
+			document,
+			<-streamOutChan,
+			"should process and return documents from the input channel in sequence",
+		)
+	}
 }
 
 func TestStreamDocuments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey(`Given:
-			1. a boolean indicating streaming order
-			2. an input channel where documents are streamed in
-			3. an output channel where processed documents are streamed out`, t, func() {
 
+	t.Run("the pipeline completes without error under normal circumstances", func(t *testing.T) {
 		docsInChan := make(chan Converter, 5)
 		streamOutChan := make(chan bson.D, 5)
 
-		Convey(
-			"the entire pipeline should complete without error under normal circumstances",
-			func() {
-				// stream in some documents
-				for _, csvConverter := range csvConverters {
-					docsInChan <- csvConverter
-				}
-				close(docsInChan)
-				So(streamDocuments(t.Context(), true, 3, docsInChan, streamOutChan), ShouldBeNil)
-
-				// ensure documents are streamed out and processed in the correct manner
-				for _, expectedDocument := range expectedDocuments {
-					So(<-streamOutChan, ShouldResemble, expectedDocument)
-				}
-			},
-		)
-		Convey("the entire pipeline should complete with error if an error is encountered", func() {
-			// stream in some documents - create duplicate headers to simulate an error
-			csvConverter := CSVConverter{
-				colSpecs: []ColumnSpec{
-					{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
-					{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
-				},
-				data:  []string{"a", "b", "c"},
-				index: uint64(0),
-			}
+		// stream in some documents
+		for _, csvConverter := range csvConverters {
 			docsInChan <- csvConverter
-			close(docsInChan)
+		}
+		close(docsInChan)
+		require.NoError(
+			t,
+			streamDocuments(t.Context(), true, 3, docsInChan, streamOutChan),
+			"should stream every document without error",
+		)
 
-			// ensure that an error is returned on the error channel
-			So(streamDocuments(t.Context(), true, 3, docsInChan, streamOutChan), ShouldNotBeNil)
-		})
+		// ensure documents are streamed out and processed in the correct manner
+		for _, expectedDocument := range expectedDocuments {
+			assert.Equal(
+				t,
+				expectedDocument,
+				<-streamOutChan,
+				"should stream out the documents in order",
+			)
+		}
+	})
+
+	t.Run("the pipeline completes with error if an error is encountered", func(t *testing.T) {
+		docsInChan := make(chan Converter, 5)
+		streamOutChan := make(chan bson.D, 5)
+
+		// stream in some documents - create duplicate headers to simulate an error
+		csvConverter := CSVConverter{
+			colSpecs: []ColumnSpec{
+				{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+				{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
+			},
+			data:  []string{"a", "b", "c"},
+			index: uint64(0),
+		}
+		docsInChan <- csvConverter
+		close(docsInChan)
+
+		require.Error(
+			t,
+			streamDocuments(t.Context(), true, 3, docsInChan, streamOutChan),
+			"should return an error on the error channel",
+		)
 	})
 }
