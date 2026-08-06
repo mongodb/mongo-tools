@@ -16,7 +16,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -25,215 +24,178 @@ import (
 )
 
 func TestTimestampStringParsing(t *testing.T) {
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Testing some possible timestamp strings:", t, func() {
-		Convey("123:456 [should pass]", func() {
-			ts, err := ParseTimestampFlag("123:456")
-			So(err, ShouldBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{T: 123, I: 456})
-		})
+	cases := []struct {
+		in          string
+		expectedTS  bson.Timestamp
+		expectError bool
+	}{
+		{"123:456", bson.Timestamp{T: 123, I: 456}, false},
+		{"123", bson.Timestamp{T: 123, I: 0}, false},
+		{"123:", bson.Timestamp{T: 123, I: 0}, false},
+		{"123.123", bson.Timestamp{}, true},
+		{":", bson.Timestamp{}, true},
+		{"1:1:1", bson.Timestamp{}, true},
+		{"cats", bson.Timestamp{}, true},
+		{"", bson.Timestamp{}, true},
+	}
 
-		Convey("123 [should pass]", func() {
-			ts, err := ParseTimestampFlag("123")
-			So(err, ShouldBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{T: 123, I: 0})
-		})
-
-		Convey("123: [should pass]", func() {
-			ts, err := ParseTimestampFlag("123:")
-			So(err, ShouldBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{T: 123, I: 0})
-		})
-
-		Convey("123.123 [should fail]", func() {
-			ts, err := ParseTimestampFlag("123.123")
-			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{})
-		})
-
-		Convey(": [should fail]", func() {
-			ts, err := ParseTimestampFlag(":")
-			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{})
-		})
-
-		Convey("1:1:1 [should fail]", func() {
-			ts, err := ParseTimestampFlag("1:1:1")
-			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{})
-		})
-
-		Convey("cats [should fail]", func() {
-			ts, err := ParseTimestampFlag("cats")
-			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{})
-		})
-
-		Convey("[empty string] [should fail]", func() {
-			ts, err := ParseTimestampFlag("")
-			So(err, ShouldNotBeNil)
-			So(ts, ShouldResemble, bson.Timestamp{})
-		})
-	})
+	for _, tc := range cases {
+		ts, err := ParseTimestampFlag(tc.in)
+		if tc.expectError {
+			assert.Error(t, err, "should reject timestamp string %q", tc.in)
+		} else {
+			assert.NoError(t, err, "should parse timestamp string %q", tc.in)
+		}
+		assert.Equal(t, tc.expectedTS, ts, "should parse %q into the expected timestamp", tc.in)
+	}
 }
 
 func TestValidOplogLimitChecking(t *testing.T) {
-
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("With a MongoRestore instance with oplogLimit of 5:0", t, func() {
+	t.Run("with oplogLimit of 5:0", func(t *testing.T) {
 		mr := &MongoRestore{
 			oplogLimit: bson.Timestamp{T: 5, I: 0},
 		}
 
-		Convey("an oplog entry with ts=1000:0 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 1000, I: 0}), ShouldBeFalse)
-		})
-
-		Convey("an oplog entry with ts=5:1 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 1}), ShouldBeFalse)
-		})
-
-		Convey("an oplog entry with ts=5:0 should be invalid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 0}), ShouldBeFalse)
-		})
-
-		Convey("an oplog entry with ts=4:9 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 4, I: 9}), ShouldBeTrue)
-		})
-
-		Convey("an oplog entry with ts=4:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 4, I: 0}), ShouldBeTrue)
-		})
-
-		Convey("an oplog entry with ts=0:1 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 0, I: 1}), ShouldBeTrue)
-		})
+		cases := []struct {
+			ts       bson.Timestamp
+			expected bool
+		}{
+			{bson.Timestamp{T: 1000, I: 0}, false},
+			{bson.Timestamp{T: 5, I: 1}, false},
+			{bson.Timestamp{T: 5, I: 0}, false},
+			{bson.Timestamp{T: 4, I: 9}, true},
+			{bson.Timestamp{T: 4, I: 0}, true},
+			{bson.Timestamp{T: 0, I: 1}, true},
+		}
+		for _, tc := range cases {
+			assert.Equal(
+				t,
+				tc.expected,
+				mr.TimestampBeforeLimit(tc.ts),
+				"should report ts=%v as before-limit=%v",
+				tc.ts,
+				tc.expected,
+			)
+		}
 	})
 
-	Convey("With a MongoRestore instance with no oplogLimit", t, func() {
+	t.Run("with no oplogLimit", func(t *testing.T) {
 		mr := &MongoRestore{}
 
-		Convey("an oplog entry with ts=1000:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 1000, I: 0}), ShouldBeTrue)
-		})
-
-		Convey("an oplog entry with ts=5:1 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 1}), ShouldBeTrue)
-		})
-
-		Convey("an oplog entry with ts=5:0 should be valid", func() {
-			So(mr.TimestampBeforeLimit(bson.Timestamp{T: 5, I: 0}), ShouldBeTrue)
-		})
+		cases := []struct {
+			ts       bson.Timestamp
+			expected bool
+		}{
+			{bson.Timestamp{T: 1000, I: 0}, true},
+			{bson.Timestamp{T: 5, I: 1}, true},
+			{bson.Timestamp{T: 5, I: 0}, true},
+		}
+		for _, tc := range cases {
+			assert.Equal(
+				t,
+				tc.expected,
+				mr.TimestampBeforeLimit(tc.ts),
+				"should report ts=%v as before-limit=%v",
+				tc.ts,
+				tc.expected,
+			)
+		}
 	})
-
 }
 
 func TestOplogRestore(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 	fcv := testutil.GetFCV(session)
 	var shouldPreserveUUID bool
 	if cmp, err := testutil.CompareFCV(fcv, "3.6"); err != nil || cmp >= 0 {
 		shouldPreserveUUID = true
 	}
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			DirectoryOption, "testdata/oplogdump",
-			OplogReplayOption,
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			DropOption,
-		}
-		if shouldPreserveUUID {
-			args = append(args, PreserveUUIDOption)
-		}
+	args := []string{
+		DirectoryOption, "testdata/oplogdump",
+		OplogReplayOption,
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+		DropOption,
+	}
+	if shouldPreserveUUID {
+		args = append(args, PreserveUUIDOption)
+	}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-		c1 := session.Database("db1").Collection("c1")
-		err = c1.Drop(t.Context())
-		So(err, ShouldBeNil)
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
+	c1 := session.Database("db1").Collection("c1")
+	err = c1.Drop(t.Context())
+	require.NoError(t, err, "should drop the target collection")
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
+	require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
-		// Verify restoration
-		count, err := c1.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 10)
-		err = session.Disconnect(t.Context())
-		So(err, ShouldBeNil)
-	})
+	// Verify restoration
+	count, err := c1.CountDocuments(t.Context(), bson.M{})
+	require.NoError(t, err, "should count the restored documents")
+	require.EqualValues(t, 10, count, "should restore every document from the oplog")
+	err = session.Disconnect(t.Context())
+	require.NoError(t, err, "should disconnect from the server")
 }
 
 func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	require.NoError(t, err, "must connect to the server")
+
+	args := []string{
+		DirectoryOption, "testdata/duplicate_index_key_with_oplog",
+		OplogReplayOption,
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+		DropOption,
 	}
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			DirectoryOption, "testdata/duplicate_index_key_with_oplog",
-			OplogReplayOption,
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			DropOption,
-		}
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
+	coll := session.Database("test").Collection("foo")
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-		coll := session.Database("test").Collection("foo")
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
+	require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
-
-		// Verify restoration
-		count, err := coll.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 1)
-		err = session.Disconnect(t.Context())
-		So(err, ShouldBeNil)
-	})
+	// Verify restoration
+	count, err := coll.CountDocuments(t.Context(), bson.M{})
+	require.NoError(t, err, "should count the restored documents")
+	require.EqualValues(t, 1, count, "should restore the single document")
+	err = session.Disconnect(t.Context())
+	require.NoError(t, err, "should disconnect from the server")
 }
 
 func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 	//nolint:errcheck
 	defer session.Disconnect(t.Context())
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("No session provider available")
-	}
+	require.NoError(t, err, "must get a session provider")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
-	if err != nil {
-		t.Fatalf("Could not get server version")
-	}
+	require.NoError(t, err, "should get the server version")
 
-	Convey("Index drop in oplog should delete it from indexCatalog", t, func() {
+	t.Run("index drop in oplog should delete it from indexCatalog", func(t *testing.T) {
 		args := []string{
 			DirectoryOption, "testdata/coll_with_index",
 			OplogReplayOption,
@@ -244,24 +206,24 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 		}
 
 		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+		require.NoError(t, result.Err, "should restore without error")
+		require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
 		coll := session.Database("test").Collection("foo")
 
 		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 1)
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(t, 1, count, "should restore the single document")
 
 		indexCursor, err := coll.Indexes().List(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should list the collection's indexes")
 
 		defer indexCursor.Close(ctx)
 
@@ -270,10 +232,15 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			indexCount++
 		}
 
-		So(indexCount, ShouldEqual, 1)
+		assert.Equal(
+			t,
+			1,
+			indexCount,
+			"should have only the default index after the dropped index is replayed",
+		)
 	})
 
-	Convey("collection drop in oplog should delete indexes from indexCatalog", t, func() {
+	t.Run("collection drop in oplog should delete indexes from indexCatalog", func(t *testing.T) {
 		args := []string{
 			DirectoryOption, "testdata/coll_with_index",
 			OplogReplayOption,
@@ -284,24 +251,29 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 		}
 
 		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+		require.NoError(t, result.Err, "should restore without error")
+		require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
 		coll := session.Database("test").Collection("foo")
 
 		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 0)
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(
+			t,
+			0,
+			count,
+			"should have no documents after the collection drop is replayed",
+		)
 
 		indexCursor, err := coll.Indexes().List(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should list the collection's indexes")
 
 		defer indexCursor.Close(ctx)
 
@@ -310,12 +282,17 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			indexCount++
 		}
 
-		So(indexCount, ShouldEqual, 0)
+		assert.Equal(
+			t,
+			0,
+			indexCount,
+			"should have no indexes after the collection drop is replayed",
+		)
 	})
 
 	// This will fail with pre-5.3.0 versions because of SERVER-62759.
 	if serverVersion.GTE(db.Version{5, 3, 0}) {
-		Convey("db drop in oplog should delete indexes from indexCatalog", t, func() {
+		t.Run("db drop in oplog should delete indexes from indexCatalog", func(t *testing.T) {
 			args := []string{
 				DirectoryOption, "testdata/coll_with_index",
 				OplogReplayOption,
@@ -326,24 +303,29 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			}
 
 			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should build a restore instance")
 			defer restore.Close()
 
 			// Run mongorestore
 			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Failures, ShouldEqual, 0)
+			require.NoError(t, result.Err, "should restore without error")
+			require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
 			coll := session.Database("test").Collection("foo")
 
 			ctx := t.Context()
 			// Verify restoration
 			count, err := coll.CountDocuments(ctx, bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 0)
+			require.NoError(t, err, "should count the restored documents")
+			require.EqualValues(
+				t,
+				0,
+				count,
+				"should have no documents after the db drop is replayed",
+			)
 
 			indexCursor, err := coll.Indexes().List(ctx)
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should list the collection's indexes")
 
 			defer indexCursor.Close(ctx)
 
@@ -352,11 +334,11 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 				indexCount++
 			}
 
-			So(indexCount, ShouldEqual, 0)
+			assert.Equal(t, 0, indexCount, "should have no indexes after the db drop is replayed")
 		})
 	}
 
-	Convey("create indexes should update indexCatalog", t, func() {
+	t.Run("create indexes should update indexCatalog", func(t *testing.T) {
 		args := []string{
 			DirectoryOption, "testdata/coll_with_ttl_index",
 			OplogReplayOption,
@@ -367,24 +349,24 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 		}
 
 		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+		require.NoError(t, result.Err, "should restore without error")
+		require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
 		coll := session.Database("test").Collection("foo")
 
 		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 1)
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(t, 1, count, "should restore the single document")
 
 		indexCursor, err := coll.Indexes().List(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should list the collection's indexes")
 
 		defer indexCursor.Close(ctx)
 
@@ -393,11 +375,10 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			indexCount++
 		}
 
-		So(indexCount, ShouldEqual, 2)
-
+		assert.Equal(t, 2, indexCount, "should have the default index plus the created index")
 	})
 
-	Convey("collMod should edit index in indexCatalog", t, func() {
+	t.Run("collMod should edit index in indexCatalog", func(t *testing.T) {
 		args := []string{
 			DirectoryOption, "testdata/coll_with_ttl_index",
 			OplogReplayOption,
@@ -408,24 +389,24 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 		}
 
 		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+		require.NoError(t, result.Err, "should restore without error")
+		require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
 		coll := session.Database("test").Collection("foo")
 
 		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 1)
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(t, 1, count, "should restore the single document")
 
 		indexCursor, err := coll.Indexes().List(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should list the collection's indexes")
 
 		defer indexCursor.Close(ctx)
 
@@ -433,15 +414,19 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		for indexCursor.Next(ctx) {
 			err = indexCursor.Decode(&indexDoc)
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should decode each index document")
 			if indexDoc.Options["name"] == "f_1" {
-				So(indexDoc.Options["expireAfterSeconds"], ShouldEqual, 3600)
+				assert.EqualValues(
+					t,
+					3600,
+					indexDoc.Options["expireAfterSeconds"],
+					"should apply the collMod's expireAfterSeconds",
+				)
 			}
 		}
-
 	})
 
-	Convey("collMod should edit hidden field in index in indexCatalog", t, func() {
+	t.Run("collMod should edit hidden field in index in indexCatalog", func(t *testing.T) {
 		fcv := testutil.GetFCV(session)
 		if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
 			t.Skip("Requires server with FCV 4.4 or later")
@@ -457,24 +442,24 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 		}
 
 		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
 
 		// Run mongorestore
 		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
+		require.NoError(t, result.Err, "should restore without error")
+		require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
 		coll := session.Database("test").Collection("foo")
 
 		ctx := t.Context()
 		// Verify restoration
 		count, err := coll.CountDocuments(ctx, bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 1)
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(t, 1, count, "should restore the single document")
 
 		indexCursor, err := coll.Indexes().List(ctx)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should list the collection's indexes")
 
 		defer indexCursor.Close(ctx)
 
@@ -482,13 +467,22 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 		for indexCursor.Next(ctx) {
 			err = indexCursor.Decode(&indexDoc)
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should decode each index document")
 			if indexDoc.Options["name"] == "f_1" {
-				So(indexDoc.Options["expireAfterSeconds"], ShouldEqual, 3600)
-				So(indexDoc.Options["hidden"], ShouldEqual, true)
+				assert.EqualValues(
+					t,
+					3600,
+					indexDoc.Options["expireAfterSeconds"],
+					"should apply the collMod's expireAfterSeconds",
+				)
+				assert.EqualValues(
+					t,
+					true,
+					indexDoc.Options["hidden"],
+					"should apply the collMod's hidden flag",
+				)
 			}
 		}
-
 	})
 }
 
@@ -496,9 +490,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 	fcv := testutil.GetFCV(session)
 	var shouldPreserveUUID bool
 	if cmp, err := testutil.CompareFCV(fcv, "3.6"); err != nil || cmp >= 0 {
@@ -507,53 +499,54 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 
 	c1 := session.Database("db1").Collection("c1")
 	err = c1.Drop(t.Context())
-	if err != nil {
-		t.Fatal("Could not drop db1.c1")
+	require.NoError(t, err, "should drop db1.c1")
+
+	// Generate an oplog document and verify that size exceeds 16 MiB.
+	oplogBytes, err := generateOplogWith16MiBDocument()
+	require.NoError(t, err, "should generate a 16 MiB oplog document")
+	require.Greater(
+		t,
+		len(oplogBytes),
+		db.MaxBSONSize,
+		"should generate a document larger than the max BSON size",
+	)
+
+	// Temporarily write the oplog document to testdata/oplogdumpmaxsize/oplog.bson
+	err = os.WriteFile("testdata/oplogdumpmaxsize/oplog.bson", oplogBytes, 0644)
+	require.NoError(t, err, "should write the generated oplog document to disk")
+	defer os.Remove("testdata/oplogdumpmaxsize/oplog.bson")
+
+	args := []string{
+		DirectoryOption, "testdata/oplogdumpmaxsize",
+		OplogReplayOption,
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+		DropOption,
+	}
+	if shouldPreserveUUID {
+		args = append(args, PreserveUUIDOption)
 	}
 
-	Convey("With a test MongoRestore replay oplog with a 16 MiB document", t, func() {
-		// Generate an oplog document and verify that size exceeds 16 MiB.
-		oplogBytes, err := generateOplogWith16MiBDocument()
-		So(err, ShouldBeNil)
-		So(len(oplogBytes), ShouldBeGreaterThan, db.MaxBSONSize)
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		// Temporarily write the oplog document to testdata/oplogdumpmaxsize/oplog.bson
-		err = os.WriteFile("testdata/oplogdumpmaxsize/oplog.bson", oplogBytes, 0644)
-		So(err, ShouldBeNil)
-		defer os.Remove("testdata/oplogdumpmaxsize/oplog.bson")
+	// Make sure to drop the 16 MiB collection before disconnecting.
+	//
+	//nolint:errcheck
+	defer session.Disconnect(t.Context())
+	//nolint:errcheck
+	defer c1.Drop(t.Context())
 
-		args := []string{
-			DirectoryOption, "testdata/oplogdumpmaxsize",
-			OplogReplayOption,
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			DropOption,
-		}
-		if shouldPreserveUUID {
-			args = append(args, PreserveUUIDOption)
-		}
+	// Run mongorestore.
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
+	require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		// Make sure to drop the 16 MiB collection before disconnecting.
-		//
-		//nolint:errcheck
-		defer session.Disconnect(t.Context())
-		//nolint:errcheck
-		defer c1.Drop(t.Context())
-
-		// Run mongorestore.
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
-
-		// Verify restoration (5 docs in c1.bson + 1 doc in oplog.bson).
-		count, err := c1.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 6)
-	})
+	// Verify restoration (5 docs in c1.bson + 1 doc in oplog.bson).
+	count, err := c1.CountDocuments(t.Context(), bson.M{})
+	require.NoError(t, err, "should count the restored documents")
+	require.EqualValues(t, 6, count, "should restore every document including the oversized one")
 }
 
 // Generates an oplog document that is greater than 16 MiB but less than 16 MiB + 16 KiB.
@@ -604,27 +597,23 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 func TestOplogRestoreTools2002(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	_, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	require.NoError(t, err, "must connect to the server")
+
+	args := []string{
+		DirectoryOption, "testdata/tools-2002",
+		OplogReplayOption,
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+		DropOption,
 	}
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			DirectoryOption, "testdata/tools-2002",
-			OplogReplayOption,
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			DropOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		// Run mongorestore
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Failures, ShouldEqual, 0)
-	})
+	// Run mongorestore
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
+	require.EqualValues(t, 0, result.Failures, "should restore with no failures")
 }
 
 type testTable struct {
@@ -689,9 +678,14 @@ func TestShouldIgnoreNamespace(t *testing.T) {
 		},
 	}
 	for _, testVals := range tests {
-		if shouldIgnoreNamespace(testVals.ns) != testVals.output {
-			t.Errorf("%s should have been %v but failed\n", testVals.ns, testVals.output)
-		}
+		assert.Equal(
+			t,
+			testVals.output,
+			shouldIgnoreNamespace(testVals.ns),
+			"should report %s as ignored=%v",
+			testVals.ns,
+			testVals.output,
+		)
 	}
 }
 
@@ -706,17 +700,13 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "must connect to the server")
 	//nolint:errcheck
 	defer session.Disconnect(ctx)
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "8.0"); err != nil || cmp < 0 {
-		if err != nil {
-			t.Errorf("error getting FCV: %v", err)
-		}
+		assert.NoError(t, err, "should get the server's FCV")
 		t.Skipf("Requires server with FCV 8.0 or later; found %v", fcv)
 	}
 
@@ -786,17 +776,13 @@ func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "must connect to the server")
 	//nolint:errcheck
 	defer session.Disconnect(ctx)
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "6.0"); err != nil || cmp < 0 {
-		if err != nil {
-			t.Errorf("error getting FCV: %v", err)
-		}
+		assert.NoError(t, err, "should get the server's FCV")
 		t.Skipf("Requires server with FCV 6.0 or later; found %v", fcv)
 	}
 
@@ -850,9 +836,7 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "must connect to the server")
 	//nolint:errcheck
 	defer session.Disconnect(ctx)
 
@@ -901,9 +885,7 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "must connect to the server")
 	//nolint:errcheck
 	defer session.Disconnect(ctx)
 
