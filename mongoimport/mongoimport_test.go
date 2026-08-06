@@ -9,6 +9,7 @@ package mongoimport
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -658,104 +659,115 @@ func TestGetInputReader(t *testing.T) {
 
 func TestImportDocuments(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	Convey("With a mongoimport instance", t, func() {
-		Reset(func() {
-			sessionProvider, err := db.NewSessionProvider(*getBasicToolOptions())
-			if err != nil {
-				t.Fatalf("error getting session provider session: %v", err)
-			}
-			session, err := sessionProvider.GetSession()
-			if err != nil {
-				t.Fatalf("error getting session: %v", err)
-			}
-			_, err = session.Database(testDb).
-				Collection(testCollection).
-				DeleteMany(t.Context(), bson.D{})
-			if err != nil {
-				t.Fatalf("error dropping collection: %v", err)
-			}
-		})
-		Convey("no error should be thrown for CSV import on test data and all "+
-			"CSV data lines should be imported correctly", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
-			fields := "a,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.WriteConcern = "majority"
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 0)
-		})
-		Convey("an error should be thrown for JSON import on test data that is "+
-			"JSON array", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.File = "testdata/test_array.json"
-			imp.IngestOptions.WriteConcern = "majority"
-			numProcessed, _, err := imp.ImportDocuments()
-			So(err, ShouldNotBeNil)
-			So(numProcessed, ShouldEqual, 0)
-		})
-		Convey("TOOLS-247: no error should be thrown for JSON import on test "+
-			"data and all documents should be imported correctly", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.File = "testdata/test_plain2.json"
-			imp.IngestOptions.WriteConcern = "majority"
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 10)
-			So(numFailed, ShouldEqual, 0)
-		})
-		Convey("CSV import with --ignoreBlanks should import only non-blank fields", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_blanks.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.IgnoreBlanks = true
 
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 0)
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "b": int32(2)},
-				{"_id": int32(5), "c": "6e"},
-				{"_id": int32(7), "b": int32(8), "c": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("CSV import without --ignoreBlanks should include blanks", func() {
+	t.Run("no error should be thrown for CSV import on test data and all "+
+		"CSV data lines should be imported correctly", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "a,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.WriteConcern = "majority"
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+	})
+
+	t.Run("an error should be thrown for JSON import on test data that is "+
+		"JSON array", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.File = "testdata/test_array.json"
+		imp.IngestOptions.WriteConcern = "majority"
+		numProcessed, _, err := imp.ImportDocuments()
+		require.Error(t, err, "should reject a JSON array without --jsonArray")
+		assert.EqualValues(t, 0, numProcessed, "should not process any document")
+	})
+
+	t.Run("TOOLS-247: no error should be thrown for JSON import on test "+
+		"data and all documents should be imported correctly", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.File = "testdata/test_plain2.json"
+		imp.IngestOptions.WriteConcern = "majority"
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import JSON data without error")
+		assert.EqualValues(t, 10, numProcessed, "should process every document")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+	})
+
+	t.Run("CSV import with --ignoreBlanks should import only non-blank fields", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_blanks.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.IgnoreBlanks = true
+
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+		expectedDocuments := []bson.M{
+			{"_id": int32(1), "b": int32(2)},
+			{"_id": int32(5), "c": "6e"},
+			{"_id": int32(7), "b": int32(8), "c": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should import only the non-blank fields",
+		)
+	})
+
+	t.Run("CSV import without --ignoreBlanks should include blanks", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_blanks.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		expectedDocuments := []bson.M{
+			{"_id": int32(1), "b": int32(2), "c": ""},
+			{"_id": int32(5), "b": "", "c": "6e"},
+			{"_id": int32(7), "b": int32(8), "c": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should import blank fields as empty strings",
+		)
+	})
+
+	t.Run(
+		"no error should be thrown for CSV import on test data with --upsertFields",
+		func(t *testing.T) {
+			cleanImportCollection(t)
+
 			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_blanks.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(numFailed, ShouldEqual, 0)
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "b": int32(2), "c": ""},
-				{"_id": int32(5), "b": "", "c": "6e"},
-				{"_id": int32(7), "b": int32(8), "c": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("no error should be thrown for CSV import on test data with --upsertFields", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should create a new mongoimport instance")
 			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = "testdata/test.csv"
@@ -764,108 +776,142 @@ func TestImportDocuments(t *testing.T) {
 			imp.IngestOptions.UpsertFields = "b,c"
 			imp.IngestOptions.MaintainInsertionOrder = true
 			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(numFailed, ShouldEqual, 0)
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
+			assert.EqualValues(t, 0, numFailed, "should not fail any document")
+			require.NoError(t, err, "should import CSV data without error")
+			assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2), "c": int32(3)},
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("no error should be thrown for CSV import on test data with "+
-			"--stopOnError. Only documents before error should be imported", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.StopOnError = true
-			imp.IngestOptions.MaintainInsertionOrder = true
-			imp.IngestOptions.WriteConcern = "majority"
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 0)
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				{"_id": int32(3), "b": 5.4, "c": "string"},
-				{"_id": int32(5), "b": int32(6), "c": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey(
-			"CSV import with duplicate _id's should not error if --stopOnError is not set",
-			func() {
-				imp, err := NewMongoImport()
-				So(err, ShouldBeNil)
-				imp.IngestOptions.Mode = modeInsert
-				imp.InputOptions.Type = CSV
-				imp.InputOptions.File = "testdata/test_duplicate.csv"
-				fields := "_id,b,c"
-				imp.InputOptions.Fields = &fields
-				imp.IngestOptions.StopOnError = false
-				numProcessed, numFailed, err := imp.ImportDocuments()
-				So(err, ShouldBeNil)
-				So(numProcessed, ShouldEqual, 4)
-				So(numFailed, ShouldEqual, 1)
+			require.NoError(
+				t,
+				checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+				"should upsert on the given fields",
+			)
+		},
+	)
 
-				expectedDocuments := []bson.M{
-					{"_id": int32(1), "b": int32(2), "c": int32(3)},
-					{"_id": int32(3), "b": 5.4, "c": "string"},
-					{"_id": int32(5), "b": int32(6), "c": int32(6)},
-					{"_id": int32(8), "b": int32(6), "c": int32(6)},
-				}
-				// all docs except the one with duplicate _id - should be imported
-				So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-			},
+	t.Run("no error should be thrown for CSV import on test data with "+
+		"--stopOnError. Only documents before error should be imported", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.StopOnError = true
+		imp.IngestOptions.MaintainInsertionOrder = true
+		imp.IngestOptions.WriteConcern = "majority"
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+		expectedDocuments := []bson.M{
+			{"_id": int32(1), "b": int32(2), "c": int32(3)},
+			{"_id": int32(3), "b": 5.4, "c": "string"},
+			{"_id": int32(5), "b": int32(6), "c": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should import only documents before the error",
 		)
-		Convey("no error should be thrown for CSV import on test data with --drop", func() {
+	})
+
+	t.Run(
+		"CSV import with duplicate _id's should not error if --stopOnError is not set",
+		func(t *testing.T) {
+			cleanImportCollection(t)
+
 			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should create a new mongoimport instance")
 			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
+			imp.InputOptions.File = "testdata/test_duplicate.csv"
 			fields := "_id,b,c"
 			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.Drop = true
-			imp.IngestOptions.MaintainInsertionOrder = true
-			imp.IngestOptions.WriteConcern = "majority"
+			imp.IngestOptions.StopOnError = false
 			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(numFailed, ShouldEqual, 0)
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
+			require.NoError(t, err, "should not error on a duplicate _id without --stopOnError")
+			assert.EqualValues(t, 4, numProcessed, "should process every non-duplicate document")
+			assert.EqualValues(t, 1, numFailed, "should fail the duplicate document")
+
 			expectedDocuments := []bson.M{
 				{"_id": int32(1), "b": int32(2), "c": int32(3)},
 				{"_id": int32(3), "b": 5.4, "c": "string"},
 				{"_id": int32(5), "b": int32(6), "c": int32(6)},
+				{"_id": int32(8), "b": int32(6), "c": int32(6)},
 			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("CSV import on test data with --headerLine should succeed", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.InputOptions.HeaderLine = true
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 2)
-			So(numFailed, ShouldEqual, 0)
-		})
-		Convey("EOF should be thrown for CSV import with --headerLine if file is empty", func() {
+			// all docs except the one with duplicate _id - should be imported
+			require.NoError(
+				t,
+				checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+				"should import every document except the one with a duplicate _id",
+			)
+		},
+	)
+
+	t.Run("no error should be thrown for CSV import on test data with --drop", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.Drop = true
+		imp.IngestOptions.MaintainInsertionOrder = true
+		imp.IngestOptions.WriteConcern = "majority"
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		expectedDocuments := []bson.M{
+			{"_id": int32(1), "b": int32(2), "c": int32(3)},
+			{"_id": int32(3), "b": 5.4, "c": "string"},
+			{"_id": int32(5), "b": int32(6), "c": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should drop the collection before importing",
+		)
+	})
+
+	t.Run("CSV import on test data with --headerLine should succeed", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.InputOptions.HeaderLine = true
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 2, numProcessed, "should process every data line after the header")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+	})
+
+	t.Run(
+		"EOF should be thrown for CSV import with --headerLine if file is empty",
+		func(t *testing.T) {
+			cleanImportCollection(t)
+
 			csvFile, err := os.CreateTemp("", "mongoimport_")
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should create a temporary CSV file")
 			csvFile.Close()
 
 			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
+			require.NoError(t, err, "should create a new mongoimport instance")
 			imp.IngestOptions.Mode = modeInsert
 			imp.InputOptions.Type = CSV
 			imp.InputOptions.File = csvFile.Name()
@@ -873,350 +919,395 @@ func TestImportDocuments(t *testing.T) {
 			imp.InputOptions.Fields = &fields
 			imp.InputOptions.HeaderLine = true
 			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldEqual, io.EOF)
-			So(numProcessed, ShouldEqual, 0)
-			So(numFailed, ShouldEqual, 0)
-		})
-		Convey("CSV import with --mode=upsert and --upsertFields should succeed", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
-			fields := "_id,c,b"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.UpsertFields = "_id"
-			imp.IngestOptions.MaintainInsertionOrder = true
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 0)
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "c": int32(2), "b": int32(3)},
-				{"_id": int32(3), "c": 5.4, "b": "string"},
-				{"_id": int32(5), "c": int32(6), "b": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("CSV import with --mode=delete should succeed", func() {
-			// First import 3 documents
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
-			fields := "_id,c,b"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.MaintainInsertionOrder = true
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 0)
+			require.Equal(t, io.EOF, err, "should report EOF for an empty file with --headerLine")
+			assert.EqualValues(t, 0, numProcessed, "should not process any document")
+			assert.EqualValues(t, 0, numFailed, "should not fail any document")
+		},
+	)
 
-			// Then delete two documents
-			imp, err = NewMongoImport()
-			So(err, ShouldBeNil)
+	t.Run("CSV import with --mode=upsert and --upsertFields should succeed", func(t *testing.T) {
+		cleanImportCollection(t)
 
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_delete.csv"
-			fields = "_id,c,b"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.Mode = modeDelete
-			imp.IngestOptions.StopOnError = true
-			// Must specify upsert fields since option parsing is skipped in tests
-			imp.upsertFields = []string{"_id"}
-			numProcessed, numFailed, err = imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 2)
-			So(numFailed, ShouldEqual, 0)
-
-			expectedDocuments := []bson.M{
-				{"_id": int32(3), "c": 5.4, "b": "string"},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("CSV import with --mode=delete and --upsertFields should succeed", func() {
-			// First import 3 documents
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
-			fields := "_id,c,b"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.MaintainInsertionOrder = true
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 0)
-
-			// Then delete two documents
-			imp, err = NewMongoImport()
-			So(err, ShouldBeNil)
-
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_delete.csv"
-			fields = "_id,c,b"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.Mode = modeDelete
-			imp.IngestOptions.StopOnError = true
-			// Must specify upsert fields since option parsing is skipped in tests
-			imp.upsertFields = []string{"b", "c"}
-			numProcessed, numFailed, err = imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 1)
-			So(numFailed, ShouldEqual, 0)
-
-			expectedDocuments := []bson.M{
-				{"_id": int32(3), "c": 5.4, "b": "string"},
-				{"_id": int32(5), "c": int32(6), "b": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("CSV import with --mode=delete and --ignoreBlanks should not take any action for "+
-			"documents that have blank values for upsert fields", func() {
-			// First import 3 documents
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test.csv"
-			fields := "_id,c,b"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.MaintainInsertionOrder = true
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 0)
-
-			// Then delete two documents
-			imp, err = NewMongoImport()
-			So(err, ShouldBeNil)
-
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_delete_with_blanks.csv"
-			fields = "_id,c,b"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.Mode = modeDelete
-			imp.IngestOptions.IgnoreBlanks = true
-			imp.IngestOptions.StopOnError = true
-			// Must specify upsert fields since option parsing is skipped in tests
-			imp.upsertFields = []string{"c"}
-			numProcessed, numFailed, err = imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 1)
-			So(numFailed, ShouldEqual, 0)
-
-			expectedDocuments := []bson.M{
-				{"_id": int32(3), "c": 5.4, "b": "string"},
-				{"_id": int32(5), "c": int32(6), "b": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("CSV import with --mode=upsert/--upsertFields with duplicate id should succeed "+
-			"even if stopOnError is set", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_duplicate.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.Mode = modeUpsert
-			imp.IngestOptions.StopOnError = true
-			imp.upsertFields = []string{"_id"}
-			numProcessed, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldBeNil)
-			So(numProcessed, ShouldEqual, 5)
-			So(numFailed, ShouldEqual, 0)
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				{"_id": int32(3), "b": 5.4, "c": "string"},
-				{"_id": int32(5), "b": int32(6), "c": int32(9)},
-				{"_id": int32(8), "b": int32(6), "c": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("an error should be thrown for CSV import on test data with "+
-			"duplicate _id if --stopOnError is set", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_duplicate.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.StopOnError = true
-			imp.IngestOptions.WriteConcern = "1"
-			imp.IngestOptions.MaintainInsertionOrder = true
-			numInserted, numFailed, err := imp.ImportDocuments()
-			So(err, ShouldNotBeNil)
-			So(numInserted, ShouldEqual, 3)
-			So(numFailed, ShouldEqual, 1)
-			expectedDocuments := []bson.M{
-				{"_id": int32(1), "b": int32(2), "c": int32(3)},
-				{"_id": int32(3), "b": 5.4, "c": "string"},
-				{"_id": int32(5), "b": int32(6), "c": int32(6)},
-			}
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		})
-		Convey("an error should be thrown for JSON import on test data that "+
-			"is a JSON array without passing --jsonArray", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.File = "testdata/test_array.json"
-			imp.IngestOptions.WriteConcern = "1"
-			numInserted, _, err := imp.ImportDocuments()
-			So(err, ShouldNotBeNil)
-			So(numInserted, ShouldEqual, 0)
-		})
-		Convey("an error should be thrown if a plain JSON file is supplied", func() {
-			fileHandle, err := os.Open("testdata/test_plain.json")
-			So(err, ShouldBeNil)
-			jsonInputReader := NewJSONInputReader(true, true, fileHandle, 1)
-			docChan := make(chan bson.D, 1)
-			So(jsonInputReader.StreamDocument(t.Context(), true, docChan), ShouldNotBeNil)
-		})
-		Convey("an error should be thrown for invalid CSV import on test data", func() {
-			imp, err := NewMongoImport()
-			So(err, ShouldBeNil)
-			imp.IngestOptions.Mode = modeInsert
-			imp.InputOptions.Type = CSV
-			imp.InputOptions.File = "testdata/test_bad.csv"
-			fields := "_id,b,c"
-			imp.InputOptions.Fields = &fields
-			imp.IngestOptions.StopOnError = true
-			imp.IngestOptions.WriteConcern = "1"
-			imp.IngestOptions.MaintainInsertionOrder = true
-			imp.IngestOptions.BulkBufferSize = 1
-			_, _, err = imp.ImportDocuments()
-			So(err, ShouldNotBeNil)
-		})
-		Convey(
-			"CSV import with --mode=upsert/--upsertFields with a nested upsert field should succeed when repeated",
-			func() {
-				imp, err := NewMongoImport()
-				So(err, ShouldBeNil)
-				imp.InputOptions.Type = CSV
-				imp.InputOptions.File = "testdata/test_nested_upsert.csv"
-				imp.InputOptions.HeaderLine = true
-				imp.IngestOptions.Mode = modeUpsert
-				imp.upsertFields = []string{"level1.level2.key1"}
-				numProcessed, numFailed, err := imp.ImportDocuments()
-				So(err, ShouldBeNil)
-				So(numProcessed, ShouldEqual, 1)
-				So(numFailed, ShouldEqual, 0)
-				n, err := countDocuments(t, imp.SessionProvider)
-				So(err, ShouldBeNil)
-				So(n, ShouldEqual, 1)
-
-				// Repeat must succeed
-				imp, err = NewMongoImport()
-				So(err, ShouldBeNil)
-				imp.InputOptions.Type = CSV
-				imp.InputOptions.File = "testdata/test_nested_upsert.csv"
-				imp.InputOptions.HeaderLine = true
-				imp.IngestOptions.Mode = modeUpsert
-				imp.upsertFields = []string{"level1.level2.key1"}
-				numProcessed, numFailed, err = imp.ImportDocuments()
-				So(err, ShouldBeNil)
-				So(numProcessed, ShouldEqual, 1)
-				So(numFailed, ShouldEqual, 0)
-				n, err = countDocuments(t, imp.SessionProvider)
-				So(err, ShouldBeNil)
-				So(n, ShouldEqual, 1)
-			},
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "_id,c,b"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.UpsertFields = "_id"
+		imp.IngestOptions.MaintainInsertionOrder = true
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+		expectedDocuments := []bson.M{
+			{"_id": int32(1), "c": int32(2), "b": int32(3)},
+			{"_id": int32(3), "c": 5.4, "b": "string"},
+			{"_id": int32(5), "c": int32(6), "b": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should upsert on _id",
 		)
-		Convey("With --useArrayIndexFields: Top-level numerical fields should be document keys",
-			nestedFieldsTestHelper(
-				t,
-				"_id,0,1\n1,2,3",
-				[]bson.M{
+	})
+
+	t.Run("CSV import with --mode=delete should succeed", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		// First import 3 documents
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "_id,c,b"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.MaintainInsertionOrder = true
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+
+		// Then delete two documents
+		imp, err = NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_delete.csv"
+		fields = "_id,c,b"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.Mode = modeDelete
+		imp.IngestOptions.StopOnError = true
+		// Must specify upsert fields since option parsing is skipped in tests
+		imp.upsertFields = []string{"_id"}
+		numProcessed, numFailed, err = imp.ImportDocuments()
+		require.NoError(t, err, "should delete documents without error")
+		assert.EqualValues(t, 2, numProcessed, "should process every document to delete")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+
+		expectedDocuments := []bson.M{
+			{"_id": int32(3), "c": 5.4, "b": "string"},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should delete the matching documents",
+		)
+	})
+
+	t.Run("CSV import with --mode=delete and --upsertFields should succeed", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		// First import 3 documents
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "_id,c,b"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.MaintainInsertionOrder = true
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+
+		// Then delete two documents
+		imp, err = NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_delete.csv"
+		fields = "_id,c,b"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.Mode = modeDelete
+		imp.IngestOptions.StopOnError = true
+		// Must specify upsert fields since option parsing is skipped in tests
+		imp.upsertFields = []string{"b", "c"}
+		numProcessed, numFailed, err = imp.ImportDocuments()
+		require.NoError(t, err, "should delete documents without error")
+		assert.EqualValues(t, 1, numProcessed, "should process every document to delete")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+
+		expectedDocuments := []bson.M{
+			{"_id": int32(3), "c": 5.4, "b": "string"},
+			{"_id": int32(5), "c": int32(6), "b": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should delete only documents matching the upsert fields",
+		)
+	})
+
+	t.Run("CSV import with --mode=delete and --ignoreBlanks should not take any action for "+
+		"documents that have blank values for upsert fields", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		// First import 3 documents
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test.csv"
+		fields := "_id,c,b"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.MaintainInsertionOrder = true
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should import CSV data without error")
+		assert.EqualValues(t, 3, numProcessed, "should process every CSV data line")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+
+		// Then delete two documents
+		imp, err = NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_delete_with_blanks.csv"
+		fields = "_id,c,b"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.Mode = modeDelete
+		imp.IngestOptions.IgnoreBlanks = true
+		imp.IngestOptions.StopOnError = true
+		// Must specify upsert fields since option parsing is skipped in tests
+		imp.upsertFields = []string{"c"}
+		numProcessed, numFailed, err = imp.ImportDocuments()
+		require.NoError(t, err, "should delete documents without error")
+		assert.EqualValues(
+			t,
+			1,
+			numProcessed,
+			"should process only the document with a non-blank upsert field",
+		)
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+
+		expectedDocuments := []bson.M{
+			{"_id": int32(3), "c": 5.4, "b": "string"},
+			{"_id": int32(5), "c": int32(6), "b": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should not delete documents with a blank upsert field",
+		)
+	})
+
+	t.Run("CSV import with --mode=upsert/--upsertFields with duplicate id should succeed "+
+		"even if stopOnError is set", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_duplicate.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.Mode = modeUpsert
+		imp.IngestOptions.StopOnError = true
+		imp.upsertFields = []string{"_id"}
+		numProcessed, numFailed, err := imp.ImportDocuments()
+		require.NoError(t, err, "should upsert a duplicate _id without error")
+		assert.EqualValues(t, 5, numProcessed, "should process every document")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+		expectedDocuments := []bson.M{
+			{"_id": int32(1), "b": int32(2), "c": int32(3)},
+			{"_id": int32(3), "b": 5.4, "c": "string"},
+			{"_id": int32(5), "b": int32(6), "c": int32(9)},
+			{"_id": int32(8), "b": int32(6), "c": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should upsert the duplicate document instead of failing",
+		)
+	})
+
+	t.Run("an error should be thrown for CSV import on test data with "+
+		"duplicate _id if --stopOnError is set", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_duplicate.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.StopOnError = true
+		imp.IngestOptions.WriteConcern = "1"
+		imp.IngestOptions.MaintainInsertionOrder = true
+		numInserted, numFailed, err := imp.ImportDocuments()
+		require.Error(t, err, "should stop on a duplicate _id when --stopOnError is set")
+		assert.EqualValues(t, 3, numInserted, "should process the documents before the error")
+		assert.EqualValues(t, 1, numFailed, "should fail the duplicate document")
+		expectedDocuments := []bson.M{
+			{"_id": int32(1), "b": int32(2), "c": int32(3)},
+			{"_id": int32(3), "b": 5.4, "c": "string"},
+			{"_id": int32(5), "b": int32(6), "c": int32(6)},
+		}
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should import only documents before the duplicate _id",
+		)
+	})
+
+	t.Run("an error should be thrown for JSON import on test data that "+
+		"is a JSON array without passing --jsonArray", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.File = "testdata/test_array.json"
+		imp.IngestOptions.WriteConcern = "1"
+		numInserted, _, err := imp.ImportDocuments()
+		require.Error(t, err, "should reject a JSON array without --jsonArray")
+		assert.EqualValues(t, 0, numInserted, "should not process any document")
+	})
+
+	t.Run("an error should be thrown if a plain JSON file is supplied", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		fileHandle, err := os.Open("testdata/test_plain.json")
+		require.NoError(t, err, "should open the test fixture")
+		jsonInputReader := NewJSONInputReader(true, true, fileHandle, 1)
+		docChan := make(chan bson.D, 1)
+		require.Error(
+			t,
+			jsonInputReader.StreamDocument(t.Context(), true, docChan),
+			"should reject a plain JSON file",
+		)
+	})
+
+	t.Run("an error should be thrown for invalid CSV import on test data", func(t *testing.T) {
+		cleanImportCollection(t)
+
+		imp, err := NewMongoImport()
+		require.NoError(t, err, "should create a new mongoimport instance")
+		imp.IngestOptions.Mode = modeInsert
+		imp.InputOptions.Type = CSV
+		imp.InputOptions.File = "testdata/test_bad.csv"
+		fields := "_id,b,c"
+		imp.InputOptions.Fields = &fields
+		imp.IngestOptions.StopOnError = true
+		imp.IngestOptions.WriteConcern = "1"
+		imp.IngestOptions.MaintainInsertionOrder = true
+		imp.IngestOptions.BulkBufferSize = 1
+		_, _, err = imp.ImportDocuments()
+		require.Error(t, err, "should reject invalid CSV data")
+	})
+
+	t.Run(
+		"CSV import with --mode=upsert/--upsertFields with a nested upsert field should succeed when repeated",
+		func(t *testing.T) {
+			cleanImportCollection(t)
+
+			imp, err := NewMongoImport()
+			require.NoError(t, err, "should create a new mongoimport instance")
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_nested_upsert.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.IngestOptions.Mode = modeUpsert
+			imp.upsertFields = []string{"level1.level2.key1"}
+			numProcessed, numFailed, err := imp.ImportDocuments()
+			require.NoError(t, err, "should upsert a nested field without error")
+			assert.EqualValues(t, 1, numProcessed, "should process the document")
+			assert.EqualValues(t, 0, numFailed, "should not fail any document")
+			n, err := countDocuments(t, imp.SessionProvider)
+			require.NoError(t, err, "should count the documents in the collection")
+			assert.Equal(t, 1, n, "should insert exactly one document")
+
+			// Repeat must succeed
+			imp, err = NewMongoImport()
+			require.NoError(t, err, "should create a new mongoimport instance")
+			imp.InputOptions.Type = CSV
+			imp.InputOptions.File = "testdata/test_nested_upsert.csv"
+			imp.InputOptions.HeaderLine = true
+			imp.IngestOptions.Mode = modeUpsert
+			imp.upsertFields = []string{"level1.level2.key1"}
+			numProcessed, numFailed, err = imp.ImportDocuments()
+			require.NoError(t, err, "should upsert the same nested field again without error")
+			assert.EqualValues(t, 1, numProcessed, "should process the document")
+			assert.EqualValues(t, 0, numFailed, "should not fail any document")
+			n, err = countDocuments(t, imp.SessionProvider)
+			require.NoError(t, err, "should count the documents in the collection")
+			assert.Equal(t, 1, n, "should still hold exactly one document after the repeat upsert")
+		},
+	)
+
+	t.Run("with --useArrayIndexFields", func(t *testing.T) {
+		cases := []struct {
+			name              string
+			data              string
+			expectedDocuments []bson.M
+			expectedErr       error
+		}{
+			{
+				name: "top-level numerical fields should be document keys",
+				data: "_id,0,1\n1,2,3",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "0": int32(2), "1": int32(3)},
 				},
-				nil,
-			),
-		)
-		Convey("With --useArrayIndexFields: Should insert nested document",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.a,a.b\n1,2,3",
-				[]bson.M{
+			},
+			{
+				name: "should insert nested document",
+				data: "_id,a.a,a.b\n1,2,3",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "a": bson.M{"a": int32(2), "b": int32(3)}},
 				},
-				nil,
-			),
-		)
-		Convey("With --useArrayIndexFields: Should insert an array",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0,a.1\n1,2,3",
-				[]bson.M{
+			},
+			{
+				name: "should insert an array",
+				data: "_id,a.0,a.1\n1,2,3",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "a": bson.A{int32(2), int32(3)}},
 				},
-				nil,
-			),
-		)
-		Convey("With --useArrayIndexFields: Should insert an array of documents",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0.a,a.0.b,a.1.a\n1,2,3,4",
-				[]bson.M{
+			},
+			{
+				name: "should insert an array of documents",
+				data: "_id,a.0.a,a.0.b,a.1.a\n1,2,3,4",
+				expectedDocuments: []bson.M{
 					{
 						"_id": int32(1),
 						"a":   bson.A{bson.M{"a": int32(2), "b": int32(3)}, bson.M{"a": int32(4)}},
 					},
 				},
-				nil,
-			),
-		)
-		Convey("With --useArrayIndexFields: Should insert an array of arrays",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0.0,a.0.1,a.1.0\n1,2,3,4",
-				[]bson.M{
+			},
+			{
+				name: "should insert an array of arrays",
+				data: "_id,a.0.0,a.0.1,a.1.0\n1,2,3,4",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "a": bson.A{bson.A{int32(2), int32(3)}, bson.A{int32(4)}}},
 				},
-				nil,
-			),
-		)
-		Convey("With --useArrayIndexFields: Should insert an array when top-level key is \"0\"",
-			nestedFieldsTestHelper(
-				t,
-				"_id,0.0,0.1\n1,2,3",
-				[]bson.M{
+			},
+			{
+				name: `should insert an array when top-level key is "0"`,
+				data: "_id,0.0,0.1\n1,2,3",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "0": bson.A{int32(2), int32(3)}},
 				},
-				nil,
-			),
-		)
-		Convey("With --useArrayIndexFields: Should insert an array in a document in an array",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0.a.0,a.0.a.1\n1,2,3",
-				[]bson.M{
+			},
+			{
+				name: "should insert an array in a document in an array",
+				data: "_id,a.0.a.0,a.0.a.1\n1,2,3",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "a": bson.A{bson.M{"a": bson.A{int32(2), int32(3)}}}},
 				},
-				nil,
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: If an array element is blank in the csv file, an empty string should be inserted",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0,a.1,a.2\n1,2,,4",
-				[]bson.M{
+			},
+			{
+				name: "if an array element is blank in the csv file, an empty string should be inserted",
+				data: "_id,a.0,a.1,a.2\n1,2,,4",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "a": bson.A{int32(2), "", int32(4)}},
 				},
-				nil,
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: If an array with more than 10 fields should be inserted",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0,a.1,a.2,a.3,a.4,a.5,a.6,a.7,a.8,a.9,a.10\n0,1,2,3,4,5,6,7,8,9,10",
-				[]bson.M{
+			},
+			{
+				name: "if an array with more than 10 fields should be inserted",
+				data: "_id,a.0,a.1,a.2,a.3,a.4,a.5,a.6,a.7,a.8,a.9,a.10\n0,1,2,3,4,5,6,7,8,9,10",
+				expectedDocuments: []bson.M{
 					{
 						"_id": int32(0),
 						"a": bson.A{
@@ -1233,252 +1324,207 @@ func TestImportDocuments(t *testing.T) {
 						},
 					},
 				},
-				nil,
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: An number with leading zeros should be interpreted as a document key, not an index",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0001\n1,2",
-				[]bson.M{
+			},
+			{
+				name: "a number with leading zeros should be interpreted as a document key, not an index",
+				data: "_id,a.0001\n1,2",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "a": bson.M{"0001": int32(2)}},
 				},
-				nil,
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: An number with leading plus should be interpreted as a document key, not an index",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.+15558675309\n1,2",
-				[]bson.M{
+			},
+			{
+				name: "a number with leading plus should be interpreted as a document key, not an index",
+				data: "_id,a.+15558675309\n1,2",
+				expectedDocuments: []bson.M{
 					{"_id": int32(1), "a": bson.M{"+15558675309": int32(2)}},
 				},
-				nil,
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Should be able to make changes to document in an array once document has been created",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0.a,a.1.a,a.0.b\n1,2,3,4",
-				[]bson.M{
+			},
+			{
+				name: "should be able to make changes to document in an array once document has been created",
+				data: "_id,a.0.a,a.1.a,a.0.b\n1,2,3,4",
+				expectedDocuments: []bson.M{
 					{
 						"_id": int32(1),
 						"a":   bson.A{bson.M{"a": int32(2), "b": int32(4)}, bson.M{"a": int32(3)}},
 					},
 				},
-				nil,
-			),
-		)
-		Convey("With --useArrayIndexFields: Duplicate fields should throw an error",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0,a.0\n1,2,3",
-				nil,
-				fmt.Errorf(
+			},
+			{
+				name: "duplicate fields should throw an error",
+				data: "_id,a.0,a.0\n1,2,3",
+				expectedErr: fmt.Errorf(
 					"array index error with field `a.0`: array indexes in fields must start from 0 and increase sequentially",
 				),
-			),
-		)
-		Convey("With --useArrayIndexFields: Array fields not starting at 0 should throw an error",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.1,a.0\n1,2,3",
-				nil,
-				fmt.Errorf(
+			},
+			{
+				name: "array fields not starting at 0 should throw an error",
+				data: "_id,a.1,a.0\n1,2,3",
+				expectedErr: fmt.Errorf(
 					"array index error with field `a.1`: array indexes in fields must start from 0 and increase sequentially",
 				),
-			),
-		)
-		Convey("With --useArrayIndexFields: Array fields skipping an index should throw an error",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0,a.2\n1,2,3",
-				nil,
-				fmt.Errorf(
+			},
+			{
+				name: "array fields skipping an index should throw an error",
+				data: "_id,a.0,a.2\n1,2,3",
+				expectedErr: fmt.Errorf(
 					"array index error with field `a.2`: array indexes in fields must start from 0 and increase sequentially",
 				),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Array fields with sub documents skipping an index should throw an error",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0.a,a.2.a\n1,2,3",
-				nil,
-				fmt.Errorf(
+			},
+			{
+				name: "array fields with sub documents skipping an index should throw an error",
+				data: "_id,a.0.a,a.2.a\n1,2,3",
+				expectedErr: fmt.Errorf(
 					"array index error with field `a.2.a`: array indexes in fields must start from 0 and increase sequentially",
 				),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Array field should throw an error if value has already been set as document",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.a,a.0\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.a` and `a.0` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Array field should throw an error if value has already been set as document (deep object)",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.a.a.a,a.a.0.a\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.a.a.a` and `a.a.0.a` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Document field should throw an error if value has already been set as array",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0,a.a\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.0` and `a.a` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Document field should throw an error if value has already been set as array (deep object)",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.a.a.0,a.a.a.a\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.a.a.0` and `a.a.a.a` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Array field should throw an error if value has already been set as value",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a,a.0\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a` and `a.0` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Array field should throw an error if value has already been set as value (deep object)",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.a.a,a.a.a.0\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.a.a` and `a.a.a.0` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Array field should be incompatible with a document field starting with a symbol that is sorted before 0",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a./,a.0\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a./` and `a.0` are incompatible"),
-			),
-		)
-		Convey("With --useArrayIndexFields: Indexes in fields must start from 0",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a,b.1\n1,2,3",
-				nil,
-				fmt.Errorf(
+			},
+			{
+				name:        "array field should throw an error if value has already been set as document",
+				data:        "_id,a.a,a.0\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.a` and `a.0` are incompatible"),
+			},
+			{
+				name:        "array field should throw an error if value has already been set as document (deep object)",
+				data:        "_id,a.a.a.a,a.a.0.a\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.a.a.a` and `a.a.0.a` are incompatible"),
+			},
+			{
+				name:        "document field should throw an error if value has already been set as array",
+				data:        "_id,a.0,a.a\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.0` and `a.a` are incompatible"),
+			},
+			{
+				name:        "document field should throw an error if value has already been set as array (deep object)",
+				data:        "_id,a.a.a.0,a.a.a.a\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.a.a.0` and `a.a.a.a` are incompatible"),
+			},
+			{
+				name:        "array field should throw an error if value has already been set as value",
+				data:        "_id,a,a.0\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a` and `a.0` are incompatible"),
+			},
+			{
+				name:        "array field should throw an error if value has already been set as value (deep object)",
+				data:        "_id,a.a.a,a.a.a.0\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.a.a` and `a.a.a.0` are incompatible"),
+			},
+			{
+				name:        "array field should be incompatible with a document field starting with a symbol that is sorted before 0",
+				data:        "_id,a./,a.0\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a./` and `a.0` are incompatible"),
+			},
+			{
+				name: "indexes in fields must start from 0",
+				data: "_id,a,b.1\n1,2,3",
+				expectedErr: fmt.Errorf(
 					"array index error with field `b.1`: array indexes in fields must start from 0 and increase sequentially",
 				),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Indexes in fields must start from 0 (last field same length)",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.b,b.1\n1,2,3",
-				nil,
-				fmt.Errorf(
+			},
+			{
+				name: "indexes in fields must start from 0 (last field same length)",
+				data: "_id,a.b,b.1\n1,2,3",
+				expectedErr: fmt.Errorf(
 					"array index error with field `b.1`: array indexes in fields must start from 0 and increase sequentially",
 				),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Fields that are the same should throw an error (no arrays)",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.b,a.b\n1,2,3",
-				nil,
-				fmt.Errorf("fields cannot be identical: `a.b` and `a.b`"),
-			),
-		)
-		Convey("With --useArrayIndexFields: Repeated array index should throw error",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0,a.1,a.2,a.0\n1,2,3,4,5",
-				nil,
-				fmt.Errorf(
+			},
+			{
+				name:        "fields that are the same should throw an error (no arrays)",
+				data:        "_id,a.b,a.b\n1,2,3",
+				expectedErr: fmt.Errorf("fields cannot be identical: `a.b` and `a.b`"),
+			},
+			{
+				name: "repeated array index should throw error",
+				data: "_id,a.0,a.1,a.2,a.0\n1,2,3,4,5",
+				expectedErr: fmt.Errorf(
 					"array index error with field `a.0`: array indexes in fields must start from 0 and increase sequentially",
 				),
-			),
-		)
-		Convey("With --useArrayIndexFields: Array entries of different types should throw an error",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.a.0.a,a.a.0.1\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.a.0.a` and `a.a.0.1` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Document field should throw an error if element has already been set to an array",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.0.0,a.0.a\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.0.0` and `a.0.a` are incompatible"),
-			),
-		)
-		Convey(
-			"With --useArrayIndexFields: Incompatible fields should throw error (one long, one short)",
-			nestedFieldsTestHelper(
-				t,
-				"_id,a.a.a.a,a.a\n1,2,3",
-				nil,
-				fmt.Errorf("fields `a.a.a.a` and `a.a` are incompatible"),
-			),
-		)
+			},
+			{
+				name:        "array entries of different types should throw an error",
+				data:        "_id,a.a.0.a,a.a.0.1\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.a.0.a` and `a.a.0.1` are incompatible"),
+			},
+			{
+				name:        "document field should throw an error if element has already been set to an array",
+				data:        "_id,a.0.0,a.0.a\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.0.0` and `a.0.a` are incompatible"),
+			},
+			{
+				name:        "incompatible fields should throw error (one long, one short)",
+				data:        "_id,a.a.a.a,a.a\n1,2,3",
+				expectedErr: fmt.Errorf("fields `a.a.a.a` and `a.a` are incompatible"),
+			},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				cleanImportCollection(t)
+				runNestedFieldsTestCase(t, tc.data, tc.expectedDocuments, tc.expectedErr)
+			})
+		}
 	})
 }
 
-func nestedFieldsTestHelper(
+// Every subtest here writes to the same collection, so each one must clear it or it
+// inherits documents from whichever sibling ran before it.
+func cleanImportCollection(t *testing.T) {
+	t.Helper()
+
+	// assert, not require: require calls FailNow, which is runtime.Goexit, and
+	// that unwinds out of the cleanup runner and skips every cleanup registered
+	// before this one.
+	t.Cleanup(func() {
+		sessionProvider, err := db.NewSessionProvider(*getBasicToolOptions())
+		assert.NoError(t, err, "should get a session provider")
+		session, err := sessionProvider.GetSession()
+		assert.NoError(t, err, "should get a session")
+		_, err = session.Database(testDb).
+			Collection(testCollection).
+			DeleteMany(context.Background(), bson.D{})
+		assert.NoError(t, err, "should drop the test collection")
+	})
+}
+
+func runNestedFieldsTestCase(
 	t *testing.T,
 	data string,
 	expectedDocuments []bson.M,
 	expectedErr error,
-) func() {
-	return func() {
-		err := os.WriteFile(filepath.FromSlash("./temp_test_data.csv"), []byte(data), 0644)
-		So(err, ShouldBeNil)
-		defer func() {
-			err = os.Remove(filepath.FromSlash("./temp_test_data.csv"))
-			So(err, ShouldBeNil)
-		}()
+) {
+	t.Helper()
 
-		imp, err := NewMongoImport()
-		So(err, ShouldBeNil)
+	err := os.WriteFile(filepath.FromSlash("./temp_test_data.csv"), []byte(data), 0644)
+	require.NoError(t, err, "should write the temporary CSV fixture")
+	t.Cleanup(func() {
+		require.NoError(
+			t,
+			os.Remove(filepath.FromSlash("./temp_test_data.csv")),
+			"should remove the temporary CSV fixture",
+		)
+	})
 
-		imp.InputOptions.Type = CSV
-		imp.InputOptions.File = "./temp_test_data.csv"
-		imp.InputOptions.HeaderLine = true
-		imp.InputOptions.UseArrayIndexFields = true
-		imp.IngestOptions.Mode = modeInsert
+	imp, err := NewMongoImport()
+	require.NoError(t, err, "should create a new mongoimport instance")
 
-		numImported, numFailed, err := imp.ImportDocuments()
-		if expectedDocuments == nil {
-			So(err, ShouldNotBeNil)
-			So(err, ShouldResemble, expectedErr)
-		} else {
-			So(err, ShouldBeNil)
-			So(numImported, ShouldEqual, len(expectedDocuments))
-			So(numFailed, ShouldEqual, 0)
+	imp.InputOptions.Type = CSV
+	imp.InputOptions.File = "./temp_test_data.csv"
+	imp.InputOptions.HeaderLine = true
+	imp.InputOptions.UseArrayIndexFields = true
+	imp.IngestOptions.Mode = modeInsert
 
-			So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
-		}
+	numImported, numFailed, err := imp.ImportDocuments()
+	if expectedDocuments == nil {
+		require.Error(t, err, "should reject the incompatible or out-of-order fields")
+		require.Equal(t, expectedErr, err, "should report the specific field error")
+	} else {
+		require.NoError(t, err, "should import the array-indexed fields without error")
+		assert.EqualValues(t, len(expectedDocuments), numImported, "should process every document")
+		assert.EqualValues(t, 0, numFailed, "should not fail any document")
+
+		require.NoError(
+			t,
+			checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments),
+			"should insert the expected array-indexed document",
+		)
 	}
 }
 
