@@ -34,7 +34,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/pkg/errors"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -2353,14 +2352,10 @@ func TestFailDuringResharding(t *testing.T) {
 	)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider()
-	if err != nil {
-		t.Fatalf("Failed to get session provider: %v", err)
-	}
+	require.NoError(t, err, "must get a session provider")
 
 	session, err := sessionProvider.GetSession()
-	if err != nil {
-		t.Fatalf("Failed to get session: %v", err)
-	}
+	require.NoError(t, err, "must get a session")
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.9"); err != nil || cmp < 0 {
@@ -2373,151 +2368,224 @@ func TestFailDuringResharding(t *testing.T) {
 		t.Skipf("Not for replica sets")
 	}
 
-	Convey("With a MongoDump instance", t, func() {
-		err := setUpMongoDumpTestData(t)
-		So(err, ShouldBeNil)
+	defaultErrorMsg := "detected resharding in progress. Cannot dump with --oplog while resharding"
+	oplogErrorMsg := "cannot dump with oplog while resharding"
 
-		md, err := simpleMongoDumpInstance()
-		So(err, ShouldBeNil)
+	t.Run("dump should fail if config.reshardingOperations exists on source", func(t *testing.T) {
+		md := newFailDuringReshardingMongoDump(t)
+		err = session.Database("config").CreateCollection(ctx, "reshardingOperations")
+		require.NoError(t, err, "should create the reshardingOperations collection")
+		//nolint:errcheck
+		defer session.Database("config").Collection("reshardingOperations").Drop(ctx)
 
-		md.OutputOptions.Oplog = true
-		md.ToolOptions.Namespace = &options.Namespace{}
-		err = md.Init()
-		So(err, ShouldBeNil)
+		err = md.Dump()
+		require.Error(t, err, "should refuse to dump while resharding is in progress")
+		assert.Contains(
+			t,
+			err.Error(),
+			defaultErrorMsg,
+			"should explain that resharding is in progress",
+		)
+	})
 
-		DefaultErrorMsg := "detected resharding in progress. Cannot dump with --oplog while resharding"
-		OplogErrorMsg := "cannot dump with oplog while resharding"
-
-		Convey("dump should fail if config.reshardingOperations exists on source", func() {
-			err = session.Database("config").CreateCollection(ctx, "reshardingOperations")
-			So(err, ShouldBeNil)
+	t.Run(
+		"dump should fail if config.localReshardingOperations.donor exists on source",
+		func(t *testing.T) {
+			md := newFailDuringReshardingMongoDump(t)
+			err = session.Database("config").
+				CreateCollection(ctx, "localReshardingOperations.donor")
+			require.NoError(t, err, "should create the localReshardingOperations.donor collection")
 			//nolint:errcheck
-			defer session.Database("config").Collection("reshardingOperations").Drop(ctx)
+			defer session.Database("config").
+				Collection("localReshardingOperations.donor").
+				Drop(ctx)
 
 			err = md.Dump()
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
-		})
+			require.Error(t, err, "should refuse to dump while resharding is in progress")
+			assert.Contains(
+				t,
+				err.Error(),
+				defaultErrorMsg,
+				"should explain that resharding is in progress",
+			)
+		},
+	)
 
-		Convey(
-			"dump should fail if config.localReshardingOperations.donor exists on source",
-			func() {
-				err = session.Database("config").
-					CreateCollection(ctx, "localReshardingOperations.donor")
-				So(err, ShouldBeNil)
-				//nolint:errcheck
-				defer session.Database("config").
-					Collection("localReshardingOperations.donor").
-					Drop(ctx)
+	t.Run(
+		"dump should fail if config.localReshardingOperations.recipient exists on source",
+		func(t *testing.T) {
+			md := newFailDuringReshardingMongoDump(t)
+			err = session.Database("config").
+				CreateCollection(ctx, "localReshardingOperations.recipient")
+			require.NoError(
+				t,
+				err,
+				"should create the localReshardingOperations.recipient collection",
+			)
+			//nolint:errcheck
+			defer session.Database("config").
+				Collection("localReshardingOperations.recipient").
+				Drop(ctx)
 
-				err = md.Dump()
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
-			},
+			err = md.Dump()
+			require.Error(t, err, "should refuse to dump while resharding is in progress")
+			assert.Contains(
+				t,
+				err.Error(),
+				defaultErrorMsg,
+				"should explain that resharding is in progress",
+			)
+		},
+	)
+
+	t.Run("dump should fail if config.reshardingOperations created in oplog", func(t *testing.T) {
+		md := newFailDuringReshardingMongoDump(t)
+		require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+		defer failpoint.DefaultManager.Reset()
+
+		dumpErrCh := make(chan error, 1)
+		go func() { dumpErrCh <- md.Dump() }()
+
+		fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+		require.True(t, ok, "should find the PauseUntilResumed failpoint")
+		require.NoError(t, fp.Reached(context.TODO()))
+		sessErr1 := session.Database("config").CreateCollection(ctx, "reshardingOperations")
+		sessErr2 := session.Database("config").Collection("reshardingOperations").Drop(ctx)
+		fp.Signal()
+
+		err = <-dumpErrCh
+
+		require.Error(
+			t,
+			err,
+			"should refuse to dump while resharding is created during the oplog dump",
 		)
-
-		Convey(
-			"dump should fail if config.localReshardingOperations.recipient exists on source",
-			func() {
-				err = session.Database("config").
-					CreateCollection(ctx, "localReshardingOperations.recipient")
-				So(err, ShouldBeNil)
-				//nolint:errcheck
-				defer session.Database("config").
-					Collection("localReshardingOperations.recipient").
-					Drop(ctx)
-
-				err = md.Dump()
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldContainSubstring, DefaultErrorMsg)
-			},
+		assert.Contains(
+			t,
+			err.Error(),
+			oplogErrorMsg,
+			"should explain that resharding is in progress",
 		)
+		assert.NoError(t, sessErr1, "should create the reshardingOperations collection")
+		assert.NoError(t, sessErr2, "should drop the reshardingOperations collection")
+	})
 
-		Convey("dump should fail if config.reshardingOperations created in oplog", func() {
-			require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	t.Run(
+		"dump should fail if config.localReshardingOperations.donor created in oplog",
+		func(t *testing.T) {
+			md := newFailDuringReshardingMongoDump(t)
+			require.NoError(
+				t,
+				failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()),
+			)
 			defer failpoint.DefaultManager.Reset()
 
 			dumpErrCh := make(chan error, 1)
 			go func() { dumpErrCh <- md.Dump() }()
 
 			fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
-			So(ok, ShouldBeTrue)
+			require.True(t, ok, "should find the PauseUntilResumed failpoint")
 			require.NoError(t, fp.Reached(context.TODO()))
-			sessErr1 := session.Database("config").CreateCollection(ctx, "reshardingOperations")
-			sessErr2 := session.Database("config").Collection("reshardingOperations").Drop(ctx)
+			sessErr1 := session.Database("config").
+				CreateCollection(ctx, "localReshardingOperations.donor")
+			sessErr2 := session.Database("config").
+				Collection("localReshardingOperations.donor").
+				Drop(ctx)
 			fp.Signal()
 
 			err = <-dumpErrCh
 
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
-			So(sessErr1, ShouldBeNil)
-			So(sessErr2, ShouldBeNil)
-		})
+			require.Error(
+				t,
+				err,
+				"should refuse to dump while resharding is created during the oplog dump",
+			)
+			assert.Contains(
+				t,
+				err.Error(),
+				oplogErrorMsg,
+				"should explain that resharding is in progress",
+			)
+			assert.NoError(
+				t,
+				sessErr1,
+				"should create the localReshardingOperations.donor collection",
+			)
+			assert.NoError(
+				t,
+				sessErr2,
+				"should drop the localReshardingOperations.donor collection",
+			)
+		},
+	)
 
-		Convey(
-			"dump should fail if config.localReshardingOperations.donor created in oplog",
-			func() {
-				require.NoError(
-					t,
-					failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()),
-				)
-				defer failpoint.DefaultManager.Reset()
+	t.Run(
+		"dump should fail if config.localReshardingOperations.recipient created in oplog",
+		func(t *testing.T) {
+			md := newFailDuringReshardingMongoDump(t)
+			require.NoError(
+				t,
+				failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()),
+			)
+			defer failpoint.DefaultManager.Reset()
 
-				dumpErrCh := make(chan error, 1)
-				go func() { dumpErrCh <- md.Dump() }()
+			dumpErrCh := make(chan error, 1)
+			go func() { dumpErrCh <- md.Dump() }()
 
-				fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
-				So(ok, ShouldBeTrue)
-				require.NoError(t, fp.Reached(context.TODO()))
-				sessErr1 := session.Database("config").
-					CreateCollection(ctx, "localReshardingOperations.donor")
-				sessErr2 := session.Database("config").
-					Collection("localReshardingOperations.donor").
-					Drop(ctx)
-				fp.Signal()
+			fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+			require.True(t, ok, "should find the PauseUntilResumed failpoint")
+			require.NoError(t, fp.Reached(context.TODO()))
+			sessErr1 := session.Database("config").
+				CreateCollection(ctx, "localReshardingOperations.recipient")
+			sessErr2 := session.Database("config").
+				Collection("localReshardingOperations.recipient").
+				Drop(ctx)
+			fp.Signal()
 
-				err = <-dumpErrCh
+			err = <-dumpErrCh
 
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
-				So(sessErr1, ShouldBeNil)
-				So(sessErr2, ShouldBeNil)
-			},
-		)
+			require.Error(
+				t,
+				err,
+				"should refuse to dump while resharding is created during the oplog dump",
+			)
+			assert.Contains(
+				t,
+				err.Error(),
+				oplogErrorMsg,
+				"should explain that resharding is in progress",
+			)
+			assert.NoError(
+				t,
+				sessErr1,
+				"should create the localReshardingOperations.recipient collection",
+			)
+			assert.NoError(
+				t,
+				sessErr2,
+				"should drop the localReshardingOperations.recipient collection",
+			)
+		},
+	)
+}
 
-		Convey(
-			"dump should fail if config.localReshardingOperations.recipient created in oplog",
-			func() {
-				require.NoError(
-					t,
-					failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()),
-				)
-				defer failpoint.DefaultManager.Reset()
+// builds a fresh MongoDump instance per subtest, since Dump closes the
+// underlying session provider and a shared instance would only work once.
+func newFailDuringReshardingMongoDump(t *testing.T) *MongoDump {
+	t.Helper()
 
-				dumpErrCh := make(chan error, 1)
-				go func() { dumpErrCh <- md.Dump() }()
+	err := setUpMongoDumpTestData(t)
+	require.NoError(t, err, "should set up the test data")
 
-				fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
-				So(ok, ShouldBeTrue)
-				require.NoError(t, fp.Reached(context.TODO()))
-				sessErr1 := session.Database("config").
-					CreateCollection(ctx, "localReshardingOperations.recipient")
-				sessErr2 := session.Database("config").
-					Collection("localReshardingOperations.recipient").
-					Drop(ctx)
-				fp.Signal()
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err, "should build a MongoDump instance")
 
-				err = <-dumpErrCh
+	md.OutputOptions.Oplog = true
+	md.ToolOptions.Namespace = &options.Namespace{}
+	err = md.Init()
+	require.NoError(t, err, "should initialize the MongoDump instance")
 
-				So(err, ShouldNotBeNil)
-				So(err.Error(), ShouldContainSubstring, OplogErrorMsg)
-				So(sessErr1, ShouldBeNil)
-				So(sessErr2, ShouldBeNil)
-			},
-		)
-
-	})
+	return md
 }
 
 func TestOptionsOrderIsPreserved(t *testing.T) {
