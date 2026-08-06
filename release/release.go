@@ -10,6 +10,8 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/json"
+	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -1506,6 +1508,58 @@ func downloadMongodAndShell(v string) {
 	}
 }
 
+// s3ErrorResponse is the XML document S3 serves in place of the requested object when a
+// request fails. Presigned URLs from Evergreen artifacts are served by S3, so this is what
+// comes back when, say, the credentials they were signed with have been rotated away.
+type s3ErrorResponse struct {
+	Code      string `xml:"Code"`
+	Message   string `xml:"Message"`
+	RequestID string `xml:"RequestId"`
+}
+
+// s3CredentialErrorCodes are the S3 error codes that mean the request was not accepted,
+// as opposed to the object being missing or the service being unhappy.
+var s3CredentialErrorCodes = mapset.NewSet(
+	"AccessDenied",
+	"ExpiredToken",
+	"InvalidAccessKeyId",
+	"InvalidToken",
+	"RequestTimeTooSkewed",
+	"SignatureDoesNotMatch",
+	"TokenRefreshRequired",
+)
+
+// checkDownloadResponse returns an error describing why a download did not return the
+// artifact, or nil if it did.
+func checkDownloadResponse(res *http.Response) error {
+	if res.StatusCode == http.StatusOK {
+		return nil
+	}
+
+	// An error body is a short XML or HTML document. Anything longer is not something we
+	// want in a log line, and we already have the status to report.
+	body, err := io.ReadAll(io.LimitReader(res.Body, 4096))
+	if err != nil {
+		return fmt.Errorf("got %s and could not read the response body: %w", res.Status, err)
+	}
+
+	var s3Err s3ErrorResponse
+	if xml.Unmarshal(body, &s3Err) != nil || s3Err.Code == "" {
+		return fmt.Errorf("got %s: %s", res.Status, strings.TrimSpace(string(body)))
+	}
+
+	msg := fmt.Sprintf("got %s from S3: %s: %s", res.Status, s3Err.Code, s3Err.Message)
+	if s3Err.RequestID != "" {
+		msg += fmt.Sprintf(" (request ID %s)", s3Err.RequestID)
+	}
+	if s3CredentialErrorCodes.Contains(s3Err.Code) {
+		msg += ". The AWS credentials the URL was signed with are not valid, which is a" +
+			" problem with the credentials rather than with this build"
+	}
+
+	return errors.New(msg)
+}
+
 func downloadBinaries(url string) {
 	tempDir, err := os.MkdirTemp("bin", "")
 	check(err, "create temp dir")
@@ -1519,6 +1573,11 @@ func downloadBinaries(url string) {
 
 	res, err := http.Get(url)
 	check(err, "get the server package")
+	defer res.Body.Close()
+
+	// Without this, an error response gets written to disk and then fails much later as a
+	// corrupt archive, which says nothing about why the download did not work.
+	check(checkDownloadResponse(res), "download %s", filename)
 
 	_, err = io.Copy(packageFile, res.Body)
 	check(err, "write server package file")
