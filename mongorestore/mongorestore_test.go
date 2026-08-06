@@ -9,6 +9,7 @@ package mongorestore
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -788,155 +789,207 @@ func generateTestData() error {
 func TestMongorestoreMIOSOE(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	if err := generateTestData(); err != nil {
-		t.Fatalf("Couldn't generate test data %v", err)
-	}
+	require.NoError(t, generateTestData(), "should generate the test data")
 
 	client, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 	database := client.Database("miodb")
 	coll := database.Collection("mio")
 
-	Convey("default restore ignores dup key errors", t, func() {
+	t.Run("default restore ignores dup key errors", func(t *testing.T) {
 		restore, err := getRestoreWithArgs(mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
-		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeFalse)
+		require.False(
+			t,
+			restore.OutputOptions.MaintainInsertionOrder,
+			"should not maintain insertion order by default",
+		)
 
 		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
-		So(result.Successes, ShouldEqual, 20000)
-		So(result.Failures, ShouldEqual, 1)
+		require.NoError(t, result.Err, "should restore despite duplicate key errors")
+		require.EqualValues(
+			t,
+			20000,
+			result.Successes,
+			"should insert every non-duplicate document",
+		)
+		require.EqualValues(t, 1, result.Failures, "should count the single duplicate key error")
 
 		count, err := coll.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 20000)
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(t, 20000, count, "should restore every non-duplicate document")
 	})
 
-	Convey("--maintainInsertionOrder stops exactly on dup key errors", t, func() {
+	t.Run("--maintainInsertionOrder stops exactly on dup key errors", func(t *testing.T) {
 		restore, err := getRestoreWithArgs(mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption,
 			MaintainInsertionOrderOption)
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
-		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeTrue)
-		So(restore.OutputOptions.NumInsertionWorkers, ShouldEqual, 1)
+		require.True(
+			t,
+			restore.OutputOptions.MaintainInsertionOrder,
+			"should maintain insertion order",
+		)
+		require.EqualValues(
+			t,
+			1,
+			restore.OutputOptions.NumInsertionWorkers,
+			"should use a single insertion worker to maintain order",
+		)
 
 		result := restore.Restore()
-		So(result.Err, ShouldNotBeNil)
-		So(result.Successes, ShouldEqual, 10000)
-		So(result.Failures, ShouldEqual, 1)
+		require.Error(t, result.Err, "should stop on the duplicate key error")
+		require.EqualValues(
+			t,
+			10000,
+			result.Successes,
+			"should insert only documents before the duplicate",
+		)
+		require.EqualValues(t, 1, result.Failures, "should count the duplicate key error")
 
 		count, err := coll.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 10000)
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(t, 10000, count, "should restore only documents before the duplicate")
 	})
 
-	Convey("--stopOnError stops on dup key errors", t, func() {
+	t.Run("--stopOnError stops on dup key errors", func(t *testing.T) {
 		restore, err := getRestoreWithArgs(mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption,
 			StopOnErrorOption,
 			NumParallelCollectionsOption, "1")
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
-		So(restore.OutputOptions.StopOnError, ShouldBeTrue)
+		require.True(t, restore.OutputOptions.StopOnError, "should enable stop-on-error")
 
 		result := restore.Restore()
-		So(result.Err, ShouldNotBeNil)
-		So(result.Successes, ShouldAlmostEqual, 10000, restore.OutputOptions.BulkBufferSize)
-		So(result.Failures, ShouldEqual, 1)
+		require.Error(t, result.Err, "should stop on the duplicate key error")
+		require.InDelta(
+			t,
+			10000,
+			result.Successes,
+			float64(restore.OutputOptions.BulkBufferSize),
+			"should insert approximately the documents before the duplicate",
+		)
+		require.EqualValues(t, 1, result.Failures, "should count the duplicate key error")
 
 		count, err := coll.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldAlmostEqual, 10000, restore.OutputOptions.BulkBufferSize)
+		require.NoError(t, err, "should count the restored documents")
+		require.InDelta(
+			t,
+			10000,
+			count,
+			float64(restore.OutputOptions.BulkBufferSize),
+			"should restore approximately the documents before the duplicate",
+		)
 	})
 
 	err = database.Drop(t.Context())
-	if err != nil {
-		t.Fatalf("Could not drop database")
-	}
+	require.NoError(t, err, "should drop the test database")
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
+	t.Run("creating index with invalid option should throw error", func(t *testing.T) {
+		restore, coll := newDeprecatedIndexOptionsRestore(
+			t,
+			session,
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
-		}
+		)
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		db := session.Database("indextest")
-
-		coll := db.Collection("test_collection")
-		err = coll.Drop(t.Context())
-		So(err, ShouldBeNil)
-		defer func() {
-			dropErr := coll.Drop(t.Context())
-			So(dropErr, ShouldBeNil)
-		}()
-		Convey("Creating index with invalid option should throw error", func() {
-			restore.TargetDirectory = "testdata/indextestdump"
-			result := restore.Restore()
-			So(result.Err, ShouldNotBeNil)
-			So(
+		restore.TargetDirectory = "testdata/indextestdump"
+		result := restore.Restore()
+		require.Error(t, result.Err, "should fail to create an index with an invalid option")
+		require.True(
+			t,
+			strings.HasPrefix(
 				result.Err.Error(),
-				ShouldStartWith,
 				`indextest.test_collection: error creating indexes for indextest.test_collection: createIndex error:`,
-			)
+			),
+			"should report the createIndex error",
+		)
 
-			So(result.Successes, ShouldEqual, 100)
-			So(result.Failures, ShouldEqual, 0)
-			count, err := coll.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 100)
-		})
-
-		err = coll.Drop(t.Context())
-		So(err, ShouldBeNil)
-
-		args = []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			ConvertLegacyIndexesOption, "true",
-		}
-
-		restore, err = getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		Convey(
-			"Creating index with invalid option and --convertLegacyIndexes should succeed",
-			func() {
-				restore.TargetDirectory = "testdata/indextestdump"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				So(result.Successes, ShouldEqual, 100)
-				So(result.Failures, ShouldEqual, 0)
-				count, err := coll.CountDocuments(t.Context(), bson.M{})
-				So(err, ShouldBeNil)
-				So(count, ShouldEqual, 100)
-			},
+		require.EqualValues(
+			t,
+			100,
+			result.Successes,
+			"should insert every document before the index failure",
+		)
+		require.EqualValues(t, 0, result.Failures, "should not count document-insertion failures")
+		count, err := coll.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents")
+		require.EqualValues(
+			t,
+			100,
+			count,
+			"should restore every document despite the index failure",
 		)
 	})
+
+	t.Run(
+		"creating index with invalid option and --convertLegacyIndexes should succeed",
+		func(t *testing.T) {
+			restore, coll := newDeprecatedIndexOptionsRestore(
+				t,
+				session,
+				NumParallelCollectionsOption, "1",
+				NumInsertionWorkersOption, "1",
+				ConvertLegacyIndexesOption, "true",
+			)
+
+			restore.TargetDirectory = "testdata/indextestdump"
+			result := restore.Restore()
+			require.NoError(t, result.Err, "should convert the legacy index option and succeed")
+
+			require.EqualValues(t, 100, result.Successes, "should insert every document")
+			require.EqualValues(
+				t,
+				0,
+				result.Failures,
+				"should not fail to create the converted index",
+			)
+			count, err := coll.CountDocuments(t.Context(), bson.M{})
+			require.NoError(t, err, "should count the restored documents")
+			require.EqualValues(t, 100, count, "should restore every document")
+		},
+	)
+}
+
+// newDeprecatedIndexOptionsRestore builds a restore instance against a freshly
+// dropped indextest.test_collection. Each subtest gets its own restore and a
+// freshly dropped collection, so the two scenarios can't leak index state
+// into each other.
+func newDeprecatedIndexOptionsRestore(
+	t *testing.T,
+	session *mongo.Client,
+	args ...string,
+) (*MongoRestore, *mongo.Collection) {
+	t.Helper()
+
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	t.Cleanup(restore.Close)
+
+	coll := session.Database("indextest").Collection("test_collection")
+	require.NoError(t, coll.Drop(t.Context()), "should drop the test collection")
+	t.Cleanup(func() {
+		// t.Context() is already canceled by the time cleanups run.
+		assert.NoError(t, coll.Drop(context.Background()), "should drop the test collection")
+	})
+
+	return restore, coll
 }
 
 // TestFixDuplicatedLegacyIndexes restores two indexes with --convertLegacyIndexes flag, {foo: ""} and {foo: 1}
@@ -945,221 +998,215 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "3.4"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 3.4 or later")
 	}
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			ConvertLegacyIndexesOption,
-		}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+	restore, err := getRestoreWithArgs(ConvertLegacyIndexesOption)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		Convey("Index with duplicate key after convertLegacyIndexes should be skipped", func() {
-			restore.TargetDirectory = "testdata/duplicate_index_key"
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 0)
-			So(result.Failures, ShouldEqual, 0)
-			So(err, ShouldBeNil)
+	restore.TargetDirectory = "testdata/duplicate_index_key"
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should skip the duplicate index key without failing")
+	require.EqualValues(t, 0, result.Successes, "should not insert any documents")
+	require.EqualValues(t, 0, result.Failures, "should not fail to insert any documents")
+	require.NoError(t, err, "should build a restore instance")
 
-			testDB := session.Database("indextest")
-			defer func() {
-				err = testDB.Drop(t.Context())
-				if err != nil {
-					t.Fatalf("Failed to drop test database testdata")
-				}
-			}()
+	testDB := session.Database("indextest")
+	defer func() {
+		err = testDB.Drop(t.Context())
+		require.NoError(t, err, "should drop the test database")
+	}()
 
-			c, err := testDB.Collection("duplicate_index_key").Indexes().List(t.Context())
-			So(err, ShouldBeNil)
+	c, err := testDB.Collection("duplicate_index_key").Indexes().List(t.Context())
+	require.NoError(t, err, "should list the collection's indexes")
 
-			type indexRes struct {
-				Name string
-				Key  bson.D
-			}
+	type indexRes struct {
+		Name string
+		Key  bson.D
+	}
 
-			indexKeys := make(map[string]bson.D)
+	indexKeys := make(map[string]bson.D)
 
-			// two Indexes should be created in addition to the _id, foo and foo_2
-			for c.Next(t.Context()) {
-				var res indexRes
-				err = c.Decode(&res)
-				So(err, ShouldBeNil)
-				So(len(res.Key), ShouldEqual, 1)
-				indexKeys[res.Name] = res.Key
-			}
+	// two Indexes should be created in addition to the _id, foo and foo_2
+	for c.Next(t.Context()) {
+		var res indexRes
+		err = c.Decode(&res)
+		require.NoError(t, err, "should decode each index")
+		require.Len(t, res.Key, 1, "should have a single-field index key")
+		indexKeys[res.Name] = res.Key
+	}
 
-			So(len(indexKeys), ShouldEqual, 3)
+	require.Len(t, indexKeys, 3, "should create exactly three indexes")
 
-			var indexKey bson.D
-			// Check that only one of foo_, foo_1, or foo_1.0 was created
-			indexKeyFoo, ok := indexKeys["foo_"]
-			indexKeyFoo1, ok1 := indexKeys["foo_1"]
-			indexKeyFoo10, ok10 := indexKeys["foo_1.0"]
+	var indexKey bson.D
+	// Check that only one of foo_, foo_1, or foo_1.0 was created
+	indexKeyFoo, ok := indexKeys["foo_"]
+	indexKeyFoo1, ok1 := indexKeys["foo_1"]
+	indexKeyFoo10, ok10 := indexKeys["foo_1.0"]
 
-			So(ok || ok1 || ok10, ShouldBeTrue)
+	require.True(t, ok || ok1 || ok10, "should create one of the duplicate-key index name variants")
 
-			if ok {
-				So(ok1 || ok10, ShouldBeFalse)
-				indexKey = indexKeyFoo
-			}
+	if ok {
+		require.False(
+			t,
+			ok1 || ok10,
+			"should create only one of the duplicate-key index name variants",
+		)
+		indexKey = indexKeyFoo
+	}
 
-			if ok1 {
-				So(ok || ok10, ShouldBeFalse)
-				indexKey = indexKeyFoo1
-			}
+	if ok1 {
+		require.False(
+			t,
+			ok || ok10,
+			"should create only one of the duplicate-key index name variants",
+		)
+		indexKey = indexKeyFoo1
+	}
 
-			if ok10 {
-				So(ok || ok1, ShouldBeFalse)
-				indexKey = indexKeyFoo10
-			}
+	if ok10 {
+		require.False(
+			t,
+			ok || ok1,
+			"should create only one of the duplicate-key index name variants",
+		)
+		indexKey = indexKeyFoo10
+	}
 
-			So(len(indexKey), ShouldEqual, 1)
-			So(indexKey[0].Key, ShouldEqual, "foo")
-			So(indexKey[0].Value, ShouldEqual, 1)
+	require.Len(t, indexKey, 1, "should have a single-field index key")
+	require.Equal(t, "foo", indexKey[0].Key, "should index the foo field")
+	require.EqualValues(t, 1, indexKey[0].Value, "should keep the ascending index")
 
-			indexKey, ok = indexKeys["foo_2"]
-			So(ok, ShouldBeTrue)
-			So(len(indexKey), ShouldEqual, 1)
-			So(indexKey[0].Key, ShouldEqual, "foo")
-			So(indexKey[0].Value, ShouldEqual, 2)
-		})
-	})
+	indexKey, ok = indexKeys["foo_2"]
+	require.True(t, ok, "should create the second foo index")
+	require.Len(t, indexKey, 1, "should have a single-field index key")
+	require.Equal(t, "foo", indexKey[0].Key, "should index the foo field")
+	require.EqualValues(t, 2, indexKey[0].Value, "should keep the descending index")
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 4.4 or later")
 	}
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-		}
+	args := []string{
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+	}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		session, _ = restore.SessionProvider.GetSession()
+	session, _ = restore.SessionProvider.GetSession()
 
-		db := session.Database("indextest")
+	db := session.Database("indextest")
 
-		// 4.4 removes the 'ns' field nested under the 'index' field in metadata.json
-		coll := db.Collection("test_coll_no_index_ns")
-		err = coll.Drop(t.Context())
-		So(err, ShouldBeNil)
-		defer func() {
-			dropErr := coll.Drop(t.Context())
-			So(dropErr, ShouldBeNil)
-		}()
+	// 4.4 removes the 'ns' field nested under the 'index' field in metadata.json
+	coll := db.Collection("test_coll_no_index_ns")
+	err = coll.Drop(t.Context())
+	require.NoError(t, err, "should drop the test collection")
+	defer func() {
+		dropErr := coll.Drop(t.Context())
+		assert.NoError(t, dropErr, "should drop the test collection")
+	}()
 
-		args = []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-			ConvertLegacyIndexesOption, "true",
-		}
+	args = []string{
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+		ConvertLegacyIndexesOption, "true",
+	}
 
-		restore, err = getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+	restore, err = getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
 
-		Convey("Creating index with --convertLegacyIndexes and 4.4 FCV should succeed", func() {
-			restore.TargetDirectory = "testdata/indexmetadata"
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
+	restore.TargetDirectory = "testdata/indexmetadata"
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should convert the legacy index and succeed on 4.4 FCV")
 
-			So(result.Successes, ShouldEqual, 100)
-			So(result.Failures, ShouldEqual, 0)
-			count, err := coll.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 100)
-		})
-	})
+	require.EqualValues(t, 100, result.Successes, "should insert every document")
+	require.EqualValues(t, 0, result.Failures, "should not fail to create the converted index")
+	count, err := coll.CountDocuments(t.Context(), bson.M{})
+	require.NoError(t, err, "should count the restored documents")
+	require.EqualValues(t, 100, count, "should restore every document")
 }
 
 func TestLongIndexName(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
+	args := []string{
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+	}
+
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
+
+	session, err := restore.SessionProvider.GetSession()
+	require.NoError(t, err, "should get a session from the restore instance")
+
+	coll := session.Database("longindextest").Collection("test_collection")
+	err = coll.Drop(t.Context())
+	require.NoError(t, err, "should drop the test collection")
+	defer func() {
+		dropErr := coll.Drop(t.Context())
+		assert.NoError(t, dropErr, "should drop the test collection")
+	}()
+
+	restore.TargetDirectory = "testdata/longindextestdump"
+	result := restore.Restore()
+
+	if restore.serverVersion.LT(db.Version{4, 2, 0}) {
+		require.Error(
+			t,
+			result.Err,
+			"should fail to create an index name longer than 127 bytes (<4.2)",
+		)
+		require.Contains(
+			t,
+			result.Err.Error(),
+			"namespace is too long (max size is 127 bytes)",
+			"should report the namespace-too-long error",
+		)
+	} else {
+		require.NoError(t, result.Err, "should create an index name longer than 127 bytes (>=4.2)")
+
+		indexes := session.Database("longindextest").Collection("test_collection").Indexes()
+		c, err := indexes.List(t.Context())
+		require.NoError(t, err, "should list the collection's indexes")
+
+		type indexRes struct {
+			Name string
 		}
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		session, err := restore.SessionProvider.GetSession()
-		So(err, ShouldBeNil)
-
-		coll := session.Database("longindextest").Collection("test_collection")
-		err = coll.Drop(t.Context())
-		So(err, ShouldBeNil)
-		defer func() {
-			dropErr := coll.Drop(t.Context())
-			So(dropErr, ShouldBeNil)
-		}()
-
-		if restore.serverVersion.LT(db.Version{4, 2, 0}) {
-			Convey(
-				"Creating index with a full name longer than 127 bytes should fail (<4.2)",
-				func() {
-					restore.TargetDirectory = "testdata/longindextestdump"
-					result := restore.Restore()
-					So(result.Err, ShouldNotBeNil)
-					So(
-						result.Err.Error(),
-						ShouldContainSubstring,
-						"namespace is too long (max size is 127 bytes)",
-					)
-				},
-			)
-		} else {
-			Convey("Creating index with a full name longer than 127 bytes should succeed (>=4.2)", func() {
-				restore.TargetDirectory = "testdata/longindextestdump"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				indexes := session.Database("longindextest").Collection("test_collection").Indexes()
-				c, err := indexes.List(t.Context())
-				So(err, ShouldBeNil)
-
-				type indexRes struct {
-					Name string
-				}
-				var names []string
-				for c.Next(t.Context()) {
-					var r indexRes
-					err := c.Decode(&r)
-					So(err, ShouldBeNil)
-					names = append(names, r.Name)
-				}
-				So(len(names), ShouldEqual, 2)
-				sort.Strings(names)
-				So(names[0], ShouldEqual, "_id_")
-				So(names[1], ShouldEqual, "a_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-			})
+		var names []string
+		for c.Next(t.Context()) {
+			var r indexRes
+			err := c.Decode(&r)
+			require.NoError(t, err, "should decode each index")
+			names = append(names, r.Name)
 		}
-
-	})
+		require.Len(t, names, 2, "should create exactly two indexes")
+		sort.Strings(names)
+		require.Equal(t, "_id_", names[0], "should keep the default _id index")
+		require.Equal(
+			t,
+			"a_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			names[1],
+			"should create the long index name",
+		)
+	}
 }
 
 func TestKnownCollections(t *testing.T) {
@@ -1168,146 +1215,128 @@ func TestKnownCollections(t *testing.T) {
 		testtype.IntegrationTestType,
 		testtype.ShardedIntegrationTestType,
 	)
-	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	_, err := testutil.GetBareSession()
+	require.NoError(t, err, "must connect to the server")
+
+	args := []string{
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
 	}
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
+	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance")
+	defer restore.Close()
+
+	session, _ := restore.SessionProvider.GetSession()
+	db := session.Database("test")
+	defer func() {
+		dropErr := db.Collection("foo").Drop(t.Context())
+		assert.NoError(t, dropErr, "should drop the test collection")
+	}()
+
+	restore.TargetDirectory = "testdata/foodump"
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore the foo collection")
+
+	var namespaceExistsInCache bool
+	if cols, ok := restore.knownCollections["test"]; ok {
+		for _, collName := range cols {
+			if collName == "foo" {
+				namespaceExistsInCache = true
+			}
 		}
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
-
-		session, _ = restore.SessionProvider.GetSession()
-		db := session.Database("test")
-		defer func() {
-			dropErr := db.Collection("foo").Drop(t.Context())
-			So(dropErr, ShouldBeNil)
-		}()
-
-		Convey(
-			"Once collection foo has been restored, it should exist in restore.knownCollections",
-			func() {
-				restore.TargetDirectory = "testdata/foodump"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				var namespaceExistsInCache bool
-				if cols, ok := restore.knownCollections["test"]; ok {
-					for _, collName := range cols {
-						if collName == "foo" {
-							namespaceExistsInCache = true
-						}
-					}
-				}
-				So(namespaceExistsInCache, ShouldBeTrue)
-			},
-		)
-	})
+	}
+	require.True(
+		t,
+		namespaceExistsInCache,
+		"should record the restored collection in knownCollections",
+	)
 }
 
 func TestReadPreludeMetadata(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
+	_, err := testutil.GetBareSession()
+	require.NoError(t, err, "must connect to the server")
+
+	cases := []struct {
+		name            string
+		targetDirectory string
+		gzip            bool
+		db              string
+		expectedVersion db.Version
+	}{
+		{
+			name:            "sets serverDumpVersion from prelude.json when dump dir is target",
+			targetDirectory: "testdata/prelude_test/prelude_top_level",
+			expectedVersion: db.Version{7, 0, 16},
+		},
+		{
+			name:            "sets serverDumpVersion from prelude.json.gz when gzipped dump is used",
+			targetDirectory: "testdata/prelude_test/prelude_gzip/test",
+			gzip:            true,
+			expectedVersion: db.Version{7, 0, 16},
+		},
+		{
+			name:            "sets serverDumpVersion from prelude.json in main dump dir when db dir is target",
+			targetDirectory: "testdata/prelude_test/prelude_top_level/test",
+			expectedVersion: db.Version{7, 0, 16},
+		},
+		{
+			name:            "sets serverDumpVersion from prelude.json from the db's directory",
+			targetDirectory: "testdata/prelude_test/prelude_db_target/test",
+			db:              "test",
+			expectedVersion: db.Version{7, 0, 16},
+		},
+		{
+			name:            "sets serverDumpVersion from prelude.json in parent directory when file is used as target",
+			targetDirectory: "testdata/prelude_test/prelude_top_level/test/foo.bson",
+			expectedVersion: db.Version{7, 0, 16},
+		},
+		{
+			name:            "does not error out when server version is unknown",
+			targetDirectory: "testdata/prelude_test/server_version_unknown",
+			expectedVersion: db.Version{},
+		},
+		{
+			name:            "does not error out when prelude is not available",
+			targetDirectory: "testdata/foodump",
+			expectedVersion: db.Version{},
+		},
 	}
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-		}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			args := []string{
+				NumParallelCollectionsOption, "1",
+				NumInsertionWorkersOption, "1",
+			}
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err, "should build a restore instance")
+			defer restore.Close()
 
-		session, _ = restore.SessionProvider.GetSession()
-		database := session.Database("test")
-		defer func() {
-			dropErr := database.Collection("foo").Drop(t.Context())
-			So(dropErr, ShouldBeNil)
-		}()
+			restoreSession, _ := restore.SessionProvider.GetSession()
+			defer func() {
+				dropErr := restoreSession.Database("test").Collection("foo").Drop(t.Context())
+				assert.NoError(t, dropErr, "should drop the test collection")
+			}()
 
-		Convey("sets serverDumpVersion from prelude.json when dump dir is target", func() {
-			restore.TargetDirectory = "testdata/prelude_test/prelude_top_level"
+			restore.TargetDirectory = tc.targetDirectory
+			restore.InputOptions.Gzip = tc.gzip
+			if tc.db != "" {
+				restore.ToolOptions.DB = tc.db
+			}
+
 			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-
-			So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
+			require.NoError(t, result.Err, "should restore without error")
+			require.Equal(
+				t,
+				tc.expectedVersion,
+				restore.dumpServerVersion,
+				"should read the correct server version from the prelude",
+			)
 		})
-
-		Convey("sets serverDumpVersion from prelude.json.gz when gzipped dump is used", func() {
-			restore.TargetDirectory = "testdata/prelude_test/prelude_gzip/test"
-			restore.InputOptions.Gzip = true
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-
-			So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
-		})
-
-		Convey(
-			"sets serverDumpVersion from prelude.json in main dump dir when db dir is target",
-			func() {
-				restore.TargetDirectory = "testdata/prelude_test/prelude_top_level/test"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
-			},
-		)
-
-		Convey(
-			"sets serverDumpVersion from prelude.json from the db's directory",
-			func() {
-				restore.TargetDirectory = "testdata/prelude_test/prelude_db_target/test"
-				restore.ToolOptions.DB = "test"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
-			},
-		)
-
-		Convey(
-			"sets serverDumpVersion from prelude.json in parent directory when file is used as target",
-			func() {
-				restore.TargetDirectory = "testdata/prelude_test/prelude_top_level/test/foo.bson"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				So(restore.dumpServerVersion, ShouldEqual, db.Version{7, 0, 16})
-			},
-		)
-
-		Convey(
-			"does not error out when server version is unknown",
-			func() {
-				restore.TargetDirectory = "testdata/prelude_test/server_version_unknown"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				So(restore.dumpServerVersion, ShouldEqual, db.Version{})
-			},
-		)
-
-		Convey(
-			"does not error out when prelude is not available",
-			func() {
-				restore.TargetDirectory = "testdata/foodump"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
-
-				So(restore.dumpServerVersion, ShouldEqual, db.Version{})
-			},
-		)
-	})
+	}
 }
 
 func TestFixHashedIndexes(t *testing.T) {
