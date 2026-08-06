@@ -138,12 +138,6 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 	)
 }
 
-// ----------------------------------------------------------------------
-// All tests from this point onwards use testify, not convey. See the
-// CONTRIBUTING.md file in the top level of the repo for details on how to
-// write tests using testify.
-// ----------------------------------------------------------------------
-
 func TestReadDumpServerVersionFromArchive(t *testing.T) {
 	require := require.New(t)
 
