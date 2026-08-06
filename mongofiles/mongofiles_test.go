@@ -23,7 +23,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -97,8 +96,10 @@ func setUpGridFSTestData() (map[string]int, error) {
 	return bytesExpected, nil
 }
 
-// remove test data from GridFS.
-func tearDownGridFSTestData(t *testing.T) error {
+// remove test data from GridFS. Uses context.Background rather than a
+// *testing.T context because this runs from t.Cleanup, where t.Context is
+// already canceled.
+func tearDownGridFSTestData() error {
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func tearDownGridFSTestData(t *testing.T) error {
 		return err
 	}
 
-	if err = session.Database(testDB).Drop(t.Context()); err != nil {
+	if err = session.Database(testDB).Drop(context.Background()); err != nil {
 		return err
 	}
 
@@ -374,800 +375,768 @@ func TestValidArguments(t *testing.T) {
 func TestMongoFilesCommands(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
-		"with a MongoDump instance", t, func() {
-		bytesExpected, err := setUpGridFSTestData()
-		So(err, ShouldBeNil)
+	t.Run("list command with a file that isn't in GridFS", func(t *testing.T) {
+		setupGridFSTestFiles(t)
+		mf, err := simpleMongoFilesInstanceWithFilename("list", "gibberish")
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
 
-		Convey("Testing the 'list' command with a file that isn't in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("list", "gibberish")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
+		output, err := mf.Run(false)
+		require.NoError(t, err, "should run the list command")
+		assert.Empty(t, output, "should produce no output for a file that isn't in GridFS")
+	})
 
-			Convey("produce no output", func() {
-				output, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(len(output), ShouldEqual, 0)
-			})
+	t.Run("list command with files that are in GridFS", func(t *testing.T) {
+		bytesExpected := setupGridFSTestFiles(t)
+		mf, err := simpleMongoFilesInstanceWithFilename("list", "testf")
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
+
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should run the list command")
+		require.NotEmpty(t, str, "should produce some output")
+
+		lines := cleanAndTokenizeTestOutput(str)
+		require.Len(t, lines, len(testFiles), "should list every test file")
+
+		bytesGotten := getFilesAndBytesFromLines(lines)
+		assert.Equal(
+			t,
+			bytesExpected,
+			bytesGotten,
+			"should report the byte count of every test file",
+		)
+	})
+
+	t.Run("search command with files that are in GridFS", func(t *testing.T) {
+		bytesExpected := setupGridFSTestFiles(t)
+		mf, err := simpleMongoFilesInstanceWithFilename("search", "file")
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
+
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should run the search command")
+		require.NotEmpty(t, str, "should produce some output")
+
+		lines := cleanAndTokenizeTestOutput(str)
+		require.Len(t, lines, len(testFiles), "should find every test file")
+
+		bytesGotten := getFilesAndBytesFromLines(lines)
+		assert.Equal(
+			t,
+			bytesExpected,
+			bytesGotten,
+			"should report the byte count of every test file",
+		)
+	})
+
+	t.Run("get command with a file that is in GridFS", func(t *testing.T) {
+		bytesExpected := setupGridFSTestFiles(t)
+		mf, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
+
+		var buff bytes.Buffer
+		log.SetWriter(&buff)
+		t.Cleanup(func() {
+			removeIfExists(t, "testfile1")
+			removeIfExists(t, "testfile1copy")
 		})
 
-		Convey("Testing the 'list' command with files that are in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("list", "testf")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
+		mf.StorageOptions.LocalFileName = "testfile1copy"
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should run the get command")
+		assert.Equal(t, "", str, "should print nothing to stdout")
+		assert.NotEqual(t, 0, buff.Len(), "should log the write event")
 
-			Convey("produce some output", func() {
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(len(str), ShouldNotEqual, 0)
+		testFile, err := os.Open("testfile1copy")
+		require.NoError(t, err, "should store the file contents under the '--local' name")
+		defer testFile.Close()
 
-				lines := cleanAndTokenizeTestOutput(str)
-				So(len(lines), ShouldEqual, len(testFiles))
+		// pretty small file; so read all
+		testFile1Bytes, err := io.ReadAll(testFile)
+		require.NoError(t, err, "should read the retrieved file")
+		assert.Len(
+			t,
+			testFile1Bytes,
+			bytesExpected["testfile1"],
+			"should retrieve the full file content",
+		)
+	})
 
-				bytesGotten := getFilesAndBytesFromLines(lines)
-				So(bytesGotten, ShouldResemble, bytesExpected)
-			})
+	t.Run("get command with multiple files that are in GridFS", func(t *testing.T) {
+		bytesExpected := setupGridFSTestFiles(t)
+		localTestFiles := []string{"testfile1", "testfile2", "testfile3"}
+		mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", localTestFiles...)
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
+
+		var buff bytes.Buffer
+		log.SetWriter(&buff)
+		t.Cleanup(func() {
+			for _, testFile := range localTestFiles {
+				removeIfExists(t, testFile)
+			}
 		})
 
-		Convey("Testing the 'search' command with files that are in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("search", "file")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should run the get command")
+		require.Empty(t, str, "should print nothing to stdout")
 
-			Convey("produce some output", func() {
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(len(str), ShouldNotEqual, 0)
+		t.Run("log an event specifying the completion of each file", func(t *testing.T) {
+			logOutput := buff.String()
 
-				lines := cleanAndTokenizeTestOutput(str)
-				So(len(lines), ShouldEqual, len(testFiles))
-
-				bytesGotten := getFilesAndBytesFromLines(lines)
-				So(bytesGotten, ShouldResemble, bytesExpected)
-			})
+			for _, testFile := range localTestFiles {
+				logEvent := fmt.Sprintf("finished writing to %#q", testFile)
+				assert.Contains(t, logOutput, logEvent, "should log completion of %q", testFile)
+			}
 		})
 
-		Convey("Testing the 'get' command with a file that is in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
-
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
-
-			Convey(
-				"store the file contents in a file with different name if '--local' flag used",
-				func() {
-					buff.Truncate(0)
-					mf.StorageOptions.LocalFileName = "testfile1copy"
-					str, err := mf.Run(false)
-					So(err, ShouldBeNil)
-					So(str, ShouldEqual, "")
-					So(buff.Len(), ShouldNotEqual, 0)
-
-					testFile, err := os.Open("testfile1copy")
-					So(err, ShouldBeNil)
-					defer testFile.Close()
-
-					// pretty small file; so read all
-					testFile1Bytes, err := io.ReadAll(testFile)
-					So(err, ShouldBeNil)
-					So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
-				},
-			)
-
-			// cleanup file we just copied to the local FS
-			Reset(func() {
-				// remove 'testfile1' or 'testfile1copy'
-				if fileExists("testfile1") {
-					err = os.Remove("testfile1")
-				}
-				So(err, ShouldBeNil)
-
-				if fileExists("testfile1copy") {
-					err = os.Remove("testfile1copy")
-				}
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Testing the 'get' command with multiple files that are in GridFS should", func() {
-			localTestFiles := []string{"testfile1", "testfile2", "testfile3"}
-			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("get", localTestFiles...)
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
-
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
-
-			str, err := mf.Run(false)
-			So(err, ShouldBeNil)
-			So(str, ShouldBeEmpty)
-
-			Convey("log an event specifying the completion of each file", func() {
-				logOutput := buff.String()
-
-				for _, testFile := range localTestFiles {
-					logEvent := fmt.Sprintf("finished writing to %#q", testFile)
-					So(logOutput, ShouldContainSubstring, logEvent)
-				}
-			})
-
-			Convey("copy the files to the local filesystem", func() {
-				for _, testFileName := range localTestFiles {
-					testFile, err := os.Open(testFileName)
-					So(err, ShouldBeNil)
-					defer testFile.Close()
-
-					bytesGotten, err := io.ReadAll(testFile)
-					So(err, ShouldBeNil)
-					So(len(bytesGotten), ShouldEqual, bytesExpected[testFileName])
-				}
-
-				// Make sure that only the files that we queried
-				// for are included in the local FS
-				unincludedTestFile := "testfile4"
-				_, err := os.Open(unincludedTestFile)
-				So(err, ShouldNotBeNil)
-			})
-
-			// Remove test files from local FS so that there
-			// no naming collisions
-			Reset(func() {
-				for _, testFile := range localTestFiles {
-					if fileExists(testFile) {
-						err = os.Remove(testFile)
-						So(err, ShouldBeNil)
-					}
-				}
-			})
-		})
-
-		Convey("Testing the 'get_id' command with a file that is in GridFS should", func() {
-			_, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
-			So(err, ShouldBeNil)
-
-			id := idOfFile("testfile1")
-			mf, err := simpleMongoFilesInstanceWithID("get_id", id)
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
-
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
-
-			Convey("copy the file to the local filesystem", func() {
-				buff.Truncate(0)
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(str, ShouldEqual, "")
-				So(buff.Len(), ShouldNotEqual, 0)
-
-				testFile, err := os.Open("testfile1")
-				So(err, ShouldBeNil)
+		t.Run("copy the files to the local filesystem", func(t *testing.T) {
+			for _, testFileName := range localTestFiles {
+				testFile, err := os.Open(testFileName)
+				require.NoError(t, err, "should copy %q to the local filesystem", testFileName)
 				defer testFile.Close()
 
-				// pretty small file; so read all
-				testFile1Bytes, err := io.ReadAll(testFile)
-				So(err, ShouldBeNil)
-				So(len(testFile1Bytes), ShouldEqual, bytesExpected["testfile1"])
-			})
-
-			Reset(func() {
-				// remove 'testfile1' or 'testfile1copy'
-				if fileExists("testfile1") {
-					err = os.Remove("testfile1")
-				}
-				So(err, ShouldBeNil)
-				if fileExists("testfile1copy") {
-					err = os.Remove("testfile1copy")
-				}
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Testing the 'get_regex' command with path separators should", func() {
-			tmpdir, err := os.MkdirTemp("", "")
-			So(err, ShouldBeNil)
-
-			err = os.WriteFile(
-				filepath.Join(tmpdir, "hi.txt"),
-				[]byte("hi"),
-				0o644,
-			)
-			So(err, ShouldBeNil)
-
-			subdir := filepath.Join(tmpdir, "subdir")
-
-			err = os.Mkdir(subdir, 0o755)
-			So(err, ShouldBeNil)
-
-			cwd, err := os.Getwd()
-			So(err, ShouldBeNil)
-
-			err = os.Chdir(subdir)
-			So(err, ShouldBeNil)
-			defer func() {
-				So(os.Chdir(cwd), ShouldBeNil)
-			}()
-
-			err = os.Mkdir("deepdir", 0o755)
-			So(err, ShouldBeNil)
-
-			err = os.WriteFile(
-				filepath.Join("deepdir", "deep-hi.txt"),
-				[]byte("deep-hi"),
-				0o644,
-			)
-			So(err, ShouldBeNil)
-
-			sessionProvider, err := db.NewSessionProvider(*toolOptions)
-			So(err, ShouldBeNil)
-
-			paths := []string{
-				filepath.Join("..", "hi.txt"),
-				filepath.Join("deepdir", "deep-hi.txt"),
+				bytesGotten, err := io.ReadAll(testFile)
+				require.NoError(t, err, "should read the retrieved file")
+				assert.Len(
+					t,
+					bytesGotten,
+					bytesExpected[testFileName],
+					"should retrieve the full content of %q",
+					testFileName,
+				)
 			}
 
-			for _, path := range paths {
-				putMF := MongoFiles{
-					ToolOptions:     toolOptions,
-					InputOptions:    &InputOptions{},
-					StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-					SessionProvider: sessionProvider,
-					Command:         "put",
-					FileName:        path,
-				}
-				out, err := putMF.Run(false)
-				So(err, ShouldBeNil)
-				So(out, ShouldBeEmpty)
+			// Make sure that only the files that we queried
+			// for are included in the local FS
+			unincludedTestFile := "testfile4"
+			_, err := os.Open(unincludedTestFile)
+			assert.Error(t, err, "should not copy a file that wasn't requested")
+		})
+	})
 
-				So(os.Remove(path), ShouldBeNil)
-			}
+	t.Run("get_id command with a file that is in GridFS", func(t *testing.T) {
+		bytesExpected := setupGridFSTestFiles(t)
+		_, err := simpleMongoFilesInstanceWithFilename("get", "testfile1")
+		require.NoError(t, err, "should build a mongofiles instance")
 
-			Convey(
-				"forbid unsafe traversals by default",
-				func() {
-					getMF := MongoFiles{
-						ToolOptions:     toolOptions,
-						InputOptions:    &InputOptions{},
-						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-						SessionProvider: sessionProvider,
-						Command:         "get_regex",
-						FileNameRegex:   ".*",
-					}
+		id := idOfFile("testfile1")
+		mf, err := simpleMongoFilesInstanceWithID("get_id", id)
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
 
-					_, err := getMF.Run(false)
-					So(err, ShouldNotBeNil)
-					So(fmt.Sprint(err), ShouldContainSubstring, "--allowUnsafeTraversal")
-
-					for _, path := range paths {
-						_, err := os.Stat(path)
-						So(err, ShouldNotBeNil)
-						So(err, ShouldWrap, os.ErrNotExist)
-					}
-				},
-			)
-
-			Convey(
-				"allow deep restores under the current directory",
-				func() {
-					defer So(os.RemoveAll(paths[1]), ShouldBeNil)
-
-					getMF := MongoFiles{
-						ToolOptions:     toolOptions,
-						InputOptions:    &InputOptions{},
-						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-						SessionProvider: sessionProvider,
-						Command:         "get_regex",
-						FileNameRegex:   "deep*",
-					}
-					out, err := getMF.Run(false)
-					So(err, ShouldBeNil)
-					So(out, ShouldBeEmpty)
-
-					_, err = os.Stat(paths[1])
-					So(err, ShouldBeNil)
-				},
-			)
-
-			Convey(
-				"allow unsafe traversals by opt-in",
-				func() {
-					defer func() {
-						for _, path := range paths {
-							So(os.RemoveAll(path), ShouldBeNil)
-						}
-					}()
-					getMF := MongoFiles{
-						ToolOptions:  toolOptions,
-						InputOptions: &InputOptions{},
-						StorageOptions: &StorageOptions{
-							GridFSPrefix:         "fs",
-							DB:                   testDB,
-							AllowUnsafeTraversal: true,
-						},
-						SessionProvider: sessionProvider,
-						Command:         "get_regex",
-						FileNameRegex:   ".*",
-					}
-
-					out, err := getMF.Run(false)
-					So(err, ShouldBeNil)
-					So(out, ShouldBeEmpty)
-
-					for _, path := range paths {
-						_, err := os.Stat(path)
-						So(err, ShouldBeNil)
-					}
-				},
-			)
+		var buff bytes.Buffer
+		log.SetWriter(&buff)
+		t.Cleanup(func() {
+			removeIfExists(t, "testfile1")
+			removeIfExists(t, "testfile1copy")
 		})
 
-		Convey(
-			"Testing the 'get_regex' command with forward slash path separators on Windows should",
-			func() {
-				// Only run this specific scenario on Windows
-				if runtime.GOOS != "windows" {
-					_, _ = Printf("Skipping Windows-only test on %s\n", runtime.GOOS)
-					return
-				}
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should run the get_id command")
+		assert.Equal(t, "", str, "should print nothing to stdout")
+		assert.NotEqual(t, 0, buff.Len(), "should log the write event")
 
-				tmpdir, err := os.MkdirTemp("", "")
-				So(err, ShouldBeNil)
+		testFile, err := os.Open("testfile1")
+		require.NoError(t, err, "should copy the file to the local filesystem")
+		defer testFile.Close()
 
-				err = os.WriteFile(
-					filepath.Join(tmpdir, "hi.txt"),
-					[]byte("hi"),
-					0o644,
-				)
-				So(err, ShouldBeNil)
+		// pretty small file; so read all
+		testFile1Bytes, err := io.ReadAll(testFile)
+		require.NoError(t, err, "should read the retrieved file")
+		assert.Len(
+			t,
+			testFile1Bytes,
+			bytesExpected["testfile1"],
+			"should retrieve the full file content",
+		)
+	})
 
-				subdir := filepath.Join(tmpdir, "subdir")
+	t.Run("get_regex command with path separators", func(t *testing.T) {
+		setupGridFSTestFiles(t)
+		paths := []string{filepath.Join("..", "hi.txt"), filepath.Join("deepdir", "deep-hi.txt")}
+		sessionProvider := setupPathTraversalFixture(t, paths)
 
-				err = os.Mkdir(subdir, 0o755)
-				So(err, ShouldBeNil)
+		runPathTraversalScenarios(t, sessionProvider, paths)
+	})
 
-				cwd, err := os.Getwd()
-				So(err, ShouldBeNil)
+	t.Run(
+		"get_regex command with forward slash path separators on Windows",
+		func(t *testing.T) {
+			if runtime.GOOS != "windows" {
+				t.Skip("Windows-only path-separator scenario")
+			}
 
-				err = os.Chdir(subdir)
-				So(err, ShouldBeNil)
-				defer func() {
-					So(os.Chdir(cwd), ShouldBeNil)
-				}()
+			setupGridFSTestFiles(t)
+			// MODIFICATION: Hardcode forward slashes instead of using filepath.Join
+			paths := []string{"../hi.txt", "deepdir/deep-hi.txt"}
+			sessionProvider := setupPathTraversalFixture(t, paths)
 
-				err = os.Mkdir("deepdir", 0o755)
-				So(err, ShouldBeNil)
+			runPathTraversalScenarios(t, sessionProvider, paths)
+		},
+	)
 
-				err = os.WriteFile(
-					filepath.Join("deepdir", "deep-hi.txt"),
-					[]byte("deep-hi"),
-					0o644,
-				)
-				So(err, ShouldBeNil)
+	t.Run("case insensitivity for path traversals", func(t *testing.T) {
+		// Case insensitivity test is only relevant on Windows and macOS by default
+		if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+			t.Skip("case-sensitivity scenario only applies on Windows and macOS")
+		}
 
-				sessionProvider, err := db.NewSessionProvider(*toolOptions)
-				So(err, ShouldBeNil)
+		setupGridFSTestFiles(t)
 
-				// MODIFICATION: Hardcode forward slashes instead of using filepath.Join
-				paths := []string{
-					"../hi.txt",
-					"deepdir/deep-hi.txt",
-				}
+		tmpdir, err := os.MkdirTemp("", "CaseTest")
+		require.NoError(t, err, "should create a temp directory")
 
-				for _, path := range paths {
-					putMF := MongoFiles{
-						ToolOptions:     toolOptions,
-						InputOptions:    &InputOptions{},
-						StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-						SessionProvider: sessionProvider,
-						Command:         "put",
-						FileName:        path,
-					}
-					out, err := putMF.Run(false)
-					So(err, ShouldBeNil)
-					So(out, ShouldBeEmpty)
+		// 1. Create a directory with explicit mixed casing
+		subdir := filepath.Join(tmpdir, "MixedCaseSubDir")
+		require.NoError(t, os.Mkdir(subdir, 0o755), "should create the mixed-case subdirectory")
 
-					So(os.Remove(path), ShouldBeNil)
-				}
-
-				Convey(
-					"forbid unsafe traversals by default",
-					func() {
-						getMF := MongoFiles{
-							ToolOptions:     toolOptions,
-							InputOptions:    &InputOptions{},
-							StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-							SessionProvider: sessionProvider,
-							Command:         "get_regex",
-							FileNameRegex:   ".*",
-						}
-
-						_, err := getMF.Run(false)
-						So(err, ShouldNotBeNil)
-						So(fmt.Sprint(err), ShouldContainSubstring, "--allowUnsafeTraversal")
-
-						for _, path := range paths {
-							_, err := os.Stat(path)
-							So(err, ShouldNotBeNil)
-							So(err, ShouldWrap, os.ErrNotExist)
-						}
-					},
-				)
-
-				Convey(
-					"allow deep restores under the current directory",
-					func() {
-						defer So(os.RemoveAll(paths[1]), ShouldBeNil)
-
-						getMF := MongoFiles{
-							ToolOptions:     toolOptions,
-							InputOptions:    &InputOptions{},
-							StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-							SessionProvider: sessionProvider,
-							Command:         "get_regex",
-							FileNameRegex:   "deep*",
-						}
-						out, err := getMF.Run(false)
-						So(err, ShouldBeNil)
-						So(out, ShouldBeEmpty)
-
-						_, err = os.Stat(paths[1])
-						So(err, ShouldBeNil)
-					},
-				)
-
-				Convey(
-					"allow unsafe traversals by opt-in",
-					func() {
-						defer func() {
-							for _, path := range paths {
-								So(os.RemoveAll(path), ShouldBeNil)
-							}
-						}()
-						getMF := MongoFiles{
-							ToolOptions:  toolOptions,
-							InputOptions: &InputOptions{},
-							StorageOptions: &StorageOptions{
-								GridFSPrefix:         "fs",
-								DB:                   testDB,
-								AllowUnsafeTraversal: true,
-							},
-							SessionProvider: sessionProvider,
-							Command:         "get_regex",
-							FileNameRegex:   ".*",
-						}
-
-						out, err := getMF.Run(false)
-						So(err, ShouldBeNil)
-						So(out, ShouldBeEmpty)
-
-						for _, path := range paths {
-							_, err := os.Stat(path)
-							So(err, ShouldBeNil)
-						}
-					},
-				)
-			},
+		cwd, err := os.Getwd()
+		require.NoError(t, err, "should read the current directory")
+		require.NoError(t, os.Chdir(subdir), "should change into the mixed-case subdirectory")
+		t.Cleanup(
+			func() { assert.NoError(t, os.Chdir(cwd), "should restore the original working directory") },
 		)
 
-		Convey("Testing case insensitivity for path traversals should", func() {
-			// Case insensitivity test is only relevant on Windows and macOS by default
-			if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
-				_, _ = Printf("Skipping case-sensitivity test on %s\n", runtime.GOOS)
-				return
-			}
+		sessionProvider, err := db.NewSessionProvider(*toolOptions)
+		require.NoError(t, err, "should build a session provider")
 
-			tmpdir, err := os.MkdirTemp("", "CaseTest")
-			So(err, ShouldBeNil)
+		// 2. Get the actual working directory
+		currentDir, err := os.Getwd()
+		require.NoError(t, err, "should read the current directory")
 
-			// 1. Create a directory with explicit mixed casing
-			subdir := filepath.Join(tmpdir, "MixedCaseSubDir")
-			err = os.Mkdir(subdir, 0o755)
-			So(err, ShouldBeNil)
+		// 3. Create a severely case-mismatched version of the absolute path.
+		mismatchedDir := strings.ToLower(currentDir)
+		if mismatchedDir == currentDir {
+			// Fallback just in case the temp dir was already 100% lowercase
+			mismatchedDir = strings.ToUpper(currentDir)
+		}
 
-			cwd, err := os.Getwd()
-			So(err, ShouldBeNil)
+		actualFilePath := filepath.Join(currentDir, "casetest.txt")
+		mismatchedFilePath := filepath.Join(mismatchedDir, "casetest.txt")
 
-			err = os.Chdir(subdir)
-			So(err, ShouldBeNil)
-			defer func() {
-				So(os.Chdir(cwd), ShouldBeNil)
-			}()
+		// 4. Create the local file
+		require.NoError(
+			t,
+			os.WriteFile(actualFilePath, []byte("case-insensitivity test"), 0o644),
+			"should write the local fixture file",
+		)
 
-			sessionProvider, err := db.NewSessionProvider(*toolOptions)
-			So(err, ShouldBeNil)
+		// 5. Upload it using the severely mismatched path
+		putMF := MongoFiles{
+			ToolOptions:     toolOptions,
+			InputOptions:    &InputOptions{},
+			StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+			SessionProvider: sessionProvider,
+			Command:         "put",
+			FileName:        mismatchedFilePath,
+		}
+		out, err := putMF.Run(false)
+		require.NoError(t, err, "should put the file using a case-mismatched path")
+		require.Empty(t, out, "should print nothing to stdout")
 
-			// 2. Get the actual working directory
-			currentDir, err := os.Getwd()
-			So(err, ShouldBeNil)
+		// 6. Delete the local file so get_regex has to restore it
+		require.NoError(
+			t,
+			os.Remove(actualFilePath),
+			"should remove the local file before restoring it",
+		)
 
-			// 3. Create a severely case-mismatched version of the absolute path.
-			mismatchedDir := strings.ToLower(currentDir)
-			if mismatchedDir == currentDir {
-				// Fallback just in case the temp dir was already 100% lowercase
-				mismatchedDir = strings.ToUpper(currentDir)
-			}
+		// restore the file without requiring --allowUnsafeTraversal
+		getMF := MongoFiles{
+			ToolOptions:     toolOptions,
+			InputOptions:    &InputOptions{},
+			StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+			SessionProvider: sessionProvider,
+			Command:         "get_regex",
+			FileNameRegex:   "casetest.*",
+		}
 
-			actualFilePath := filepath.Join(currentDir, "casetest.txt")
-			mismatchedFilePath := filepath.Join(mismatchedDir, "casetest.txt")
+		out, err = getMF.Run(false)
+		require.NoError(t, err, "should restore the file without requiring --allowUnsafeTraversal")
+		assert.Empty(t, out, "should print nothing to stdout")
 
-			// 4. Create the local file
-			err = os.WriteFile(actualFilePath, []byte("case-insensitivity test"), 0o644)
-			So(err, ShouldBeNil)
+		// Verify the tool successfully wrote the file back to disk
+		_, err = os.Stat(actualFilePath)
+		assert.NoError(t, err, "should write the file back to disk")
+	})
 
-			// 5. Upload it using the severely mismatched path
-			putMF := MongoFiles{
-				ToolOptions:     toolOptions,
-				InputOptions:    &InputOptions{},
-				StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-				SessionProvider: sessionProvider,
-				Command:         "put",
-				FileName:        mismatchedFilePath,
-			}
-			out, err := putMF.Run(false)
-			So(err, ShouldBeNil)
-			So(out, ShouldBeEmpty)
+	t.Run("get_regex command", func(t *testing.T) {
+		setupGridFSTestFiles(t)
 
-			// 6. Delete the local file so get_regex has to restore it
-			So(os.Remove(actualFilePath), ShouldBeNil)
-
-			Convey("restore the file without requiring --allowUnsafeTraversal", func() {
-				getMF := MongoFiles{
-					ToolOptions:     toolOptions,
-					InputOptions:    &InputOptions{},
-					StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-					SessionProvider: sessionProvider,
-					Command:         "get_regex",
-					FileNameRegex:   "casetest.*",
-				}
-
-				out, err := getMF.Run(false)
-
-				So(err, ShouldBeNil)
-				So(out, ShouldBeEmpty)
-
-				// Verify the tool successfully wrote the file back to disk
-				_, err = os.Stat(actualFilePath)
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Testing the 'get_regex' command should", func() {
-			mf, err := simpleMongoFilesInstanceCommandOnly(GetRegex)
-			So(err, ShouldBeNil)
-
-			Convey(
-				"return expected test files, but no others, when called without any server options",
-				func() {
-					mf.FileNameRegex = "testfile[1-3]"
-
-					str, err := mf.Run(false)
-					So(err, ShouldBeNil)
-					So(str, ShouldBeEmpty)
-
-					// Regex should get all testfiles but testfile4
-					expectedTestFiles := map[string]struct{}{
-						"testfile1": {},
-						"testfile2": {},
-						"testfile3": {},
-					}
-
-					for testFile := range testFiles {
-						_, err := os.Stat(testFile)
-						if _, ok := expectedTestFiles[testFile]; ok {
-							So(err, ShouldBeNil)
-						} else {
-							So(err, ShouldNotBeNil)
-						}
-					}
+		cases := []struct {
+			name          string
+			fileNameRegex string
+			regexOptions  string
+			expected      map[string]struct{}
+		}{
+			{
+				name:          "without any server options",
+				fileNameRegex: "testfile[1-3]",
+				expected: map[string]struct{}{
+					"testfile1": {},
+					"testfile2": {},
+					"testfile3": {},
 				},
-			)
-
-			Convey(
-				"return expected test files, but no others, when called with server options",
-				func() {
-					// Check with case-insensitivity
-					mf.FileNameRegex = "tEsTfIlE[1-2]"
-					mf.StorageOptions.RegexOptions = "i"
-
-					str, err := mf.Run(false)
-					So(err, ShouldBeNil)
-					So(str, ShouldBeEmpty)
-
-					expectedTestFiles := map[string]struct{}{
-						"testfile1": {},
-						"testfile2": {},
-					}
-
-					for testFile := range testFiles {
-						_, err := os.Stat(testFile)
-						if _, ok := expectedTestFiles[testFile]; ok {
-							So(err, ShouldBeNil)
-						} else {
-							So(err, ShouldNotBeNil)
-						}
-					}
+			},
+			{
+				name:          "with server options",
+				fileNameRegex: "tEsTfIlE[1-2]",
+				regexOptions:  "i",
+				expected: map[string]struct{}{
+					"testfile1": {},
+					"testfile2": {},
 				},
-			)
+			},
+		}
 
-			Reset(func() {
-				// Remove any testfiles written to local filesystem
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Cleanup(func() {
+					for testFile := range testFiles {
+						removeIfExists(t, testFile)
+					}
+				})
+
+				mf, err := simpleMongoFilesInstanceCommandOnly(GetRegex)
+				require.NoError(t, err, "should build a mongofiles instance")
+				mf.FileNameRegex = tc.fileNameRegex
+				mf.StorageOptions.RegexOptions = tc.regexOptions
+
+				str, err := mf.Run(false)
+				require.NoError(t, err, "should run the get_regex command")
+				require.Empty(t, str, "should print nothing to stdout")
+
 				for testFile := range testFiles {
-					if _, err := os.Stat(testFile); err == nil {
-						err = os.Remove(testFile)
-						So(err, ShouldBeNil)
+					_, err := os.Stat(testFile)
+					if _, ok := tc.expected[testFile]; ok {
+						assert.NoError(t, err, "should restore %q", testFile)
+					} else {
+						assert.Error(t, err, "should not restore %q", testFile)
 					}
 				}
 			})
+		}
+	})
+
+	t.Run("put command with multiple lorem ipsum files", func(t *testing.T) {
+		setupGridFSTestFiles(t)
+		localTestFiles := []string{
+			filepath.FromSlash("testdata/lorem_ipsum_multi_args_0.txt"),
+			filepath.FromSlash("testdata/lorem_ipsum_multi_args_1.txt"),
+			filepath.FromSlash("testdata/lorem_ipsum_multi_args_2.txt"),
+		}
+
+		mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", localTestFiles...)
+		require.NoError(t, err, "should build a mongofiles instance")
+
+		var buff bytes.Buffer
+		log.SetWriter(&buff)
+
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should run the put command")
+		require.Empty(t, str, "should print nothing to stdout")
+
+		t.Run("log an event specifying the completion of each file", func(t *testing.T) {
+			const (
+				logAdding = "adding gridFile: %#q"
+				logAdded  = "added gridFile: %#q"
+			)
+
+			logOutput := buff.String()
+
+			for _, testFile := range localTestFiles {
+				assert.Contains(
+					t,
+					logOutput,
+					fmt.Sprintf(logAdding, testFile),
+					"should log adding %q",
+					testFile,
+				)
+				assert.Contains(
+					t,
+					logOutput,
+					fmt.Sprintf(logAdded, testFile),
+					"should log completion of %q",
+					testFile,
+				)
+			}
 		})
 
-		Convey("Testing the 'put' command with multiple lorem ipsum files bytes should", func() {
-			localTestFiles := []string{
-				filepath.FromSlash("testdata/lorem_ipsum_multi_args_0.txt"),
-				filepath.FromSlash("testdata/lorem_ipsum_multi_args_1.txt"),
-				filepath.FromSlash("testdata/lorem_ipsum_multi_args_2.txt"),
+		t.Run("and files should exist in GridFS", func(t *testing.T) {
+			bytesGotten, err := getFilesAndBytesListFromGridFS()
+			require.NoError(t, err, "should list the files in GridFS")
+
+			// Check that the only files included are the local test
+			// files, i.e. in localTestFiles, and the global test
+			// files, i.e. in testFiles
+			assert.Len(
+				t,
+				bytesGotten,
+				len(localTestFiles)+len(testFiles),
+				"should list every local and fixture test file",
+			)
+
+			for _, testFile := range localTestFiles {
+				assert.Contains(t, bytesGotten, testFile, "should list %q", testFile)
 			}
+		})
 
-			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", localTestFiles...)
-			So(err, ShouldBeNil)
-
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
-
-			str, err := mf.Run(false)
-			So(err, ShouldBeNil)
-			So(str, ShouldBeEmpty)
-
-			Convey("log an event specifying the completion of each file", func() {
-				const (
-					logAdding = "adding gridFile: %#q"
-					logAdded  = "added gridFile: %#q"
+		t.Run(
+			"and each file should have exactly the same content as the original file",
+			func(t *testing.T) {
+				const localFileName = "lorem_ipsum_copy.txt"
+				t.Cleanup(
+					func() { assert.NoError(t, os.Remove(localFileName), "should remove the retrieved copy") },
 				)
 
-				logOutput := buff.String()
+				for i, testFile := range localTestFiles {
+					mfAfter, err := simpleMongoFilesInstanceWithFilename("get", testFile)
+					require.NoError(t, err, "should build a mongofiles instance")
+					require.NotNil(t, mf, "should build a mongofiles instance")
 
-				for _, testFile := range localTestFiles {
-					So(logOutput, ShouldContainSubstring, fmt.Sprintf(logAdding, testFile))
-					So(logOutput, ShouldContainSubstring, fmt.Sprintf(logAdded, testFile))
+					mfAfter.StorageOptions.LocalFileName = localFileName
 
-				}
-			})
-
-			Convey("and files should exist in GridFS", func() {
-				bytesGotten, err := getFilesAndBytesListFromGridFS()
-				So(err, ShouldBeNil)
-
-				// Check that the only files included are the local test
-				// files, i.e. in localTestFiles, and the global test
-				// files, i.e. in testFiles
-				So(len(bytesGotten), ShouldEqual, len(localTestFiles)+len(testFiles))
-
-				for _, testFile := range localTestFiles {
-					So(bytesGotten, ShouldContainKey, testFile)
-				}
-			})
-
-			Convey(
-				"and each file should have exactly the same content as the original file",
-				func() {
-					const localFileName = "lorem_ipsum_copy.txt"
-					buff.Truncate(0)
-					for i, testFile := range localTestFiles {
-						mfAfter, err := simpleMongoFilesInstanceWithFilename("get", testFile)
-						So(err, ShouldBeNil)
-						So(mf, ShouldNotBeNil)
-
-						mfAfter.StorageOptions.LocalFileName = localFileName
-
-						if i > 0 {
-							str, err = mfAfter.Run(false)
-							So(err, ShouldNotBeNil)
-							So(err, ShouldWrap, os.ErrExist)
-						}
-
-						mfAfter.StorageOptions.OverwriteLocal = true
-						str, err = mfAfter.Run(false)
-						So(err, ShouldBeNil)
-						So(str, ShouldBeEmpty)
-
-						testName := fmt.Sprintf(
-							"compare contents of %#q and original lorem ipsum file",
-							testFile,
+					if i > 0 {
+						_, err = mfAfter.Run(false)
+						require.Error(t, err, "should refuse to overwrite an existing local file")
+						require.ErrorIs(
+							t,
+							err,
+							os.ErrExist,
+							"should report the local file as already existing",
 						)
-						Convey(testName, func() {
-							loremIpsumOrig, err := os.Open(testFile)
-							So(err, ShouldBeNil)
-							defer loremIpsumOrig.Close()
-
-							loremIpsumCopy, err := os.Open(localFileName)
-							So(err, ShouldBeNil)
-							defer loremIpsumCopy.Close()
-
-							isContentSame, err := fileContentsCompare(
-								loremIpsumOrig,
-								loremIpsumCopy,
-								t,
-							)
-							So(err, ShouldBeNil)
-							So(isContentSame, ShouldBeTrue)
-						})
 					}
 
-					Reset(func() {
-						err = os.Remove(localFileName)
-						So(err, ShouldBeNil)
-					})
-				},
-			)
-		})
+					mfAfter.StorageOptions.OverwriteLocal = true
+					str, err := mfAfter.Run(false)
+					require.NoError(t, err, "should overwrite the local file when asked to")
+					require.Empty(t, str, "should print nothing to stdout")
 
-		Convey(
-			"Testing the 'put_id' command by putting some lorem ipsum file with 287613 bytes with different ids should succeed",
-			func() {
-				for _, idToTest := range []string{`test_id`, `{"a":"b"}`, `{"$numberLong":"999999999999999"}`, `{"a":{"b":{"c":{}}}}`} {
-					runPutIDTestCase(idToTest, t)
+					isContentSame := compareToOriginalLoremIpsum(t, testFile, localFileName)
+					assert.True(
+						t,
+						isContentSame,
+						"should retrieve %q with unchanged content",
+						testFile,
+					)
 				}
 			},
 		)
+	})
 
-		Convey("Testing the 'delete' command with a file that is in GridFS should", func() {
-			mf, err := simpleMongoFilesInstanceWithFilename("delete", "testfile2")
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
+	t.Run("put_id command with different ids", func(t *testing.T) {
+		setupGridFSTestFiles(t)
+		for _, idToTest := range []string{`test_id`, `{"a":"b"}`, `{"$numberLong":"999999999999999"}`, `{"a":{"b":{"c":{}}}}`} {
+			runPutIDTestCase(t, idToTest)
+		}
+	})
 
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
+	t.Run("delete command with a file that is in GridFS", func(t *testing.T) {
+		setupGridFSTestFiles(t)
+		mf, err := simpleMongoFilesInstanceWithFilename("delete", "testfile2")
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
 
-			Convey("delete the file from GridFS", func() {
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(str, ShouldEqual, "")
-				So(buff.Len(), ShouldNotEqual, 0)
+		var buff bytes.Buffer
+		log.SetWriter(&buff)
 
-				Convey("check that the file has been deleted from GridFS", func() {
-					bytesGotten, err := getFilesAndBytesListFromGridFS()
-					So(err, ShouldEqual, nil)
-					So(len(bytesGotten), ShouldEqual, len(testFiles)-1)
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should delete the file from GridFS")
+		assert.Equal(t, "", str, "should print nothing to stdout")
+		assert.NotEqual(t, 0, buff.Len(), "should log the deletion")
 
-					So(bytesGotten, ShouldNotContainKey, "testfile2")
-				})
-			})
+		bytesGotten, err := getFilesAndBytesListFromGridFS()
+		require.NoError(t, err, "should list the remaining files in GridFS")
+		assert.Len(t, bytesGotten, len(testFiles)-1, "should delete exactly one file from GridFS")
+		assert.NotContains(
+			t,
+			bytesGotten,
+			"testfile2",
+			"should remove the deleted file from GridFS",
+		)
+	})
+
+	t.Run("delete_id command with a file that is in GridFS", func(t *testing.T) {
+		setupGridFSTestFiles(t)
+		// hack to grab an _id
+		_, err := simpleMongoFilesInstanceWithFilename("get", "testfile2")
+		require.NoError(t, err, "should build a mongofiles instance")
+
+		idString := idOfFile("testfile2")
+		mf, err := simpleMongoFilesInstanceWithID("delete_id", idString)
+		require.NoError(t, err, "should build a mongofiles instance")
+		require.NotNil(t, mf, "should build a mongofiles instance")
+
+		var buff bytes.Buffer
+		log.SetWriter(&buff)
+
+		str, err := mf.Run(false)
+		require.NoError(t, err, "should delete the file from GridFS")
+		assert.Equal(t, "", str, "should print nothing to stdout")
+		assert.NotEqual(t, 0, buff.Len(), "should log the deletion")
+
+		bytesGotten, err := getFilesAndBytesListFromGridFS()
+		require.NoError(t, err, "should list the remaining files in GridFS")
+		assert.Len(t, bytesGotten, len(testFiles)-1, "should delete exactly one file from GridFS")
+		assert.NotContains(
+			t,
+			bytesGotten,
+			"testfile2",
+			"should remove the deleted file from GridFS",
+		)
+	})
+}
+
+// runPutIDTestCase inserts a lorem-ipsum file under idToTest and checks that
+// it round-trips through GridFS unchanged. Uses require throughout, matching
+// the original GoConvey FailureHalts semantics: a failure on one id aborts
+// the remaining ids rather than running them independently, since the
+// original ran all four ids in a single (unlooped) Convey leaf.
+func runPutIDTestCase(t *testing.T, idToTest string) {
+	t.Helper()
+
+	remoteName := "remoteName"
+	mongoFilesInstance, err := simpleMongoFilesInstanceWithFilenameAndID(
+		"put_id",
+		remoteName,
+		idToTest,
+	)
+
+	var buff bytes.Buffer
+	log.SetWriter(&buff)
+
+	require.NoError(t, err, "should build a mongofiles instance")
+	require.NotNil(t, mongoFilesInstance, "should build a mongofiles instance")
+	mongoFilesInstance.StorageOptions.LocalFileName = filepath.FromSlash(
+		"testdata/lorem_ipsum_287613_bytes.txt",
+	)
+
+	t.Log("should correctly insert the file into GridFS")
+	str, err := mongoFilesInstance.Run(false)
+	require.NoError(t, err, "should run the put_id command")
+	require.Equal(t, "", str, "should print nothing to stdout")
+	require.NotEqual(t, 0, buff.Len(), "should log the write event")
+
+	t.Log("and its filename should exist when the 'list' command is run")
+	bytesGotten, err := getFilesAndBytesListFromGridFS()
+	require.NoError(t, err, "should list the files in GridFS")
+	require.Contains(t, bytesGotten, remoteName, "should list the file under its remote name")
+
+	t.Log("and get_id should have exactly the same content as the original file")
+
+	mfAfter, err := simpleMongoFilesInstanceWithID("get_id", idToTest)
+	require.NoError(t, err, "should build a mongofiles instance")
+	require.NotNil(t, mfAfter, "should build a mongofiles instance")
+
+	mfAfter.StorageOptions.LocalFileName = "lorem_ipsum_copy.txt"
+	mfAfter.StorageOptions.OverwriteLocal = true
+	buff.Truncate(0)
+	str, err = mfAfter.Run(false)
+	require.NoError(t, err, "should retrieve the file by its id")
+	require.Equal(t, "", str, "should print nothing to stdout")
+	require.NotEqual(t, 0, buff.Len(), "should log the write event")
+
+	loremIpsumOrig, err := os.Open(filepath.FromSlash("testdata/lorem_ipsum_287613_bytes.txt"))
+	require.NoError(t, err, "should open the original file")
+
+	loremIpsumCopy, err := os.Open("lorem_ipsum_copy.txt")
+	require.NoError(t, err, "should open the retrieved copy")
+
+	defer loremIpsumOrig.Close()
+	defer loremIpsumCopy.Close()
+
+	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
+	require.NoError(t, err, "should compare the two files")
+	require.True(t, isContentSame, "should retrieve the file with unchanged content")
+}
+
+// compareToOriginalLoremIpsum compares the retrieved copy against the
+// original file, closing both before returning so each iteration of the
+// caller's loop doesn't accumulate open handles across files.
+func compareToOriginalLoremIpsum(t *testing.T, original, copyName string) bool {
+	t.Helper()
+
+	loremIpsumOrig, err := os.Open(original)
+	require.NoError(t, err, "should open the original file %q", original)
+	defer loremIpsumOrig.Close()
+
+	loremIpsumCopy, err := os.Open(copyName)
+	require.NoError(t, err, "should open the retrieved copy of %q", original)
+	defer loremIpsumCopy.Close()
+
+	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
+	require.NoError(t, err, "should compare the two files")
+
+	return isContentSame
+}
+
+// setupGridFSTestFiles seeds GridFS with the fixture files every subtest
+// exercises and registers the teardown that mirrors the original outer
+// Reset, which fired after every leaf: drop the test database and remove
+// any leftover local copy file.
+func setupGridFSTestFiles(t *testing.T) map[string]int {
+	t.Helper()
+
+	bytesExpected, err := setUpGridFSTestData()
+	require.NoError(t, err, "should seed GridFS with the test fixture files")
+
+	t.Cleanup(func() {
+		assert.NoError(t, tearDownGridFSTestData(), "should tear down the GridFS test database")
+		_ = os.Remove("lorem_ipsum_copy.txt")
+	})
+
+	return bytesExpected
+}
+
+// removeIfExists mirrors the original Reset bodies that only asserted a
+// remove call when the file was actually present.
+func removeIfExists(t *testing.T, name string) {
+	t.Helper()
+
+	if fileExists(name) {
+		assert.NoError(t, os.Remove(name), "should remove %q", name)
+	}
+}
+
+// setupPathTraversalFixture builds the nested directory used by the
+// get_regex path-separator scenarios and puts each path into GridFS once.
+// Safe to share across the sibling scenarios that follow: none of them
+// mutate this fixture, they only restore into it and clean up after
+// themselves.
+func setupPathTraversalFixture(t *testing.T, paths []string) *db.SessionProvider {
+	t.Helper()
+
+	tmpdir, err := os.MkdirTemp("", "")
+	require.NoError(t, err, "should create a temp directory")
+
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(tmpdir, "hi.txt"), []byte("hi"), 0o644),
+		"should write the parent-directory fixture file",
+	)
+
+	subdir := filepath.Join(tmpdir, "subdir")
+	require.NoError(t, os.Mkdir(subdir, 0o755), "should create the working subdirectory")
+
+	cwd, err := os.Getwd()
+	require.NoError(t, err, "should read the current directory")
+	require.NoError(t, os.Chdir(subdir), "should change into the working subdirectory")
+	t.Cleanup(
+		func() { assert.NoError(t, os.Chdir(cwd), "should restore the original working directory") },
+	)
+
+	require.NoError(t, os.Mkdir("deepdir", 0o755), "should create the nested directory")
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join("deepdir", "deep-hi.txt"), []byte("deep-hi"), 0o644),
+		"should write the nested fixture file",
+	)
+
+	sessionProvider, err := db.NewSessionProvider(*toolOptions)
+	require.NoError(t, err, "should build a session provider")
+
+	for _, path := range paths {
+		putMF := MongoFiles{
+			ToolOptions:     toolOptions,
+			InputOptions:    &InputOptions{},
+			StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+			SessionProvider: sessionProvider,
+			Command:         "put",
+			FileName:        path,
+		}
+		out, err := putMF.Run(false)
+		require.NoError(t, err, "should put %q into GridFS", path)
+		require.Empty(t, out, "should print nothing to stdout")
+
+		require.NoError(t, os.Remove(path), "should remove the local copy of %q after upload", path)
+	}
+
+	return sessionProvider
+}
+
+// runPathTraversalScenarios exercises the three get_regex traversal
+// scenarios shared by the plain and Windows-forward-slash variants.
+func runPathTraversalScenarios(t *testing.T, sessionProvider *db.SessionProvider, paths []string) {
+	t.Helper()
+
+	t.Run("forbid unsafe traversals by default", func(t *testing.T) {
+		getMF := MongoFiles{
+			ToolOptions:     toolOptions,
+			InputOptions:    &InputOptions{},
+			StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+			SessionProvider: sessionProvider,
+			Command:         "get_regex",
+			FileNameRegex:   ".*",
+		}
+
+		_, err := getMF.Run(false)
+		require.Error(t, err, "should reject an unsafe traversal without opt-in")
+		assert.Contains(
+			t,
+			fmt.Sprint(err),
+			"--allowUnsafeTraversal",
+			"should mention the opt-in flag",
+		)
+
+		for _, path := range paths {
+			_, err := os.Stat(path)
+			require.Error(t, err, "should not restore %q without opt-in", path)
+			require.ErrorIs(t, err, os.ErrNotExist, "should report %q as missing", path)
+		}
+	})
+
+	t.Run("allow deep restores under the current directory", func(t *testing.T) {
+		t.Cleanup(
+			func() { assert.NoError(t, os.RemoveAll(paths[1]), "should clean up the restored file") },
+		)
+
+		getMF := MongoFiles{
+			ToolOptions:     toolOptions,
+			InputOptions:    &InputOptions{},
+			StorageOptions:  &StorageOptions{GridFSPrefix: "fs", DB: testDB},
+			SessionProvider: sessionProvider,
+			Command:         "get_regex",
+			FileNameRegex:   "deep*",
+		}
+		out, err := getMF.Run(false)
+		require.NoError(t, err, "should restore a file under the current directory")
+		assert.Empty(t, out, "should print nothing to stdout")
+
+		_, err = os.Stat(paths[1])
+		assert.NoError(t, err, "should restore %q", paths[1])
+	})
+
+	t.Run("allow unsafe traversals by opt-in", func(t *testing.T) {
+		t.Cleanup(func() {
+			for _, path := range paths {
+				assert.NoError(t, os.RemoveAll(path), "should clean up %q", path)
+			}
 		})
 
-		Convey("Testing the 'delete_id' command with a file that is in GridFS should", func() {
-			// hack to grab an _id
-			_, err := simpleMongoFilesInstanceWithFilename("get", "testfile2")
-			So(err, ShouldBeNil)
+		getMF := MongoFiles{
+			ToolOptions:  toolOptions,
+			InputOptions: &InputOptions{},
+			StorageOptions: &StorageOptions{
+				GridFSPrefix:         "fs",
+				DB:                   testDB,
+				AllowUnsafeTraversal: true,
+			},
+			SessionProvider: sessionProvider,
+			Command:         "get_regex",
+			FileNameRegex:   ".*",
+		}
 
-			idString := idOfFile("testfile2")
-			mf, err := simpleMongoFilesInstanceWithID("delete_id", idString)
-			So(err, ShouldBeNil)
-			So(mf, ShouldNotBeNil)
+		out, err := getMF.Run(false)
+		require.NoError(t, err, "should restore files when unsafe traversal is allowed")
+		assert.Empty(t, out, "should print nothing to stdout")
 
-			var buff bytes.Buffer
-			log.SetWriter(&buff)
-
-			Convey("delete the file from GridFS", func() {
-				str, err := mf.Run(false)
-				So(err, ShouldBeNil)
-				So(str, ShouldEqual, "")
-				So(buff.Len(), ShouldNotEqual, 0)
-
-				Convey("check that the file has been deleted from GridFS", func() {
-					bytesGotten, err := getFilesAndBytesListFromGridFS()
-					So(err, ShouldEqual, nil)
-					So(len(bytesGotten), ShouldEqual, len(testFiles)-1)
-
-					So(bytesGotten, ShouldNotContainKey, "testfile2")
-				})
-			})
-		})
-
-		Reset(func() {
-			So(tearDownGridFSTestData(t), ShouldBeNil)
-			err = os.Remove("lorem_ipsum_copy.txt")
-		})
+		for _, path := range paths {
+			_, err := os.Stat(path)
+			assert.NoError(t, err, "should restore %q", path)
+		}
 	})
 }
 
@@ -1199,60 +1168,4 @@ func TestDefaultWriteConcern(t *testing.T) {
 			"should default to majority write concern",
 		)
 	})
-}
-
-func runPutIDTestCase(idToTest string, t *testing.T) {
-	remoteName := "remoteName"
-	mongoFilesInstance, err := simpleMongoFilesInstanceWithFilenameAndID(
-		"put_id",
-		remoteName,
-		idToTest,
-	)
-
-	var buff bytes.Buffer
-	log.SetWriter(&buff)
-
-	So(err, ShouldBeNil)
-	So(mongoFilesInstance, ShouldNotBeNil)
-	mongoFilesInstance.StorageOptions.LocalFileName = filepath.FromSlash(
-		"testdata/lorem_ipsum_287613_bytes.txt",
-	)
-
-	t.Log("Should correctly insert the file into GridFS")
-	str, err := mongoFilesInstance.Run(false)
-	So(err, ShouldBeNil)
-	So(str, ShouldEqual, "")
-	So(buff.Len(), ShouldNotEqual, 0)
-
-	t.Log("and its filename should exist when the 'list' command is run")
-	bytesGotten, err := getFilesAndBytesListFromGridFS()
-	So(err, ShouldBeNil)
-	So(bytesGotten, ShouldContainKey, remoteName)
-
-	t.Log("and get_id should have exactly the same content as the original file")
-
-	mfAfter, err := simpleMongoFilesInstanceWithID("get_id", idToTest)
-	So(err, ShouldBeNil)
-	So(mfAfter, ShouldNotBeNil)
-
-	mfAfter.StorageOptions.LocalFileName = "lorem_ipsum_copy.txt"
-	mfAfter.StorageOptions.OverwriteLocal = true
-	buff.Truncate(0)
-	str, err = mfAfter.Run(false)
-	So(err, ShouldBeNil)
-	So(str, ShouldEqual, "")
-	So(buff.Len(), ShouldNotEqual, 0)
-
-	loremIpsumOrig, err := os.Open(filepath.FromSlash("testdata/lorem_ipsum_287613_bytes.txt"))
-	So(err, ShouldBeNil)
-
-	loremIpsumCopy, err := os.Open("lorem_ipsum_copy.txt")
-	So(err, ShouldBeNil)
-
-	defer loremIpsumOrig.Close()
-	defer loremIpsumCopy.Close()
-
-	isContentSame, err := fileContentsCompare(loremIpsumOrig, loremIpsumCopy, t)
-	So(err, ShouldBeNil)
-	So(isContentSame, ShouldBeTrue)
 }
