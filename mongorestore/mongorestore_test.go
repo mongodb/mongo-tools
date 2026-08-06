@@ -78,59 +78,64 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	// As specified in TOOLS-2363, the --db and --collection options
-	// are well-defined only for restoration of a single BSON file
-	Convey("The proper warning message is issued if --db and --collection "+
-		"are used in a case where they are deprecated", t, func() {
-		// Hacky way of looking at the application log at test-time
+	// are well-defined only for restoration of a single BSON file.
+	//
+	// Hacky way of looking at the application log at test-time: ideally we
+	// would use some form of explicit dependency injection to specify the
+	// sink for the parsing/validation log, but the validation logic here is
+	// coupled with the mongorestore.MongoRestore type, which does not
+	// support such an injection.
 
-		// Ideally, we would be able to use some form of explicit dependency
-		// injection to specify the sink for the parsing/validation log. However,
-		// the validation logic here is coupled with the mongorestore.MongoRestore
-		// type, which does not support such an injection.
-
+	t.Run("and no warning is issued in the well-defined case", func(t *testing.T) {
 		var buffer bytes.Buffer
 
 		log.SetWriter(&buffer)
 		defer log.SetWriter(os.Stderr)
 
-		Convey("and no warning is issued in the well-defined case", func() {
-			// No error and nothing written in the log
-			args := []string{
-				"testdata/hashedIndexes.bson",
-				DBOption, "db1	",
-				CollectionOption, "coll1",
-			}
+		args := []string{
+			"testdata/hashedIndexes.bson",
+			DBOption, "db1	",
+			CollectionOption, "coll1",
+		}
 
-			restore, err := getRestoreWithArgs(args...)
-			if err != nil {
-				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
-			}
-			defer restore.Close()
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should bootstrap the test harness")
+		defer restore.Close()
 
-			err = restore.ParseAndValidateOptions()
+		err = restore.ParseAndValidateOptions()
 
-			So(err, ShouldBeNil)
-			So(buffer.String(), ShouldBeEmpty)
-		})
+		require.NoError(t, err, "should accept --db and --collection for a single BSON file")
+		assert.Empty(
+			t,
+			buffer.String(),
+			"should not warn when --db and --collection are well-defined",
+		)
+	})
 
-		Convey("and a warning is issued in the deprecated case", func() {
-			// No error and some kind of warning message in the log
-			args := []string{
-				DBOption, "db1",
-				CollectionOption, "coll1",
-			}
+	t.Run("and a warning is issued in the deprecated case", func(t *testing.T) {
+		var buffer bytes.Buffer
 
-			restore, err := getRestoreWithArgs(args...)
-			if err != nil {
-				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
-			}
-			defer restore.Close()
+		log.SetWriter(&buffer)
+		defer log.SetWriter(os.Stderr)
 
-			err = restore.ParseAndValidateOptions()
+		args := []string{
+			DBOption, "db1",
+			CollectionOption, "coll1",
+		}
 
-			So(err, ShouldBeNil)
-			So(buffer.String(), ShouldContainSubstring, deprecatedDBAndCollectionsOptionsWarning)
-		})
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should bootstrap the test harness")
+		defer restore.Close()
+
+		err = restore.ParseAndValidateOptions()
+
+		require.NoError(t, err, "should accept the deprecated --db and --collection combination")
+		assert.Contains(
+			t,
+			buffer.String(),
+			deprecatedDBAndCollectionsOptionsWarning,
+			"should warn about the deprecated --db and --collection combination",
+		)
 	})
 }
 
@@ -142,139 +147,166 @@ func TestMongorestore(t *testing.T) {
 	)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
+	t.Run("and majority is used as the default write concern", func(t *testing.T) {
+		restore, err := getRestoreWithArgs(
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
-		}
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+		)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
 
-		db := session.Database("db1")
-		Convey("and majority is used as the default write concern", func() {
-			So(
-				restore.ToolOptions.WriteConcern,
-				ShouldResemble,
-				wcwrapper.Majority(),
-			)
-		})
-
-		c1 := db.Collection("c1") // 100 documents
-		err = c1.Drop(t.Context())
-		So(err, ShouldBeNil)
-		c2 := db.Collection("c2") // 0 documents
-		err = c2.Drop(t.Context())
-		So(err, ShouldBeNil)
-		c3 := db.Collection("c3") // 0 documents
-		err = c3.Drop(t.Context())
-		So(err, ShouldBeNil)
-		c4 := db.Collection("c4") // 10 documents
-		err = c4.Drop(t.Context())
-		So(err, ShouldBeNil)
-
-		Convey("and an explicit target restores from that dump directory", func() {
-			restore.TargetDirectory = "testdata/testdirs"
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 110)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := c1.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 100)
-
-			count, err = c4.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 10)
-		})
-
-		Convey("and an target of '-' restores from standard input", func() {
-			bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
-			So(err, ShouldBeNil)
-
-			restore.ToolOptions.Collection = "c1"
-			restore.ToolOptions.DB = "db1"
-			restore.InputReader = bsonFile
-			restore.TargetDirectory = "-"
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			count, err := c1.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 100)
-		})
-
-		Convey("and specifying an nsExclude option", func() {
-			restore.TargetDirectory = "testdata/testdirs"
-			restore.NSOptions.NSExclude = make([]string, 1)
-			restore.NSOptions.NSExclude[0] = "db1.c1"
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 10)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := c1.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 0)
-
-			count, err = c4.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 10)
-		})
-
-		Convey("and specifying an nsInclude option", func() {
-			restore.TargetDirectory = "testdata/testdirs"
-			restore.NSOptions.NSInclude = make([]string, 1)
-			restore.NSOptions.NSInclude[0] = "db1.c4"
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 10)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := c1.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 0)
-
-			count, err = c4.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 10)
-		})
-
-		Convey("and specifying nsFrom and nsTo options", func() {
-			restore.TargetDirectory = "testdata/testdirs"
-
-			restore.NSOptions.NSFrom = make([]string, 1)
-			restore.NSOptions.NSFrom[0] = "db1.c1"
-			restore.NSOptions.NSTo = make([]string, 1)
-			restore.NSOptions.NSTo[0] = "db1.c1renamed"
-
-			c1renamed := db.Collection("c1renamed")
-			err = c1renamed.Drop(t.Context())
-			So(err, ShouldBeNil)
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 110)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := c1renamed.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 100)
-
-			count, err = c4.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 10)
-		})
+		assert.Equal(
+			t,
+			wcwrapper.Majority(),
+			restore.ToolOptions.WriteConcern,
+			"should default to majority write concern",
+		)
 	})
+
+	t.Run("and an explicit target restores from that dump directory", func(t *testing.T) {
+		restore, _, c1, c4 := newMongorestoreTestFixture(t, session)
+		restore.TargetDirectory = "testdata/testdirs"
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 110, result.Successes, "should restore every document")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents in c1")
+		assert.EqualValues(t, 100, count, "should restore all c1 documents")
+
+		count, err = c4.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents in c4")
+		assert.EqualValues(t, 10, count, "should restore all c4 documents")
+	})
+
+	t.Run("and an target of '-' restores from standard input", func(t *testing.T) {
+		restore, _, c1, _ := newMongorestoreTestFixture(t, session)
+
+		bsonFile, err := os.Open("testdata/testdirs/db1/c1.bson")
+		require.NoError(t, err, "should open the test fixture")
+
+		restore.ToolOptions.Collection = "c1"
+		restore.ToolOptions.DB = "db1"
+		restore.InputReader = bsonFile
+		restore.TargetDirectory = "-"
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents in c1")
+		assert.EqualValues(t, 100, count, "should restore all c1 documents from standard input")
+	})
+
+	t.Run("and specifying an nsExclude option", func(t *testing.T) {
+		restore, _, c1, c4 := newMongorestoreTestFixture(t, session)
+		restore.TargetDirectory = "testdata/testdirs"
+		restore.NSOptions.NSExclude = make([]string, 1)
+		restore.NSOptions.NSExclude[0] = "db1.c1"
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 10, result.Successes, "should restore only the included documents")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the documents in the excluded namespace c1")
+		assert.EqualValues(t, 0, count, "should not restore documents in the excluded namespace")
+
+		count, err = c4.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents in c4")
+		assert.EqualValues(t, 10, count, "should restore all c4 documents")
+	})
+
+	t.Run("and specifying an nsInclude option", func(t *testing.T) {
+		restore, _, c1, c4 := newMongorestoreTestFixture(t, session)
+		restore.TargetDirectory = "testdata/testdirs"
+		restore.NSOptions.NSInclude = make([]string, 1)
+		restore.NSOptions.NSInclude[0] = "db1.c4"
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 10, result.Successes, "should restore only the included documents")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the documents in the excluded namespace c1")
+		assert.EqualValues(
+			t,
+			0,
+			count,
+			"should not restore documents outside the included namespace",
+		)
+
+		count, err = c4.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents in c4")
+		assert.EqualValues(t, 10, count, "should restore all c4 documents")
+	})
+
+	t.Run("and specifying nsFrom and nsTo options", func(t *testing.T) {
+		restore, db, _, c4 := newMongorestoreTestFixture(t, session)
+		restore.TargetDirectory = "testdata/testdirs"
+
+		restore.NSOptions.NSFrom = make([]string, 1)
+		restore.NSOptions.NSFrom[0] = "db1.c1"
+		restore.NSOptions.NSTo = make([]string, 1)
+		restore.NSOptions.NSTo[0] = "db1.c1renamed"
+
+		c1renamed := db.Collection("c1renamed")
+		require.NoError(t, c1renamed.Drop(t.Context()), "should drop c1renamed before restoring")
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 110, result.Successes, "should restore every document")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := c1renamed.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents in c1renamed")
+		assert.EqualValues(
+			t,
+			100,
+			count,
+			"should restore all c1 documents under the renamed namespace",
+		)
+
+		count, err = c4.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents in c4")
+		assert.EqualValues(t, 10, count, "should restore all c4 documents")
+	})
+}
+
+// newMongorestoreTestFixture builds a fresh MongoRestore instance and drops
+// the shared test collections, so each subtest starts from clean, isolated
+// state rather than sharing a restore instance whose TargetDirectory and
+// NSOptions the other subtests mutate. Cleanup is registered per subtest.
+func newMongorestoreTestFixture(
+	t *testing.T,
+	session *mongo.Client,
+) (restore *MongoRestore, db *mongo.Database, c1, c4 *mongo.Collection) {
+	t.Helper()
+
+	restore, err := getRestoreWithArgs(
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+	)
+	require.NoError(t, err, "should build a restore instance")
+	t.Cleanup(restore.Close)
+
+	db = session.Database("db1")
+
+	c1 = db.Collection("c1") // 100 documents
+	require.NoError(t, c1.Drop(t.Context()), "should drop c1 before restoring")
+	c2 := db.Collection("c2") // 0 documents
+	require.NoError(t, c2.Drop(t.Context()), "should drop c2 before restoring")
+	c3 := db.Collection("c3") // 0 documents
+	require.NoError(t, c3.Drop(t.Context()), "should drop c3 before restoring")
+	c4 = db.Collection("c4") // 10 documents
+	require.NoError(t, c4.Drop(t.Context()), "should drop c4 before restoring")
+
+	return restore, db, c1, c4
 }
 
 func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
@@ -285,105 +317,137 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 	)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			NumParallelCollectionsOption, "1",
-			NumInsertionWorkersOption, "1",
-		}
+	t.Run("and --nsInclude a collection name with special characters", func(t *testing.T) {
+		restore, _, specialCharacterCollection := newSpecialCharactersTestFixture(t, session)
+		restore.TargetDirectory = "testdata/specialcharacter"
+		restore.NSOptions.NSInclude = make([]string, 1)
+		restore.NSOptions.NSInclude[0] = "db1." + specialCharactersCollectionName
 
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 1, result.Successes, "should restore the included document")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
 
-		db := session.Database("db1")
-
-		specialCharacterCollection := db.Collection(specialCharactersCollectionName)
-		err = specialCharacterCollection.Drop(t.Context())
-		So(err, ShouldBeNil)
-
-		Convey("and --nsInclude a collection name with special characters", func() {
-			restore.TargetDirectory = "testdata/specialcharacter"
-			restore.NSOptions.NSInclude = make([]string, 1)
-			restore.NSOptions.NSInclude[0] = "db1." + specialCharactersCollectionName
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 1)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := specialCharacterCollection.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
-		})
-
-		Convey("and --nsExclude a collection name with special characters", func() {
-			restore.TargetDirectory = "testdata/specialcharacter"
-			restore.NSOptions.NSExclude = make([]string, 1)
-			restore.NSOptions.NSExclude[0] = "db1." + specialCharactersCollectionName
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 0)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := specialCharacterCollection.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 0)
-		})
-
-		Convey("and --nsTo a collection name without special characters "+
-			"--nsFrom a collection name with special characters", func() {
-			restore.TargetDirectory = "testdata/specialcharacter"
-			restore.NSOptions.NSFrom = make([]string, 1)
-			restore.NSOptions.NSFrom[0] = "db1." + specialCharactersCollectionName
-			restore.NSOptions.NSTo = make([]string, 1)
-			restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithoutSpecialCharacters"
-
-			standardCharactersCollection := db.Collection("aCollectionNameWithoutSpecialCharacters")
-			err = standardCharactersCollection.Drop(t.Context())
-			So(err, ShouldBeNil)
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 1)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := standardCharactersCollection.CountDocuments(
-				t.Context(),
-				bson.M{},
-			)
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
-		})
-
-		Convey("and --nsTo a collection name with special characters "+
-			"--nsFrom a collection name with special characters", func() {
-			restore.TargetDirectory = "testdata/specialcharacter"
-			restore.NSOptions.NSFrom = make([]string, 1)
-			restore.NSOptions.NSFrom[0] = "db1." + specialCharactersCollectionName
-			restore.NSOptions.NSTo = make([]string, 1)
-			restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithSpećiálCharacters"
-
-			standardCharactersCollection := db.Collection("aCollectionNameWithSpećiálCharacters")
-			err = standardCharactersCollection.Drop(t.Context())
-			So(err, ShouldBeNil)
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 1)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := standardCharactersCollection.CountDocuments(
-				t.Context(),
-				bson.M{},
-			)
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
-		})
+		count, err := specialCharacterCollection.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(
+			t,
+			1,
+			count,
+			"should restore the document into the special-character collection",
+		)
 	})
+
+	t.Run("and --nsExclude a collection name with special characters", func(t *testing.T) {
+		restore, _, specialCharacterCollection := newSpecialCharactersTestFixture(t, session)
+		restore.TargetDirectory = "testdata/specialcharacter"
+		restore.NSOptions.NSExclude = make([]string, 1)
+		restore.NSOptions.NSExclude[0] = "db1." + specialCharactersCollectionName
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(
+			t,
+			0,
+			result.Successes,
+			"should restore nothing when the only namespace is excluded",
+		)
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := specialCharacterCollection.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the documents in the excluded collection")
+		assert.EqualValues(t, 0, count, "should not restore documents into the excluded collection")
+	})
+
+	t.Run("and --nsTo a collection name without special characters "+
+		"--nsFrom a collection name with special characters", func(t *testing.T) {
+		restore, db, _ := newSpecialCharactersTestFixture(t, session)
+		restore.TargetDirectory = "testdata/specialcharacter"
+		restore.NSOptions.NSFrom = make([]string, 1)
+		restore.NSOptions.NSFrom[0] = "db1." + specialCharactersCollectionName
+		restore.NSOptions.NSTo = make([]string, 1)
+		restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithoutSpecialCharacters"
+
+		standardCharactersCollection := db.Collection("aCollectionNameWithoutSpecialCharacters")
+		require.NoError(
+			t,
+			standardCharactersCollection.Drop(t.Context()),
+			"should drop the destination collection before restoring",
+		)
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 1, result.Successes, "should restore the renamed document")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := standardCharactersCollection.CountDocuments(
+			t.Context(),
+			bson.M{},
+		)
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(t, 1, count, "should restore the document under the renamed namespace")
+	})
+
+	t.Run("and --nsTo a collection name with special characters "+
+		"--nsFrom a collection name with special characters", func(t *testing.T) {
+		restore, db, _ := newSpecialCharactersTestFixture(t, session)
+		restore.TargetDirectory = "testdata/specialcharacter"
+		restore.NSOptions.NSFrom = make([]string, 1)
+		restore.NSOptions.NSFrom[0] = "db1." + specialCharactersCollectionName
+		restore.NSOptions.NSTo = make([]string, 1)
+		restore.NSOptions.NSTo[0] = "db1.aCollectionNameWithSpećiálCharacters"
+
+		standardCharactersCollection := db.Collection("aCollectionNameWithSpećiálCharacters")
+		require.NoError(
+			t,
+			standardCharactersCollection.Drop(t.Context()),
+			"should drop the destination collection before restoring",
+		)
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 1, result.Successes, "should restore the renamed document")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := standardCharactersCollection.CountDocuments(
+			t.Context(),
+			bson.M{},
+		)
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(t, 1, count, "should restore the document under the renamed namespace")
+	})
+}
+
+// newSpecialCharactersTestFixture builds a fresh MongoRestore instance and
+// drops the special-character test collection, so each subtest starts from
+// clean, isolated state rather than sharing a restore instance whose
+// TargetDirectory and NSOptions the other subtests mutate. Cleanup is
+// registered per subtest.
+func newSpecialCharactersTestFixture(
+	t *testing.T,
+	session *mongo.Client,
+) (restore *MongoRestore, db *mongo.Database, specialCharacterCollection *mongo.Collection) {
+	t.Helper()
+
+	restore, err := getRestoreWithArgs(
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+	)
+	require.NoError(t, err, "should build a restore instance")
+	t.Cleanup(restore.Close)
+
+	db = session.Database("db1")
+
+	specialCharacterCollection = db.Collection(specialCharactersCollectionName)
+	require.NoError(
+		t,
+		specialCharacterCollection.Drop(t.Context()),
+		"should drop the special-character collection before restoring",
+	)
+
+	return restore, db, specialCharacterCollection
 }
 
 func TestMongorestoreLongCollectionName(t *testing.T) {
@@ -393,125 +457,170 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "4.4"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 4.4 or later")
 	}
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
+	t.Run("and majority is used as the default write concern", func(t *testing.T) {
+		restore, err := getRestoreWithArgs(
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
-		}
-
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
+		)
+		require.NoError(t, err, "should build a restore instance")
 		defer restore.Close()
 
-		db := session.Database("db1")
-		Convey("and majority is used as the default write concern", func() {
-			So(
-				restore.ToolOptions.WriteConcern,
-				ShouldResemble,
-				wcwrapper.Majority(),
-			)
-		})
-
-		longCollection := db.Collection(longCollectionName)
-		err = longCollection.Drop(t.Context())
-		So(err, ShouldBeNil)
-
-		Convey("and an explicit target restores truncated files from that dump directory", func() {
-			restore.TargetDirectory = "testdata/longcollectionname"
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 1)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := longCollection.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
-		})
-
-		Convey("and an target of '-' restores truncated files from standard input", func() {
-			longBsonFile, err := os.Open("testdata/longcollectionname/db1/" + longBsonName)
-			So(err, ShouldBeNil)
-
-			restore.ToolOptions.Collection = longCollectionName
-			restore.ToolOptions.DB = "db1"
-			restore.InputReader = longBsonFile
-			restore.TargetDirectory = "-"
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-
-			count, err := longCollection.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
-		})
-
-		Convey("and specifying an nsExclude option", func() {
-			restore.TargetDirectory = "testdata/longcollectionname"
-			restore.NSOptions.NSExclude = make([]string, 1)
-			restore.NSOptions.NSExclude[0] = "db1." + longCollectionName
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 0)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := longCollection.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 0)
-		})
-
-		Convey("and specifying an nsInclude option", func() {
-			restore.TargetDirectory = "testdata/longcollectionname"
-			restore.NSOptions.NSInclude = make([]string, 1)
-			restore.NSOptions.NSInclude[0] = "db1." + longCollectionName
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 1)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := longCollection.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
-		})
-
-		Convey("and specifying nsFrom and nsTo options", func() {
-			restore.TargetDirectory = "testdata/longcollectionname"
-			restore.NSOptions.NSFrom = make([]string, 1)
-			restore.NSOptions.NSFrom[0] = "db1." + longCollectionName
-			restore.NSOptions.NSTo = make([]string, 1)
-			restore.NSOptions.NSTo[0] = "db1.aMuchShorterCollectionName"
-
-			shortCollection := db.Collection("aMuchShorterCollectionName")
-			err = shortCollection.Drop(t.Context())
-			So(err, ShouldBeNil)
-
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			So(result.Successes, ShouldEqual, 1)
-			So(result.Failures, ShouldEqual, 0)
-
-			count, err := shortCollection.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
-		})
+		assert.Equal(
+			t,
+			wcwrapper.Majority(),
+			restore.ToolOptions.WriteConcern,
+			"should default to majority write concern",
+		)
 	})
+
+	t.Run(
+		"and an explicit target restores truncated files from that dump directory",
+		func(t *testing.T) {
+			restore, _, longCollection := newLongCollectionNameTestFixture(t, session)
+			restore.TargetDirectory = "testdata/longcollectionname"
+
+			result := restore.Restore()
+			require.NoError(t, result.Err, "should restore without error")
+			assert.EqualValues(t, 1, result.Successes, "should restore the document")
+			assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+			count, err := longCollection.CountDocuments(t.Context(), bson.M{})
+			require.NoError(t, err, "should count the restored documents")
+			assert.EqualValues(
+				t,
+				1,
+				count,
+				"should restore the document into the long-named collection",
+			)
+		},
+	)
+
+	t.Run("and an target of '-' restores truncated files from standard input", func(t *testing.T) {
+		restore, _, longCollection := newLongCollectionNameTestFixture(t, session)
+
+		longBsonFile, err := os.Open("testdata/longcollectionname/db1/" + longBsonName)
+		require.NoError(t, err, "should open the test fixture")
+
+		restore.ToolOptions.Collection = longCollectionName
+		restore.ToolOptions.DB = "db1"
+		restore.InputReader = longBsonFile
+		restore.TargetDirectory = "-"
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+
+		count, err := longCollection.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(t, 1, count, "should restore the document from standard input")
+	})
+
+	t.Run("and specifying an nsExclude option", func(t *testing.T) {
+		restore, _, longCollection := newLongCollectionNameTestFixture(t, session)
+		restore.TargetDirectory = "testdata/longcollectionname"
+		restore.NSOptions.NSExclude = make([]string, 1)
+		restore.NSOptions.NSExclude[0] = "db1." + longCollectionName
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(
+			t,
+			0,
+			result.Successes,
+			"should restore nothing when the only namespace is excluded",
+		)
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := longCollection.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the documents in the excluded collection")
+		assert.EqualValues(t, 0, count, "should not restore documents into the excluded collection")
+	})
+
+	t.Run("and specifying an nsInclude option", func(t *testing.T) {
+		restore, _, longCollection := newLongCollectionNameTestFixture(t, session)
+		restore.TargetDirectory = "testdata/longcollectionname"
+		restore.NSOptions.NSInclude = make([]string, 1)
+		restore.NSOptions.NSInclude[0] = "db1." + longCollectionName
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 1, result.Successes, "should restore the included document")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := longCollection.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(
+			t,
+			1,
+			count,
+			"should restore the document into the long-named collection",
+		)
+	})
+
+	t.Run("and specifying nsFrom and nsTo options", func(t *testing.T) {
+		restore, db, _ := newLongCollectionNameTestFixture(t, session)
+		restore.TargetDirectory = "testdata/longcollectionname"
+		restore.NSOptions.NSFrom = make([]string, 1)
+		restore.NSOptions.NSFrom[0] = "db1." + longCollectionName
+		restore.NSOptions.NSTo = make([]string, 1)
+		restore.NSOptions.NSTo[0] = "db1.aMuchShorterCollectionName"
+
+		shortCollection := db.Collection("aMuchShorterCollectionName")
+		require.NoError(
+			t,
+			shortCollection.Drop(t.Context()),
+			"should drop the destination collection before restoring",
+		)
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		assert.EqualValues(t, 1, result.Successes, "should restore the renamed document")
+		assert.EqualValues(t, 0, result.Failures, "should not fail to restore any document")
+
+		count, err := shortCollection.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(t, 1, count, "should restore the document under the renamed namespace")
+	})
+}
+
+// newLongCollectionNameTestFixture builds a fresh MongoRestore instance and
+// drops the long-named test collection, so each subtest starts from clean,
+// isolated state rather than sharing a restore instance whose
+// TargetDirectory and NSOptions the other subtests mutate. Cleanup is
+// registered per subtest.
+func newLongCollectionNameTestFixture(
+	t *testing.T,
+	session *mongo.Client,
+) (restore *MongoRestore, db *mongo.Database, longCollection *mongo.Collection) {
+	t.Helper()
+
+	restore, err := getRestoreWithArgs(
+		NumParallelCollectionsOption, "1",
+		NumInsertionWorkersOption, "1",
+	)
+	require.NoError(t, err, "should build a restore instance")
+	t.Cleanup(restore.Close)
+
+	db = session.Database("db1")
+
+	longCollection = db.Collection(longCollectionName)
+	require.NoError(
+		t,
+		longCollection.Drop(t.Context()),
+		"should drop the long-named collection before restoring",
+	)
+
+	return restore, db, longCollection
 }
 
 func TestMongorestorePreserveUUID(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	session, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 	fcv := testutil.GetFCV(session)
 	if cmp, err := testutil.CompareFCV(fcv, "3.6"); err != nil || cmp < 0 {
 		t.Skip("Requires server with FCV 3.6 or later")
@@ -520,89 +629,105 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 	// From mongorestore/testdata/oplogdump/db1/c1.metadata.json
 	originalUUID := "699f503df64b4aa8a484a8052046fa3a"
 
-	Convey("With a test MongoRestore", t, func() {
+	t.Run("normal restore gives new UUID", func(t *testing.T) {
 		c1 := session.Database("db1").Collection("c1")
-		err = c1.Drop(t.Context())
-		So(err, ShouldBeNil)
+		require.NoError(t, c1.Drop(t.Context()), "should drop c1 before restoring")
 
-		Convey("normal restore gives new UUID", func() {
-			args := []string{
-				NumParallelCollectionsOption, "1",
-				NumInsertionWorkersOption, "1",
-				"testdata/oplogdump",
-			}
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
-			defer restore.Close()
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			"testdata/oplogdump",
+		}
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should build a restore instance")
+		defer restore.Close()
 
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			count, err := c1.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 5)
-			info, err := db.GetCollectionInfo(c1)
-			So(err, ShouldBeNil)
-			So(info.GetUUID(), ShouldNotEqual, originalUUID)
-		})
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(t, 5, count, "should restore every document")
+		info, err := db.GetCollectionInfo(c1)
+		require.NoError(t, err, "should read the restored collection info")
+		assert.NotEqual(
+			t,
+			originalUUID,
+			info.GetUUID(),
+			"should assign a new UUID without --preserveUUID",
+		)
+	})
 
-		Convey("PreserveUUID restore without drop errors", func() {
-			args := []string{
-				NumParallelCollectionsOption, "1",
-				NumInsertionWorkersOption, "1",
-				PreserveUUIDOption,
-				"testdata/oplogdump",
-			}
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
-			defer restore.Close()
+	t.Run("PreserveUUID restore without drop errors", func(t *testing.T) {
+		c1 := session.Database("db1").Collection("c1")
+		require.NoError(t, c1.Drop(t.Context()), "should drop c1 before restoring")
 
-			result := restore.Restore()
-			So(result.Err, ShouldNotBeNil)
-			So(
-				result.Err.Error(),
-				ShouldContainSubstring,
-				"cannot specify --preserveUUID without --drop",
-			)
-		})
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			PreserveUUIDOption,
+			"testdata/oplogdump",
+		}
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should build a restore instance")
+		defer restore.Close()
 
-		Convey("PreserveUUID with drop preserves UUID", func() {
-			args := []string{
-				NumParallelCollectionsOption, "1",
-				NumInsertionWorkersOption, "1",
-				PreserveUUIDOption,
-				DropOption,
-				"testdata/oplogdump",
-			}
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
-			defer restore.Close()
+		result := restore.Restore()
+		require.Error(t, result.Err, "should reject --preserveUUID without --drop")
+		assert.Contains(
+			t,
+			result.Err.Error(),
+			"cannot specify --preserveUUID without --drop",
+			"should explain that --preserveUUID requires --drop",
+		)
+	})
 
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-			count, err := c1.CountDocuments(t.Context(), bson.M{})
-			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 5)
-			info, err := db.GetCollectionInfo(c1)
-			So(err, ShouldBeNil)
-			So(info.GetUUID(), ShouldEqual, originalUUID)
-		})
+	t.Run("PreserveUUID with drop preserves UUID", func(t *testing.T) {
+		c1 := session.Database("db1").Collection("c1")
+		require.NoError(t, c1.Drop(t.Context()), "should drop c1 before restoring")
 
-		Convey("PreserveUUID on a file without UUID metadata errors", func() {
-			args := []string{
-				NumParallelCollectionsOption, "1",
-				NumInsertionWorkersOption, "1",
-				PreserveUUIDOption,
-				DropOption,
-				"testdata/testdirs",
-			}
-			restore, err := getRestoreWithArgs(args...)
-			So(err, ShouldBeNil)
-			defer restore.Close()
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			PreserveUUIDOption,
+			DropOption,
+			"testdata/oplogdump",
+		}
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should build a restore instance")
+		defer restore.Close()
 
-			result := restore.Restore()
-			So(result.Err, ShouldBeNil)
-		})
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
+		count, err := c1.CountDocuments(t.Context(), bson.M{})
+		require.NoError(t, err, "should count the restored documents")
+		assert.EqualValues(t, 5, count, "should restore every document")
+		info, err := db.GetCollectionInfo(c1)
+		require.NoError(t, err, "should read the restored collection info")
+		assert.Equal(
+			t,
+			originalUUID,
+			info.GetUUID(),
+			"should preserve the original UUID with --preserveUUID and --drop",
+		)
+	})
 
+	t.Run("PreserveUUID on a file without UUID metadata errors", func(t *testing.T) {
+		c1 := session.Database("db1").Collection("c1")
+		require.NoError(t, c1.Drop(t.Context()), "should drop c1 before restoring")
+
+		args := []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			PreserveUUIDOption,
+			DropOption,
+			"testdata/testdirs",
+		}
+		restore, err := getRestoreWithArgs(args...)
+		require.NoError(t, err, "should build a restore instance")
+		defer restore.Close()
+
+		result := restore.Restore()
+		require.NoError(t, result.Err, "should restore without error")
 	})
 }
 
