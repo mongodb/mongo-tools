@@ -189,13 +189,11 @@ download those binaries_
 
 ### Writing Tests
 
-In the past, we used
+We used to use
 [`github.com/smartystreets/goconvey`](https://pkg.go.dev/github.com/smartystreets/goconvey/convey)
-as a test harness. However, we are moving to using to
-[`github.com/stretchr/testify`](https://pkg.go.dev/github.com/stretchr/testify) instead. If you are
-working with existing tests, it's fine to keep using convey, but **never mix convey and testify in a
-single top-level `TestX` func**. If you like, you can also rewrite the test func you're working on
-to use `testify`. **All new test funcs should use `testify`.**
+as a test harness, but all tests have been converted to
+[`github.com/stretchr/testify`](https://pkg.go.dev/github.com/stretchr/testify) and the goconvey
+dependency has been removed. **All test funcs should use `testify`.**
 
 #### `require` Versus `assert`
 
