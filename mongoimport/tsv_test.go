@@ -179,7 +179,7 @@ func TestTSVStreamDocument(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var r *TSVInputReader
 			if tc.file != "" {
-				fileHandle := openTestTSVFile(t, tc.file)
+				fileHandle := openTestFixture(t, tc.file)
 				r = NewTSVInputReader(tc.colSpecs, fileHandle, os.Stdout, 1, false, false)
 			} else {
 				r = NewTSVInputReader(
@@ -204,17 +204,6 @@ func TestTSVStreamDocument(t *testing.T) {
 			}
 		})
 	}
-}
-
-// registers its own teardown so each table case gets a fresh handle.
-func openTestTSVFile(t *testing.T, path string) *os.File {
-	t.Helper()
-
-	fileHandle, err := os.Open(path)
-	require.NoError(t, err, "should open the test fixture")
-	t.Cleanup(func() { fileHandle.Close() })
-
-	return fileHandle
 }
 
 func TestTSVReadAndValidateHeader(t *testing.T) {

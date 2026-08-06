@@ -27,7 +27,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -1531,20 +1530,23 @@ func runNestedFieldsTestCase(
 // Regression test for TOOLS-1694 to prevent issue from TOOLS-1115.
 func TestHiddenOptionsDefaults(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("With a new mongoimport with empty options", t, func() {
-		imp := NewMockMongoImport()
-		imp.ToolOptions = options.New("", "", "", "", true, options.EnabledOptions{})
-		Convey("Then parsing should fill args with expected defaults", func() {
-			_, err := imp.ToolOptions.ParseArgs([]string{})
-			So(err, ShouldBeNil)
 
-			// collection cannot be empty in validate
-			imp.ToolOptions.Collection = "col"
-			So(imp.validateSettings(), ShouldBeNil)
-			So(imp.IngestOptions.NumDecodingWorkers, ShouldEqual, runtime.NumCPU())
-			So(imp.IngestOptions.BulkBufferSize, ShouldEqual, 1000)
-		})
-	})
+	imp := NewMockMongoImport()
+	imp.ToolOptions = options.New("", "", "", "", true, options.EnabledOptions{})
+
+	_, err := imp.ToolOptions.ParseArgs([]string{})
+	require.NoError(t, err, "should parse an empty argument list")
+
+	// collection cannot be empty in validate
+	imp.ToolOptions.Collection = "col"
+	require.NoError(t, imp.validateSettings(), "should validate the filled-in settings")
+	assert.Equal(
+		t,
+		runtime.NumCPU(),
+		imp.IngestOptions.NumDecodingWorkers,
+		"should default the decoding worker count to the CPU count",
+	)
+	assert.Equal(t, 1000, imp.IngestOptions.BulkBufferSize, "should default the bulk buffer size")
 }
 
 // generateTestData creates the files used in TestImportMIOSOE.
@@ -1591,76 +1593,101 @@ func generateTestData() error {
 func TestImportMIOSOE(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	if err := generateTestData(); err != nil {
-		t.Fatalf("Could not generate test data: %v", err)
-	}
+	require.NoError(t, generateTestData(), "should generate the test data file")
 
 	client, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available?? (%v)", err)
-	}
+	require.NoError(t, err, "must connect to the server")
 	database := client.Database("miodb")
 	coll := database.Collection("mio")
 
-	Convey("default restore ignores dup key errors", t, func() {
+	t.Run("default restore ignores dup key errors", func(t *testing.T) {
 		imp, err := getImportWithArgs(mioSoeFile,
 			"--collection", coll.Name(),
 			"--db", database.Name(),
 			"--drop")
-		So(err, ShouldBeNil)
-		So(imp.IngestOptions.MaintainInsertionOrder, ShouldBeFalse)
+		require.NoError(t, err, "should build the import with the given args")
+		require.False(
+			t,
+			imp.IngestOptions.MaintainInsertionOrder,
+			"should default to unordered insertion",
+		)
 
 		nSuccess, nFailure, err := imp.ImportDocuments()
-		So(err, ShouldBeNil)
+		require.NoError(t, err, "should tolerate the duplicate key without failing the import")
 
-		So(nSuccess, ShouldEqual, 20000)
-		So(nFailure, ShouldEqual, 1)
+		assert.EqualValues(t, 20000, nSuccess, "should import every non-duplicate document")
+		assert.EqualValues(t, 1, nFailure, "should count the single duplicate key as a failure")
 
 		count, err := coll.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 20000)
+		require.NoError(t, err, "should count the imported documents")
+		assert.EqualValues(t, 20000, count, "should have inserted every non-duplicate document")
 	})
 
-	Convey("--maintainInsertionOrder stops exactly on dup key errors", t, func() {
+	t.Run("--maintainInsertionOrder stops exactly on dup key errors", func(t *testing.T) {
 		imp, err := getImportWithArgs(mioSoeFile,
 			"--collection", coll.Name(),
 			"--db", database.Name(),
 			"--drop",
 			"--maintainInsertionOrder")
-		So(err, ShouldBeNil)
-		So(imp.IngestOptions.MaintainInsertionOrder, ShouldBeTrue)
-		So(imp.IngestOptions.NumInsertionWorkers, ShouldEqual, 1)
+		require.NoError(t, err, "should build the import with the given args")
+		require.True(
+			t,
+			imp.IngestOptions.MaintainInsertionOrder,
+			"should honor --maintainInsertionOrder",
+		)
+		require.Equal(
+			t,
+			1,
+			imp.IngestOptions.NumInsertionWorkers,
+			"should force a single insertion worker",
+		)
 
 		nSuccess, nFailure, err := imp.ImportDocuments()
-		So(err, ShouldNotBeNil)
+		require.Error(t, err, "should stop the import at the duplicate key")
 
-		So(nSuccess, ShouldEqual, 10000)
-		So(nFailure, ShouldEqual, 1)
-		So(err, ShouldNotBeNil)
+		assert.EqualValues(t, 10000, nSuccess, "should stop right before the duplicate key")
+		assert.EqualValues(t, 1, nFailure, "should count the duplicate key as a failure")
 
 		count, err := coll.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldEqual, 10000)
+		require.NoError(t, err, "should count the imported documents")
+		assert.EqualValues(
+			t,
+			10000,
+			count,
+			"should have inserted only the documents before the duplicate",
+		)
 	})
 
-	Convey("--stopOnError stops on dup key errors", t, func() {
+	t.Run("--stopOnError stops on dup key errors", func(t *testing.T) {
 		imp, err := getImportWithArgs(mioSoeFile,
 			"--collection", coll.Name(),
 			"--db", database.Name(),
 			"--drop",
 			"--stopOnError")
-		So(err, ShouldBeNil)
-		So(imp.IngestOptions.StopOnError, ShouldBeTrue)
+		require.NoError(t, err, "should build the import with the given args")
+		require.True(t, imp.IngestOptions.StopOnError, "should honor --stopOnError")
 
 		nSuccess, nFailure, err := imp.ImportDocuments()
-		So(err, ShouldNotBeNil)
+		require.Error(t, err, "should stop the import at the duplicate key")
 
-		So(nSuccess, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
-		So(nFailure, ShouldEqual, 1)
+		assert.InDelta(
+			t,
+			10000,
+			nSuccess,
+			float64(imp.IngestOptions.BulkBufferSize),
+			"should stop near the duplicate key, within one buffer's worth of documents",
+		)
+		assert.EqualValues(t, 1, nFailure, "should count the duplicate key as a failure")
 
 		count, err := coll.CountDocuments(t.Context(), bson.M{})
-		So(err, ShouldBeNil)
-		So(count, ShouldAlmostEqual, 10000, imp.IngestOptions.BulkBufferSize)
+		require.NoError(t, err, "should count the imported documents")
+		assert.InDelta(
+			t,
+			10000,
+			count,
+			float64(imp.IngestOptions.BulkBufferSize),
+			"should have inserted near the duplicate key, within one buffer's worth of documents",
+		)
 	})
 
 	_ = database.Drop(t.Context())

@@ -9,7 +9,6 @@ package mongoimport
 import (
 	"bytes"
 	"io"
-	"os"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -54,7 +53,7 @@ func TestJSONArrayStreamDocument(t *testing.T) {
 	}
 
 	t.Run("an error should be thrown if a plain JSON file is supplied", func(t *testing.T) {
-		fileHandle := openTestJSONFile(t, "testdata/test_plain.json")
+		fileHandle := openTestFixture(t, "testdata/test_plain.json")
 		r := NewJSONInputReader(true, true, fileHandle, 1)
 		require.Error(
 			t,
@@ -77,7 +76,7 @@ func TestJSONArrayStreamDocument(t *testing.T) {
 				{"b", "string"},
 				{"c", 52.9},
 			}
-			fileHandle := openTestJSONFile(t, "testdata/test_array.json")
+			fileHandle := openTestFixture(t, "testdata/test_array.json")
 			r := NewJSONInputReader(true, true, fileHandle, 1)
 			streamOutChan := make(chan bson.D, 50)
 			require.NoError(
@@ -187,7 +186,7 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 
 	for _, tc := range fileCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fileHandle := openTestJSONFile(t, tc.file)
+			fileHandle := openTestFixture(t, tc.file)
 			r := NewJSONInputReader(false, true, fileHandle, 1)
 			streamOutChan := make(chan bson.D, len(tc.expectedReads))
 			require.NoError(
@@ -216,17 +215,6 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 			}
 		})
 	}
-}
-
-// registers its own teardown so each subtest gets a fresh handle.
-func openTestJSONFile(t *testing.T, path string) *os.File {
-	t.Helper()
-
-	fileHandle, err := os.Open(path)
-	require.NoError(t, err, "should open the test fixture")
-	t.Cleanup(func() { fileHandle.Close() })
-
-	return fileHandle
 }
 
 func TestReadJSONArraySeparator(t *testing.T) {

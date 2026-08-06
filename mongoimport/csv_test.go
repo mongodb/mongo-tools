@@ -195,7 +195,7 @@ func TestCSVStreamDocument(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var r *CSVInputReader
 			if tc.file != "" {
-				fileHandle := openTestCSVFile(t, tc.file)
+				fileHandle := openTestFixture(t, tc.file)
 				r = NewCSVInputReader(tc.colSpecs, fileHandle, os.Stdout, 1, false, false)
 			} else {
 				r = NewCSVInputReader(
@@ -486,7 +486,7 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 				{"b", 5.4},
 				{"c", "string"},
 			}
-			fileHandle := openTestCSVFile(t, "testdata/test.csv")
+			fileHandle := openTestFixture(t, "testdata/test.csv")
 			r := NewCSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
 			// buffered generously: test.csv holds more lines than this test
 			// checks, and StreamDocument must not block trying to send them
@@ -500,17 +500,6 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 			assert.Equal(t, expectedReadTwo, <-streamOutChan, "should stream the second document")
 		},
 	)
-}
-
-// registers its own teardown so each table case gets a fresh handle.
-func openTestCSVFile(t *testing.T, path string) *os.File {
-	t.Helper()
-
-	fileHandle, err := os.Open(path)
-	require.NoError(t, err, "should open the test fixture")
-	t.Cleanup(func() { fileHandle.Close() })
-
-	return fileHandle
 }
 
 func TestCSVConvert(t *testing.T) {
