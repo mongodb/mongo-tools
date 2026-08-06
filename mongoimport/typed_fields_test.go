@@ -13,7 +13,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -26,425 +27,420 @@ func init() {
 func TestTypedHeaderParser(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey(
-		"Using 'zip.string(),number.double(),foo.auto(),bar.date(January 2, (2006))'",
-		t,
-		func() {
-			var headers = []string{"zip.string()", "number.double()", "foo.auto()", `bar.date(January 2\, \(2006\))`}
-			var colSpecs []ColumnSpec
-			var err error
+	t.Run("using zip.string(),number.double(),foo.auto(),bar.date(...)", func(t *testing.T) {
+		headers := []string{
+			"zip.string()",
+			"number.double()",
+			"foo.auto()",
+			`bar.date(January 2\, \(2006\))`,
+		}
+		bar := FieldDateParser{"January 2, (2006)"}
 
-			Convey("with parse grace: auto", func() {
-				colSpecs, err = ParseTypedHeaders(headers, pgAutoCast)
-				So(colSpecs, ShouldResemble, []ColumnSpec{
+		graceCases := []struct {
+			name     string
+			grace    ParseGrace
+			expected []ColumnSpec
+		}{
+			{
+				name:  "with parse grace: auto",
+				grace: pgAutoCast,
+				expected: []ColumnSpec{
 					{"zip", new(FieldStringParser), pgAutoCast, "string", []string{"zip"}},
 					{"number", new(FieldDoubleParser), pgAutoCast, "double", []string{"number"}},
 					{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
-					{
-						"bar",
-						&FieldDateParser{"January 2, (2006)"},
-						pgAutoCast,
-						"date",
-						[]string{"bar"},
-					},
-				})
-				So(err, ShouldBeNil)
-			})
-			Convey("with parse grace: skipRow", func() {
-				colSpecs, err = ParseTypedHeaders(headers, pgSkipRow)
-				So(colSpecs, ShouldResemble, []ColumnSpec{
+					{"bar", &bar, pgAutoCast, "date", []string{"bar"}},
+				},
+			},
+			{
+				name:  "with parse grace: skipRow",
+				grace: pgSkipRow,
+				expected: []ColumnSpec{
 					{"zip", new(FieldStringParser), pgSkipRow, "string", []string{"zip"}},
 					{"number", new(FieldDoubleParser), pgSkipRow, "double", []string{"number"}},
 					{"foo", new(FieldAutoParser), pgSkipRow, "auto", []string{"foo"}},
-					{
-						"bar",
-						&FieldDateParser{"January 2, (2006)"},
-						pgSkipRow,
-						"date",
-						[]string{"bar"},
-					},
-				})
-				So(err, ShouldBeNil)
-			})
-		},
-	)
+					{"bar", &bar, pgSkipRow, "date", []string{"bar"}},
+				},
+			},
+		}
 
-	Convey("Using various bad headers", t, func() {
-		var err error
+		for _, tc := range graceCases {
+			colSpecs, err := ParseTypedHeaders(headers, tc.grace)
+			assert.Equal(t, tc.expected, colSpecs, "should parse the headers %s", tc.name)
+			assert.NoError(t, err, "should parse the headers without error %s", tc.name)
+		}
+	})
 
-		Convey("with non-empty arguments for types that don't want them", func() {
-			_, err = ParseTypedHeader("zip.string(blah)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-			_, err = ParseTypedHeader("zip.string(0)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-			_, err = ParseTypedHeader("zip.int32(0)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-			_, err = ParseTypedHeader("zip.int64(0)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-			_, err = ParseTypedHeader("zip.double(0)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-			_, err = ParseTypedHeader("zip.auto(0)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-		})
-		Convey("with bad arguments for the binary type", func() {
-			_, err = ParseTypedHeader("zip.binary(blah)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-			_, err = ParseTypedHeader("zip.binary(binary)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-			_, err = ParseTypedHeader("zip.binary(decimal)", pgAutoCast)
-			So(err, ShouldNotBeNil)
-		})
+	t.Run("using various bad headers", func(t *testing.T) {
+		nonEmptyArgHeaders := []string{
+			"zip.string(blah)",
+			"zip.string(0)",
+			"zip.int32(0)",
+			"zip.int64(0)",
+			"zip.double(0)",
+			"zip.auto(0)",
+		}
+		for _, header := range nonEmptyArgHeaders {
+			_, err := ParseTypedHeader(header, pgAutoCast)
+			assert.Error(t, err, "should reject the non-empty argument in %q", header)
+		}
+
+		badBinaryArgHeaders := []string{
+			"zip.binary(blah)",
+			"zip.binary(binary)",
+			"zip.binary(decimal)",
+		}
+		for _, header := range badBinaryArgHeaders {
+			_, err := ParseTypedHeader(header, pgAutoCast)
+			assert.Error(t, err, "should reject the bad binary argument in %q", header)
+		}
 	})
 }
 
 func TestAutoHeaderParser(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("Using 'zip,number'", t, func() {
-		var headers = []string{"zip", "number", "foo"}
-		var colSpecs = ParseAutoHeaders(headers)
-		So(colSpecs, ShouldResemble, []ColumnSpec{
-			{"zip", new(FieldAutoParser), pgAutoCast, "auto", []string{"zip"}},
-			{"number", new(FieldAutoParser), pgAutoCast, "auto", []string{"number"}},
-			{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
-		})
-	})
-}
 
-func cast[T any](val any) T {
-	converted, ok := val.(T)
-	So(ok, ShouldBeTrue)
-
-	return converted
+	headers := []string{"zip", "number", "foo"}
+	colSpecs := ParseAutoHeaders(headers)
+	expected := []ColumnSpec{
+		{"zip", new(FieldAutoParser), pgAutoCast, "auto", []string{"zip"}},
+		{"number", new(FieldAutoParser), pgAutoCast, "auto", []string{"number"}},
+		{"foo", new(FieldAutoParser), pgAutoCast, "auto", []string{"foo"}},
+	}
+	require.Equal(t, expected, colSpecs, "should build a column spec for every header")
 }
 
 func TestFieldParsers(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	Convey("Using FieldAutoParser", t, func() {
-		var p, _ = NewFieldParser(ctAuto, "")
-		var value any
-		var err error
+	t.Run("using fieldautoparser", func(t *testing.T) {
+		p, _ := NewFieldParser(ctAuto, "")
 
-		Convey("parses integers when it can", func() {
-			value, err = p.Parse("2147483648")
-			So(cast[int64](value), ShouldEqual, int64(2147483648))
-			So(err, ShouldBeNil)
-			value, err = p.Parse("42")
-			So(cast[int32](value), ShouldEqual, 42)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("-2147483649")
-			So(cast[int64](value), ShouldEqual, int64(-2147483649))
-		})
-		Convey("parses decimals when it can", func() {
-			value, err = p.Parse("3.14159265")
-			So(cast[float64](value), ShouldEqual, 3.14159265)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("0.123123")
-			So(cast[float64](value), ShouldEqual, 0.123123)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("-123456.789")
-			So(cast[float64](value), ShouldEqual, -123456.789)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("-1.")
-			So(cast[float64](value), ShouldEqual, -1.0)
-			So(err, ShouldBeNil)
-		})
-		Convey("leaves everything else as a string", func() {
-			value, err = p.Parse("12345-6789")
-			So(cast[string](value), ShouldEqual, "12345-6789")
-			So(err, ShouldBeNil)
-			value, err = p.Parse("06/02/1997")
-			So(cast[string](value), ShouldEqual, "06/02/1997")
-			So(err, ShouldBeNil)
-			value, err = p.Parse("")
-			So(cast[string](value), ShouldEqual, "")
-			So(err, ShouldBeNil)
-		})
+		value, err := p.Parse("2147483648")
+		assert.Equal(t, int64(2147483648), cast[int64](t, value), "should parse a large integer")
+		assert.NoError(t, err, "should parse a large integer without error")
+		value, err = p.Parse("42")
+		assert.Equal(t, int32(42), cast[int32](t, value), "should parse a small integer")
+		assert.NoError(t, err, "should parse a small integer without error")
+		value, _ = p.Parse("-2147483649")
+		assert.Equal(
+			t,
+			int64(-2147483649),
+			cast[int64](t, value),
+			"should parse a large negative integer",
+		)
+
+		decimalCases := []struct {
+			in       string
+			expected float64
+		}{
+			{"3.14159265", 3.14159265},
+			{"0.123123", 0.123123},
+			{"-123456.789", -123456.789},
+			{"-1.", -1.0},
+		}
+		for _, tc := range decimalCases {
+			value, err := p.Parse(tc.in)
+			assert.Equal(t, tc.expected, cast[float64](t, value), "should parse %q", tc.in)
+			assert.NoError(t, err, "should parse %q without error", tc.in)
+		}
+
+		stringCases := []struct {
+			in       string
+			expected string
+		}{
+			{"12345-6789", "12345-6789"},
+			{"06/02/1997", "06/02/1997"},
+			{"", ""},
+		}
+		for _, tc := range stringCases {
+			value, err := p.Parse(tc.in)
+			assert.Equal(t, tc.expected, cast[string](t, value), "should fall back to %q", tc.in)
+			assert.NoError(t, err, "should parse %q without error", tc.in)
+		}
 	})
 
-	Convey("Using FieldBooleanParser", t, func() {
-		var p, _ = NewFieldParser(ctBoolean, "")
-		var value any
-		var err error
+	t.Run("using fieldbooleanparser", func(t *testing.T) {
+		p, _ := NewFieldParser(ctBoolean, "")
 
-		Convey("parses representations of true correctly", func() {
-			value, err = p.Parse("true")
-			So(cast[bool](value), ShouldBeTrue)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("TrUe")
-			So(cast[bool](value), ShouldBeTrue)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("1")
-			So(cast[bool](value), ShouldBeTrue)
-			So(err, ShouldBeNil)
-		})
-		Convey("parses representations of false correctly", func() {
-			value, err = p.Parse("false")
-			So(cast[bool](value), ShouldBeFalse)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("FaLsE")
-			So(cast[bool](value), ShouldBeFalse)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("0")
-			So(cast[bool](value), ShouldBeFalse)
-			So(err, ShouldBeNil)
-		})
-		Convey("does not parse other boolean representations", func() {
-			_, err = p.Parse("")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("t")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("f")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("yes")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("no")
-			So(err, ShouldNotBeNil)
-		})
+		trueCases := []string{"true", "TrUe", "1"}
+		for _, in := range trueCases {
+			value, err := p.Parse(in)
+			assert.True(t, cast[bool](t, value), "should parse %q as true", in)
+			assert.NoError(t, err, "should parse %q without error", in)
+		}
+
+		falseCases := []string{"false", "FaLsE", "0"}
+		for _, in := range falseCases {
+			value, err := p.Parse(in)
+			assert.False(t, cast[bool](t, value), "should parse %q as false", in)
+			assert.NoError(t, err, "should parse %q without error", in)
+		}
+
+		invalidCases := []string{"", "t", "f", "yes", "no"}
+		for _, in := range invalidCases {
+			_, err := p.Parse(in)
+			assert.Error(t, err, "should reject %q as a boolean", in)
+		}
 	})
 
-	Convey("Using FieldBinaryParser", t, func() {
-		var value any
-		var err error
+	t.Run("using fieldbinaryparser", func(t *testing.T) {
+		type binaryCase struct {
+			in       string
+			expected []byte
+		}
 
-		Convey("using hex encoding", func() {
-			var p, _ = NewFieldParser(ctBinary, "hex")
-			Convey("parses valid hex values correctly", func() {
-				value, err = p.Parse("400a11")
-				So(cast[[]byte](value), ShouldResemble, []byte{64, 10, 17})
-				So(err, ShouldBeNil)
-				value, err = p.Parse("400A11")
-				So(cast[[]byte](value), ShouldResemble, []byte{64, 10, 17})
-				So(err, ShouldBeNil)
-				value, err = p.Parse("0b400A11")
-				So(cast[[]byte](value), ShouldResemble, []byte{11, 64, 10, 17})
-				So(err, ShouldBeNil)
-				value, err = p.Parse("")
-				So(cast[[]byte](value), ShouldResemble, []byte{})
-				So(err, ShouldBeNil)
+		encodingCases := []struct {
+			name     string
+			encoding string
+			cases    []binaryCase
+		}{
+			{
+				name:     "using hex encoding",
+				encoding: "hex",
+				cases: []binaryCase{
+					{"400a11", []byte{64, 10, 17}},
+					{"400A11", []byte{64, 10, 17}},
+					{"0b400A11", []byte{11, 64, 10, 17}},
+					{"", []byte{}},
+				},
+			},
+			{
+				name:     "using base32 encoding",
+				encoding: "base32",
+				cases: []binaryCase{
+					{"", []byte{}},
+					{"MZXW6YTBOI======", []byte{102, 111, 111, 98, 97, 114}},
+				},
+			},
+			{
+				name:     "using base64 encoding",
+				encoding: "base64",
+				cases: []binaryCase{
+					{"", []byte{}},
+					{"Zm9vYmFy", []byte{102, 111, 111, 98, 97, 114}},
+				},
+			},
+		}
+
+		for _, tc := range encodingCases {
+			t.Run(tc.name, func(t *testing.T) {
+				p, _ := NewFieldParser(ctBinary, tc.encoding)
+
+				for _, c := range tc.cases {
+					value, err := p.Parse(c.in)
+					assert.Equal(
+						t,
+						c.expected,
+						cast[[]byte](t, value),
+						"should decode %q as %s",
+						c.in,
+						tc.encoding,
+					)
+					assert.NoError(t, err, "should decode %q without error", c.in)
+				}
 			})
-		})
-		Convey("using base32 encoding", func() {
-			var p, _ = NewFieldParser(ctBinary, "base32")
-			Convey("parses valid base32 values correctly", func() {
-				value, err = p.Parse("")
-				So(cast[[]uint8](value), ShouldResemble, []uint8{})
-				So(err, ShouldBeNil)
-				value, err = p.Parse("MZXW6YTBOI======")
-				So(cast[[]uint8](value), ShouldResemble, []uint8{102, 111, 111, 98, 97, 114})
-				So(err, ShouldBeNil)
-			})
-		})
-		Convey("using base64 encoding", func() {
-			var p, _ = NewFieldParser(ctBinary, "base64")
-			Convey("parses valid base64 values correctly", func() {
-				value, err = p.Parse("")
-				So(cast[[]uint8](value), ShouldResemble, []uint8{})
-				So(err, ShouldBeNil)
-				value, err = p.Parse("Zm9vYmFy")
-				So(cast[[]uint8](value), ShouldResemble, []uint8{102, 111, 111, 98, 97, 114})
-				So(err, ShouldBeNil)
-			})
-		})
+		}
 	})
 
-	Convey("Using FieldDateParser", t, func() {
-		var value any
-		var err error
+	t.Run("using fielddateparser", func(t *testing.T) {
+		formatCases := []struct {
+			name       string
+			columnType columnType
+			format     string
+			validInput string
+			expected   time.Time
+			invalid    []string
+		}{
+			{
+				name:       "with Go's format",
+				columnType: ctDateGo,
+				format:     "01/02/2006 3:04:05pm MST",
+				validInput: "01/04/2000 5:38:10pm UTC",
+				expected:   time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
+				invalid: []string{
+					"01/04/2000 5:38:10pm",
+					"01/04/2000 5:38:10 pm UTC",
+					"01/04/2000",
+				},
+			},
+			{
+				name:       "with MS's format",
+				columnType: ctDateMS,
+				format:     "MM/dd/yyyy h:mm:sstt",
+				validInput: "01/04/2000 5:38:10PM",
+				expected:   time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
+				invalid: []string{
+					"01/04/2000 :) 05:38:10PM",
+					"01/04/2000 005:38:10PM",
+					"01/04/2000 5:38:10 PM",
+					"01/04/2000",
+				},
+			},
+			{
+				name:       "with Oracle's format",
+				columnType: ctDateOracle,
+				format:     "mm/Dd/yYYy hh:MI:SsAm",
+				validInput: "01/04/2000 05:38:10PM",
+				expected:   time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
+				invalid: []string{
+					"01/04/2000 :) 05:38:10PM",
+					"01/04/2000 005:38:10PM",
+					"01/04/2000 5:38:10 PM",
+					"01/04/2000",
+				},
+			},
+		}
 
-		Convey("with Go's format", func() {
-			var p, _ = NewFieldParser(ctDateGo, "01/02/2006 3:04:05pm MST")
-			Convey("parses valid timestamps correctly", func() {
-				value, err = p.Parse("01/04/2000 5:38:10pm UTC")
-				So(
-					cast[time.Time](value),
-					ShouldResemble,
-					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
+		for _, tc := range formatCases {
+			t.Run(tc.name, func(t *testing.T) {
+				p, _ := NewFieldParser(tc.columnType, tc.format)
+
+				value, err := p.Parse(tc.validInput)
+				assert.Equal(
+					t,
+					tc.expected,
+					cast[time.Time](t, value),
+					"should parse %q",
+					tc.validInput,
 				)
-				So(err, ShouldBeNil)
+				assert.NoError(t, err, "should parse %q without error", tc.validInput)
+
+				for _, in := range tc.invalid {
+					_, err := p.Parse(in)
+					assert.Error(t, err, "should reject %q as a timestamp", in)
+				}
 			})
-			Convey("does not parse invalid dates", func() {
-				_, err = p.Parse("01/04/2000 5:38:10pm")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000 5:38:10 pm UTC")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000")
-				So(err, ShouldNotBeNil)
-			})
-		})
-		Convey("with MS's format", func() {
-			var p, _ = NewFieldParser(ctDateMS, "MM/dd/yyyy h:mm:sstt")
-			Convey("parses valid timestamps correctly", func() {
-				value, err = p.Parse("01/04/2000 5:38:10PM")
-				So(
-					cast[time.Time](value),
-					ShouldResemble,
-					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
-				)
-				So(err, ShouldBeNil)
-			})
-			Convey("does not parse invalid dates", func() {
-				_, err = p.Parse("01/04/2000 :) 05:38:10PM")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000 005:38:10PM")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000 5:38:10 PM")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000")
-				So(err, ShouldNotBeNil)
-			})
-		})
-		Convey("with Oracle's format", func() {
-			var p, _ = NewFieldParser(ctDateOracle, "mm/Dd/yYYy hh:MI:SsAm")
-			Convey("parses valid timestamps correctly", func() {
-				value, err = p.Parse("01/04/2000 05:38:10PM")
-				So(
-					cast[time.Time](value),
-					ShouldResemble,
-					time.Date(2000, 1, 4, 17, 38, 10, 0, time.UTC),
-				)
-				So(err, ShouldBeNil)
-			})
-			Convey("does not parse invalid dates", func() {
-				_, err = p.Parse("01/04/2000 :) 05:38:10PM")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000 005:38:10PM")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000 5:38:10 PM")
-				So(err, ShouldNotBeNil)
-				_, err = p.Parse("01/04/2000")
-				So(err, ShouldNotBeNil)
-			})
-		})
+		}
 	})
 
-	Convey("Using FieldDoubleParser", t, func() {
-		var p, _ = NewFieldParser(ctDouble, "")
-		var value any
-		var err error
+	t.Run("using fielddoubleparser", func(t *testing.T) {
+		p, _ := NewFieldParser(ctDouble, "")
 
-		Convey("parses valid decimal values correctly", func() {
-			value, err = p.Parse("3.14159265")
-			So(cast[float64](value), ShouldEqual, 3.14159265)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("0.123123")
-			So(cast[float64](value), ShouldEqual, 0.123123)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("-123456.789")
-			So(cast[float64](value), ShouldEqual, -123456.789)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("-1.")
-			So(cast[float64](value), ShouldEqual, -1.0)
-			So(err, ShouldBeNil)
-		})
-		Convey("does not parse invalid numbers", func() {
-			_, err = p.Parse("")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("1.1.1")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("1-2.0")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("80-")
-			So(err, ShouldNotBeNil)
-		})
+		validCases := []struct {
+			in       string
+			expected float64
+		}{
+			{"3.14159265", 3.14159265},
+			{"0.123123", 0.123123},
+			{"-123456.789", -123456.789},
+			{"-1.", -1.0},
+		}
+		for _, tc := range validCases {
+			value, err := p.Parse(tc.in)
+			assert.Equal(t, tc.expected, cast[float64](t, value), "should parse %q", tc.in)
+			assert.NoError(t, err, "should parse %q without error", tc.in)
+		}
+
+		invalidCases := []string{"", "1.1.1", "1-2.0", "80-"}
+		for _, in := range invalidCases {
+			_, err := p.Parse(in)
+			assert.Error(t, err, "should reject %q as a double", in)
+		}
 	})
 
-	Convey("Using FieldInt32Parser", t, func() {
-		var p, _ = NewFieldParser(ctInt32, "")
-		var value any
-		var err error
+	t.Run("using fieldint32parser", func(t *testing.T) {
+		p, _ := NewFieldParser(ctInt32, "")
 
-		Convey("parses valid integer values correctly", func() {
-			value, err = p.Parse("2147483647")
-			So(cast[int32](value), ShouldEqual, 2147483647)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("42")
-			So(cast[int32](value), ShouldEqual, 42)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("-2147483648")
-			So(cast[int32](value), ShouldEqual, -2147483648)
-		})
-		Convey("does not parse invalid numbers", func() {
-			_, err = p.Parse("")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("42.0")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("1-2")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("80-")
-			So(err, ShouldNotBeNil)
-			value, err = p.Parse("2147483648")
-			So(err, ShouldNotBeNil)
-			value, err = p.Parse("-2147483649")
-			So(err, ShouldNotBeNil)
-		})
-	})
-
-	Convey("Using FieldInt64Parser", t, func() {
-		var p, _ = NewFieldParser(ctInt64, "")
-		var value any
-		var err error
-
-		Convey("parses valid integer values correctly", func() {
-			value, err = p.Parse("2147483648")
-			So(cast[int64](value), ShouldEqual, int64(2147483648))
-			So(err, ShouldBeNil)
-			value, err = p.Parse("42")
-			So(cast[int64](value), ShouldEqual, 42)
-			So(err, ShouldBeNil)
-			value, err = p.Parse("-2147483649")
-			So(cast[int64](value), ShouldEqual, int64(-2147483649))
-		})
-		Convey("does not parse invalid numbers", func() {
-			_, err = p.Parse("")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("42.0")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("1-2")
-			So(err, ShouldNotBeNil)
-			_, err = p.Parse("80-")
-			So(err, ShouldNotBeNil)
-		})
-	})
-
-	Convey("Using FieldDecimalParser", t, func() {
-		var p, _ = NewFieldParser(ctDecimal, "")
-		var err error
-
-		Convey("parses valid decimal values correctly", func() {
-			for _, ts := range []string{"12235.2355", "42", "0", "-124", "-124.55"} {
-				testVal, err := bson.ParseDecimal128(ts)
-				So(err, ShouldBeNil)
-				parsedValue, err := p.Parse(ts)
-				So(err, ShouldBeNil)
-
-				So(testVal, ShouldResemble, cast[bson.Decimal128](parsedValue))
+		validCases := []struct {
+			in       string
+			expected int32
+			// the original test didn't check err on this boundary case
+			checkErr bool
+		}{
+			{"2147483647", 2147483647, true},
+			{"42", 42, true},
+			{"-2147483648", -2147483648, false},
+		}
+		for _, tc := range validCases {
+			value, err := p.Parse(tc.in)
+			assert.Equal(t, tc.expected, cast[int32](t, value), "should parse %q", tc.in)
+			if tc.checkErr {
+				assert.NoError(t, err, "should parse %q without error", tc.in)
 			}
-		})
-		Convey("does not parse invalid decimal values", func() {
-			for _, ts := range []string{"", "1-2", "abcd"} {
-				_, err = p.Parse(ts)
-				So(err, ShouldNotBeNil)
+		}
+
+		invalidCases := []string{"", "42.0", "1-2", "80-", "2147483648", "-2147483649"}
+		for _, in := range invalidCases {
+			_, err := p.Parse(in)
+			assert.Error(t, err, "should reject %q as an int32", in)
+		}
+	})
+
+	t.Run("using fieldint64parser", func(t *testing.T) {
+		p, _ := NewFieldParser(ctInt64, "")
+
+		validCases := []struct {
+			in       string
+			expected int64
+			// the original test didn't check err on this boundary case
+			checkErr bool
+		}{
+			{"2147483648", 2147483648, true},
+			{"42", 42, true},
+			{"-2147483649", -2147483649, false},
+		}
+		for _, tc := range validCases {
+			value, err := p.Parse(tc.in)
+			assert.Equal(t, tc.expected, cast[int64](t, value), "should parse %q", tc.in)
+			if tc.checkErr {
+				assert.NoError(t, err, "should parse %q without error", tc.in)
 			}
-		})
+		}
+
+		invalidCases := []string{"", "42.0", "1-2", "80-"}
+		for _, in := range invalidCases {
+			_, err := p.Parse(in)
+			assert.Error(t, err, "should reject %q as an int64", in)
+		}
 	})
 
-	Convey("Using FieldStringParser", t, func() {
-		var p, _ = NewFieldParser(ctString, "")
-		var value any
-		var err error
+	t.Run("using fielddecimalparser", func(t *testing.T) {
+		p, _ := NewFieldParser(ctDecimal, "")
 
-		Convey("parses strings as strings only", func() {
-			value, err = p.Parse("42")
-			So(cast[string](value), ShouldEqual, "42")
-			So(err, ShouldBeNil)
-			value, err = p.Parse("true")
-			So(cast[string](value), ShouldEqual, "true")
-			So(err, ShouldBeNil)
-			value, err = p.Parse("")
-			So(cast[string](value), ShouldEqual, "")
-			So(err, ShouldBeNil)
-		})
+		validCases := []string{"12235.2355", "42", "0", "-124", "-124.55"}
+		for _, in := range validCases {
+			want, err := bson.ParseDecimal128(in)
+			require.NoError(t, err, "should parse %q as a decimal literal", in)
+			value, err := p.Parse(in)
+			assert.NoError(t, err, "should parse %q without error", in)
+			assert.Equal(t, want, cast[bson.Decimal128](t, value), "should parse %q", in)
+		}
+
+		invalidCases := []string{"", "1-2", "abcd"}
+		for _, in := range invalidCases {
+			_, err := p.Parse(in)
+			assert.Error(t, err, "should reject %q as a decimal", in)
+		}
 	})
 
+	t.Run("using fieldstringparser", func(t *testing.T) {
+		p, _ := NewFieldParser(ctString, "")
+
+		cases := []struct {
+			in       string
+			expected string
+		}{
+			{"42", "42"},
+			{"true", "true"},
+			{"", ""},
+		}
+		for _, tc := range cases {
+			value, err := p.Parse(tc.in)
+			assert.Equal(t, tc.expected, cast[string](t, value), "should parse %q", tc.in)
+			assert.NoError(t, err, "should parse %q without error", tc.in)
+		}
+	})
+}
+
+// cast asserts that val holds a T and returns the unwrapped value; T is only
+// known to the caller, so the type-assertion check can't be folded into a
+// plain testify equality call the way the rest of this file's comparisons
+// are.
+func cast[T any](t *testing.T, val any) T {
+	t.Helper()
+
+	converted, ok := val.(T)
+	require.True(t, ok, "should decode as %T", converted)
+
+	return converted
 }
