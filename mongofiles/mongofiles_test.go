@@ -1178,23 +1178,25 @@ func TestDefaultWriteConcern(t *testing.T) {
 		t.Skip("Skipping non-SSL test with SSL configuration")
 	}
 
-	Convey("with a URI that doesn't specify write concern", t, func() {
+	t.Run("with a URI that doesn't specify write concern", func(t *testing.T) {
 		mf, err := getMongofilesWithArgs("get", "filename", "--uri", "mongodb://localhost:33333")
-		So(err, ShouldBeNil)
-		So(
-			mf.ToolOptions.WriteConcern,
-			ShouldResemble,
+		require.NoError(t, err, "should build mongofiles from a URI")
+		assert.Equal(
+			t,
 			writeconcern.Majority(),
+			mf.ToolOptions.WriteConcern,
+			"should default to majority write concern",
 		)
 	})
 
-	Convey("with no URI and no write concern option", t, func() {
+	t.Run("with no URI and no write concern option", func(t *testing.T) {
 		mf, err := getMongofilesWithArgs("get", "filename", "--port", "33333")
-		So(err, ShouldBeNil)
-		So(
-			mf.ToolOptions.WriteConcern,
-			ShouldResemble,
+		require.NoError(t, err, "should build mongofiles from a port")
+		assert.Equal(
+			t,
 			writeconcern.Majority(),
+			mf.ToolOptions.WriteConcern,
+			"should default to majority write concern",
 		)
 	})
 }
