@@ -717,21 +717,21 @@ func TestMongoDumpBSON(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	t.Run("dumps a particular collection to the default output directory", func(t *testing.T) {
-		setUpMongoDumpBSONSubtest(t)
+		setUpMongoDumpSubtest(t)
 		md := newMongoDumpForBSONSubtest(t, testCollectionNames[0])
 		require.NoError(t, md.Init(), "should initialize mongodump")
 		testDumpOneCollection(t, md, "dump")
 	})
 
 	t.Run("dumps a particular collection to a user-specified output directory", func(t *testing.T) {
-		setUpMongoDumpBSONSubtest(t)
+		setUpMongoDumpSubtest(t)
 		md := newMongoDumpForBSONSubtest(t, testCollectionNames[0])
 		require.NoError(t, md.Init(), "should initialize mongodump")
 		testDumpOneCollection(t, md, "dump_user")
 	})
 
 	t.Run("dumps a particular collection to standard output", func(t *testing.T) {
-		setUpMongoDumpBSONSubtest(t)
+		setUpMongoDumpSubtest(t)
 		md := newMongoDumpForBSONSubtest(t, testCollectionNames[0])
 		require.NoError(t, md.Init(), "should initialize mongodump")
 
@@ -754,7 +754,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	})
 
 	t.Run("dumps a collection with a slash in its name to the filesystem", func(t *testing.T) {
-		setUpMongoDumpBSONSubtest(t)
+		setUpMongoDumpSubtest(t)
 		md := newMongoDumpForBSONSubtest(t, testCollectionNames[2])
 		require.NoError(t, md.Init(), "should initialize mongodump")
 		testDumpOneCollection(t, md, "dump_slash")
@@ -763,7 +763,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	t.Run(
 		"initializes a collection with a slash in its name for archive output",
 		func(t *testing.T) {
-			setUpMongoDumpBSONSubtest(t)
+			setUpMongoDumpSubtest(t)
 			md := newMongoDumpForBSONSubtest(t, testCollectionNames[2])
 			md.OutputOptions.Archive = "dump_slash.archive"
 			require.NoError(t, md.Init(), "should initialize mongodump for archive output")
@@ -773,7 +773,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	t.Run(
 		"dumps an entire database that exists, producing bson files for every collection",
 		func(t *testing.T) {
-			setUpMongoDumpBSONSubtest(t)
+			setUpMongoDumpSubtest(t)
 			md := newMongoDumpForBSONSubtest(t, "")
 			require.NoError(t, md.Init(), "should initialize mongodump")
 
@@ -806,7 +806,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	t.Run(
 		"does not create a dump directory for a database that does not exist",
 		func(t *testing.T) {
-			setUpMongoDumpBSONSubtest(t)
+			setUpMongoDumpSubtest(t)
 			md := newMongoDumpForBSONSubtest(t, "")
 			require.NoError(t, md.Init(), "should initialize mongodump")
 
@@ -829,7 +829,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	)
 
 	t.Run("using --query for all the collections in the database", func(t *testing.T) {
-		setUpMongoDumpBSONSubtest(t)
+		setUpMongoDumpSubtest(t)
 		session, jsonQueryBytes := newMongoDumpQuerySubtestFixture(t)
 		md := newMongoDumpForBSONSubtest(t, "")
 
@@ -849,7 +849,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	})
 
 	t.Run("using --queryFile for all the collections in the database", func(t *testing.T) {
-		setUpMongoDumpBSONSubtest(t)
+		setUpMongoDumpSubtest(t)
 		session, jsonQueryBytes := newMongoDumpQuerySubtestFixture(t)
 		md := newMongoDumpForBSONSubtest(t, "")
 
@@ -875,7 +875,7 @@ func TestMongoDumpBSON(t *testing.T) {
 	})
 
 	t.Run("using mongodump against a collection that doesn't exist succeeds", func(t *testing.T) {
-		setUpMongoDumpBSONSubtest(t)
+		setUpMongoDumpSubtest(t)
 		md, err := simpleMongoDumpInstance()
 		require.NoError(t, err, "should build a mongodump instance")
 
@@ -884,18 +884,6 @@ func TestMongoDumpBSON(t *testing.T) {
 
 		require.NoError(t, md.Init(), "should initialize mongodump")
 		require.NoError(t, md.Dump(), "should succeed dumping a nonexistent collection")
-	})
-}
-
-// setUpMongoDumpBSONSubtest inserts fresh test data for one TestMongoDumpBSON
-// subtest and registers its teardown, matching the setUp/Reset pair GoConvey
-// ran around every leaf of the original nested test.
-func setUpMongoDumpBSONSubtest(t *testing.T) {
-	t.Helper()
-
-	require.NoError(t, setUpMongoDumpTestData(t), "should set up test data")
-	t.Cleanup(func() {
-		assert.NoError(t, tearDownMongoDumpTestDataInCleanup(), "should tear down test data")
 	})
 }
 
@@ -1041,7 +1029,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 	t.Run(
 		"writes prelude.json to the dump directory when dumping all databases",
 		func(t *testing.T) {
-			setUpPreludeMetadataSubtest(t)
+			setUpMongoDumpSubtest(t)
 			md, serverVersion := newMongoDumpForPreludeSubtest(t, "")
 
 			dumpDir := preludeSubtestDumpDir(t, "dump")
@@ -1052,7 +1040,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 	t.Run(
 		"writes prelude.json.gz to the dump directory when dumping all databases with --gzip",
 		func(t *testing.T) {
-			setUpPreludeMetadataSubtest(t)
+			setUpMongoDumpSubtest(t)
 			md, serverVersion := newMongoDumpForPreludeSubtest(t, "")
 			md.OutputOptions.Gzip = true
 
@@ -1064,7 +1052,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 	t.Run(
 		"writes prelude.json to a user-specified output directory when dumping all databases",
 		func(t *testing.T) {
-			setUpPreludeMetadataSubtest(t)
+			setUpMongoDumpSubtest(t)
 			md, serverVersion := newMongoDumpForPreludeSubtest(t, "")
 			md.OutputOptions.Out = "dump_output"
 
@@ -1074,7 +1062,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 	)
 
 	t.Run("writes prelude.json to the dump directory when dumping one db", func(t *testing.T) {
-		setUpPreludeMetadataSubtest(t)
+		setUpMongoDumpSubtest(t)
 		md, serverVersion := newMongoDumpForPreludeSubtest(t, testDB)
 
 		dumpDir := preludeSubtestDumpDir(t, "dump")
@@ -1085,7 +1073,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 	t.Run(
 		"does not fail and does not create prelude.json when the dump directory is not created",
 		func(t *testing.T) {
-			setUpPreludeMetadataSubtest(t)
+			setUpMongoDumpSubtest(t)
 			md, _ := newMongoDumpForPreludeSubtest(t, "nonExistentDB")
 
 			path, err := os.Getwd()
@@ -1115,9 +1103,10 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 	)
 }
 
-// setUpPreludeMetadataSubtest inserts fresh test data for one
-// TestDumpPreludeMetadataJson subtest and registers its teardown.
-func setUpPreludeMetadataSubtest(t *testing.T) {
+// setUpMongoDumpSubtest inserts fresh test data for one subtest and registers
+// its teardown. Each subtest needs its own data because the dump tests mutate
+// and drop collections as they run.
+func setUpMongoDumpSubtest(t *testing.T) {
 	t.Helper()
 
 	require.NoError(t, setUpMongoDumpTestData(t), "should set up test data")
