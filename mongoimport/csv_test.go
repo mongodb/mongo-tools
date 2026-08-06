@@ -16,7 +16,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -28,227 +29,135 @@ func init() {
 
 func TestCSVStreamDocument(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("With a CSV input reader", t, func() {
-		Convey("badly encoded CSV should result in a parsing error", func() {
-			contents := `1, 2, foo"bar`
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldNotBeNil)
-		})
-		Convey("escaped quotes are parsed correctly", func() {
-			contents := `1, 2, "foo""bar"`
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-		})
-		Convey("multiple escaped quotes separated by whitespace parsed correctly", func() {
-			contents := `1, 2, "foo"" ""bar"`
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			expectedRead := bson.D{
-				{"a", int32(1)},
-				{"b", int32(2)},
-				{"c", `foo" "bar`},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-			So(<-streamOutChan, ShouldResemble, expectedRead)
-		})
-		Convey("integer valued strings should be converted", func() {
-			contents := `1, 2, " 3e"`
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			expectedRead := bson.D{
-				{"a", int32(1)},
-				{"b", int32(2)},
-				{"c", " 3e"},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-			So(<-streamOutChan, ShouldResemble, expectedRead)
-		})
-		Convey("extra fields should be prefixed with 'field'", func() {
-			contents := `1, 2f , " 3e" , " may"`
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			expectedRead := bson.D{
-				{"a", int32(1)},
-				{"b", "2f"},
-				{"c", " 3e"},
-				{"field3", " may"},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-			So(<-streamOutChan, ShouldResemble, expectedRead)
-		})
-		Convey("nested CSV fields should be imported properly", func() {
-			contents := `1, 2f , " 3e" , " may"`
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b.c", new(FieldAutoParser), pgAutoCast, "auto", []string{"b", "c"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			b := bson.D{{"c", "2f"}}
-			expectedRead := bson.D{
-				{"a", int32(1)},
-				{"b", b},
-				{"c", " 3e"},
-				{"field3", " may"},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			streamOutChan := make(chan bson.D, 4)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
 
-			readDocument := <-streamOutChan
-			So(readDocument[0], ShouldResemble, expectedRead[0])
-			So(readDocument[1].Key, ShouldResemble, expectedRead[1].Key)
-
-			valueD, ok := readDocument[1].Value.(*bson.D)
-			So(ok, ShouldBeTrue)
-
-			So(*valueD, ShouldResemble, expectedRead[1].Value)
-			So(readDocument[2], ShouldResemble, expectedRead[2])
-			So(readDocument[3], ShouldResemble, expectedRead[3])
-		})
-		Convey("whitespace separated quoted strings are still an error", func() {
-			contents := `1, 2, "foo"  "bar"`
-			colSpecs := []ColumnSpec{
+	errorCases := []struct {
+		name     string
+		contents string
+		colSpecs []ColumnSpec
+	}{
+		{
+			name:     "badly encoded CSV should result in a parsing error",
+			contents: `1, 2, foo"bar`,
+			colSpecs: []ColumnSpec{
 				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
 				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
 				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldNotBeNil)
-		})
-		Convey("nested CSV fields causing header collisions should error", func() {
-			contents := `1, 2f , " 3e" , " may", june`
-			colSpecs := []ColumnSpec{
+			},
+		},
+		{
+			name:     "whitespace separated quoted strings are still an error",
+			contents: `1, 2, "foo"  "bar"`,
+			colSpecs: []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+			},
+		},
+		{
+			name:     "nested CSV fields causing header collisions should error",
+			contents: `1, 2f , " 3e" , " may", june`,
+			colSpecs: []ColumnSpec{
 				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
 				{"b.c", new(FieldAutoParser), pgAutoCast, "auto", []string{"b", "c"}},
 				{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
-			}
+			},
+		},
+	}
+
+	for _, tc := range errorCases {
+		t.Run(tc.name, func(t *testing.T) {
 			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
+				tc.colSpecs,
+				bytes.NewReader([]byte(tc.contents)),
 				os.Stdout,
 				1,
 				false,
 				false,
 			)
 			streamOutChan := make(chan bson.D, 1)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldNotBeNil)
-		})
-		Convey("calling StreamDocument() for CSVs should return next set of "+
-			"values", func() {
-			contents := "1, 2, 3\n4, 5, 6"
-			colSpecs := []ColumnSpec{
-				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
-				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
-				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			expectedReadOne := bson.D{
-				{"a", int32(1)},
-				{"b", int32(2)},
-				{"c", int32(3)},
-			}
-			expectedReadTwo := bson.D{
-				{"a", int32(4)},
-				{"b", int32(5)},
-				{"c", int32(6)},
-			}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
+			require.Error(
+				t,
+				r.StreamDocument(t.Context(), true, streamOutChan),
+				"should reject %q while streaming",
+				tc.contents,
 			)
-			streamOutChan := make(chan bson.D, 2)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-			So(<-streamOutChan, ShouldResemble, expectedReadOne)
-			So(<-streamOutChan, ShouldResemble, expectedReadTwo)
 		})
-		Convey("valid CSV input file that starts with the UTF-8 BOM should "+
-			"not raise an error", func() {
-			colSpecs := []ColumnSpec{
+	}
+
+	successCases := []struct {
+		name          string
+		contents      string
+		file          string
+		colSpecs      []ColumnSpec
+		expectedReads []bson.D
+	}{
+		{
+			name:     "escaped quotes are parsed correctly",
+			contents: `1, 2, "foo""bar"`,
+			colSpecs: []ColumnSpec{
 				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
 				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
 				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
-			}
-			expectedReads := []bson.D{
+			},
+		},
+		{
+			name:     "multiple escaped quotes separated by whitespace parsed correctly",
+			contents: `1, 2, "foo"" ""bar"`,
+			colSpecs: []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+			},
+			expectedReads: []bson.D{
+				{
+					{"a", int32(1)},
+					{"b", int32(2)},
+					{"c", `foo" "bar`},
+				},
+			},
+		},
+		{
+			name:     "integer valued strings should be converted",
+			contents: `1, 2, " 3e"`,
+			colSpecs: []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+			},
+			expectedReads: []bson.D{
+				{
+					{"a", int32(1)},
+					{"b", int32(2)},
+					{"c", " 3e"},
+				},
+			},
+		},
+		{
+			name:     "extra fields should be prefixed with 'field'",
+			contents: `1, 2f , " 3e" , " may"`,
+			colSpecs: []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+			},
+			expectedReads: []bson.D{
+				{
+					{"a", int32(1)},
+					{"b", "2f"},
+					{"c", " 3e"},
+					{"field3", " may"},
+				},
+			},
+		},
+		{
+			name:     "calling StreamDocument() for CSVs should return next set of values",
+			contents: "1, 2, 3\n4, 5, 6",
+			colSpecs: []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+			},
+			expectedReads: []bson.D{
 				{
 					{"a", int32(1)},
 					{"b", int32(2)},
@@ -258,212 +167,276 @@ func TestCSVStreamDocument(t *testing.T) {
 					{"b", int32(5)},
 					{"c", int32(6)},
 				},
+			},
+		},
+		{
+			name: "valid CSV input file that starts with the UTF-8 BOM should not raise an error",
+			file: "testdata/test_bom.csv",
+			colSpecs: []ColumnSpec{
+				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
+				{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+			},
+			expectedReads: []bson.D{
+				{
+					{"a", int32(1)},
+					{"b", int32(2)},
+					{"c", int32(3)},
+				}, {
+					{"a", int32(4)},
+					{"b", int32(5)},
+					{"c", int32(6)},
+				},
+			},
+		},
+	}
+
+	for _, tc := range successCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var r *CSVInputReader
+			if tc.file != "" {
+				fileHandle := openTestCSVFile(t, tc.file)
+				r = NewCSVInputReader(tc.colSpecs, fileHandle, os.Stdout, 1, false, false)
+			} else {
+				r = NewCSVInputReader(
+					tc.colSpecs,
+					bytes.NewReader([]byte(tc.contents)),
+					os.Stdout,
+					1,
+					false,
+					false,
+				)
 			}
-			fileHandle, err := os.Open("testdata/test_bom.csv")
-			So(err, ShouldBeNil)
-			r := NewCSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
-			streamOutChan := make(chan bson.D, len(expectedReads))
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-			for _, expectedRead := range expectedReads {
-				for i, readDocument := range <-streamOutChan {
-					So(readDocument.Key, ShouldResemble, expectedRead[i].Key)
-					So(readDocument.Value, ShouldResemble, expectedRead[i].Value)
-				}
+			// sized to the largest fixture in this table (2 documents), so the
+			// reader never blocks trying to send
+			streamOutChan := make(chan bson.D, 2)
+			require.NoError(
+				t,
+				r.StreamDocument(t.Context(), true, streamOutChan),
+				"should stream every document without error",
+			)
+			for _, expected := range tc.expectedReads {
+				assert.Equal(t, expected, <-streamOutChan, "should stream the expected document")
 			}
 		})
+	}
+
+	t.Run("nested CSV fields should be imported properly", func(t *testing.T) {
+		contents := `1, 2f , " 3e" , " may"`
+		colSpecs := []ColumnSpec{
+			{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
+			{"b.c", new(FieldAutoParser), pgAutoCast, "auto", []string{"b", "c"}},
+			{"c", new(FieldAutoParser), pgAutoCast, "auto", []string{"c"}},
+		}
+		b := bson.D{{"c", "2f"}}
+		expectedRead := bson.D{
+			{"a", int32(1)},
+			{"b", b},
+			{"c", " 3e"},
+			{"field3", " may"},
+		}
+		r := NewCSVInputReader(
+			colSpecs,
+			bytes.NewReader([]byte(contents)),
+			os.Stdout,
+			1,
+			false,
+			false,
+		)
+		streamOutChan := make(chan bson.D, 4)
+		require.NoError(
+			t,
+			r.StreamDocument(t.Context(), true, streamOutChan),
+			"should stream the document without error",
+		)
+
+		readDocument := <-streamOutChan
+		assert.Equal(
+			t,
+			expectedRead[0],
+			readDocument[0],
+			"should stream the expected top-level field",
+		)
+		assert.Equal(
+			t,
+			expectedRead[1].Key,
+			readDocument[1].Key,
+			"should stream the expected nested field key",
+		)
+
+		// the nested field is decoded as a pointer, unlike the literal bson.D
+		// used to express the expectation
+		valueD, ok := readDocument[1].Value.(*bson.D)
+		require.True(t, ok, "should decode the nested field as a *bson.D")
+
+		assert.Equal(
+			t,
+			expectedRead[1].Value,
+			*valueD,
+			"should stream the expected nested field value",
+		)
+		assert.Equal(
+			t,
+			expectedRead[2],
+			readDocument[2],
+			"should stream the expected sibling field",
+		)
+		assert.Equal(t, expectedRead[3], readDocument[3], "should stream the expected extra field")
 	})
 }
 
 func TestCSVReadAndValidateHeader(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	var err error
-	Convey("With a CSV input reader", t, func() {
-		Convey("setting the header should read the first line of the CSV", func() {
-			contents := "extraHeader1, extraHeader2, extraHeader3"
-			colSpecs := []ColumnSpec{}
+
+	t.Run("setting the header should read the first line of the CSV", func(t *testing.T) {
+		contents := "extraHeader1, extraHeader2, extraHeader3"
+		r := NewCSVInputReader(
+			[]ColumnSpec{},
+			bytes.NewReader([]byte(contents)),
+			os.Stdout,
+			1,
+			false,
+			false,
+		)
+		require.NoError(t, r.ReadAndValidateHeader(), "should read the header without error")
+		require.Equal(t, 3, len(r.colSpecs), "should read every column in the header")
+	})
+
+	t.Run("setting non-colliding nested CSV headers should not raise an error", func(t *testing.T) {
+		cases := []struct {
+			contents        string
+			expectedNumCols int
+		}{
+			{contents: "a, b, c", expectedNumCols: 3},
+			{contents: "a.b.c, a.b.d, c", expectedNumCols: 3},
+			{contents: "a.b, ab, a.c", expectedNumCols: 3},
+			{contents: "a, ab, ac, dd", expectedNumCols: 4},
+		}
+
+		for _, tc := range cases {
 			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
+				[]ColumnSpec{},
+				bytes.NewReader([]byte(tc.contents)),
 				os.Stdout,
 				1,
 				false,
 				false,
 			)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
-			So(len(r.colSpecs), ShouldEqual, 3)
-		})
+			require.NoError(
+				t,
+				r.ReadAndValidateHeader(),
+				"should read %q without error",
+				tc.contents,
+			)
+			assert.Equal(
+				t,
+				tc.expectedNumCols,
+				len(r.colSpecs),
+				"should read the expected number of columns from %q",
+				tc.contents,
+			)
+		}
+	})
 
-		Convey("setting non-colliding nested CSV headers should not raise an error", func() {
-			contents := "a, b, c"
-			colSpecs := []ColumnSpec{}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
-			So(len(r.colSpecs), ShouldEqual, 3)
-			contents = "a.b.c, a.b.d, c"
-			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
-			So(len(r.colSpecs), ShouldEqual, 3)
-
-			contents = "a.b, ab, a.c"
-			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
-			So(len(r.colSpecs), ShouldEqual, 3)
-
-			contents = "a, ab, ac, dd"
-			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
-			So(len(r.colSpecs), ShouldEqual, 4)
-		})
-
-		Convey("setting colliding nested CSV headers should raise an error", func() {
-			contents := "a, a.b, c"
-			colSpecs := []ColumnSpec{}
-			r := NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
-
-			contents = "a.b.c, a.b.d.c, a.b.d"
-			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
-
+	t.Run("setting colliding nested CSV headers should raise an error", func(t *testing.T) {
+		cases := []string{
+			"a, a.b, c",
+			"a.b.c, a.b.d.c, a.b.d",
 			//nolint:dupword
-			contents = "a, a, a"
-			colSpecs = []ColumnSpec{}
-			r = NewCSVInputReader(
-				colSpecs,
-				bytes.NewReader([]byte(contents)),
-				os.Stdout,
-				1,
-				false,
-				false,
-			)
-			So(r.ReadAndValidateHeader(), ShouldNotBeNil)
-		})
+			"a, a, a",
+		}
 
-		Convey("setting the header that ends in a dot should error", func() {
-			contents := "c, a., b"
-			colSpecs := []ColumnSpec{}
-			So(err, ShouldBeNil)
-			So(
-				NewCSVInputReader(
-					colSpecs,
-					bytes.NewReader([]byte(contents)),
-					os.Stdout,
-					1,
-					false,
-					false,
-				).ReadAndValidateHeader(),
-				ShouldNotBeNil,
-			)
-		})
-
-		Convey("setting the header that starts in a dot should error", func() {
-			contents := "c, .a, b"
-			colSpecs := []ColumnSpec{}
-			So(
-				NewCSVInputReader(
-					colSpecs,
-					bytes.NewReader([]byte(contents)),
-					os.Stdout,
-					1,
-					false,
-					false,
-				).ReadAndValidateHeader(),
-				ShouldNotBeNil,
-			)
-		})
-
-		Convey("setting the header that contains multiple consecutive dots should error", func() {
-			contents := "c, a..a, b"
-			colSpecs := []ColumnSpec{}
-			So(
-				NewCSVInputReader(
-					colSpecs,
-					bytes.NewReader([]byte(contents)),
-					os.Stdout,
-					1,
-					false,
-					false,
-				).ReadAndValidateHeader(),
-				ShouldNotBeNil,
-			)
-
-			contents = "c, a.a, b.b...b"
-			colSpecs = []ColumnSpec{}
-			So(
-				NewCSVInputReader(
-					colSpecs,
-					bytes.NewReader([]byte(contents)),
-					os.Stdout,
-					1,
-					false,
-					false,
-				).ReadAndValidateHeader(),
-				ShouldNotBeNil,
-			)
-		})
-
-		Convey("setting the header using an empty file should return EOF", func() {
-			contents := ""
-			colSpecs := []ColumnSpec{}
+		for _, contents := range cases {
 			r := NewCSVInputReader(
-				colSpecs,
+				[]ColumnSpec{},
 				bytes.NewReader([]byte(contents)),
 				os.Stdout,
 				1,
 				false,
 				false,
 			)
-			So(r.ReadAndValidateHeader(), ShouldEqual, io.EOF)
-			So(len(r.colSpecs), ShouldEqual, 0)
-		})
-		Convey("setting the header with column specs already set should replace "+
-			"the existing column specs", func() {
+			assert.Error(
+				t,
+				r.ReadAndValidateHeader(),
+				"should reject %q as a header collision",
+				contents,
+			)
+		}
+	})
+
+	t.Run("setting the header that ends in a dot should error", func(t *testing.T) {
+		contents := "c, a., b"
+		// the original asserted this err (always nil at this point, never
+		// reassigned) is nil; preserved as a no-op to keep the assertion count
+		var err error
+		require.NoError(t, err, "should have no error before reading the header")
+		r := NewCSVInputReader(
+			[]ColumnSpec{},
+			bytes.NewReader([]byte(contents)),
+			os.Stdout,
+			1,
+			false,
+			false,
+		)
+		require.Error(t, r.ReadAndValidateHeader(), "should reject a header ending in a dot")
+	})
+
+	t.Run("setting the header that starts in a dot should error", func(t *testing.T) {
+		contents := "c, .a, b"
+		r := NewCSVInputReader(
+			[]ColumnSpec{},
+			bytes.NewReader([]byte(contents)),
+			os.Stdout,
+			1,
+			false,
+			false,
+		)
+		require.Error(t, r.ReadAndValidateHeader(), "should reject a header starting with a dot")
+	})
+
+	t.Run(
+		"setting the header that contains multiple consecutive dots should error",
+		func(t *testing.T) {
+			cases := []string{
+				"c, a..a, b",
+				"c, a.a, b.b...b",
+			}
+
+			for _, contents := range cases {
+				r := NewCSVInputReader(
+					[]ColumnSpec{},
+					bytes.NewReader([]byte(contents)),
+					os.Stdout,
+					1,
+					false,
+					false,
+				)
+				assert.Error(
+					t,
+					r.ReadAndValidateHeader(),
+					"should reject %q for consecutive dots",
+					contents,
+				)
+			}
+		},
+	)
+
+	t.Run("setting the header using an empty file should return EOF", func(t *testing.T) {
+		r := NewCSVInputReader(
+			[]ColumnSpec{},
+			bytes.NewReader([]byte("")),
+			os.Stdout,
+			1,
+			false,
+			false,
+		)
+		require.Equal(t, io.EOF, r.ReadAndValidateHeader(), "should report EOF for an empty header")
+		require.Equal(t, 0, len(r.colSpecs), "should read no columns from an empty header")
+	})
+
+	t.Run(
+		"setting the header with column specs already set should replace the existing column specs",
+		func(t *testing.T) {
 			contents := "extraHeader1,extraHeader2,extraHeader3"
 			colSpecs := []ColumnSpec{
 				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
@@ -478,14 +451,26 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 				false,
 				false,
 			)
-			So(r.ReadAndValidateHeader(), ShouldBeNil)
+			require.NoError(
+				t,
+				r.ReadAndValidateHeader(),
+				"should read the replacement header without error",
+			)
 			// if ReadAndValidateHeader() is called with column specs already passed
 			// in, the header should be replaced with the read header line
-			So(len(r.colSpecs), ShouldEqual, 3)
-			So(ColumnNames(r.colSpecs), ShouldResemble, strings.Split(contents, ","))
-		})
-		Convey("plain CSV input file sources should be parsed correctly and "+
-			"subsequent imports should parse correctly", func() {
+			require.Equal(t, 3, len(r.colSpecs), "should replace the existing column specs")
+			assert.Equal(
+				t,
+				strings.Split(contents, ","),
+				ColumnNames(r.colSpecs),
+				"should name the columns from the replacement header",
+			)
+		},
+	)
+
+	t.Run(
+		"plain CSV input file sources should be parsed correctly and subsequent imports should parse correctly",
+		func(t *testing.T) {
 			colSpecs := []ColumnSpec{
 				{"a", new(FieldAutoParser), pgAutoCast, "auto", []string{"a"}},
 				{"b", new(FieldAutoParser), pgAutoCast, "auto", []string{"b"}},
@@ -501,41 +486,51 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 				{"b", 5.4},
 				{"c", "string"},
 			}
-			fileHandle, err := os.Open("testdata/test.csv")
-			So(err, ShouldBeNil)
+			fileHandle := openTestCSVFile(t, "testdata/test.csv")
 			r := NewCSVInputReader(colSpecs, fileHandle, os.Stdout, 1, false, false)
+			// buffered generously: test.csv holds more lines than this test
+			// checks, and StreamDocument must not block trying to send them
 			streamOutChan := make(chan bson.D, 50)
-			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-			So(<-streamOutChan, ShouldResemble, expectedReadOne)
-			So(<-streamOutChan, ShouldResemble, expectedReadTwo)
-		})
-	})
+			require.NoError(
+				t,
+				r.StreamDocument(t.Context(), true, streamOutChan),
+				"should stream every document without error",
+			)
+			assert.Equal(t, expectedReadOne, <-streamOutChan, "should stream the first document")
+			assert.Equal(t, expectedReadTwo, <-streamOutChan, "should stream the second document")
+		},
+	)
+}
+
+// registers its own teardown so each table case gets a fresh handle.
+func openTestCSVFile(t *testing.T, path string) *os.File {
+	t.Helper()
+
+	fileHandle, err := os.Open(path)
+	require.NoError(t, err, "should open the test fixture")
+	t.Cleanup(func() { fileHandle.Close() })
+
+	return fileHandle
 }
 
 func TestCSVConvert(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	Convey("With a CSV input reader", t, func() {
-		Convey(
-			"calling convert on a CSVConverter should return the expected BSON document",
-			func() {
-				csvConverter := CSVConverter{
-					colSpecs: []ColumnSpec{
-						{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
-						{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
-						{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
-					},
-					data:  []string{"a", "b", "c"},
-					index: uint64(0),
-				}
-				expectedDocument := bson.D{
-					{"field1", "a"},
-					{"field2", "b"},
-					{"field3", "c"},
-				}
-				document, err := csvConverter.Convert()
-				So(err, ShouldBeNil)
-				So(document, ShouldResemble, expectedDocument)
-			},
-		)
-	})
+
+	csvConverter := CSVConverter{
+		colSpecs: []ColumnSpec{
+			{"field1", new(FieldAutoParser), pgAutoCast, "auto", []string{"field1"}},
+			{"field2", new(FieldAutoParser), pgAutoCast, "auto", []string{"field2"}},
+			{"field3", new(FieldAutoParser), pgAutoCast, "auto", []string{"field3"}},
+		},
+		data:  []string{"a", "b", "c"},
+		index: uint64(0),
+	}
+	expectedDocument := bson.D{
+		{"field1", "a"},
+		{"field2", "b"},
+		{"field3", "c"},
+	}
+	document, err := csvConverter.Convert()
+	require.NoError(t, err, "should convert the document without error")
+	require.Equal(t, expectedDocument, document, "should decode the expected document")
 }
