@@ -274,26 +274,15 @@ github.com/deckarep/golang-set/v2
 github.com/golang-jwt/jwt/v5
 # github.com/google/go-cmp v0.7.0
 ## explicit; go 1.21
-github.com/google/go-cmp/cmp
-github.com/google/go-cmp/cmp/internal/diff
-github.com/google/go-cmp/cmp/internal/flags
-github.com/google/go-cmp/cmp/internal/function
-github.com/google/go-cmp/cmp/internal/value
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
-# github.com/gopherjs/gopherjs v1.21.0
-## explicit; go 1.21
-github.com/gopherjs/gopherjs/js
 # github.com/jessevdk/go-flags v1.6.1
 ## explicit; go 1.20
 github.com/jessevdk/go-flags
 # github.com/jmespath/go-jmespath v0.4.0
 ## explicit; go 1.14
 github.com/jmespath/go-jmespath
-# github.com/jtolds/gls v4.20.0+incompatible
-## explicit
-github.com/jtolds/gls
 # github.com/klauspost/compress v1.18.6
 ## explicit; go 1.24
 github.com/klauspost/compress
@@ -348,17 +337,6 @@ github.com/samber/lo/internal/constraints
 github.com/samber/lo/internal/xrand
 github.com/samber/lo/internal/xtime
 github.com/samber/lo/mutable
-# github.com/smarty/assertions v1.16.0
-## explicit; go 1.21
-github.com/smarty/assertions
-github.com/smarty/assertions/internal/go-diff/diffmatchpatch
-github.com/smarty/assertions/internal/go-render/render
-github.com/smarty/assertions/internal/oglematchers
-# github.com/smartystreets/goconvey v1.8.1
-## explicit; go 1.18
-github.com/smartystreets/goconvey/convey
-github.com/smartystreets/goconvey/convey/gotest
-github.com/smartystreets/goconvey/convey/reporting
 # github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
