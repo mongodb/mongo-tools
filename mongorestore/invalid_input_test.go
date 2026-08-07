@@ -59,6 +59,9 @@ func TestRestoreInvalidInput(t *testing.T) {
 	t.Run("blank db directory succeeds", testRestoreBlankDBDirectory)
 	t.Run("objcheck succeeds on valid bson", testRestoreObjcheckValidBSON)
 	t.Run("oplogReplay with no oplog file errors", testRestoreOplogReplayNoOplogFile)
+	t.Run("stdin without a collection is rejected", testRestoreStdinWithoutCollection)
+	t.Run("stdin without a db is rejected", testRestoreStdinWithoutDB)
+	t.Run("stdin with both a db and a collection is accepted", testRestoreStdinWithDBAndCollection)
 }
 
 // --noobjcheck was removed when the tools were rewritten in Go, so passing it
@@ -317,6 +320,45 @@ func testRestoreOplogReplayNoOplogFile(t *testing.T) {
 	require.ErrorContains(
 		t, result.Err, "no oplog file to replay",
 		"--oplogReplay against a dump with no oplog.bson errors",
+	)
+}
+
+// A restore target of "-" reads the dump from stdin, which carries no namespace
+// of its own, so both halves of the destination namespace have to be given
+// explicitly.
+func testRestoreStdinWithoutCollection(t *testing.T) {
+	restore, err := getRestoreWithArgs(DBOption, "test", DirectoryOption, "-")
+	require.NoError(t, err, "building the restore instance")
+	defer restore.Close()
+	require.ErrorContains(
+		t, restore.ParseAndValidateOptions(),
+		"cannot restore from stdin without a specified collection",
+		"restoring from stdin with only --db is rejected",
+	)
+}
+
+func testRestoreStdinWithoutDB(t *testing.T) {
+	restore, err := getRestoreWithArgs(CollectionOption, "coll", DirectoryOption, "-")
+	require.NoError(t, err, "building the restore instance")
+	defer restore.Close()
+	require.ErrorContains(
+		t, restore.ParseAndValidateOptions(),
+		"cannot restore a collection without a specified database",
+		"restoring from stdin with only --collection is rejected",
+	)
+}
+
+func testRestoreStdinWithDBAndCollection(t *testing.T) {
+	restore, err := getRestoreWithArgs(
+		DBOption, "test",
+		CollectionOption, "coll",
+		DirectoryOption, "-",
+	)
+	require.NoError(t, err, "building the restore instance")
+	defer restore.Close()
+	require.NoError(
+		t, restore.ParseAndValidateOptions(),
+		"restoring from stdin with both --db and --collection passes validation",
 	)
 }
 

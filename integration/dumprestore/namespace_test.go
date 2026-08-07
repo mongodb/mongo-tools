@@ -604,7 +604,14 @@ func namespaceSourceDocCount() int {
 func (s *DumpRestoreSuite) namespacedDocs(ns string) []bson.D {
 	docs := make([]bson.D, namespaceDocCount)
 	for i := range docs {
-		docs[i] = bson.D{{"_id", fmt.Sprintf("%d_%s", i, ns)}}
+		docs[i] = bson.D{{"_id", namespacedID(i, ns)}}
 	}
 	return docs
+}
+
+// namespacedID builds the _id of a source document. Encoding the source
+// namespace into the _id is what lets a restore that sends data to the wrong
+// namespace be detected by content rather than only by document counts.
+func namespacedID(i int, sourceNS string) string {
+	return fmt.Sprintf("%d_%s", i, sourceNS)
 }
