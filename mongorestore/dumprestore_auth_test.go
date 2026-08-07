@@ -944,7 +944,7 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 	t.Cleanup(cleanup)
 
 	ctx := context.Background()
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		_, err = barColl.InsertOne(ctx, bson.D{{Key: "x", Value: i}})
 		require.NoError(t, err)
 		_, err = bazColl.InsertOne(ctx, bson.D{{Key: "x", Value: i}})
