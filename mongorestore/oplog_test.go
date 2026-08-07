@@ -1045,6 +1045,96 @@ func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
 	}
 }
 
+// TestOplogRestoreDropIdent verifies that a dropIdent entry (the replicated second phase of a
+// table drop, see SERVER-118737) is skipped during oplog replay rather than aborting it or being
+// forwarded to the target, whether it appears on its own or nested inside an applyOps.
+func TestOplogRestoreDropIdent(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	require.NoError(t, err, "should be able to get a session")
+	//nolint:errcheck
+	defer session.Disconnect(ctx)
+
+	dropIdentCmd := bson.D{{"dropIdent", "collection-7--4104909142373009110"}}
+
+	testCases := []struct {
+		name  string
+		entry bson.D
+	}{
+		{"standalone", dropIdentCmd},
+		{"nested in applyOps", bson.D{{"applyOps", []bson.D{
+			{
+				{"op", "c"},
+				{"ns", "admin.$cmd"},
+				{"o", dropIdentCmd},
+			},
+		}}}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+			t.Cleanup(func() { _ = session.Database("mongodump_test_db").Drop(t.Context()) })
+			require.NoError(
+				t,
+				session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"),
+			)
+
+			oplogFile := writeOplogFile(t, []db.Oplog{
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 1},
+					Version:   2,
+					Operation: "i",
+					Namespace: "mongodump_test_db.coll1",
+					Object:    bson.D{{"_id", 1}, {"a", 1}},
+				},
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 2},
+					Version:   2,
+					Operation: "c",
+					Namespace: "admin.$cmd",
+					Object:    tc.entry,
+				},
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 3},
+					Version:   2,
+					Operation: "i",
+					Namespace: "mongodump_test_db.coll1",
+					Object:    bson.D{{"_id", 2}, {"a", 2}},
+				},
+			})
+
+			args := []string{
+				DirectoryOption, "testdata/coll_without_index",
+				OplogReplayOption,
+				DropOption,
+				OplogFileOption, oplogFile,
+			}
+
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
+			defer restore.Close()
+
+			result := restore.Restore()
+			require.NoError(t, result.Err, "restore should skip the dropIdent entry")
+
+			count, err := session.Database("mongodump_test_db").
+				Collection("coll1").
+				CountDocuments(ctx, bson.D{{"_id", bson.D{{"$in", []int{1, 2}}}}})
+			require.NoError(t, err)
+			require.EqualValues(
+				t,
+				2,
+				count,
+				"ops on both sides of the dropIdent entry were applied",
+			)
+		})
+	}
+}
+
 // writeOplogFile writes the given oplog entries to a BSON file usable with --oplogFile and
 // returns its path.
 func writeOplogFile(t *testing.T, ops []db.Oplog) string {
