@@ -586,6 +586,9 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 	session, err := testutil.GetBareSession()
 	s.Require().NoError(err, "no server available")
 
+	s.Run("with a nonempty temp users collection", s.testRestoreUsersWithNonemptyTempColl)
+	s.Run("with custom temp collection names", s.testRestoreUsersWithCustomTempColls)
+
 	s.Run("drops tempusers and temproles", func() {
 		restore, err := getRestoreWithArgs(
 			mongorestore.NumParallelCollectionsOption, "1",
@@ -662,6 +665,128 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 			})
 		})
 	})
+}
+
+const usersDumpDir = "../../mongorestore/testdata/usersdump"
+
+// The user and role the usersdump fixture restores.
+const (
+	fixtureUserName = "reportsUser"
+	fixtureRoleName = "manageOpRole"
+)
+
+// testRestoreUsersWithNonemptyTempColl leaves a document behind in the temp
+// users collection before restoring. mongorestore stages users there before
+// merging them, so leftovers from an interrupted earlier run must not derail
+// the restore or survive it.
+func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl() {
+	adminDB := s.client().Database("admin")
+	s.dropFixtureUsersAndRoles(adminDB)
+
+	_, err := adminDB.Collection("tempusers").
+		InsertOne(s.Context(), bson.D{{"_id", "corruption"}})
+	s.Require().NoError(err, "can leave a document in the temp users collection")
+
+	s.restoreUsersDump()
+
+	s.assertTempCollectionsGone(adminDB, "tempusers", "temproles")
+	s.assertFixtureUserAndRoleExist(adminDB)
+}
+
+// testRestoreUsersWithCustomTempColls checks that --tempUsersColl and
+// --tempRolesColl stage users and roles in the named collections, which are
+// cleaned up like the default ones. Nothing else covers those two options.
+func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls() {
+	const (
+		tempUsersColl = "tempU"
+		tempRolesColl = "tempR"
+	)
+
+	adminDB := s.client().Database("admin")
+	s.dropFixtureUsersAndRoles(adminDB)
+
+	s.restoreUsersDump(
+		mongorestore.TempUsersCollOption, tempUsersColl,
+		mongorestore.TempRolesCollOption, tempRolesColl,
+	)
+
+	s.assertTempCollectionsGone(adminDB, tempUsersColl, tempRolesColl)
+	s.assertFixtureUserAndRoleExist(adminDB)
+}
+
+func (s *DumpRestoreSuite) restoreUsersDump(extraArgs ...string) {
+	args := append(
+		[]string{
+			mongorestore.NumParallelCollectionsOption, "1",
+			mongorestore.NumInsertionWorkersOption, "1",
+		},
+		extraArgs...,
+	)
+
+	restore, err := getRestoreWithArgs(args...)
+	s.Require().NoError(err, "can build mongorestore")
+	defer restore.Close()
+
+	restore.TargetDirectory = usersDumpDir
+
+	result := restore.Restore()
+	s.Require().NoError(result.Err, "can restore users and roles")
+}
+
+func (s *DumpRestoreSuite) assertTempCollectionsGone(
+	adminDB *mongo.Database,
+	tempCollNames ...string,
+) {
+	adminCollections, err := adminDB.ListCollectionNames(s.Context(), bson.D{})
+	s.Require().NoError(err, "can list the admin collections")
+
+	for _, collName := range tempCollNames {
+		s.Assert().NotContains(
+			adminCollections,
+			collName,
+			"the temp collection %#q is cleaned up after the restore",
+			collName,
+		)
+	}
+}
+
+func (s *DumpRestoreSuite) assertFixtureUserAndRoleExist(adminDB *mongo.Database) {
+	var usersInfo struct {
+		Users []struct {
+			User string `bson:"user"`
+		} `bson:"users"`
+	}
+	err := adminDB.RunCommand(s.Context(), bson.D{{"usersInfo", fixtureUserName}}).
+		Decode(&usersInfo)
+	s.Require().NoError(err, "can look up the restored user")
+	s.Assert().Len(usersInfo.Users, 1, "the user %#q is restored", fixtureUserName)
+
+	var rolesInfo struct {
+		Roles []struct {
+			Role string `bson:"role"`
+		} `bson:"roles"`
+	}
+	err = adminDB.RunCommand(s.Context(), bson.D{{"rolesInfo", fixtureRoleName}}).
+		Decode(&rolesInfo)
+	s.Require().NoError(err, "can look up the restored role")
+	s.Assert().Len(rolesInfo.Roles, 1, "the role %#q is restored", fixtureRoleName)
+}
+
+// dropFixtureUsersAndRoles removes what a previous restore of the same fixture
+// left behind, so each case starts from the same state. BeforeTest does not help
+// here: it leaves the admin database alone, which is where these live. The
+// commands fail when there is nothing to drop, which is expected on a first run.
+func (s *DumpRestoreSuite) dropFixtureUsersAndRoles(adminDB *mongo.Database) {
+	adminDB.RunCommand(s.Context(), bson.D{{"dropUser", fixtureUserName}})
+	adminDB.RunCommand(s.Context(), bson.D{{"dropRole", fixtureRoleName}})
+
+	for _, collName := range []string{"tempusers", "temproles", "tempU", "tempR"} {
+		s.Require().NoError(
+			adminDB.Collection(collName).Drop(s.Context()),
+			"can drop a leftover temp collection %#q",
+			collName,
+		)
+	}
 }
 
 func (s *DumpRestoreSuite) TestUnversionedIndexes() {
