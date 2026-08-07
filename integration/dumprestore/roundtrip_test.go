@@ -6,6 +6,8 @@ import (
 	"io"
 	"math/rand/v2"
 	"os"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -597,7 +599,7 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 		defer restore.Close()
 
 		adminDB := session.Database("admin")
-		restore.TargetDirectory = "../../mongorestore/testdata/usersdump"
+		restore.TargetDirectory = usersDumpDir
 		result := restore.Restore()
 		s.Require().NoError(result.Err, "can run mongorestore")
 
@@ -609,6 +611,10 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 			s.Assert().NotEqual("temproles", collName, "temproles should not exist after restore")
 		}
 	})
+
+	s.Run("with a nonempty temp users collection", s.testRestoreUsersWithNonemptyTempColl)
+	s.Run("with custom temp collection names", s.testRestoreUsersWithCustomTempColls)
+	s.Run("a database's own users and roles round-trip", s.testRoundTripDBUsersAndRoles)
 
 	s.Run("without --dumpUsersAndRoles", func() {
 		s.Run("db directory restore fails", func() {
@@ -664,6 +670,261 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 			})
 		})
 	})
+}
+
+const usersDumpDir = "../../mongorestore/testdata/usersdump"
+
+// The temp collections mongorestore stages users and roles in: the ones it
+// picks by default, and the ones the --tempUsersColl and --tempRolesColl cases
+// name instead. Users first, roles second, in both.
+var (
+	defaultTempCollNames = []string{"tempusers", "temproles"}
+	customTempCollNames  = []string{"tempU", "tempR"}
+)
+
+// The user and role the usersdump directory restores.
+const (
+	dumpedUserName = "reportsUser"
+	dumpedRoleName = "manageOpRole"
+)
+
+// testRestoreUsersWithNonemptyTempColl leaves a document behind in the temp
+// users collection before restoring. mongorestore stages users there before
+// merging them, so leftovers from an interrupted earlier run must not derail
+// the restore or survive it.
+func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl() {
+	adminDB := s.Client().Database("admin")
+	s.dropDumpedUsersAndRoles(adminDB)
+
+	_, err := adminDB.Collection(defaultTempCollNames[0]).
+		InsertOne(s.Context(), bson.D{{"_id", "corruption"}})
+	s.Require().NoError(err, "can leave a document in the temp users collection")
+
+	s.restoreUsersDump()
+
+	s.assertTempCollectionsGone(adminDB, defaultTempCollNames...)
+	s.assertDumpedUserAndRoleExist(adminDB)
+}
+
+// testRestoreUsersWithCustomTempColls checks that --tempUsersColl and
+// --tempRolesColl stage users and roles in the named collections, which are
+// cleaned up like the default ones. Nothing else covers those two options.
+func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls() {
+	adminDB := s.Client().Database("admin")
+	s.dropDumpedUsersAndRoles(adminDB)
+
+	// The default temp collections are seeded so that naming different ones
+	// really does leave these alone. Without this, a restore that ignored the
+	// two options and used the defaults anyway would still pass.
+	for _, collName := range defaultTempCollNames {
+		_, err := adminDB.Collection(collName).
+			InsertOne(s.Context(), bson.D{{"_id", "untouched"}})
+		s.Require().NoError(err, "can seed the default temp collection %#q", collName)
+	}
+
+	s.restoreUsersDump(
+		mongorestore.TempUsersCollOption, customTempCollNames[0],
+		mongorestore.TempRolesCollOption, customTempCollNames[1],
+	)
+
+	s.assertTempCollectionsGone(adminDB, customTempCollNames...)
+	s.assertDumpedUserAndRoleExist(adminDB)
+
+	for _, collName := range defaultTempCollNames {
+		count, err := adminDB.Collection(collName).CountDocuments(s.Context(), bson.D{})
+		s.Require().NoError(err, "can count the default temp collection %#q", collName)
+		s.Assert().EqualValues(
+			1,
+			count,
+			"the restore staged nothing in the default temp collection %#q",
+			collName,
+		)
+	}
+}
+
+// The users and role a database of its own creates in
+// testRoundTripDBUsersAndRoles. Two users so that the round trip has to carry
+// more than the one the rest of these cases use.
+var roundTripUserNames = []string{"roundTripReader", "roundTripWriter"}
+
+const roundTripRoleName = "roundTripRole"
+
+// testRoundTripDBUsersAndRoles dumps a non-admin database with
+// --dumpDbUsersAndRoles and restores it with --restoreDbUsersAndRoles. The rest
+// of these cases restore a checked-in dump directory, so nothing else covers
+// mongodump's half of the option pair, or a database whose users and roles are
+// its own rather than the admin database's.
+func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles() {
+	testDB := s.database("db_users_and_roles")
+	s.dropRoundTripUsersAndRoles(testDB)
+	s.T().Cleanup(func() { s.dropRoundTripUsersAndRoles(testDB) })
+
+	s.insertNamespacedDocs(testDB.Collection("coll"))
+	s.createRoundTripUsersAndRoles(testDB)
+
+	s.withBSONMongodump(func(dir string) {
+		s.dropDB(testDB)
+		s.dropRoundTripUsersAndRoles(testDB)
+
+		restore, err := getRestoreWithArgs(
+			mongorestore.DBOption, testDB.Name(),
+			mongorestore.RestoreDBUsersAndRolesOption,
+			filepath.Join(dir, testDB.Name()),
+		)
+		s.Require().NoError(err, "can build mongorestore")
+		defer restore.Close()
+
+		result := restore.Restore()
+		s.Require().NoError(result.Err, "can restore a database with its users and roles")
+	}, "--db", testDB.Name(), "--dumpDbUsersAndRoles")
+
+	s.assertDocsCameFrom(testDB.Collection("coll"), testDB.Name()+".coll")
+
+	// usersInfo and rolesInfo are run against the database that owns them, not
+	// admin, which is the distinction these two options exist for.
+	var usersInfo struct {
+		Users []struct {
+			User string `bson:"user"`
+		} `bson:"users"`
+	}
+	err := testDB.RunCommand(s.Context(), bson.D{{"usersInfo", 1}}).Decode(&usersInfo)
+	s.Require().NoError(err, "can look up the restored database's users")
+
+	gotUserNames := lo.Map(usersInfo.Users, func(u struct {
+		User string `bson:"user"`
+	}, _ int) string {
+		return u.User
+	})
+	s.Assert().ElementsMatch(
+		roundTripUserNames,
+		gotUserNames,
+		"both of the database's users are restored",
+	)
+
+	var rolesInfo struct {
+		Roles []struct {
+			Role string `bson:"role"`
+		} `bson:"roles"`
+	}
+	err = testDB.RunCommand(s.Context(), bson.D{{"rolesInfo", 1}}).Decode(&rolesInfo)
+	s.Require().NoError(err, "can look up the restored database's roles")
+
+	gotRoleNames := lo.Map(rolesInfo.Roles, func(r struct {
+		Role string `bson:"role"`
+	}, _ int) string {
+		return r.Role
+	})
+	s.Assert().ElementsMatch(
+		[]string{roundTripRoleName},
+		gotRoleNames,
+		"the database's role is restored",
+	)
+}
+
+func (s *DumpRestoreSuite) createRoundTripUsersAndRoles(testDB *mongo.Database) {
+	err := testDB.RunCommand(s.Context(), bson.D{
+		{"createRole", roundTripRoleName},
+		{"privileges", bson.A{}},
+		{"roles", bson.A{}},
+	}).Err()
+	s.Require().NoError(err, "can create the role %#q", roundTripRoleName)
+
+	for _, userName := range roundTripUserNames {
+		err := testDB.RunCommand(s.Context(), bson.D{
+			{"createUser", userName},
+			{"pwd", "password"},
+			{"roles", bson.A{roundTripRoleName}},
+		}).Err()
+		s.Require().NoError(err, "can create the user %#q", userName)
+	}
+}
+
+// dropRoundTripUsersAndRoles is needed because users and roles live in the admin
+// database no matter which database owns them, so dropping the test database
+// leaves them behind for the next run to collide with.
+func (s *DumpRestoreSuite) dropRoundTripUsersAndRoles(testDB *mongo.Database) {
+	// These return an error when there is nothing to drop, which is the normal
+	// case on a first run, so their results are discarded.
+	for _, userName := range roundTripUserNames {
+		testDB.RunCommand(s.Context(), bson.D{{"dropUser", userName}})
+	}
+	testDB.RunCommand(s.Context(), bson.D{{"dropRole", roundTripRoleName}})
+}
+
+func (s *DumpRestoreSuite) restoreUsersDump(extraArgs ...string) {
+	args := append(
+		[]string{
+			mongorestore.NumParallelCollectionsOption, "1",
+			mongorestore.NumInsertionWorkersOption, "1",
+		},
+		extraArgs...,
+	)
+
+	restore, err := getRestoreWithArgs(args...)
+	s.Require().NoError(err, "can build mongorestore")
+	defer restore.Close()
+
+	restore.TargetDirectory = usersDumpDir
+
+	result := restore.Restore()
+	s.Require().NoError(result.Err, "can restore users and roles")
+}
+
+func (s *DumpRestoreSuite) assertTempCollectionsGone(
+	adminDB *mongo.Database,
+	tempCollNames ...string,
+) {
+	adminCollections, err := adminDB.ListCollectionNames(s.Context(), bson.D{})
+	s.Require().NoError(err, "can list the admin collections")
+
+	for _, collName := range tempCollNames {
+		s.Assert().NotContains(
+			adminCollections,
+			collName,
+			"the temp collection %#q is cleaned up after the restore",
+			collName,
+		)
+	}
+}
+
+func (s *DumpRestoreSuite) assertDumpedUserAndRoleExist(adminDB *mongo.Database) {
+	var usersInfo struct {
+		Users []struct {
+			User string `bson:"user"`
+		} `bson:"users"`
+	}
+	err := adminDB.RunCommand(s.Context(), bson.D{{"usersInfo", dumpedUserName}}).
+		Decode(&usersInfo)
+	s.Require().NoError(err, "can look up the restored user")
+	s.Assert().Len(usersInfo.Users, 1, "the user %#q is restored", dumpedUserName)
+
+	var rolesInfo struct {
+		Roles []struct {
+			Role string `bson:"role"`
+		} `bson:"roles"`
+	}
+	err = adminDB.RunCommand(s.Context(), bson.D{{"rolesInfo", dumpedRoleName}}).
+		Decode(&rolesInfo)
+	s.Require().NoError(err, "can look up the restored role")
+	s.Assert().Len(rolesInfo.Roles, 1, "the role %#q is restored", dumpedRoleName)
+}
+
+// dropDumpedUsersAndRoles removes what a previous restore of the same dump
+// left behind, so each case starts from the same state. BeforeTest does not help
+// here: it leaves the admin database alone, which is where these live.
+func (s *DumpRestoreSuite) dropDumpedUsersAndRoles(adminDB *mongo.Database) {
+	// These two return an error when there is nothing to drop, which is the
+	// normal case on a first run, so their results are discarded.
+	adminDB.RunCommand(s.Context(), bson.D{{"dropUser", dumpedUserName}})
+	adminDB.RunCommand(s.Context(), bson.D{{"dropRole", dumpedRoleName}})
+
+	for _, collName := range slices.Concat(defaultTempCollNames, customTempCollNames) {
+		s.Require().NoError(
+			adminDB.Collection(collName).Drop(s.Context()),
+			"can drop a leftover temp collection %#q",
+			collName,
+		)
+	}
 }
 
 func (s *DumpRestoreSuite) TestUnversionedIndexes() {
