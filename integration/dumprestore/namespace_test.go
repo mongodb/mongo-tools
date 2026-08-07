@@ -515,7 +515,7 @@ func (s *DumpRestoreSuite) assertSourceIndexRestored(
 func (s *DumpRestoreSuite) insertNamespacedDocs(coll *mongo.Collection) {
 	docs := make([]any, namespaceDocCount)
 	for i := range docs {
-		docs[i] = bson.D{{"_id", fmt.Sprintf("%d_%s", i, namespaceOf(coll))}}
+		docs[i] = bson.D{{"_id", namespacedID(i, namespaceOf(coll))}}
 	}
 
 	_, err := coll.InsertMany(s.Context(), docs)
@@ -540,7 +540,7 @@ func (s *DumpRestoreSuite) assertDocsCameFrom(coll *mongo.Collection, sourceNS s
 
 	wantIDs := make([]string, namespaceDocCount)
 	for i := range wantIDs {
-		wantIDs[i] = fmt.Sprintf("%d_%s", i, sourceNS)
+		wantIDs[i] = namespacedID(i, sourceNS)
 	}
 
 	gotIDs := make([]string, 0, len(restored))
@@ -555,6 +555,13 @@ func (s *DumpRestoreSuite) assertDocsCameFrom(coll *mongo.Collection, sourceNS s
 		namespaceOf(coll),
 		sourceNS,
 	)
+}
+
+// namespacedID builds the _id of a fixture document. Encoding the source
+// namespace into the _id is what lets a restore that sends data to the wrong
+// namespace be detected by content rather than only by document counts.
+func namespacedID(i int, sourceNS string) string {
+	return fmt.Sprintf("%d_%s", i, sourceNS)
 }
 
 // withMultiDBDump dumps several databases into one dump root and runs the test
