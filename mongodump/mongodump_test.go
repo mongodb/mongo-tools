@@ -592,36 +592,132 @@ func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
 func TestMongoDumpValidateOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	t.Run("no db", func(t *testing.T) {
-		md, err := simpleMongoDumpInstance()
-		require.NoError(t, err)
-		md.ToolOptions.Collection = "some_collection"
-		md.ToolOptions.DB = ""
+	for _, testCase := range invalidDumpOptionsCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			md, err := simpleMongoDumpInstance()
+			require.NoError(t, err)
 
-		err = md.ValidateOptions()
-		require.Error(t, err)
-		assert.ErrorContains(
-			t,
-			err,
-			"cannot dump a collection without a specified database",
-		)
-	})
+			testCase.setUp(md)
 
-	t.Run("no collection name with query", func(t *testing.T) {
-		md, err := simpleMongoDumpInstance()
-		require.NoError(t, err)
+			assert.ErrorContains(
+				t,
+				md.ValidateOptions(),
+				testCase.wantErr,
+				"mongodump rejects %s",
+				testCase.name,
+			)
+		})
+	}
+}
 
-		md.ToolOptions.Collection = ""
-		md.InputOptions.Query = "{_id:\"\"}"
+type invalidDumpOptionsCase struct {
+	name    string
+	setUp   func(*MongoDump)
+	wantErr string
+}
 
-		err = md.ValidateOptions()
-		require.Error(t, err)
-		assert.ErrorContains(
-			t,
-			err,
-			"cannot dump using a query without a specified collection",
-		)
-	})
+// invalidDumpOptionsCases collects the option combinations mongodump rejects. Each case asserts on
+// the error validation returns, rather than on a process exit code, so it pins down which
+// combination was rejected and why.
+var invalidDumpOptionsCases = []invalidDumpOptionsCase{
+	{
+		name: "a collection without a db",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = ""
+			md.ToolOptions.Collection = "some_collection"
+		},
+		wantErr: "cannot dump a collection without a specified database",
+	},
+	{
+		name: "a query without a collection",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.Collection = ""
+			md.InputOptions.Query = `{"_id": ""}`
+		},
+		wantErr: "cannot dump using a query without a specified collection",
+	},
+	{
+		name: "dumping to stdout without a collection",
+		setUp: func(md *MongoDump) {
+			md.OutputOptions.Out = "-"
+			md.ToolOptions.DB = "foo"
+			md.ToolOptions.Collection = ""
+		},
+		wantErr: "can only dump a single collection to stdout",
+	},
+	{
+		name: "queryFile without a collection",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = "foo"
+			md.ToolOptions.Collection = ""
+			md.InputOptions.QueryFile = "query.json"
+		},
+		wantErr: "cannot dump using a queryFile without a specified collection",
+	},
+	{
+		name: "query together with queryFile",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = "foo"
+			md.ToolOptions.Collection = "bar"
+			md.InputOptions.Query = `{"x": 1}`
+			md.InputOptions.QueryFile = "query.json"
+		},
+		wantErr: "either query or queryFile can be specified as a query option, not both",
+	},
+	{
+		name: "excludeCollection without a db",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = ""
+			md.ToolOptions.Collection = ""
+			md.OutputOptions.ExcludedCollections = []string{"baz"}
+		},
+		wantErr: "--db is required when --excludeCollection is specified",
+	},
+	{
+		name: "excludeCollection together with a collection",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = "foo"
+			md.ToolOptions.Collection = "baz"
+			md.OutputOptions.ExcludedCollections = []string{"baz"}
+		},
+		wantErr: "--collection is not allowed when --excludeCollection is specified",
+	},
+	{
+		name: "excludeCollectionsWithPrefix without a db",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = ""
+			md.ToolOptions.Collection = ""
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{"baz"}
+		},
+		wantErr: "--db is required when --excludeCollectionsWithPrefix is specified",
+	},
+	{
+		name: "excludeCollectionsWithPrefix together with a collection",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = "foo"
+			md.ToolOptions.Collection = "baz"
+			md.OutputOptions.ExcludedCollectionPrefixes = []string{"baz"}
+		},
+		wantErr: "--collection is not allowed when --excludeCollectionsWithPrefix is specified",
+	},
+}
+
+// TestMongoDumpQueryFileMissing covers the one query-flag failure that is not an
+// option-validation error: the file is only opened when the query is read.
+func TestMongoDumpQueryFileMissing(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	inputOptions := &InputOptions{
+		QueryFile: filepath.Join(t.TempDir(), "does-not-exist.json"),
+	}
+
+	_, err := inputOptions.GetQuery()
+	assert.ErrorContains(
+		t,
+		err,
+		"error reading queryFile",
+		"a --queryFile that does not exist is reported when the query is read",
+	)
 }
 
 func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
