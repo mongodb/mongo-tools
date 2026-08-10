@@ -2686,6 +2686,7 @@ func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
 		)
 	})
 }
+
 // TestTimeseriesDumpConcurrentWithSetFCV exercises the open item from the TOOLS-4182
 // investigation: a long-running mongodump that overlaps a setFCV, which on 9.0+ converts
 // timeseries collections between their viewless and viewful forms (SERVER-114505). The
