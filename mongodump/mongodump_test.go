@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
@@ -2561,4 +2562,229 @@ func TestBrokenPipe(t *testing.T) {
 	)
 	args = append(args, "--db", dbName, "--archive=-")
 	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))
+}
+
+// TestTimeseriesDumpConcurrentWithSetFCV exercises the open item from the TOOLS-4182
+// investigation: a long-running mongodump that overlaps a setFCV, which on 9.0+ converts
+// timeseries collections between their viewless and viewful forms (SERVER-114505). The
+// server does not currently expect the collection format to change mid-operation, so the
+// point of this test is to pin down that the dump either completes with every measurement
+// or fails outright — it must never silently produce a truncated dump.
+func TestTimeseriesDumpConcurrentWithSetFCV(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	require.NoError(t, err, "get session")
+
+	sp, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "get session provider")
+
+	serverVersion, err := sp.ServerVersionArray()
+	require.NoError(t, err, "get server version")
+	if serverVersion.LT(db.Version{9, 0, 0}) {
+		t.Skipf(
+			"the viewless timeseries conversion requires a 9.0 server; found %v",
+			serverVersion,
+		)
+	}
+
+	fcv := testutil.GetFCV(session)
+	if cmp, err := testutil.CompareFCV(fcv, "9.0"); err != nil || cmp < 0 {
+		t.Skipf("Requires FCV 9.0 so that setFCV downgrades to a viewful format; found %v", fcv)
+	}
+
+	const dbName = "ts_setfcv_test_DB"
+	const collName = "timeseriesColl"
+	// Enough distinct meta values to produce more buckets than fit in one cursor batch, so
+	// the dump must issue a getMore that we can block on.
+	const numBuckets = 500
+
+	require.NoError(t, session.Database(dbName).Drop(ctx))
+	t.Cleanup(func() { _ = session.Database(dbName).Drop(context.Background()) })
+
+	setUpBucketedTimeseries(t, session, dbName, collName, numBuckets)
+
+	// The failpoint targets this app name only, so the test's own commands — including the
+	// setFCV below — are not blocked.
+	const dumpAppName = "mongodump_setfcv_test"
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+	md.ToolOptions.DB = dbName
+	md.ToolOptions.AppName = dumpAppName
+	md.OutputOptions.Out = t.TempDir()
+
+	require.NoError(t, md.Init())
+
+	blockGetMoreForAppName(t, session, dumpAppName)
+
+	dumpErr := make(chan error, 1)
+	go func() { dumpErr <- md.Dump() }()
+
+	waitForBlockedGetMore(t, session, dumpAppName)
+
+	// This is the conversion under test: downgrading from 9.0 turns the viewless timeseries
+	// collection back into a view plus a system.buckets collection, underneath the dump.
+	var fcvResult bson.D
+	setFCVErr := session.Database("admin").RunCommand(ctx, bson.D{
+		{"setFeatureCompatibilityVersion", "8.0"},
+		{"confirm", true},
+	}).Decode(&fcvResult)
+	t.Cleanup(func() {
+		_ = session.Database("admin").RunCommand(context.Background(), bson.D{
+			{"setFeatureCompatibilityVersion", "9.0"},
+			{"confirm", true},
+		}).Err()
+	})
+
+	err = <-dumpErr
+
+	// A failed setFCV means the conversion never happened, so there is nothing to assert.
+	require.NoError(t, setFCVErr, "setFCV should succeed while a dump is running")
+
+	if err != nil {
+		// The server interrupts reads whose collection is converted underneath them, and
+		// mongodump surfaces that as a dump failure. Losing the race is the expected outcome;
+		// what matters is that it is reported rather than silently truncating the dump.
+		require.ErrorContains(
+			t,
+			err,
+			"InterruptedDueToTimeseriesUpgradeDowngrade",
+			"a dump interrupted by the conversion should fail with the server's specific error",
+		)
+		return
+	}
+
+	dumped := countDumpedMeasurements(t, filepath.Join(md.OutputOptions.Out, dbName))
+	assert.EqualValues(
+		t,
+		numBuckets,
+		dumped,
+		"a dump that reports success must contain every measurement, even though the "+
+			"collection format changed underneath it",
+	)
+}
+
+// setUpBucketedTimeseries creates a timeseries collection holding one measurement per distinct
+// meta value, so that the collection contains numBuckets buckets.
+func setUpBucketedTimeseries(
+	t *testing.T,
+	session *mongo.Client,
+	dbName, collName string,
+	numBuckets int,
+) {
+	t.Helper()
+
+	ctx := t.Context()
+
+	require.NoError(t, session.Database(dbName).RunCommand(ctx, bson.D{
+		{"create", collName},
+		{"timeseries", bson.D{{"timeField", "ts"}, {"metaField", "my_meta"}}},
+	}).Err(), "create timeseries collection")
+
+	docs := make([]any, 0, numBuckets)
+	for i := range numBuckets {
+		docs = append(docs, bson.D{
+			{"ts", bson.NewDateTimeFromTime(time.Now())},
+			{"my_meta", bson.D{{"device", i}}},
+			{"measurement", i},
+		})
+	}
+
+	_, err := session.Database(dbName).Collection(collName).InsertMany(ctx, docs)
+	require.NoError(t, err, "insert measurements")
+}
+
+// blockGetMoreForAppName makes every getMore from the given app name hang, so that a dump from
+// that app name stays open long enough for a concurrent setFCV to run.
+func blockGetMoreForAppName(t *testing.T, session *mongo.Client, appName string) {
+	t.Helper()
+
+	err := session.Database("admin").RunCommand(t.Context(), bson.D{
+		{"configureFailPoint", "failCommand"},
+		{"mode", "alwaysOn"},
+		{"data", bson.D{
+			{"failCommands", bson.A{"getMore"}},
+			{"appName", appName},
+			{"blockConnection", true},
+			{"blockTimeMS", 10000},
+		}},
+	}).Err()
+
+	var cmdErr mongo.CommandError
+	if errors.As(err, &cmdErr) && cmdErr.Name == "CommandNotFound" {
+		t.Skip("Requires a server started with enableTestCommands=1")
+	}
+	require.NoError(t, err, "enable the getMore failpoint")
+
+	t.Cleanup(func() {
+		_ = session.Database("admin").RunCommand(context.Background(), bson.D{
+			{"configureFailPoint", "failCommand"},
+			{"mode", "off"},
+		}).Err()
+	})
+}
+
+// waitForBlockedGetMore blocks until the dump's getMore is visible in currentOp, which means
+// the dump is mid-read and it is safe to change the collection format underneath it.
+func waitForBlockedGetMore(t *testing.T, session *mongo.Client, appName string) {
+	t.Helper()
+
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		var result struct {
+			Inprog []bson.D `bson:"inprog"`
+		}
+		err := session.Database("admin").RunCommand(t.Context(), bson.D{
+			{"currentOp", 1},
+			{"appName", appName},
+			{"op", "getmore"},
+		}).Decode(&result)
+		require.NoError(t, err, "run currentOp")
+
+		if len(result.Inprog) > 0 {
+			return
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	t.Fatalf("timed out waiting for a blocked getMore from app name %#q", appName)
+}
+
+// countDumpedMeasurements sums the measurement counts of the bucket documents in the timeseries
+// BSON file in the given dump directory.
+func countDumpedMeasurements(t *testing.T, dumpDir string) int {
+	t.Helper()
+
+	entries, err := os.ReadDir(dumpDir)
+	require.NoError(t, err, "read dump directory")
+
+	total := 0
+	for _, entry := range entries {
+		if !strings.HasSuffix(entry.Name(), ".bson") {
+			continue
+		}
+
+		file, err := os.Open(filepath.Join(dumpDir, entry.Name()))
+		require.NoError(t, err)
+		defer file.Close()
+
+		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(file))
+		defer bsonSource.Close()
+
+		var bucket struct {
+			Control struct {
+				Count int `bson:"count"`
+			} `bson:"control"`
+		}
+		for bsonSource.Next(&bucket) {
+			total += bucket.Control.Count
+		}
+		require.NoError(t, bsonSource.Err(), "read dumped buckets")
+	}
+
+	return total
 }
