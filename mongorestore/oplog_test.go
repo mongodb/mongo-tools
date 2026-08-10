@@ -9,6 +9,7 @@ package mongorestore
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -945,4 +946,211 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 			require.EqualValues(t, 1000, expireAfterSeconds)
 		}
 	}
+}
+
+// TestOplogRestoreViewlessTimeseriesConversion verifies that an oplog window crossing a
+// viewless timeseries format conversion (emitted by setFCV on 9.0+, see SERVER-114505) fails
+// loudly with a specific diagnostic rather than being silently skipped or rejected with the
+// generic "unknown oplog command name" error.
+func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	require.NoError(t, err, "should be able to get a session")
+	//nolint:errcheck
+	defer session.Disconnect(ctx)
+
+	for _, isUpgrade := range []bool{true, false} {
+		name := "downgrade to viewful"
+		if isUpgrade {
+			name = "upgrade to viewless"
+		}
+
+		t.Run(name, func(t *testing.T) {
+			require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+			t.Cleanup(func() { _ = session.Database("mongodump_test_db").Drop(t.Context()) })
+			require.NoError(
+				t,
+				session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"),
+			)
+
+			conversion := bson.D{
+				{upgradeDowngradeViewlessTimeseriesCmd, "foo_ts"},
+				{"isUpgrade", isUpgrade},
+			}
+			if !isUpgrade {
+				conversion = append(conversion, bson.E{"skipViewCreation", false})
+			}
+
+			oplogFile := writeOplogFile(t, []db.Oplog{
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 1},
+					Version:   2,
+					Operation: "i",
+					Namespace: "mongodump_test_db.coll1",
+					Object:    bson.D{{"_id", 1}, {"a", 1}},
+				},
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 2},
+					Version:   2,
+					Operation: "c",
+					Namespace: "mongodump_test_db.$cmd",
+					UI: &bson.Binary{
+						Subtype: bson.TypeBinaryUUID,
+						Data:    make([]byte, 16),
+					},
+					Object: conversion,
+				},
+			})
+
+			args := []string{
+				DirectoryOption, "testdata/coll_without_index",
+				OplogReplayOption,
+				DropOption,
+				OplogFileOption, oplogFile,
+			}
+
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
+			defer restore.Close()
+
+			result := restore.Restore()
+			require.Error(t, result.Err, "restore should fail on a timeseries format conversion")
+			require.ErrorContains(
+				t,
+				result.Err,
+				upgradeDowngradeViewlessTimeseriesCmd,
+				"error should name the offending oplog command",
+			)
+			require.ErrorContains(
+				t,
+				result.Err,
+				"crosses a timeseries format conversion",
+				"error should explain why the oplog window cannot be replayed",
+			)
+
+			count, err := session.Database("mongodump_test_db").
+				Collection("coll1").
+				CountDocuments(ctx, bson.D{{"_id", 1}})
+			require.NoError(t, err)
+			require.EqualValues(
+				t,
+				1,
+				count,
+				"ops before the conversion were applied, so the failure is at the conversion itself",
+			)
+		})
+	}
+}
+
+// TestOplogRestoreDropIdent verifies that a dropIdent entry (the replicated second phase of a
+// table drop, see SERVER-118737) is skipped during oplog replay rather than aborting it or being
+// forwarded to the target, whether it appears on its own or nested inside an applyOps.
+func TestOplogRestoreDropIdent(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	ctx := t.Context()
+
+	session, err := testutil.GetBareSession()
+	require.NoError(t, err, "should be able to get a session")
+	//nolint:errcheck
+	defer session.Disconnect(ctx)
+
+	dropIdentCmd := bson.D{{"dropIdent", "collection-7--4104909142373009110"}}
+
+	testCases := []struct {
+		name  string
+		entry bson.D
+	}{
+		{"standalone", dropIdentCmd},
+		{"nested in applyOps", bson.D{{"applyOps", []bson.D{
+			{
+				{"op", "c"},
+				{"ns", "admin.$cmd"},
+				{"o", dropIdentCmd},
+			},
+		}}}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, session.Database("mongodump_test_db").Drop(ctx))
+			t.Cleanup(func() { _ = session.Database("mongodump_test_db").Drop(t.Context()) })
+			require.NoError(
+				t,
+				session.Database("mongodump_test_db").CreateCollection(ctx, "coll1"),
+			)
+
+			oplogFile := writeOplogFile(t, []db.Oplog{
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 1},
+					Version:   2,
+					Operation: "i",
+					Namespace: "mongodump_test_db.coll1",
+					Object:    bson.D{{"_id", 1}, {"a", 1}},
+				},
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 2},
+					Version:   2,
+					Operation: "c",
+					Namespace: "admin.$cmd",
+					Object:    tc.entry,
+				},
+				{
+					Timestamp: bson.Timestamp{T: 1, I: 3},
+					Version:   2,
+					Operation: "i",
+					Namespace: "mongodump_test_db.coll1",
+					Object:    bson.D{{"_id", 2}, {"a", 2}},
+				},
+			})
+
+			args := []string{
+				DirectoryOption, "testdata/coll_without_index",
+				OplogReplayOption,
+				DropOption,
+				OplogFileOption, oplogFile,
+			}
+
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
+			defer restore.Close()
+
+			result := restore.Restore()
+			require.NoError(t, result.Err, "restore should skip the dropIdent entry")
+
+			count, err := session.Database("mongodump_test_db").
+				Collection("coll1").
+				CountDocuments(ctx, bson.D{{"_id", bson.D{{"$in", []int{1, 2}}}}})
+			require.NoError(t, err)
+			require.EqualValues(
+				t,
+				2,
+				count,
+				"ops on both sides of the dropIdent entry were applied",
+			)
+		})
+	}
+}
+
+// writeOplogFile writes the given oplog entries to a BSON file usable with --oplogFile and
+// returns its path.
+func writeOplogFile(t *testing.T, ops []db.Oplog) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), "oplog.bson")
+	file, err := os.Create(path)
+	require.NoError(t, err)
+	defer file.Close()
+
+	for _, op := range ops {
+		raw, err := bson.Marshal(op)
+		require.NoError(t, err)
+		_, err = file.Write(raw)
+		require.NoError(t, err)
+	}
+
+	return path
 }
