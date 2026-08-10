@@ -1511,99 +1511,6 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
-  - name: integration-8.1
-    tags: ["8.1"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.1.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run make target"
-        vars:
-          target: test:integration -ssl=true ${testArgs}
-
-  - name: integration-8.1-auth
-    tags: ["8.1", "auth"]
-    commands:
-      - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.1.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run make target"
-        vars:
-          target: test:integration -ssl=true -auth=true ${testArgs}
-
-  - name: integration-8.1-cluster
-    tags: ["8.1", "cluster"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.1.0"
-      - func: "create repl_set"
-        vars:
-          USE_TLS: "true"
-          load_libs_version: "8.1"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run make target"
-        vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
-
-  - name: aws-auth-8.1
-    tags: ["8.1", "aws-auth"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.1.0"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          AWS_AUTH: "true"
-      - func: "add-aws-auth-variables-to-file"
-      - func: "setup-aws-auth-test-with-assume-role-credentials"
-      - func: "run make target"
-        vars:
-          target: test:awsauth ${testArgs}
-
   - name: integration-8.2
     tags: ["8.2"]
     commands:
@@ -2041,25 +1948,6 @@ tasks:
         vars:
           target: test:sharded-integration ${testArgs}
 
-  - name: integration-8.1-sharded
-    tags: ["8.1", "sharded"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.1.0"
-      - func: "create sharded cluster"
-        vars:
-          load_libs_version: "8.1"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run make target"
-        vars:
-          target: test:sharded-integration ${testArgs}
-
   - name: integration-8.2-sharded
     tags: ["8.2", "sharded"]
     commands:
@@ -2261,24 +2149,6 @@ tasks:
         vars:
           test_path: "test/legacy42"
 
-  - name: legacy-jstests-8.1 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.1"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.1.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-          load_libs_version: "8.1"
-
   - name: legacy-jstests-8.2 # The server jstests from the tools removal from server in 4.2
     tags: ["8.2"]
     commands:
@@ -2441,24 +2311,6 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-8.1
-    tags: ["8.1"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.1.0"
       - func: "run make target"
         vars:
           target: build
@@ -2866,7 +2718,6 @@ buildvariants:
       - name: ".6.0"
       - name: ".7.0"
       - name: ".8.0"
-      - name: ".8.1"
       - name: ".8.2"
       - name: ".8.3"
       - name: ".9.0"
@@ -2902,7 +2753,6 @@ buildvariants:
       - name: ".6.0"
       - name: ".7.0"
       - name: ".8.0"
-      - name: ".8.1"
       - name: ".8.2"
       - name: ".8.3"
       - name: ".9.0"
@@ -3083,7 +2933,6 @@ buildvariants:
       - name: ".6.0"
       - name: ".7.0"
       - name: ".8.0"
-      - name: ".8.1"
       - name: ".8.2"
       - name: ".8.3"
       - name: ".9.0"
