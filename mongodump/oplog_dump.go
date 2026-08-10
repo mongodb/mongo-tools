@@ -168,6 +168,16 @@ func oplogDocumentValidator(in []byte) error {
 		return fmt.Errorf("cannot dump with oplog while importCollection occurs")
 	}
 
+	// This entry is emitted by setFCV on 9.0+ when a timeseries collection is converted
+	// between its viewful and viewless forms (SERVER-114505). mongorestore cannot replay it,
+	// so an oplog containing it is not restorable; fail here rather than at restore time.
+	if _, err := raw.LookupErr("o", "upgradeDowngradeViewlessTimeseries"); err == nil {
+		return fmt.Errorf(
+			"cannot dump with oplog while a timeseries format conversion caused by an FCV " +
+				"change between 8.x and 9.0 occurs",
+		)
+	}
+
 	if ok {
 		dbName := strings.SplitN(nsStr, ".", 2)[0]
 

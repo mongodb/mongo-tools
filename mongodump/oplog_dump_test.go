@@ -37,6 +37,31 @@ func TestErrorOnImportCollection(t *testing.T) {
 	assert.EqualError(t, err, "cannot dump with oplog while importCollection occurs")
 }
 
+func TestErrorOnViewlessTimeseriesConversion(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	rawOp, err := bson.Marshal(db.Oplog{
+		Timestamp: bson.Timestamp{T: 1, I: 1},
+		Version:   2,
+		Operation: "c",
+		Namespace: "test.$cmd",
+		Object: bson.D{
+			{"upgradeDowngradeViewlessTimeseries", "foo_ts"},
+			{"isUpgrade", true},
+		},
+	})
+	require.NoError(t, err)
+
+	err = oplogDocumentValidator(rawOp)
+	assert.EqualError(
+		t,
+		err,
+		"cannot dump with oplog while a timeseries format conversion caused by an FCV "+
+			"change between 8.x and 9.0 occurs",
+		"a dump whose oplog window spans a viewless timeseries conversion is rejected",
+	)
+}
+
 // TestOplogDumpVectoredInsertsOplog tests dumping oplogs that are from vectored inserts.
 // They have a special oplog format.
 func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
