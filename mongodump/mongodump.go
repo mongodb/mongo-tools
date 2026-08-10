@@ -645,6 +645,12 @@ func (dump *MongoDump) DumpIntent(intent *intents.Intent, buffer resettableOutpu
 			}
 		}
 		findQuery.Filter = dump.query
+	} else {
+		// An unfiltered dump is a deliberate full collection scan. Saying so with a $natural
+		// hint exempts it from the server's maxEstimatedScanBytes rejection (SERVER-127688)
+		// without changing the plan the server would have chosen anyway. We must not do this
+		// when there is a filter, which could otherwise be served by an index.
+		findQuery.Hint = bson.D{{"$natural", 1}}
 	}
 
 	var dumpCount int64
