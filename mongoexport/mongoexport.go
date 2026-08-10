@@ -365,6 +365,15 @@ func (exp *MongoExport) getCursor() (*mongo.Cursor, error) {
 		findOpts.SetProjection(makeFieldSelector(exp.OutputOpts.Fields))
 	}
 
+	// An export with neither a query nor a sort is a deliberate full collection scan. Saying so
+	// with a $natural hint exempts it from the server's maxEstimatedScanBytes rejection
+	// (SERVER-127688) without changing the plan the server would have chosen anyway. We must not
+	// do this when there is a query or a sort, either of which could be served by an index.
+	sorted := exp.InputOpts != nil && exp.InputOpts.Sort != ""
+	if len(query) == 0 && !sorted {
+		findOpts.SetHint(bson.D{{"$natural", 1}})
+	}
+
 	return coll.Find(context.TODO(), query, findOpts)
 }
 
