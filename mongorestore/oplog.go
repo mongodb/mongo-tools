@@ -191,6 +191,11 @@ var ignoredCEntries = mapset.NewSet(
 	"startIndexBuild",
 	"abortIndexBuild",
 	"setMultikeyMetadata",
+	// The second phase of a replicated table drop (SERVER-118737). Its payload is a storage
+	// engine ident name that only means anything on the node that produced it, so it must be
+	// skipped rather than forwarded to the restore target. The logical drop is already carried
+	// by the first-phase drop/dropIndexes entry, which we do apply.
+	"dropIdent",
 )
 
 func (restore *MongoRestore) HandleOp(oplogCtx *oplogContext, op db.Oplog) error {
