@@ -735,9 +735,10 @@ func (s *DumpRestoreSuite) addValidatorToCollection(testDB *mongo.Database) {
 }
 
 // TestSystemProfileIsNotRestored checks that mongorestore skips a
-// system.profile collection in a dump. mongodump never writes one (it skips
-// every <db>.system.* namespace), so the dump has to be built by hand to reach
-// the restore-side check at all.
+// system.profile collection in a dump. mongodump does not write one for an
+// ordinary database, because it skips <db>.system.*, so the dump has to be built
+// by hand to reach the restore-side check at all. admin is the exception, where
+// only system.keys is skipped.
 func (s *DumpRestoreSuite) TestSystemProfileIsNotRestored() {
 	const collName = "coll"
 
