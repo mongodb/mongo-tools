@@ -3,7 +3,6 @@ package dumprestore
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -149,11 +148,6 @@ func (s *DumpRestoreSuite) assertExtendedJSONQueryFilters(queryCase extendedJSON
 func (s *DumpRestoreSuite) TestDumpForceTableScan() {
 	const collName = "bar"
 
-	// concurrentInsertCap bounds the background inserts. mongodump runs as a
-	// subprocess that has to be compiled first, so an unbounded loop would insert
-	// for as long as that takes and then make the restore pay for all of it.
-	const concurrentInsertCap = 10_000
-
 	testDB := s.database("force_table_scan")
 	coll := testDB.Collection(collName)
 
@@ -161,79 +155,24 @@ func (s *DumpRestoreSuite) TestDumpForceTableScan() {
 	countBefore := s.docCount(coll)
 	s.Require().Positive(countBefore, "the collection holds documents before the dump")
 
-	// Captured here rather than called from the goroutine: s.Context() reads
-	// s.T(), which testify swaps out when it moves to the next test method.
-	ctx := s.Context()
-
-	stop := make(chan struct{})
-	stopped := false
-	stopInserts := func() {
-		if !stopped {
-			close(stop)
-			stopped = true
-		}
-	}
-
-	var inserter sync.WaitGroup
-	var insertErr error
-	var hitCap bool
-	inserter.Add(1)
-
-	// Any assertion inside the dump helper below can end this goroutine's
-	// owner via runtime.Goexit, so the shutdown has to be deferred too or the
-	// inserts run on into the next test.
-	defer func() {
-		stopInserts()
-		inserter.Wait()
-	}()
-
-	go func() {
-		defer inserter.Done()
-
-		for i := range concurrentInsertCap {
-			select {
-			case <-stop:
-				return
-			default:
-			}
-
-			if _, err := coll.InsertOne(ctx, bson.D{{"concurrent", i}}); err != nil {
-				insertErr = err
-
-				return
-			}
-		}
-
-		hitCap = true
-	}()
-
 	var countAfter int64
-	s.withBSONMongodump(func(dir string) {
-		stopInserts()
-		inserter.Wait()
-		s.Require().NoError(insertErr, "the background inserts all succeeded")
-		// The upper bound below relies on the inserts still being in flight when
-		// they are stopped. Running out first is not a wrong answer to assert
-		// against, it means the setup stopped exercising what the test is about,
-		// so say so plainly rather than letting the test pass on a degenerate run.
-		s.Require().False(
-			hitCap,
-			"the background inserts were still running when the dump finished; "+
-				"raise concurrentInsertCap",
-		)
+	s.withConcurrentInserts(coll, func(stopInserts func()) {
+		s.withBSONMongodump(func(dir string) {
+			stopInserts()
 
-		countAfter = s.docCount(coll)
-		s.Require().Greater(
-			countAfter,
-			countBefore,
-			"the concurrent inserts landed while the dump was running",
-		)
+			countAfter = s.docCount(coll)
+			s.Require().Greater(
+				countAfter,
+				countBefore,
+				"the concurrent inserts landed while the dump was running",
+			)
 
-		s.dropDB(testDB)
+			s.dropDB(testDB)
 
-		result := s.runRestore(dir)
-		s.Require().NoError(result.Err, "can restore a --forceTableScan dump")
-	}, "--db", testDB.Name(), "--forceTableScan")
+			result := s.runRestore(dir)
+			s.Require().NoError(result.Err, "can restore a --forceTableScan dump")
+		}, "--db", testDB.Name(), "--forceTableScan")
+	})
 
 	restored := s.docCount(coll)
 	s.Assert().GreaterOrEqual(
