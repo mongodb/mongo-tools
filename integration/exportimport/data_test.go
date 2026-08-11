@@ -7,7 +7,9 @@
 package exportimport
 
 import (
+	"math"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/options"
@@ -300,4 +302,211 @@ func (s *ExportImportSuite) TestRoundTripViewExport() {
 	n, err = db.Collection("CACities").CountDocuments(s.Context(), bson.D{})
 	s.Require().NoError(err)
 	s.Assert().EqualValues(4, n, "restored view should have correct number of rows")
+}
+
+// TestRoundTripBSONTypeEdges checks that the BSON types with the most awkward
+// extended-JSON representations survive an export-then-import round trip byte
+// for byte. The JS test this replaces compared field by field and had to special
+// case the ones the shell could not represent; comparing whole documents catches
+// a type that comes back as the wrong width or loses its wrapper.
+func (s *ExportImportSuite) TestRoundTripBSONTypeEdges() {
+	const dbName = "mongoimport_type_edges_test"
+
+	db := s.Client().Database(dbName)
+	referent := bson.NewObjectID()
+
+	docs := []any{
+		bson.D{
+			{"_id", bson.NewObjectID()},
+			{"binary", bson.Binary{Subtype: 0x00, Data: []byte{0x7b, 0xc3, 0x04, 0x9f}}},
+			{"boolTrue", true},
+			{"boolFalse", false},
+			{"string", "this is a string"},
+			{"mixedArray", bson.A{"this is an ", int32(2), 23.5, "array with types"}},
+			{"subdoc", bson.D{{"this is", "an embedded doc"}}},
+			{"javascript", bson.JavaScript(`function () { print("hey sup"); }`)},
+			{"null", nil},
+			{"int64", int64(10000)},
+			{"minKey", bson.MinKey{}},
+			{"maxKey", bson.MaxKey{}},
+			{"date", bson.NewDateTimeFromTime(time.Date(2015, 2, 25, 16, 42, 11, 0, time.UTC))},
+			{
+				"dbRefWithDB",
+				bson.D{{"$ref", "namespace"}, {"$id", "identifier"}, {"$db", "database"}},
+			},
+			{"int32", int32(5)},
+			{"double", 5.0},
+		},
+		bson.D{
+			{"_id", bson.NewObjectID()},
+			{"dbRefNoDB", bson.D{{"$ref", "namespace"}, {"$id", referent}}},
+			{"dbPointer", bson.DBPointer{DB: "namespace", Pointer: referent}},
+			{"int64Small", int64(5000)},
+			{"int64Big", int64(9223372036854775)},
+			{"regex", bson.Regex{Pattern: `\.`}},
+			{"decimal", s.mustParseDecimal128("1234.5678")},
+			{"undefined", bson.Undefined{}},
+			{"symbol", bson.Symbol("a symbol")},
+		},
+	}
+	_, err := db.Collection("source").InsertMany(s.Context(), docs)
+	s.Require().NoError(err)
+
+	exportFile := s.exportJSONFile(&options.Namespace{DB: dbName, Collection: "source"}, false)
+	destNS := &options.Namespace{DB: dbName, Collection: "dest"}
+	s.Assert().EqualValues(
+		len(docs),
+		s.importJSONFile(destNS, exportFile, importFlags{}),
+		"every document with awkward types is imported",
+	)
+
+	s.Assert().Equal(
+		docs,
+		s.docsSortedByID(db.Collection("dest")),
+		"every BSON type comes back exactly as it went in",
+	)
+}
+
+// TestRoundTripMinKeyMaxKeyIDs checks that MinKey and MaxKey survive the round
+// trip in the one position where a wrong type breaks the document rather than
+// just a field: the _id.
+func (s *ExportImportSuite) TestRoundTripMinKeyMaxKeyIDs() {
+	const dbName = "mongoimport_minkey_maxkey_id_test"
+
+	db := s.Client().Database(dbName)
+	docs := []any{
+		bson.D{{"_id", bson.MinKey{}}},
+		bson.D{{"_id", bson.MaxKey{}}},
+	}
+	_, err := db.Collection("source").InsertMany(s.Context(), docs)
+	s.Require().NoError(err)
+
+	exportFile := s.exportJSONFile(&options.Namespace{DB: dbName, Collection: "source"}, false)
+	destNS := &options.Namespace{DB: dbName, Collection: "dest"}
+	s.Assert().EqualValues(
+		2,
+		s.importJSONFile(destNS, exportFile, importFlags{}),
+		"both key-extreme _ids are imported",
+	)
+
+	s.Assert().Equal(
+		docs,
+		s.docsSortedByID(db.Collection("dest")),
+		"MinKey and MaxKey _ids come back unchanged and in the same order",
+	)
+}
+
+// TestRoundTripUndefinedInArrays checks that an array holding undefined elements
+// round trips with the array's shape intact, in both the line-per-document and
+// --jsonArray output formats.
+func (s *ExportImportSuite) TestRoundTripUndefinedInArrays() {
+	const dbName = "mongoimport_undefined_array_test"
+
+	db := s.Client().Database(dbName)
+	sourceDoc := bson.D{
+		{"_id", bson.NewObjectID()},
+		{"a", int32(22)},
+		{"b", bson.A{"x", bson.Undefined{}, "y", bson.Undefined{}}},
+	}
+	_, err := db.Collection("source").InsertOne(s.Context(), sourceDoc)
+	s.Require().NoError(err)
+
+	sourceNS := &options.Namespace{DB: dbName, Collection: "source"}
+	destNS := &options.Namespace{DB: dbName, Collection: "dest"}
+
+	for _, jsonArray := range []bool{false, true} {
+		s.Run("jsonArray="+strconv.FormatBool(jsonArray), func() {
+			s.Require().NoError(db.Collection("dest").Drop(s.Context()))
+
+			exportFile := s.exportJSONFile(sourceNS, jsonArray)
+			s.Assert().EqualValues(
+				1,
+				s.importJSONFile(destNS, exportFile, importFlags{jsonArray: jsonArray}),
+				"the document is imported",
+			)
+
+			s.Assert().Equal(
+				[]any{sourceDoc},
+				s.docsSortedByID(db.Collection("dest")),
+				"the array's undefined elements keep their type and position",
+			)
+		})
+	}
+}
+
+// TestExportQueryOnNonFiniteDoubles checks that a --query naming NaN or an
+// infinity in canonical extended JSON reaches the server as the double it
+// denotes, so it selects exactly the documents holding that value.
+func (s *ExportImportSuite) TestExportQueryOnNonFiniteDoubles() {
+	nanDocs := []any{
+		bson.D{{"a", bson.A{1, 2, 3, math.NaN(), 4, nil, 5}}},
+		bson.D{{"a", bson.A{1, 2, 3, 4, 5}}},
+		bson.D{{"a", bson.A{math.NaN()}}},
+		bson.D{{"a", bson.A{1, 2, 3, 4, math.NaN(), math.NaN(), 5, math.NaN()}}},
+		bson.D{{"a", bson.A{1, 2, 3, 4, nil, nil, 5, nil}}},
+	}
+	inf, negInf := math.Inf(1), math.Inf(-1)
+	infDocs := []any{
+		bson.D{{"a", bson.A{1, 2, 3, inf, 4, nil, 5}}},
+		bson.D{{"a", bson.A{1, 2, 3, 4, 5}}},
+		bson.D{{"a", bson.A{inf}}},
+		bson.D{{"a", bson.A{1, 2, 3, 4, inf, inf, 5, negInf}}},
+		bson.D{{"a", bson.A{1, 2, 3, 4, nil, nil, 5, nil}}},
+		bson.D{{"a", bson.A{negInf}}},
+	}
+
+	cases := []struct {
+		name     string
+		docs     []any
+		query    string
+		expected int64
+		message  string
+	}{
+		{
+			"withoutNaN", nanDocs, `{"a":{"$nin":[{"$numberDouble":"NaN"}]}}`, 2,
+			"the query excludes every document holding a NaN",
+		},
+		{
+			"withNaN", nanDocs, `{"a":{"$numberDouble":"NaN"}}`, 3,
+			"the query selects every document holding a NaN",
+		},
+		{
+			"allNaNDocs", nanDocs, "", 5,
+			"an unfiltered export carries the NaN-bearing documents too",
+		},
+		{
+			"withoutInfinity", infDocs, `{"a":{"$nin":[{"$numberDouble":"Infinity"}]}}`, 3,
+			"the query excludes every document holding a positive infinity",
+		},
+		{
+			"withInfinity", infDocs, `{"a":{"$numberDouble":"Infinity"}}`, 3,
+			"the query selects every document holding a positive infinity",
+		},
+		{
+			"withoutNegInfinity", infDocs, `{"a":{"$nin":[{"$numberDouble":"-Infinity"}]}}`, 4,
+			"the query excludes every document holding a negative infinity",
+		},
+		{
+			"withNegInfinity", infDocs, `{"a":{"$numberDouble":"-Infinity"}}`, 2,
+			"the query selects every document holding a negative infinity",
+		},
+		{
+			"allInfinityDocs", infDocs, "", 6,
+			"an unfiltered export carries the infinity-bearing documents too",
+		},
+	}
+
+	db := s.Client().Database("mongoexport_nonfinite_query_test")
+	for _, c := range cases {
+		s.Run(c.name, func() {
+			n := s.exportAndImportWithQuery(db, c.docs, c.query, "")
+			s.Assert().EqualValues(c.expected, n, c.message)
+		})
+	}
+}
+
+func (s *ExportImportSuite) mustParseDecimal128(value string) bson.Decimal128 {
+	dec, err := bson.ParseDecimal128(value)
+	s.Require().NoError(err)
+	return dec
 }

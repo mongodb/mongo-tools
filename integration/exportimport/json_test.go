@@ -7,7 +7,12 @@
 package exportimport
 
 import (
+	"encoding/base64"
+	"math"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testutil"
@@ -152,6 +157,164 @@ func (s *ExportImportSuite) TestRoundTripJSONArray() {
 		c, err := coll.CountDocuments(s.Context(), bson.D{{"_id", i}})
 		s.Require().NoError(err)
 		s.Assert().EqualValues(1, c, "document with _id %d should exist", i)
+	}
+}
+
+// legacyTypesJSON is the fixture the JS test read from
+// jstests/import/testdata/types.json. It is legacy extended JSON, which is why
+// it can spell a value as BinData(...) or NumberInt(5) or a bare hex literal.
+const legacyTypesJSON = `{   "double_type" : 5.0,
+    "double_exponent_type" : 5e+32,
+    "double_negative_type" : -5.0,
+    "NaN": NaN,
+    "infinity" : Infinity,
+    "negative_infinity" : -Infinity,
+    "string_type" : "sample string",
+    "object_type" : {"sample" : "object"},
+    "binary_data" : BinData(3, "e8MEnzZoFyMmD7WSHdNrFJyEk8M="),
+    "undefined_type" : undefined,
+    "object_id_type" : ObjectId("54b03ef2a817f4f960f5b809"),
+    "true_type" : true,
+    "false_type" : false,
+    "date_type" : Date(45),
+    "iso_date_type" : ISODate("2015-02-25T16:42:11Z"),
+    "null_type" : null,
+    "int32_type" : 5,
+    "int32_negative_type" : -5,
+    "number_int_type" : NumberInt(5),
+    "int32_hex" : 0x123,
+    "int64_type" : 214748364765,
+    "int64_negative_type" : -214748364765,
+    "number_long_type" : NumberLong(5000),
+    "minkey_type" : { "$minKey" : 1 },
+    "maxkey_type" : { "$maxKey" : 1 },
+    "regex_type" : { "$regex" : "\\.", "$options" : "" }
+}
+`
+
+// TestImportLegacyExtendedJSONTypes checks that --legacy accepts every legacy
+// extended-JSON spelling of a BSON value and stores each one as the value and
+// the type that spelling denotes. The JS test this replaces checked only the
+// types with $type queries, which let a wrong value through: a hex literal
+// parsed as 0 is still an int, and Date(45) parsed as the epoch is still a date.
+// Comparing the decoded values catches both, and because the Go type of each
+// expected value is the BSON type it decodes from, it also subsumes the type
+// checks — an int32 stored where an int64 was written no longer compares equal.
+func (s *ExportImportSuite) TestImportLegacyExtendedJSONTypes() {
+	const dbName = "mongoimport_legacy_types_test"
+
+	coll := s.Client().Database(dbName).Collection("types")
+	fixture := filepath.Join(s.T().TempDir(), "types.json")
+	s.Require().NoError(os.WriteFile(fixture, []byte(legacyTypesJSON), 0o600))
+
+	ns := &options.Namespace{DB: dbName, Collection: "types"}
+	s.Require().EqualValues(
+		1,
+		s.importJSONFile(ns, fixture, importFlags{legacy: true}),
+		"the legacy extended JSON document is imported",
+	)
+
+	var imported bson.M
+	s.Require().NoError(coll.FindOne(s.Context(), bson.D{}).Decode(&imported))
+
+	binaryData, err := base64.StdEncoding.DecodeString("e8MEnzZoFyMmD7WSHdNrFJyEk8M=")
+	s.Require().NoError(err)
+	objectID, err := bson.ObjectIDFromHex("54b03ef2a817f4f960f5b809")
+	s.Require().NoError(err)
+
+	expected := []struct {
+		field string
+		value any
+	}{
+		{"double_type", 5.0},
+		{"double_exponent_type", 5e+32},
+		{"double_negative_type", -5.0},
+		{"infinity", math.Inf(1)},
+		{"negative_infinity", math.Inf(-1)},
+		{"string_type", "sample string"},
+		{"object_type", bson.D{{"sample", "object"}}},
+		{"binary_data", bson.Binary{Subtype: 3, Data: binaryData}},
+		{"undefined_type", bson.Undefined{}},
+		{"object_id_type", objectID},
+		{"true_type", true},
+		{"false_type", false},
+		{"date_type", bson.NewDateTimeFromTime(time.UnixMilli(45).UTC())},
+		{
+			"iso_date_type",
+			bson.NewDateTimeFromTime(time.Date(2015, 2, 25, 16, 42, 11, 0, time.UTC)),
+		},
+		{"int32_type", int32(5)},
+		{"int32_negative_type", int32(-5)},
+		{"number_int_type", int32(5)},
+		{"int32_hex", int32(0x123)},
+		{"int64_type", int64(214748364765)},
+		{"int64_negative_type", int64(-214748364765)},
+		{"number_long_type", int64(5000)},
+		{"minkey_type", bson.MinKey{}},
+		{"maxkey_type", bson.MaxKey{}},
+		{"regex_type", bson.Regex{Pattern: `\.`}},
+	}
+	for _, e := range expected {
+		s.Assert().Equal(e.value, imported[e.field], "%s is stored as %#v", e.field, e.value)
+	}
+
+	// NaN never compares equal to itself, and a null is indistinguishable from an
+	// absent field once decoded, so these two are checked on their own terms.
+	nan, ok := imported["NaN"].(float64)
+	if s.Assert().True(ok, "NaN is stored as a double") {
+		s.Assert().True(math.IsNaN(nan), "NaN is stored as a NaN")
+	}
+	n, err := coll.CountDocuments(s.Context(), bson.D{{"null_type", bson.D{{"$type", "null"}}}})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, n, "null_type is stored as a null rather than left out")
+}
+
+// TestRoundTripJSONArrayOverMaxBSONSize checks that --jsonArray handles an
+// export whose single array is far larger than the 16MB maximum BSON document
+// size, in both directions: mongoexport has to stream the array out rather than
+// build it, and mongoimport has to read documents out of it incrementally.
+func (s *ExportImportSuite) TestRoundTripJSONArrayOverMaxBSONSize() {
+	const dbName = "mongoimport_jsonarray_bigarray_test"
+	const targetBytes = 20 * 1024 * 1024
+
+	db := s.Client().Database(dbName)
+	filler := strings.Repeat("a", 1024)
+	sizedDoc, err := bson.Marshal(bson.D{{"_id", bson.NewObjectID()}, {"x", filler}})
+	s.Require().NoError(err)
+	numDocs := targetBytes / len(sizedDoc)
+
+	docs := make([]any, numDocs)
+	for i := range numDocs {
+		docs[i] = bson.D{{"x", filler}}
+	}
+	_, err = db.Collection("source").InsertMany(s.Context(), docs)
+	s.Require().NoError(err)
+
+	exportFile := s.exportJSONFile(&options.Namespace{DB: dbName, Collection: "source"}, true)
+	info, err := os.Stat(exportFile)
+	s.Require().NoError(err)
+	s.Require().Greater(
+		info.Size(), int64(16*1024*1024),
+		"the exported array is larger than the maximum BSON document size",
+	)
+
+	destNS := &options.Namespace{DB: dbName, Collection: "dest"}
+	s.Assert().EqualValues(
+		numDocs,
+		s.importJSONFile(destNS, exportFile, importFlags{jsonArray: true}),
+		"every document in the oversized array is imported",
+	)
+
+	// Comparing the two slices with a single Equal would dump both collections —
+	// tens of megabytes — into the failure message, leaving the one document that
+	// differs impossible to find, so they are walked in step instead.
+	sourceDocs := s.docsSortedByID(db.Collection("source"))
+	destDocs := s.docsSortedByID(db.Collection("dest"))
+	s.Require().Len(destDocs, len(sourceDocs), "both collections hold the same number of documents")
+	for i := range sourceDocs {
+		if !s.Assert().Equal(sourceDocs[i], destDocs[i], "document %d survives the round trip", i) {
+			break
+		}
 	}
 }
 
