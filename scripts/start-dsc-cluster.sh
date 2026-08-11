@@ -8,9 +8,9 @@
 # image tag are read from the tarball rather than from a mongo repo checkout so they can never
 # drift from the Server binaries they were built alongside.
 #
-# This script starts a cluster and stops. It does not run tests. Cluster startup pays for a docker
-# compose project and, on a first run, several minutes of SLS image pulls, and that cost should not
-# be re-paid on every test iteration while triaging failures.
+# This script starts a cluster and then exits, leaving it running. It does not run tests. Cluster
+# startup pays for a docker compose project and, on a first run, several minutes of SLS image pulls,
+# and that cost should not be re-paid on every test iteration while triaging failures.
 #
 # Tear down with scripts/stop-dsc-cluster.sh.
 
@@ -31,7 +31,7 @@ set -o pipefail
 VERSION_LABEL="9.0-dsc"
 # Absolute, not relative: mongodb-runner spawns mongod from its own working directory rather than
 # ours, so a relative --binDir fails with "spawn dsc-cluster/server/bin/mongod ENOENT" even though
-# the binary is right there. mkdir first so realpath has something to resolve.
+# the binary is right there. Deriving from $0 also lets this run from any working directory.
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLUSTER_DIR="${REPO_ROOT:?}/dsc-cluster"
 INSTALL_DIR="${CLUSTER_DIR:?}/server"
@@ -81,14 +81,30 @@ for f in "${COMPOSE_FILE:?}" "${MANIFEST:?}" "${ATLAS_DIR:?}/slsbackup.proto" "$
 done
 
 # The SLS image tag must be the pinned commit from the same Server commit as the binaries, which is
-# exactly what the tarball's own manifest records.
+# exactly what the tarball's own manifest records. Read it rather than hardcoding it, so the tag can
+# never drift from the binaries it was built alongside.
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required to read pinned_sls_commit from ${MANIFEST}" >&2
+    exit 1
+fi
+
 SLS_IMAGE_TAG="$(python3 -c "import json; print(json.load(open('${MANIFEST:?}'))['pinned_sls_commit'])")"
 
 echo "Starting a DSC replica set (SLS image tag ${SLS_IMAGE_TAG:?}). The first run pulls all SLS images and can take several minutes." >&2
 
+# mongodb-runner tears down its own compose project when startup fails partway through, but once
+# start SUCCEEDS the cluster is ours to clean up. Anything that fails after this point would
+# otherwise strand a live 2-node cluster and its compose project with no hint about how to get rid
+# of them, so from here on a non-zero exit tears the cluster down first.
+cleanup_started_cluster() {
+    echo "start failed after the cluster came up; tearing it down" >&2
+    "$(dirname "$0")/stop-dsc-cluster.sh" || echo "teardown also failed; run scripts/stop-dsc-cluster.sh by hand" >&2
+}
+
 # --debug because a DSC startup failure is otherwise very hard to diagnose: the useful detail is in
-# the compose output and the per-mongod logs. Debug goes to stderr, so stdout stays parseable for
-# the connection string.
+# the compose output and the per-mongod logs. The runner writes its diagnostics to stderr and only
+# the connection string to stdout, so capturing stdout keeps it parseable; the tee is there purely
+# to keep those diagnostics visible on the terminal as they happen.
 OUTPUT="$(node "${RUNNER:?}" start \
     --topology=replset \
     --slsCompose="${COMPOSE_FILE:?}" \
@@ -98,13 +114,21 @@ OUTPUT="$(node "${RUNNER:?}" start \
     --id="${CLUSTER_ID:?}" \
     --debug | tee /dev/stderr)"
 
+trap cleanup_started_cluster EXIT
+
+# The runner prints the cluster URI last, after the per-node startup chatter, so take the final
+# match rather than the first.
 CONNECTION_STRING="$(echo "${OUTPUT:?}" | grep -oE 'mongodb://[^ ]+' | tail -1)"
 if [ -z "${CONNECTION_STRING}" ]; then
-    echo "the runner started but printed no mongodb:// connection string; check ${LOG_DIR}" >&2
+    echo "the cluster started but printed no mongodb:// connection string; check ${LOG_DIR}" >&2
     exit 1
 fi
 
 echo "${CONNECTION_STRING:?}" >"${CLUSTER_DIR:?}/connection-string"
+
+# The cluster is up and usable, so stop treating exit as a failure -- leaving it running is the
+# whole point of this script.
+trap - EXIT
 
 echo
 echo "export TOOLS_TESTING_MONGOD='${CONNECTION_STRING:?}'"
