@@ -39,6 +39,9 @@ func (q *DeferredQuery) Count(isView bool) (int, error) {
 	}
 
 	opt := mopt.Count()
+	if q.Hint != nil {
+		opt.SetHint(q.Hint)
+	}
 	c, err := q.Coll.CountDocuments(context.TODO(), filter, opt)
 	return int(c), err
 }

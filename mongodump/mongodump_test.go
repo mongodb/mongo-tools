@@ -2564,6 +2564,129 @@ func TestBrokenPipe(t *testing.T) {
 	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))
 }
 
+// TestMongoDumpMaxEstimatedScanBytes verifies that mongodump can dump a collection larger than the
+// server's maxEstimatedScanBytes threshold (SERVER-127688, added in 9.0). An unfiltered dump plans
+// an unbounded COLLSCAN, which the server rejects with NoQueryExecutionPlans unless the query
+// carries a $natural hint. The view case additionally covers the count that mongodump issues
+// before dumping, which goes through CountDocuments rather than the find.
+func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "get session provider")
+	defer sessionProvider.Close()
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get server version")
+	if serverVersion.LT(db.Version{9, 0, 0}) {
+		t.Skipf("maxEstimatedScanBytes was added in 9.0; testing with %s", serverVersion.String())
+	}
+
+	// setParameter on a mongos does not reach the shards, so the knob would never be applied to
+	// the nodes that actually plan the query.
+	isMongos, err := sessionProvider.IsMongos()
+	require.NoError(t, err, "check for mongos")
+	if isMongos {
+		t.Skip("setParameter does not propagate from mongos to shards")
+	}
+
+	session, err := sessionProvider.GetSession()
+	require.NoError(t, err, "get session")
+
+	const collName = "max_estimated_scan_bytes"
+	const viewName = "max_estimated_scan_bytes_view"
+	const numDocs = 100
+
+	coll := session.Database(testDB).Collection(collName)
+	require.NoError(t, coll.Drop(t.Context()), "drop existing collection")
+	_ = session.Database(testDB).Collection(viewName).Drop(t.Context())
+
+	docs := make([]any, numDocs)
+	for i := range docs {
+		docs[i] = bson.D{{"_id", i}, {"pad", strings.Repeat("x", 1024)}}
+	}
+	_, err = coll.InsertMany(t.Context(), docs)
+	require.NoError(t, err, "insert test documents")
+
+	err = session.Database(testDB).
+		CreateView(t.Context(), viewName, collName, mongo.Pipeline{})
+	require.NoError(t, err, "create view")
+
+	// The collection is ~100KB, so any threshold well below that triggers the rejection.
+	setKnob := func(value any) {
+		var res bson.M
+		err := sessionProvider.Run(
+			bson.D{{"setParameter", 1}, {"maxEstimatedScanBytes", value}},
+			&res,
+			"admin",
+		)
+		require.NoError(t, err, "set maxEstimatedScanBytes to %v", value)
+	}
+	setKnob(int64(1024))
+	defer setKnob(int64(-1))
+
+	countDumpedDocs := func(t *testing.T, dumpDir, name string) int {
+		file, err := os.Open(filepath.Join(dumpDir, testDB, name+".bson"))
+		require.NoError(t, err, "open dumped %s", name)
+		defer file.Close()
+
+		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(file))
+		defer bsonSource.Close()
+
+		count := 0
+		var result bson.D
+		for bsonSource.Next(&result) {
+			count++
+		}
+		require.NoError(t, bsonSource.Err(), "read dumped %s", name)
+		return count
+	}
+
+	// --viewsAsCollections omits standard collections, so the find path and the count path need
+	// separate dumps.
+	t.Run("collection", func(t *testing.T) {
+		dumpDir, cleanupDir := testutil.MakeTempDir(t)
+		defer cleanupDir()
+
+		md, err := simpleMongoDumpInstance()
+		require.NoError(t, err, "create mongodump instance")
+		md.OutputOptions.Out = dumpDir
+		require.NoError(t, md.Init(), "mongodump init")
+		require.NoError(t, md.Dump(), "dump a collection larger than maxEstimatedScanBytes")
+
+		assert.Equal(
+			t,
+			numDocs,
+			countDumpedDocs(t, dumpDir, collName),
+			"all documents were dumped from the collection",
+		)
+	})
+
+	t.Run("view", func(t *testing.T) {
+		dumpDir, cleanupDir := testutil.MakeTempDir(t)
+		defer cleanupDir()
+
+		md, err := simpleMongoDumpInstance()
+		require.NoError(t, err, "create mongodump instance")
+		md.OutputOptions.Out = dumpDir
+		md.OutputOptions.ViewsAsCollections = true
+		require.NoError(t, md.Init(), "mongodump init")
+		require.NoError(
+			t,
+			md.Dump(),
+			"dump a view over a collection larger than maxEstimatedScanBytes",
+		)
+
+		assert.Equal(
+			t,
+			numDocs,
+			countDumpedDocs(t, dumpDir, viewName),
+			"all documents were dumped from the view",
+		)
+	})
+}
+
 // TestTimeseriesDumpConcurrentWithSetFCV exercises the open item from the TOOLS-4182
 // investigation: a long-running mongodump that overlaps a setFCV, which on 9.0+ converts
 // timeseries collections between their viewless and viewful forms (SERVER-114505). The
