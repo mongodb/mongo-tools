@@ -781,3 +781,157 @@ func cappedPositionLostError() error {
 			" (injected by the FailOplogCheckRead failpoint)",
 	}
 }
+
+// TestOplogDumpRejectsRename checks that an `--oplog` dump fails when a collection is renamed while
+// it runs. A rename is not replayable against a dump taken around it, so the resulting oplog would
+// not restore.
+func TestOplogDumpRejectsRename(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	// Oplog is not available in a standalone topology.
+	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+
+	const (
+		dbName   = "oplog_rename_test"
+		fromColl = "bar1"
+		toColl   = "bar2"
+	)
+
+	client, err := testutil.GetBareSession(t)
+	require.NoError(t, err)
+
+	renameDB := client.Database(dbName)
+	t.Cleanup(func() { _ = renameDB.Drop(context.Background()) })
+	_, err = renameDB.Collection(fromColl).InsertOne(context.Background(), bson.D{{"x", 1}})
+	require.NoError(t, err, "seeding the collection that gets renamed")
+
+	err = dumpWithOplogWhilePaused(t, func() {
+		res := client.Database("admin").RunCommand(context.Background(), bson.D{
+			{"renameCollection", dbName + "." + fromColl},
+			{"to", dbName + "." + toColl},
+		})
+		require.NoError(t, res.Err(), "renaming the collection while the dump is paused")
+	})
+	require.ErrorContains(
+		t,
+		err,
+		"cannot dump with oplog while renames occur",
+		"a rename inside the dump's oplog window fails the dump",
+	)
+}
+
+// TestOplogDumpRejectsAdminSystemVersionChange checks that an `--oplog` dump fails when
+// admin.system.version is written while it runs. That collection holds the FCV document, so a
+// change to it mid-dump means the dump spans two different server feature sets and the oplog cannot
+// be replayed as one unit.
+func TestOplogDumpRejectsAdminSystemVersionChange(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	// Oplog is not available in a standalone topology.
+	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+
+	client, err := testutil.GetBareSession(t)
+	require.NoError(t, err)
+
+	// The real FCV document lives here, so this writes and removes a document of its own rather
+	// than touching anything the server put there.
+	systemVersion := client.Database("admin").Collection("system.version")
+	const dummyID = "mongodump-oplog-test"
+	t.Cleanup(func() {
+		_, _ = systemVersion.DeleteOne(context.Background(), bson.D{{"_id", dummyID}})
+	})
+
+	err = dumpWithOplogWhilePaused(t, func() {
+		_, err := systemVersion.InsertOne(
+			context.Background(),
+			bson.D{{"_id", dummyID}, {"dummy", true}},
+		)
+		require.NoError(t, err, "writing to admin.system.version while the dump is paused")
+	})
+	require.ErrorContains(
+		t,
+		err,
+		"cannot dump with oplog if admin.system.version is modified",
+		"a write to admin.system.version inside the dump's oplog window fails the dump",
+	)
+}
+
+// TestOplogDumpFailsOnStandalone checks that `--oplog` against a standalone fails before writing
+// anything. A standalone keeps no oplog, so there is nothing for mongodump to capture and no
+// point-in-time dump it can produce.
+func TestOplogDumpFailsOnStandalone(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipUnlessStandalone(t)
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
+	md.ToolOptions.DB = ""
+	md.OutputOptions.Oplog = true
+	md.OutputOptions.Out = t.TempDir()
+	require.NoError(t, md.Init())
+
+	err = md.Dump()
+	require.ErrorContains(
+		t, err, "error getting oplog start",
+		"an --oplog dump of a server with no oplog fails",
+	)
+
+	entries, err := os.ReadDir(md.OutputOptions.Out)
+	require.NoError(t, err, "can read the dump directory")
+	assert.Empty(t, entries, "the failed dump wrote nothing")
+}
+
+// TestOplogDumpFailsOnSharded checks that `--oplog` against a sharded cluster fails. Mongodump does
+// not support oplog dump with sharded clusters.
+func TestOplogDumpFailsOnSharded(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.ShardedIntegrationTestType)
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
+	md.ToolOptions.DB = ""
+	md.OutputOptions.Oplog = true
+	md.OutputOptions.Out = t.TempDir()
+	require.NoError(t, md.Init())
+
+	err = md.Dump()
+	require.ErrorContains(
+		t, err, "error getting oplog start",
+		"an --oplog dump of a sharded cluster fails",
+	)
+
+	entries, err := os.ReadDir(md.OutputOptions.Out)
+	require.NoError(t, err, "can read the dump directory")
+	assert.Empty(t, entries, "the failed dump wrote nothing")
+}
+
+// dumpWithOplogWhilePaused runs a whole-cluster --oplog dump, pausing it after it
+// has captured its starting oplog timestamp so that whatever modify does is
+// guaranteed to land inside the dump's oplog window. It returns the dump's error.
+func dumpWithOplogWhilePaused(t *testing.T, modify func()) error {
+	t.Helper()
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
+	md.ToolOptions.DB = ""
+	md.OutputOptions.Oplog = true
+	md.OutputOptions.Out = t.TempDir()
+	require.NoError(t, md.Init())
+
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.PauseUntilResumed.String()))
+	defer failpoint.DefaultManager.Reset()
+
+	dumpErrCh := make(chan error, 1)
+	go func() {
+		dumpErrCh <- md.Dump()
+	}()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
+	require.True(t, ok, "the PauseUntilResumed failpoint is enabled")
+	require.NoError(t, fp.Reached(context.TODO()), "the dump reaches the pause")
+
+	modify()
+	fp.Signal()
+
+	return <-dumpErrCh
+}
