@@ -10,6 +10,8 @@ set -o pipefail
 : "${DEVTOOLS_SHARED:?path to a checkout of devtools-shared PR 822 (DSC support)}"
 
 CLUSTER_ID="tools-dsc"
+# Derived the same way start-dsc-cluster.sh derives it, so this works from any working directory.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 node "${DEVTOOLS_SHARED:?}/packages/mongodb-runner/bin/runner.js" stop --id="${CLUSTER_ID:?}"
-rm -f ./dsc-cluster/connection-string
+rm -f "${REPO_ROOT:?}/dsc-cluster/connection-string"

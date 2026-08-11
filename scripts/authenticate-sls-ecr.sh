@@ -18,10 +18,13 @@
 # that cannot pull, so verify with `docker manifest inspect` if a pull later fails.
 
 set -o errexit
+set -o nounset
 set -o pipefail
 
+# These are literals rather than inputs, so they carry no ":?" guard -- a guard on a value assigned
+# one line above can never fire, and writing one implies these come from the environment.
 REGISTRY_ID="664315256653"
-ECR="${REGISTRY_ID:?}.dkr.ecr.us-east-1.amazonaws.com"
+ECR="${REGISTRY_ID}.dkr.ecr.us-east-1.amazonaws.com"
 REGION="us-east-1"
 
 if [ -n "${SLS_ECR_AWS_PROFILE:-}" ]; then
@@ -35,9 +38,9 @@ fi
 # get-login-password does not.
 set -o xtrace
 aws ecr get-authorization-token \
-    --region "${REGION:?}" \
-    --registry-ids "${REGISTRY_ID:?}" \
+    --region "${REGION}" \
+    --registry-ids "${REGISTRY_ID}" \
     --query 'authorizationData[0].authorizationToken' \
     --output text |
     base64 -d | cut -d: -f2- |
-    docker login --username AWS --password-stdin "${ECR:?}"
+    docker login --username AWS --password-stdin "${ECR}"
