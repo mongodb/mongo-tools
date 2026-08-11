@@ -709,3 +709,72 @@ func rowsContainValue(rows []map[string]string, col, val string) bool {
 	}
 	return false
 }
+
+// TestMongoExportMaxEstimatedScanBytes verifies that mongoexport can export a collection larger
+// than the server's maxEstimatedScanBytes threshold (SERVER-127688, added in 9.0). An export with
+// neither a query nor a sort plans an unbounded COLLSCAN, which the server rejects with
+// NoQueryExecutionPlans unless the query carries a $natural hint.
+func TestMongoExportMaxEstimatedScanBytes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	log.SetWriter(io.Discard)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	require.NoError(t, err, "no cluster available")
+	defer sessionProvider.Close()
+
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "get server version")
+	if serverVersion.LT(db.Version{9, 0, 0}) {
+		t.Skipf("maxEstimatedScanBytes was added in 9.0; testing with %s", serverVersion.String())
+	}
+
+	// setParameter on a mongos does not reach the shards, so the knob would never be applied to
+	// the nodes that actually plan the query.
+	isMongos, err := sessionProvider.IsMongos()
+	require.NoError(t, err, "check for mongos")
+	if isMongos {
+		t.Skip("setParameter does not propagate from mongos to shards")
+	}
+
+	session, err := sessionProvider.GetSession()
+	require.NoError(t, err, "get session")
+
+	const collName = "max_estimated_scan_bytes"
+	const numDocs = 100
+
+	coll := session.Database(testDB).Collection(collName)
+	require.NoError(t, coll.Drop(context.Background()), "drop existing collection")
+
+	docs := make([]any, numDocs)
+	for i := range docs {
+		docs[i] = bson.D{{"_id", i}, {"pad", strings.Repeat("x", 1024)}}
+	}
+	_, err = coll.InsertMany(context.Background(), docs)
+	require.NoError(t, err, "insert test documents")
+
+	// The collection is ~100KB, so any threshold well below that triggers the rejection.
+	setKnob := func(value any) {
+		var res bson.M
+		err := sessionProvider.Run(
+			bson.D{{"setParameter", 1}, {"maxEstimatedScanBytes", value}},
+			&res,
+			"admin",
+		)
+		require.NoError(t, err, "set maxEstimatedScanBytes to %v", value)
+	}
+	setKnob(int64(1024))
+	defer setKnob(int64(-1))
+
+	opts, err := simpleMongoExportOpts()
+	require.NoError(t, err)
+	opts.Collection = collName
+
+	me, err := New(opts)
+	require.NoError(t, err)
+	defer me.Close()
+
+	out := &bytes.Buffer{}
+	exported, err := me.Export(out)
+	require.NoError(t, err, "export a collection larger than maxEstimatedScanBytes")
+	assert.EqualValues(t, numDocs, exported, "all documents were exported")
+}
