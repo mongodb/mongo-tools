@@ -1,0 +1,11 @@
+{
+    "serverBinaries": {
+        "ubuntu2204-x86_64": {
+            "9.0-dsc": {
+                "tarball": "ubuntu2204-x86_64-9.0-dsc-d7c2447c3b179f58a763a9b40d7ead349f2a935d.tar.xz",
+                "commit": "d7c2447c3b179f58a763a9b40d7ead349f2a935d"
+            }
+        }
+    },
+    "resmoke": null
+}

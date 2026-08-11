@@ -1,0 +1,31 @@
+# Pins the unreleased 9.0 disaggregated-storage (DSC) Server build that the tools integration
+# suite is tested against on a DSC cluster. See TOOLS-4100.
+#
+# `disagg: true` selects the disaggregated-storage build variants and the master Evergreen
+# project. It also makes mongodb-downloader ship the four buildscripts/modules/atlas files
+# (sls-multicell-docker-compose.yml, slsbackup.proto, flags-state.json, manifest.json) inside the
+# tarball, read from this same commit. That is what lets scripts/start-dsc-cluster.sh drive
+# mongodb-runner without a mongo repo checkout, and it is why the compose file and SLS image tag
+# can never drift from the binaries.
+#
+# Credentials never live here: AWS comes from the environment or --aws-profile, Evergreen from
+# EVERGREEN_API_USER/EVERGREEN_API_KEY or the evergreen CLI's OAuth flow.
+s3:
+  bucket: c2c-testing-server-artifacts
+  region: us-east-1
+  serverBinariesPrefix: server-binaries
+  resmokePrefix: resmoke
+
+serverVersions:
+  # The "-dsc" suffix distinguishes this from a plain 9.0 entry that might be added later for the
+  # same underlying Server version with a non-disagg build configuration.
+  - version: "9.0-dsc"
+    commit: d7c2447c3b179f58a763a9b40d7ead349f2a935d
+    disagg: true
+    # This effort runs the Go integration suite, not resmoke JS tests.
+    resmoke: false
+    platforms:
+      # Only the platform we actually test on. Ubuntu 24.04 hosts use these 22.04 binaries; the
+      # downloader reports the local platform as ubuntu2204 there.
+      - os: ubuntu2204
+        arch: x86_64
