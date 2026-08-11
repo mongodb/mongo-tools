@@ -21,12 +21,14 @@ set -o pipefail
 : "${MONGODB_DOWNLOADER:?path to the built mongodb-downloader binary}"
 : "${DEVTOOLS_SHARED:?path to a checkout of devtools-shared PR 822 (DSC support)}"
 
-# Two different AWS accounts are involved and one profile cannot do both jobs: the Server tarball
-# lives in an S3 bucket one account can read, and the SLS images live in an ECR registry a different
-# account can pull from. So the ECR login gets its own profile, and AWS_PROFILE is left alone for
-# the downloader. Point SLS_ECR_AWS_PROFILE at a profile permitted to pull from account
-# 664315256653 -- note that a profile can log in successfully and still be unable to pull.
-: "${SLS_ECR_AWS_PROFILE:?an AWS profile that can PULL from ECR account 664315256653}"
+# Optional, because whether one profile can do both jobs depends on how your AWS access is set up.
+# Two different accounts are involved: the Server tarball lives in an S3 bucket one account can read,
+# and the SLS images live in ECR account 664315256653, which a different account may be the one
+# permitted to pull from. Set SLS_ECR_AWS_PROFILE to run just the ECR login under its own profile,
+# leaving AWS_PROFILE to the downloader; leave it unset if a single profile covers both.
+#
+# Note that a profile can log in to the registry successfully and still be unable to pull, because
+# minting a token only needs access in the caller's own account.
 
 VERSION_LABEL="9.0-dsc"
 # Absolute, not relative: mongodb-runner spawns mongod from its own working directory rather than
