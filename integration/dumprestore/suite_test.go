@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -54,6 +55,82 @@ func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
 
 	// So we can see dump's output when debugging test failures:
 	fmt.Print(string(out))
+}
+
+// concurrentInsertCap bounds the background inserts. mongodump runs as a
+// subprocess that has to be compiled first, so an unbounded loop would insert
+// for as long as that takes and then make the restore pay for all of it.
+const concurrentInsertCap = 10_000
+
+// withConcurrentInserts runs body while a background goroutine inserts documents
+// into coll. body is handed a stopInserts function that ends the inserts, waits
+// for the goroutine to finish and asserts that every insert succeeded; call it at
+// the point where the count of inserted documents needs to stop moving.
+//
+// The inserts also stop when body returns by any path. That matters because an
+// assertion failure inside body ends its goroutine through runtime.Goexit, and
+// inserts left running would then write into the next test's database.
+func (s *DumpRestoreSuite) withConcurrentInserts(
+	coll *mongo.Collection,
+	body func(stopInserts func()),
+) {
+	// Captured here rather than called from the goroutine: s.Context() reads
+	// s.T(), which testify swaps out when it moves to the next test method.
+	ctx := s.Context()
+
+	stop := make(chan struct{})
+	var stopOnce sync.Once
+	var inserter sync.WaitGroup
+	var insertErr error
+	var hitCap bool
+
+	endInserts := func() {
+		stopOnce.Do(func() { close(stop) })
+		inserter.Wait()
+	}
+
+	inserter.Add(1)
+	go func() {
+		defer inserter.Done()
+
+		for i := range concurrentInsertCap {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+
+			if _, err := coll.InsertOne(ctx, bson.D{{"_id", concurrentDocID(i)}}); err != nil {
+				insertErr = err
+
+				return
+			}
+		}
+
+		hitCap = true
+	}()
+
+	defer endInserts()
+
+	body(func() {
+		endInserts()
+		s.Require().NoError(insertErr, "the background inserts all succeeded")
+		// Callers rely on the inserts still being in flight when they stop them.
+		// Running out first is not a wrong answer to assert against, it means the
+		// fixture stopped exercising what the test is about, so say so plainly
+		// rather than letting the test pass on a degenerate run.
+		s.Require().False(
+			hitCap,
+			"the background inserts were still running when the test stopped them; "+
+				"raise concurrentInsertCap",
+		)
+	})
+}
+
+// concurrentDocID gives the background documents _ids of their own rather than
+// letting the server assign ObjectIDs, so that tests can compare sets of _ids.
+func concurrentDocID(i int) string {
+	return fmt.Sprintf("concurrent-%d", i)
 }
 
 func (s *DumpRestoreSuite) createCollectionsWithTestDocuments(
