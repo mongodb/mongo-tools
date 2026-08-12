@@ -10,6 +10,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -1494,8 +1495,58 @@ func downloadMongodAndShell(v string) {
 
 	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
 		// serverVersion >= 6.0.0, download mongo shell.
-		downloadArtifacts(serverVersion, []string{"Jstestshell"})
+		downloadShell(&feed, v, pf, serverVersion)
 	}
+}
+
+// maxShellDownloadAttempts is how many patch releases we will try before giving up on finding a
+// downloadable jstestshell.
+const maxShellDownloadAttempts = 5
+
+// downloadShell downloads the jstestshell for serverVersion. The shell is published through
+// Evergreen rather than the JSON feed, so it can be missing for a patch release whose server
+// tarball is present. The shell is a pure client, so when that happens we fall back to the shell
+// from an older patch release of the same major.minor rather than failing the task.
+func downloadShell(
+	feed *download.ServerJSONFeed,
+	requestedVersion string,
+	pf platform.Platform,
+	serverVersion string,
+) {
+	candidates := feed.CandidateVersions(
+		requestedVersion,
+		pf,
+		"enterprise",
+		maxShellDownloadAttempts,
+	)
+	if len(candidates) == 0 {
+		candidates = []string{serverVersion}
+	}
+
+	var errs []error
+	for _, c := range candidates {
+		err := tryDownloadArtifacts(c, []string{"Jstestshell"})
+		if err == nil {
+			if c != serverVersion {
+				fmt.Printf(
+					"warning: using the jstestshell from %s with the %s server\n",
+					c,
+					serverVersion,
+				)
+			}
+			return
+		}
+
+		fmt.Printf("failed to download the jstestshell for %s: %v\n", c, err)
+		errs = append(errs, fmt.Errorf("%s: %w", c, err))
+	}
+
+	check(
+		errors.Join(errs...),
+		"download the jstestshell for %s after trying %d version(s)",
+		serverVersion,
+		len(candidates),
+	)
 }
 
 func downloadBinaries(url string) {
@@ -1645,12 +1696,20 @@ func untargz(src, dst string) {
 }
 
 func downloadArtifacts(v string, artifactNames []string) {
+	check(tryDownloadArtifacts(v, artifactNames), "download artifacts %s", artifactNames)
+}
+
+// tryDownloadArtifacts is downloadArtifacts, but it returns an error instead of exiting so that
+// callers can retry with a different version.
+func tryDownloadArtifacts(v string, artifactNames []string) error {
 	if v == "" {
-		log.Fatalf("invalid empty version string")
+		return errors.New("invalid empty version string")
 	}
 
 	pf, err := platform.GetFromEnv()
-	check(err, "get platform")
+	if err != nil {
+		return fmt.Errorf("get platform: %w", err)
+	}
 	fmt.Printf("platform: %v\n", pf)
 
 	fmt.Printf("Version: %s\n", v)
@@ -1659,18 +1718,14 @@ func downloadArtifacts(v string, artifactNames []string) {
 	fmt.Printf("grepArg: %s\n", grepArg)
 
 	pwd, err := os.Getwd()
-	check(err, "os.Getwd")
+	if err != nil {
+		return fmt.Errorf("os.Getwd: %w", err)
+	}
 	fmt.Printf("pwd: %s\n", pwd)
 
-	_, err = run(
-		"git",
-		"clone",
-		fmt.Sprintf(
-			"https://x-access-token:%s@github.com/10gen/mongo-release.git",
-			getMongoReleaseAccessToken(),
-		),
-	)
-	check(err, "git clone")
+	if err := cloneMongoRelease(); err != nil {
+		return err
+	}
 
 	githash, err := run(
 		"git",
@@ -1680,23 +1735,36 @@ func downloadArtifacts(v string, artifactNames []string) {
 		"--pretty=format:%H",
 		grepArg,
 	)
-
-	check(err, "get git hash")
+	if err != nil {
+		return fmt.Errorf("get git hash: %w", err)
+	}
+	if githash == "" {
+		return fmt.Errorf("no mongo-release commit matches %#q", grepArg)
+	}
 	fmt.Printf("Git hash: %s\n", githash)
 
 	evgVersion := fmt.Sprintf("mongo_release_%s", githash)
 	fmt.Printf("Version: %v\n", evgVersion)
 
 	if pf.ServerVariantNames == nil {
-		log.Fatalf("ServerVariantNames is unset")
+		return errors.New("ServerVariantNames is unset")
 	}
 
 	buildID, err := evergreen.GetPackageTaskForVersion(pf, evgVersion)
-	check(err, "get tasks for %s version %s", pf.ServerVariantNames, evgVersion)
+	if err != nil {
+		return fmt.Errorf(
+			"get tasks for %s version %s: %w",
+			pf.ServerVariantNames,
+			evgVersion,
+			err,
+		)
+	}
 	fmt.Printf("buildID: %v\n", buildID)
 
 	artifacts, err := evergreen.GetArtifactsForTask(buildID)
-	check(err, "get artifacts")
+	if err != nil {
+		return fmt.Errorf("get artifacts: %w", err)
+	}
 
 	numArtifactsDownloaded := 0
 	for _, a := range artifacts {
@@ -1710,13 +1778,37 @@ func downloadArtifacts(v string, artifactNames []string) {
 	}
 
 	if numArtifactsDownloaded != len(artifactNames) {
-		log.Fatalf(
+		return fmt.Errorf(
 			"expect to download %d artifacts %s, only downloaded %d",
 			len(artifactNames),
 			artifactNames,
 			numArtifactsDownloaded,
 		)
 	}
+
+	return nil
+}
+
+// cloneMongoRelease clones the mongo-release repo into the current directory. It is a no-op if the
+// clone is already there, since we may look up several versions in the same repo.
+func cloneMongoRelease() error {
+	if _, err := os.Stat("mongo-release"); err == nil {
+		return nil
+	}
+
+	_, err := run(
+		"git",
+		"clone",
+		fmt.Sprintf(
+			"https://x-access-token:%s@github.com/10gen/mongo-release.git",
+			getMongoReleaseAccessToken(),
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("git clone: %w", err)
+	}
+
+	return nil
 }
 
 func getMongoReleaseAccessToken() string {

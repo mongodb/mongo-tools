@@ -109,3 +109,65 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 
 	return "", "", versionGuess, ServerURLMissingError
 }
+
+// CandidateVersions returns every version in the feed matching the same criteria as
+// FindURLHashAndVersion, in feed order (newest first), up to a maximum of limit versions.
+//
+// FindURLHashAndVersion only returns the first match, which is what we want for the server
+// tarball. Some artifacts (notably the jstestshell) are published separately from the feed and may
+// be missing for that particular patch release, so callers that can tolerate a version mismatch
+// use this to fall back to an older patch release.
+func (f *ServerJSONFeed) CandidateVersions(
+	serverVersion string,
+	platform platform.Platform,
+	edition string,
+	limit int,
+) []string {
+	var sv version.Version
+	if serverVersion != "latest" {
+		var err error
+		sv, err = version.Parse(serverVersion)
+		if err != nil {
+			return nil
+		}
+	}
+
+	var candidates []string
+	for _, v := range f.Versions {
+		if len(candidates) >= limit {
+			break
+		}
+
+		releaseCandidateOk := serverVersion == v.Version || serverVersion == "latest"
+		if strings.Contains(v.Version, "-rc") && !releaseCandidateOk {
+			continue
+		}
+
+		feedVersion, err := version.Parse(v.Version)
+		if err != nil {
+			continue
+		}
+
+		if serverVersion != "latest" &&
+			(feedVersion.Major != sv.Major || feedVersion.Minor != sv.Minor) {
+			continue
+		}
+
+		if feedVersion.GreaterThan(maxServerVersion) {
+			continue
+		}
+
+		for _, dl := range v.Downloads {
+			if !platform.TargetMatches(dl.Target) {
+				continue
+			}
+
+			if dl.Arch == platform.Arch.String() && dl.Edition == edition {
+				candidates = append(candidates, v.Version)
+				break
+			}
+		}
+	}
+
+	return candidates
+}
