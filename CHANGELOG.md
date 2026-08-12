@@ -1,5 +1,102 @@
 # Database Tools Changelog
 
+## 100.18.0
+
+_Released 2026-08-12_
+
+We are pleased to announce version 100.18.0 of the MongoDB Database Tools.
+
+The highlight for this release is MongoDB Server 9.0 support. This release also adds builds for
+SUSE 16, Debian 13, Ubuntu 26.04, and RHEL 10 on ppc64le and s390x, and upgrades to Go 1.26.5.
+
+The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
+Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
+Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`.
+Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4228'>TOOLS-4228</a>] -         Fix timeseries tests on 8.3+
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4293'>TOOLS-4293</a>] -         oplog_replay_local_rs.js fails because the fake oplog is not visible
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4294'>TOOLS-4294</a>] -         linuxRelease push task fails for some architectures
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4295'>TOOLS-4295</a>] -         Scripts must call go via $GO_EXEC_PREFIX
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4309'>TOOLS-4309</a>] -         mongodump --oplog must fail on the upgradeDowngradeViewlessTimeseries entry
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4310'>TOOLS-4310</a>] -         Handle dropIdent oplog entries
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4324'>TOOLS-4324</a>] -         Fix the check-augmented-sbom task
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-3016'>TOOLS-3016</a>] -         Bring back test for drop database in oplog now that SERVER-62759 is fixed
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4089'>TOOLS-4089</a>] -         Add MongoDB Server 9.0 support
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4102'>TOOLS-4102</a>] -         Use mise to manage our dev tools, including go and Python
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4233'>TOOLS-4233</a>] -         Enable govet in golangci-lint and remove redundant Evergreen vet task
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4235'>TOOLS-4235</a>] -         Static analysis and Evergreen config cleanup
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4237'>TOOLS-4237</a>] -         Convert failpoints to a struct-based interface
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4238'>TOOLS-4238</a>] -         Move inline shell from the Evergreen config to standalone scripts
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4242'>TOOLS-4242</a>] -         Add SUSE 16 support for server 7.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4243'>TOOLS-4243</a>] -         Add RHEL 10 ppc64le support for server 8.0+
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4244'>TOOLS-4244</a>] -         Add Ubuntu 26.04 aarch64 support for server 7.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4245'>TOOLS-4245</a>] -         Add Debian 13 x86_64 support for server 7.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4246'>TOOLS-4246</a>] -         Add SUSE 16 support for server 8.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4247'>TOOLS-4247</a>] -         Add Ubuntu 26.04 x86_64 enterprise support for server 7.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4248'>TOOLS-4248</a>] -         Add RHEL 10 s390x enterprise support for server 7.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4249'>TOOLS-4249</a>] -         Add Ubuntu 26.04 x86_64 targeted support for server 8.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4250'>TOOLS-4250</a>] -         Add Debian 13 x86_64 support for server 8.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4251'>TOOLS-4251</a>] -         Add RHEL 10 ppc64le support for server 7.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4252'>TOOLS-4252</a>] -         Add Ubuntu 26.04 x86_64 enterprise support for server 8.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4253'>TOOLS-4253</a>] -         Add RHEL 10 s390x enterprise support for server 8.0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4263'>TOOLS-4263</a>] -         Rewrite JS tests in Go
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4264'>TOOLS-4264</a>] -         Continue extracting inline shell from common.yml and add env var guards
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4275'>TOOLS-4275</a>] -         Remove pointless stdlib wrappers in util package
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4276'>TOOLS-4276</a>] -         Add lint check that vendored code is not modified in a branch
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4279'>TOOLS-4279</a>] -         Update 9.0 version to 9.0.0-rc0
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4280'>TOOLS-4280</a>] -         Upgrade golang.org/x/text and golang.org/x/crypto
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4282'>TOOLS-4282</a>] -         Make the sa:modTidy target show the diff when the files are not tidy
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4296'>TOOLS-4296</a>] -         Annotate HTTP and S3 errors when downloading a server package
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4312'>TOOLS-4312</a>] -         Hint $natural on unfiltered mongodump queries
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4313'>TOOLS-4313</a>] -         Hint $natural on unfiltered, unsorted mongoexport queries
+</li>
+</ul>
+
 ## 100.17.0
 
 _Released 2026-05-08_
