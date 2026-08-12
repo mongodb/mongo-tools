@@ -1374,6 +1374,11 @@ func linuxRelease(v version.Version) {
 						log.Printf("skip to push a linux release to server version %s", mongoVer)
 						continue
 					}
+
+					if mongoVer.Major == 8 && mongoVer.Minor <= 2 {
+						log.Printf("skip to push a linux release to server version %s", mongoVer)
+						continue
+					}
 				}
 
 				wg.Add(1)
