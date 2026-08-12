@@ -1261,7 +1261,6 @@ var linuxRepoVersionsStable = []LinuxRepo{
 	{"6.0", "6.0.0"}, // any 6.0 stable release version will send the package to the "6.0" repo
 	{"7.0", "7.0.0"}, // any 7.0 stable release version will send the package to the "7.0" repo
 	{"8.0", "8.0.0"}, // any 8.0 stable release version will send the package to the "8.0" repo
-	{"8.2", "8.2.0"}, // any 8.2 stable release version will send the package to the "8.2" repo
 	{"8.3", "8.3.0"}, // any 8.3 stable release version will send the package to the "8.3" repo
 	{"9.0", "9.0.0"}, // any 9.0 stable release version will send the package to the "9.0" repo
 }
@@ -1601,42 +1600,26 @@ func checkDownloadResponse(res *http.Response) error {
 }
 
 func downloadBinaries(url string) {
-	check(tryDownloadBinaries(url), "download binaries")
-}
-
-// tryDownloadBinaries is downloadBinaries, but it returns an error instead of exiting so that
-// callers can fall back to a different URL.
-func tryDownloadBinaries(url string) error {
 	tempDir, err := os.MkdirTemp("bin", "")
-	if err != nil {
-		return fmt.Errorf("create temp dir: %w", err)
-	}
+	check(err, "create temp dir")
 
 	// Strip off query for the filename
 	base, _, _ := strings.Cut(url, "?")
 	filename := filepath.Base(base)
 	tempPath := filepath.Join(tempDir, filename)
 	packageFile, err := os.Create(tempPath)
-	if err != nil {
-		return fmt.Errorf("create the server package file: %w", err)
-	}
-	defer packageFile.Close()
+	check(err, "create the server package file")
 
 	res, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("get the server package: %w", err)
-	}
+	check(err, "get the server package")
 	defer res.Body.Close()
 
 	// Without this, an error response gets written to disk and then fails much later as a
 	// corrupt archive, which says nothing about why the download did not work.
-	if err := checkDownloadResponse(res); err != nil {
-		return fmt.Errorf("download %s: %w", filename, err)
-	}
+	check(checkDownloadResponse(res), "download %s", filename)
 
-	if _, err := io.Copy(packageFile, res.Body); err != nil {
-		return fmt.Errorf("write server package file: %w", err)
-	}
+	_, err = io.Copy(packageFile, res.Body)
+	check(err, "write server package file")
 
 	fmt.Printf("extension: %v\n", filepath.Ext(filename))
 
@@ -1648,32 +1631,24 @@ func tryDownloadBinaries(url string) error {
 		fmt.Printf("extracting to: %v\n", tempDir)
 		untargz(tempPath, tempDir)
 	default:
-		return fmt.Errorf(
-			"Expected artifact filename to end in .zip or .tgz, instead got %s",
-			filename,
-		)
+		log.Fatalf("Expected artifact filename to end in .zip or .tgz, instead got %s", filename)
 	}
 
 	var binFiles []string
 	// The directory structure of the Jstestshell artifact tarball changed as of Server 8.2.
 	for _, dirGlob := range []string{"mongodb-*", "dist-test"} {
 		files, err := filepath.Glob(path.Join(tempDir, dirGlob, "bin", "*"))
-		if err != nil {
-			return fmt.Errorf("getting glob of files in temp dir %q: %w", tempDir, err)
-		}
+		check(err, "getting glob of files in temp dir %q", tempDir)
 		binFiles = append(binFiles, files...)
 	}
 
 	for _, f := range binFiles {
 		if filepath.Ext(f) != ".pdb" {
 			fmt.Printf("Move %s to %s\n", f, filepath.Join("bin", filepath.Base(f)))
-			if err := os.Rename(f, filepath.Join("bin", filepath.Base(f))); err != nil {
-				return fmt.Errorf("move binaries to bin: %w", err)
-			}
+			err = os.Rename(f, filepath.Join("bin", filepath.Base(f)))
+			check(err, "move binaries to bin")
 		}
 	}
-
-	return nil
 }
 
 func unzip(src, dst string) {
@@ -1776,20 +1751,12 @@ func untargz(src, dst string) {
 }
 
 func downloadArtifacts(v string, artifactNames []string) {
-	check(tryDownloadArtifacts(v, artifactNames), "download artifacts %s", artifactNames)
-}
-
-// tryDownloadArtifacts is downloadArtifacts, but it returns an error instead of exiting so that
-// callers can retry with a different version.
-func tryDownloadArtifacts(v string, artifactNames []string) error {
 	if v == "" {
-		return errors.New("invalid empty version string")
+		log.Fatalf("invalid empty version string")
 	}
 
 	pf, err := platform.GetFromEnv()
-	if err != nil {
-		return fmt.Errorf("get platform: %w", err)
-	}
+	check(err, "get platform")
 	fmt.Printf("platform: %v\n", pf)
 
 	fmt.Printf("Version: %s\n", v)
@@ -1798,14 +1765,18 @@ func tryDownloadArtifacts(v string, artifactNames []string) error {
 	fmt.Printf("grepArg: %s\n", grepArg)
 
 	pwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("os.Getwd: %w", err)
-	}
+	check(err, "os.Getwd")
 	fmt.Printf("pwd: %s\n", pwd)
 
-	if err := cloneMongoRelease(); err != nil {
-		return err
-	}
+	_, err = run(
+		"git",
+		"clone",
+		fmt.Sprintf(
+			"https://x-access-token:%s@github.com/10gen/mongo-release.git",
+			getMongoReleaseAccessToken(),
+		),
+	)
+	check(err, "git clone")
 
 	githash, err := run(
 		"git",
@@ -1815,13 +1786,12 @@ func tryDownloadArtifacts(v string, artifactNames []string) error {
 		"--pretty=format:%H",
 		grepArg,
 	)
-	if err != nil {
-		return fmt.Errorf("get git hash: %w", err)
-	}
+
+	check(err, "get git hash")
 	// git log exits 0 with no output when nothing matches, which would otherwise turn into a
 	// lookup for the bogus Evergreen version "mongo_release_".
 	if githash == "" {
-		return fmt.Errorf("no mongo-release commit matches %#q", grepArg)
+		log.Fatalf("no mongo-release commit matches %#q", grepArg)
 	}
 	fmt.Printf("Git hash: %s\n", githash)
 
@@ -1829,70 +1799,35 @@ func tryDownloadArtifacts(v string, artifactNames []string) error {
 	fmt.Printf("Version: %v\n", evgVersion)
 
 	if pf.ServerVariantNames == nil {
-		return errors.New("ServerVariantNames is unset")
+		log.Fatalf("ServerVariantNames is unset")
 	}
 
 	buildID, err := evergreen.GetPackageTaskForVersion(pf, evgVersion)
-	if err != nil {
-		return fmt.Errorf(
-			"get tasks for %s version %s: %w",
-			pf.ServerVariantNames,
-			evgVersion,
-			err,
-		)
-	}
+	check(err, "get tasks for %s version %s", pf.ServerVariantNames, evgVersion)
 	fmt.Printf("buildID: %v\n", buildID)
 
 	artifacts, err := evergreen.GetArtifactsForTask(buildID)
-	if err != nil {
-		return fmt.Errorf("get artifacts: %w", err)
-	}
+	check(err, "get artifacts")
 
 	numArtifactsDownloaded := 0
 	for _, a := range artifacts {
 		for _, n := range artifactNames {
 			if a.Name == n {
 				fmt.Printf("Downloading %s\n", a.Name)
-				if err := tryDownloadBinaries(a.URL); err != nil {
-					return fmt.Errorf("download the %s artifact: %w", a.Name, err)
-				}
+				downloadBinaries(a.URL)
 				numArtifactsDownloaded++
 			}
 		}
 	}
 
 	if numArtifactsDownloaded != len(artifactNames) {
-		return fmt.Errorf(
+		log.Fatalf(
 			"expect to download %d artifacts %s, only downloaded %d",
 			len(artifactNames),
 			artifactNames,
 			numArtifactsDownloaded,
 		)
 	}
-
-	return nil
-}
-
-// cloneMongoRelease clones the mongo-release repo into the current directory. It is a no-op if the
-// clone is already there, since we may look up several versions in the same repo.
-func cloneMongoRelease() error {
-	if _, err := os.Stat("mongo-release"); err == nil {
-		return nil
-	}
-
-	_, err := run(
-		"git",
-		"clone",
-		fmt.Sprintf(
-			"https://x-access-token:%s@github.com/10gen/mongo-release.git",
-			getMongoReleaseAccessToken(),
-		),
-	)
-	if err != nil {
-		return fmt.Errorf("git clone: %w", err)
-	}
-
-	return nil
 }
 
 func getMongoReleaseAccessToken() string {

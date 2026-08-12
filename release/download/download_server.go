@@ -107,5 +107,12 @@ func (f *ServerJSONFeed) FindURLHashAndVersion(
 		}
 	}
 
+	// If nothing in the feed matched the requested major.minor (e.g. a brand-new
+	// unreleased version like an alpha that isn't in the feed yet), fall back to the
+	// requested version so the caller can look it up by git tag in mongo-release.
+	if versionGuess == "" {
+		versionGuess = serverVersion
+	}
+
 	return "", "", versionGuess, ServerURLMissingError
 }
