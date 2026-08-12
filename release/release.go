@@ -1504,8 +1504,47 @@ func downloadMongodAndShell(v string) {
 
 	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
 		// serverVersion >= 6.0.0, download mongo shell.
-		downloadArtifacts(serverVersion, []string{"Jstestshell"})
+		downloadShell(serverVersion)
 	}
+}
+
+// jstestshellVersions pins the jstestshell version to download for each server major.minor.
+//
+// The jstestshell comes from Evergreen rather than the downloads JSON feed, so it can be missing
+// for a patch release whose server tarball is published and healthy. The shell is only a client we
+// use to drive mongod and does not have to match the server it talks to, so instead of tracking
+// whatever patch release the feed hands us, we pin a version known to be downloadable. Update these
+// as needed, e.g. when adding support for a new server release.
+var jstestshellVersions = map[string]string{
+	"6.0": "6.0.29",
+	"7.0": "7.0.39",
+	"8.0": "8.0.28",
+	"8.2": "8.2.12",
+	"8.3": "8.3.7",
+	"9.0": "9.0.0-rc0",
+}
+
+// downloadShell downloads the pinned jstestshell for the major.minor of serverVersion, falling back
+// to serverVersion itself when that major.minor isn't pinned.
+func downloadShell(serverVersion string) {
+	sv, err := version.Parse(serverVersion)
+	check(err, "parse the server version %q", serverVersion)
+
+	majorMinor := fmt.Sprintf("%d.%d", sv.Major, sv.Minor)
+	shellVersion, ok := jstestshellVersions[majorMinor]
+	if !ok {
+		shellVersion = serverVersion
+	}
+
+	if shellVersion != serverVersion {
+		fmt.Printf(
+			"using the jstestshell from %s with the %s server\n",
+			shellVersion,
+			serverVersion,
+		)
+	}
+
+	downloadArtifacts(shellVersion, []string{"Jstestshell"})
 }
 
 // s3ErrorResponse is the XML document S3 serves in place of the requested object when a
@@ -1749,6 +1788,11 @@ func downloadArtifacts(v string, artifactNames []string) {
 	)
 
 	check(err, "get git hash")
+	// git log exits 0 with no output when nothing matches, which would otherwise turn into a
+	// lookup for the bogus Evergreen version "mongo_release_".
+	if githash == "" {
+		log.Fatalf("no mongo-release commit matches %#q", grepArg)
+	}
 	fmt.Printf("Git hash: %s\n", githash)
 
 	evgVersion := fmt.Sprintf("mongo_release_%s", githash)
