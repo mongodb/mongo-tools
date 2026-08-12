@@ -1,16 +1,19 @@
 #!/bin/bash
 
-set -e
-set -x
+set -o errexit
 set -o pipefail
+set -o verbose
 
-TAG="$EVG_TRIGGERED_BY_TAG"
-if [ -z "$TAG" ]; then
+SCRIPT_DIR=$(dirname "$0")
+# shellcheck source=scripts/release-env.sh
+. "$SCRIPT_DIR/release-env.sh"
+
+if [ -z "$EVG_TRIGGERED_BY_TAG" ]; then
     echo "Cannot regenerate the Augmented SBOM file without a tag"
     exit 1
 fi
 
-SBOM_FILE="./ssdlc/$TAG.bom.json"
+SBOM_FILE="./ssdlc/$EVG_TRIGGERED_BY_TAG.bom.json"
 if [ -z "${branch_name}" ]; then
     KONDUKTO_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 else

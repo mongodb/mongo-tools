@@ -992,7 +992,6 @@ tasks:
       - command: expansions.update
       - func: "set silkbomb credentials"
       - func: "authenticate with devprod platforms ecr"
-      - func: "install mise and go"
       - command: subprocess.exec
         params:
           # binary must be bash (with the script passed via args), not the script
@@ -1003,8 +1002,13 @@ tasks:
             - "./scripts/regenerate-and-diff-augmented-sbom.sh"
           include_expansions_in_env: [KONDUKTO_TOKEN]
           env:
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
             EVG_TASK_ID: ${task_id}
             EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+            EVG_WORKDIR: ${workdir}
+            FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
 
   - name: release-json
     tags: ["git_tag"]
