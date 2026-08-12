@@ -735,7 +735,7 @@ var platforms = []Platform{
 		Pkg:                   PkgRPM,
 		Repos:                 []Repo{RepoEnterprise, RepoOrg},
 		BuildTags:             defaultBuildTags,
-		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+		MinLinuxServerVersion: &version.Version{Major: 9, Minor: 0, Patch: 0},
 	},
 	{
 		Name:                  "ubuntu1604",
@@ -774,12 +774,13 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:      "ubuntu2004",
-		Arch:      ArchArm64,
-		OS:        OSLinux,
-		Pkg:       PkgDeb,
-		Repos:     []Repo{RepoEnterprise, RepoOrg},
-		BuildTags: defaultBuildTags,
+		Name:                  "ubuntu2004",
+		Arch:                  ArchArm64,
+		OS:                    OSLinux,
+		Pkg:                   PkgDeb,
+		Repos:                 []Repo{RepoEnterprise, RepoOrg},
+		BuildTags:             defaultBuildTags,
+		MaxLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
 	},
 	{
 		Name:      "ubuntu2004",
@@ -830,7 +831,7 @@ var platforms = []Platform{
 		Pkg:                   PkgDeb,
 		Repos:                 []Repo{RepoEnterprise, RepoOrg},
 		BuildTags:             defaultBuildTags,
-		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+		MinLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
 	},
 	{
 		Name:                  "ubuntu2604",
@@ -839,7 +840,7 @@ var platforms = []Platform{
 		Pkg:                   PkgDeb,
 		Repos:                 []Repo{RepoEnterprise, RepoOrg},
 		BuildTags:             defaultBuildTags,
-		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+		MinLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
 	},
 	{
 		Name:               "windows",
