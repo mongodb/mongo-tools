@@ -512,6 +512,8 @@ functions:
         args:
           - "./scripts/upload-release.sh"
         env:
+          AWS_ACCESS_KEY_ID: ${cdn_aws_access_key_id}
+          AWS_SECRET_ACCESS_KEY: ${cdn_aws_secret}
           EVG_BUILD_ID: ${build_id}
           EVG_IS_PATCH: ${is_patch}
           EVG_KEY: ${evg_key}
@@ -533,6 +535,8 @@ functions:
         args:
           - "./scripts/upload-release-json.sh"
         env:
+          AWS_ACCESS_KEY_ID: ${cdn_aws_access_key_id}
+          AWS_SECRET_ACCESS_KEY: ${cdn_aws_secret}
           EVG_BUILD_ID: ${build_id}
           EVG_IS_PATCH: ${is_patch}
           EVG_KEY: ${evg_key}
