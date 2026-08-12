@@ -1550,21 +1550,53 @@ func downloadShell(
 }
 
 func downloadBinaries(url string) {
+	check(tryDownloadBinaries(url), "download binaries from %s", url)
+}
+
+// tryDownloadBinaries is downloadBinaries, but it returns an error instead of exiting so that
+// callers can retry with a different URL.
+func tryDownloadBinaries(url string) error {
 	tempDir, err := os.MkdirTemp("bin", "")
-	check(err, "create temp dir")
+	if err != nil {
+		return fmt.Errorf("create temp dir: %w", err)
+	}
 
 	// Strip off query for the filename
 	base, _, _ := strings.Cut(url, "?")
 	filename := filepath.Base(base)
 	tempPath := filepath.Join(tempDir, filename)
 	packageFile, err := os.Create(tempPath)
-	check(err, "create the server package file")
+	if err != nil {
+		return fmt.Errorf("create the server package file: %w", err)
+	}
+	defer packageFile.Close()
 
 	res, err := http.Get(url)
-	check(err, "get the server package")
+	if err != nil {
+		return fmt.Errorf("get the server package: %w", err)
+	}
+	defer res.Body.Close()
 
-	_, err = io.Copy(packageFile, res.Body)
-	check(err, "write server package file")
+	// Without this check a non-200 response body gets written straight to the archive file, and the
+	// only symptom is a confusing "gzip: invalid header" panic much further down. Evergreen
+	// artifact URLs in particular return an XML or HTML error document once the artifact has
+	// expired.
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf(
+			"got HTTP %s downloading %s, body starts with %q",
+			res.Status,
+			url,
+			readSnippet(res.Body),
+		)
+	}
+
+	if _, err := io.Copy(packageFile, res.Body); err != nil {
+		return fmt.Errorf("write server package file: %w", err)
+	}
+
+	if err := packageFile.Close(); err != nil {
+		return fmt.Errorf("close server package file: %w", err)
+	}
 
 	fmt.Printf("extension: %v\n", filepath.Ext(filename))
 
@@ -1576,24 +1608,43 @@ func downloadBinaries(url string) {
 		fmt.Printf("extracting to: %v\n", tempDir)
 		untargz(tempPath, tempDir)
 	default:
-		log.Fatalf("Expected artifact filename to end in .zip or .tgz, instead got %s", filename)
+		return fmt.Errorf(
+			"Expected artifact filename to end in .zip or .tgz, instead got %s",
+			filename,
+		)
 	}
 
 	var binFiles []string
 	// The directory structure of the Jstestshell artifact tarball changed as of Server 8.2.
 	for _, dirGlob := range []string{"mongodb-*", "dist-test"} {
 		files, err := filepath.Glob(path.Join(tempDir, dirGlob, "bin", "*"))
-		check(err, "getting glob of files in temp dir %q", tempDir)
+		if err != nil {
+			return fmt.Errorf("getting glob of files in temp dir %q: %w", tempDir, err)
+		}
 		binFiles = append(binFiles, files...)
 	}
 
 	for _, f := range binFiles {
 		if filepath.Ext(f) != ".pdb" {
 			fmt.Printf("Move %s to %s\n", f, filepath.Join("bin", filepath.Base(f)))
-			err = os.Rename(f, filepath.Join("bin", filepath.Base(f)))
-			check(err, "move binaries to bin")
+			if err := os.Rename(f, filepath.Join("bin", filepath.Base(f))); err != nil {
+				return fmt.Errorf("move binaries to bin: %w", err)
+			}
 		}
 	}
+
+	return nil
+}
+
+// readSnippet reads the beginning of r for use in an error message about an unexpected response
+// body.
+func readSnippet(r io.Reader) string {
+	buf, err := io.ReadAll(io.LimitReader(r, 256))
+	if err != nil {
+		return fmt.Sprintf("<could not read body: %v>", err)
+	}
+
+	return strings.TrimSpace(string(buf))
 }
 
 func unzip(src, dst string) {
@@ -1771,7 +1822,9 @@ func tryDownloadArtifacts(v string, artifactNames []string) error {
 		for _, n := range artifactNames {
 			if a.Name == n {
 				fmt.Printf("Downloading %s\n", a.Name)
-				downloadBinaries(a.URL)
+				if err := tryDownloadBinaries(a.URL); err != nil {
+					return fmt.Errorf("download the %s artifact: %w", a.Name, err)
+				}
 				numArtifactsDownloaded++
 			}
 		}
