@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1768,6 +1770,399 @@ func TestImportExtraFields(t *testing.T) {
 	assert.Equal(t, "extra1", doc["field4"], "field4 should contain first extra value")
 	assert.Equal(t, "extra2", doc["field5"], "field5 should contain second extra value")
 	assert.Equal(t, "extra3", doc["field6"], "field6 should contain third extra value")
+}
+
+// typedFieldHeader's date_oracle layout has a comma, which is what makes this header worth testing
+// through all three ways of supplying it: the CSV file has to quote the cell, the TSV file does
+// not, and --fields has to split on commas without splitting inside the parentheses.
+var typedFieldHeader = []string{
+	"a.string()",
+	"b.int32()",
+	"c.xyz.date_oracle(Month dd, yyyy HH24:mi:ss)",
+	"c.noop.boolean()",
+	"d.hij.lkm.binary(hex)",
+}
+
+const uncoercibleDateStr = "06/08/2016 09:26:00"
+
+// typedTestDates are whole-second dates the typedFieldHeader date_oracle layout can express: a
+// four-digit year, a zero-padded day, and no sub-second part. They are fixed rather than random so
+// the tests are deterministic, and expressible so each value survives a round trip through a CSV
+// cell and back.
+var typedTestDates = []time.Time{
+	time.Date(2016, time.May, 8, 9, 26, 0, 0, time.UTC),
+	time.Date(2007, time.March, 26, 16, 19, 17, 0, time.UTC),
+}
+
+type row struct {
+	strVal  string
+	intVal  int
+	dateVal maybeValidDate
+	boolVal bool
+	hexVal  string
+}
+
+type maybeValidDate struct {
+	val                  time.Time
+	useUncoercibleString bool
+}
+
+// toBSOND returns a bson.D based on the contents of the row.
+func (r row) toBSOND(t *testing.T) bson.D {
+	t.Helper()
+
+	var d any
+	if r.dateVal.useUncoercibleString {
+		d = uncoercibleDateStr
+	} else {
+		d = bson.NewDateTimeFromTime(r.dateVal.val)
+	}
+
+	return bson.D{
+		{"a", r.strVal},
+		{"b", int32(r.intVal)},
+		{"c", bson.D{{"xyz", d}, {"noop", r.boolVal}}},
+		{"d", bson.D{{"hij", bson.D{{"lkm", hexBinary(t, r.hexVal)}}}}},
+	}
+}
+
+// toStrings returns the row as a string slice.
+func (r row) toStrings() []string {
+	var d string
+	if r.dateVal.useUncoercibleString {
+		// This format cannot be parsed by the spec used in these tests.
+		d = uncoercibleDateStr
+	} else {
+		d = r.dateVal.val.Format("January 02, 2006 15:04:05")
+	}
+
+	return []string{
+		r.strVal,
+		fmt.Sprintf("%d", r.intVal),
+		d,
+		fmt.Sprintf("%v", r.boolVal),
+		r.hexVal,
+	}
+}
+
+// TestImportColumnsHaveTypes checks that --columnsHaveTypes converts each column to the BSON type
+// its spec names, for CSV and TSV, with the column spec coming from --headerline, --fields and
+// --fieldFile in turn. Omitting all three has to fail, since there is nothing left to name the
+// types.
+func TestImportColumnsHaveTypes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_columnshavetypes_test"
+	const collName = "typed"
+
+	client := newImportTestClient(t, dbName)
+	tmpDir := t.TempDir()
+
+	date1 := typedTestDates[0]
+	date2 := typedTestDates[1]
+	rows := []row{
+		{
+			strVal:  "foo",
+			intVal:  24,
+			dateVal: maybeValidDate{val: date1},
+			boolVal: false,
+			hexVal:  "746573740a",
+		},
+		{
+			strVal:  "bar",
+			intVal:  12,
+			dateVal: maybeValidDate{val: date2},
+			boolVal: true,
+			hexVal:  "7bc3049f36681723260fb5921dd36b149c8493c3",
+		},
+	}
+
+	// docsWithoutIDs sorts by a, so the expected order is bar (rows[1]) then foo (rows[0]).
+	expected := []bson.D{
+		rows[1].toBSOND(t),
+		rows[0].toBSOND(t),
+	}
+	typedFieldRows := [][]string{
+		rows[0].toStrings(),
+		rows[1].toStrings(),
+	}
+
+	formats := []struct {
+		format    string
+		separator rune
+	}{
+		{"csv", ','},
+		{"tsv", '\t'},
+	}
+
+	for _, f := range formats {
+		headerFile := filepath.Join(tmpDir, "typed_header."+f.format)
+		writeXSVFile(
+			t,
+			headerFile,
+			f.separator,
+			append([][]string{typedFieldHeader}, typedFieldRows...),
+		)
+		noHeaderFile := filepath.Join(tmpDir, "typed_noheader."+f.format)
+		writeXSVFile(t, noHeaderFile, f.separator, typedFieldRows)
+		fieldFilePath := writeFieldFile(t, tmpDir, "typedfieldfile."+f.format, typedFieldHeader)
+
+		inlineFields := strings.Join(typedFieldHeader, ",")
+		specs := []struct {
+			name  string
+			file  string
+			input InputOptions
+		}{
+			{"headerline", headerFile, InputOptions{HeaderLine: true}},
+			{"fields", noHeaderFile, InputOptions{Fields: &inlineFields}},
+			{"fieldFile", noHeaderFile, InputOptions{FieldFile: &fieldFilePath}},
+		}
+		for _, spec := range specs {
+			t.Run(f.format+"/"+spec.name, func(t *testing.T) {
+				coll := client.Database(dbName).Collection(collName)
+				require.NoError(t, coll.Drop(t.Context()))
+
+				input := spec.input
+				input.File = spec.file
+				input.Type = f.format
+				input.ColumnsHaveTypes = true
+				input.ParseGrace = "stop"
+				require.NoError(t,
+					runTypedImport(t, dbName, collName, input),
+					"typed import succeeds",
+				)
+
+				assert.Equal(
+					t,
+					expected,
+					docsWithoutIDs(t, coll),
+					"every column is converted to the type its spec names",
+				)
+			})
+		}
+
+		t.Run(f.format+"/noColumnSpec", func(t *testing.T) {
+			err := runTypedImport(t, dbName, collName, InputOptions{
+				File:             noHeaderFile,
+				Type:             f.format,
+				ColumnsHaveTypes: true,
+				ParseGrace:       "stop",
+			})
+			assert.ErrorContains(
+				t,
+				err,
+				"must specify --fields, --fieldFile or --headerline",
+				"a typed import with no column spec is rejected",
+			)
+		})
+
+		t.Run(f.format+"/extraColumns", func(t *testing.T) {
+			coll := client.Database(dbName).Collection(collName)
+			require.NoError(t, coll.Drop(t.Context()))
+
+			extraRow := append([]string{"one", "2", "May 08, 2016 09:26:00", "false", "746573740a"},
+				"extra1", "extra2")
+			extraFile := filepath.Join(tmpDir, "typed_extrafields."+f.format)
+			writeXSVFile(t, extraFile, f.separator, append(slices.Clone(typedFieldRows), extraRow))
+
+			require.NoError(t, runTypedImport(t, dbName, collName, InputOptions{
+				File:             extraFile,
+				Type:             f.format,
+				FieldFile:        &fieldFilePath,
+				ColumnsHaveTypes: true,
+				ParseGrace:       "stop",
+			}), "typed import of a row with extra columns succeeds")
+
+			var doc bson.M
+			require.NoError(t, coll.FindOne(t.Context(), bson.D{{"a", "one"}}).Decode(&doc))
+			assert.Equal(
+				t,
+				"extra1",
+				doc["field5"],
+				"the first column past the spec is named for its position",
+			)
+			assert.Equal(
+				t,
+				"extra2",
+				doc["field6"],
+				"the second column past the spec is named for its position",
+			)
+		})
+	}
+}
+
+// TestImportParseGraceModes checks the four --parseGrace modes against a row whose date column does
+// not match the layout its spec names. The modes differ only in what happens to that one row, so
+// all four are run over the same file.
+func TestImportParseGraceModes(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_parsegrace_test"
+	const collName = "parsegrace"
+
+	client := newImportTestClient(t, dbName)
+
+	date1 := typedTestDates[0]
+	date2 := typedTestDates[1]
+	// Only the middle row differs from the typed-fields rows: its date is written in a layout the
+	// date_oracle spec cannot parse.
+	rows := []row{
+		{
+			strVal:  "foo",
+			intVal:  24,
+			dateVal: maybeValidDate{val: date1},
+			boolVal: false,
+			hexVal:  "746573740a",
+		},
+		{
+			strVal:  "bar",
+			intVal:  12,
+			dateVal: maybeValidDate{useUncoercibleString: true},
+			boolVal: true,
+			hexVal:  "7bc3049f36681723260fb5921dd36b149c8493c3",
+		},
+		{
+			strVal:  "baz",
+			intVal:  36,
+			dateVal: maybeValidDate{val: date2},
+			boolVal: false,
+			hexVal:  "abc123",
+		},
+	}
+
+	csvPath := filepath.Join(t.TempDir(), "parse_grace.csv")
+	writeXSVFile(
+		t,
+		csvPath,
+		',',
+		append(
+			[][]string{typedFieldHeader},
+			rows[0].toStrings(),
+			rows[1].toStrings(),
+			rows[2].toStrings(),
+		),
+	)
+
+	fooDoc := rows[0].toBSOND(t)
+	bazDoc := rows[2].toBSOND(t)
+
+	// The bad row is either dropped, kept without the field that would not convert, or kept with
+	// that field left as the string it was read as.
+	barSkippedFieldDoc := bson.D{
+		{"a", rows[1].strVal},
+		{"b", int32(rows[1].intVal)},
+		{"c", bson.D{{"noop", rows[1].boolVal}}},
+		{"d", bson.D{{"hij", bson.D{{"lkm", hexBinary(t, rows[1].hexVal)}}}}},
+	}
+	barAutoCastDoc := bson.D{
+		{"a", rows[1].strVal},
+		{"b", int32(rows[1].intVal)},
+		{"c", bson.D{{"xyz", uncoercibleDateStr}, {"noop", rows[1].boolVal}}},
+		{"d", bson.D{{"hij", bson.D{{"lkm", hexBinary(t, rows[1].hexVal)}}}}},
+	}
+
+	// docsWithoutIDs sorts by a, hence bar, baz, foo.
+	cases := []struct {
+		parseGrace string
+		expected   []bson.D
+	}{
+		{"skipRow", []bson.D{bazDoc, fooDoc}},
+		{"skipField", []bson.D{barSkippedFieldDoc, bazDoc, fooDoc}},
+		{"autoCast", []bson.D{barAutoCastDoc, bazDoc, fooDoc}},
+	}
+	for _, c := range cases {
+		t.Run(c.parseGrace, func(t *testing.T) {
+			coll := client.Database(dbName).Collection(collName)
+			require.NoError(t, coll.Drop(t.Context()))
+
+			require.NoError(t, runTypedImport(t, dbName, collName, InputOptions{
+				File:             csvPath,
+				Type:             "csv",
+				HeaderLine:       true,
+				ColumnsHaveTypes: true,
+				ParseGrace:       c.parseGrace,
+			}), "import with --parseGrace=%s succeeds", c.parseGrace)
+
+			assert.Equal(
+				t,
+				c.expected,
+				docsWithoutIDs(t, coll),
+				"--parseGrace=%s handles the uncoercible field as documented",
+				c.parseGrace,
+			)
+		})
+	}
+
+	t.Run("stop", func(t *testing.T) {
+		coll := client.Database(dbName).Collection(collName)
+		require.NoError(t, coll.Drop(t.Context()))
+
+		err := runTypedImport(t, dbName, collName, InputOptions{
+			File:             csvPath,
+			Type:             "csv",
+			HeaderLine:       true,
+			ColumnsHaveTypes: true,
+			ParseGrace:       "stop",
+		})
+		require.ErrorContains(
+			t,
+			err,
+			uncoercibleDateStr,
+			"--parseGrace=stop fails and names the value it could not parse",
+		)
+
+		// Only the bad row itself is guaranteed absent. Stopping is not rolling back, so rows read
+		// before it may already have reached an insert worker, and rows after it may have been
+		// converted concurrently by another decoding worker before the error canceled the group.
+		n, err := coll.CountDocuments(t.Context(), bson.D{{"a", "bar"}})
+		require.NoError(t, err)
+		assert.Zero(t, n, "--parseGrace=stop does not import the row it could not convert")
+	})
+}
+
+func hexBinary(t *testing.T, encoded string) bson.Binary {
+	t.Helper()
+	data, err := hex.DecodeString(encoded)
+	require.NoError(t, err, "the expected binary data decodes")
+	return bson.Binary{Subtype: 0x00, Data: data}
+}
+
+func runTypedImport(t *testing.T, dbName, collName string, input InputOptions) error {
+	t.Helper()
+	toolOpts, err := testopts.GetToolOptions()
+	require.NoError(t, err)
+	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions:   toolOpts,
+		InputOptions:  &input,
+		IngestOptions: &IngestOptions{},
+	})
+	if err != nil {
+		return err
+	}
+	defer mi.Close()
+	_, _, err = mi.ImportDocuments()
+	return err
+}
+
+// docsWithoutIDs returns every document in coll ordered by the "a" field, with the server-assigned
+// _id removed so the result can be compared against the rows that were imported.
+func docsWithoutIDs(t *testing.T, coll *mongo.Collection) []bson.D {
+	t.Helper()
+	cursor, err := coll.Find(
+		t.Context(),
+		bson.D{},
+		mopt.Find().
+			SetProjection(bson.D{{"_id", 0}}).
+			SetSort(bson.D{{"a", 1}}),
+	)
+	require.NoError(t, err)
+	defer cursor.Close(t.Context())
+
+	var docs []bson.D
+	require.NoError(t, cursor.All(t.Context(), &docs))
+
+	return docs
 }
 
 // TestImportModeUpsertFields tests --mode with --upsertFields a,c (compound key matching).
