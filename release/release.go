@@ -1505,62 +1505,47 @@ func downloadMongodAndShell(v string) {
 
 	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
 		// serverVersion >= 6.0.0, download mongo shell.
-		downloadShell(&feed, v, pf, serverVersion)
+		downloadShell(serverVersion)
 	}
 }
 
-// maxShellDownloadAttempts is how many patch releases we will try before giving up on finding a
-// downloadable jstestshell.
-const maxShellDownloadAttempts = 5
-
-// downloadShell downloads the jstestshell for serverVersion. The shell comes from Evergreen rather
-// than the JSON feed, so it can be unavailable for a patch release whose server tarball is fine.
-// The shell is a pure client and we only use it to drive mongod, so rather than failing we fall
-// back to the shell from an older patch release of the same major.minor.
+// jstestshellVersions pins the jstestshell version to download for each server major.minor.
 //
-// Note that this does not help when the artifact URLs are rejected outright, e.g. after an AWS
-// credential rotation, since every candidate is signed with the same credentials. In that case all
-// of the attempts fail and the joined error reports each one.
-func downloadShell(
-	feed *download.ServerJSONFeed,
-	requestedVersion string,
-	pf platform.Platform,
-	serverVersion string,
-) {
-	candidates := feed.CandidateVersions(
-		requestedVersion,
-		pf,
-		"enterprise",
-		maxShellDownloadAttempts,
-	)
-	if len(candidates) == 0 {
-		candidates = []string{serverVersion}
+// The jstestshell comes from Evergreen rather than the downloads JSON feed, so it can be missing
+// for a patch release whose server tarball is published and healthy. The shell is only a client we
+// use to drive mongod and does not have to match the server it talks to, so instead of tracking
+// whatever patch release the feed hands us, we pin a version known to be downloadable. Update these
+// as needed, e.g. when adding support for a new server release.
+var jstestshellVersions = map[string]string{
+	"6.0": "6.0.29",
+	"7.0": "7.0.39",
+	"8.0": "8.0.28",
+	"8.2": "8.2.12",
+	"8.3": "8.3.7",
+	"9.0": "9.0.0-rc0",
+}
+
+// downloadShell downloads the pinned jstestshell for the major.minor of serverVersion, falling back
+// to serverVersion itself when that major.minor isn't pinned.
+func downloadShell(serverVersion string) {
+	sv, err := version.Parse(serverVersion)
+	check(err, "parse the server version %q", serverVersion)
+
+	majorMinor := fmt.Sprintf("%d.%d", sv.Major, sv.Minor)
+	shellVersion, ok := jstestshellVersions[majorMinor]
+	if !ok {
+		shellVersion = serverVersion
 	}
 
-	var errs []error
-	for _, c := range candidates {
-		err := tryDownloadArtifacts(c, []string{"Jstestshell"})
-		if err == nil {
-			if c != serverVersion {
-				fmt.Printf(
-					"warning: using the jstestshell from %s with the %s server\n",
-					c,
-					serverVersion,
-				)
-			}
-			return
-		}
-
-		fmt.Printf("failed to download the jstestshell for %s: %v\n", c, err)
-		errs = append(errs, fmt.Errorf("%s: %w", c, err))
+	if shellVersion != serverVersion {
+		fmt.Printf(
+			"using the jstestshell from %s with the %s server\n",
+			shellVersion,
+			serverVersion,
+		)
 	}
 
-	check(
-		errors.Join(errs...),
-		"download the jstestshell for %s after trying %d version(s)",
-		serverVersion,
-		len(candidates),
-	)
+	downloadArtifacts(shellVersion, []string{"Jstestshell"})
 }
 
 // s3ErrorResponse is the XML document S3 serves in place of the requested object when a
