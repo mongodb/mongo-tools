@@ -3,13 +3,11 @@
 set -e
 set -x
 
-TAG="$EVG_TRIGGERED_BY_TAG"
-if [ -z "$TAG" ]; then
-    echo "Cannot regenerate the Augmented SBOM file without a tag"
-    exit 0
-fi
+SCRIPT_DIR=$(dirname "$0")
+# shellcheck source=scripts/release-env.sh
+. "$SCRIPT_DIR/release-env.sh"
 
-SBOM="ssdlc/$TAG.bom.json"
+SBOM="ssdlc/$EVG_TRIGGERED_BY_TAG.bom.json"
 if [ ! -f "$SBOM" ]; then
     echo "The $SBOM does not exist at all"
     exit 1
