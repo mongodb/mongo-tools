@@ -7,6 +7,11 @@ SCRIPT_DIR=$(dirname "$0")
 # shellcheck source=scripts/release-env.sh
 . "$SCRIPT_DIR/release-env.sh"
 
+if [ -z "$EVG_TRIGGERED_BY_TAG" ]; then
+    echo "Cannot regenerate and diff the Augmented SBOM file without a tag"
+    exit 0
+fi
+
 SBOM="ssdlc/$EVG_TRIGGERED_BY_TAG.bom.json"
 if [ ! -f "$SBOM" ]; then
     echo "The $SBOM does not exist at all"
