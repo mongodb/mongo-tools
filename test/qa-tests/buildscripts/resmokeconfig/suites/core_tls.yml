@@ -5,11 +5,6 @@ selector:
       - jstests/files/*.js
       - jstests/import/*.js
       - jstests/restore/*.js
-      #        - jstests/top/*.js TODO: TOOLS-2572 Fix temporarily disabled test mongotop_reports.js
-      - jstests/top/mongotop_json.js
-      - jstests/top/mongotop_sharded.js
-      - jstests/top/mongotop_stress.js
-      - jstests/top/mongotop_validation.js
 
 executor:
   js_test:
