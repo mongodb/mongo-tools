@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type extendedJSONQueryCase struct {
@@ -202,7 +202,7 @@ func (s *DumpRestoreSuite) TestDumpStorageEngineOptions() {
 	s.createCollection(
 		testDB,
 		collName,
-		mopt.CreateCollection().SetStorageEngine(storageEngine),
+		options.CreateCollection().SetStorageEngine(storageEngine),
 	)
 
 	storageEngineBefore := s.collectionOption(testDB, collName, "storageEngine")

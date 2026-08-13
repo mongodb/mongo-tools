@@ -14,7 +14,7 @@ import (
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // TestDumpOplogSnapshotDuringWrites checks the point-in-time guarantee --oplog
@@ -210,7 +210,7 @@ func (s *DumpRestoreSuite) latestOplogTimestamp() bson.Timestamp {
 		FindOne(
 			s.Context(),
 			bson.D{},
-			mopt.FindOne().SetSort(bson.D{{"$natural", -1}}),
+			options.FindOne().SetSort(bson.D{{"$natural", -1}}),
 		).
 		Decode(&entry)
 	s.Require().NoError(err, "reading the newest oplog entry")
