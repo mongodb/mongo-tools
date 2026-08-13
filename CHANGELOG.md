@@ -6,14 +6,18 @@ _Released 2026-08-12_
 
 We are pleased to announce version 100.18.0 of the MongoDB Database Tools.
 
-The highlight for this release is MongoDB Server 9.0 support. This release also adds builds for
-SUSE 16, Debian 13, Ubuntu 26.04, and RHEL 10 on ppc64le and s390x, and the upgrade to Go 1.26.5.
+The highlight for this release is MongoDB Server 9.0 support. This release also adds builds for SUSE
+16, Debian 13, Ubuntu 26.04, and RHEL 10 on ppc64le and s390x, and the upgrade to Go 1.26.5.
 
-The Database Tools are available on the [MongoDB Download Center](https://www.mongodb.com/try/download/database-tools).
-Installation instructions and documentation can be found on [docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/).
-Questions and inquiries can be asked on the [MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
-Please make sure to tag forum posts with `database-tools`.
-Bugs and feature requests can be reported in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues can be found.
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
 
 ### Bug
 
