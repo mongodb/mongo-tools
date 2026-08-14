@@ -25,7 +25,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,27 +105,14 @@ func countDocuments(t *testing.T, sessionProvider *db.SessionProvider) (int, err
 // getBasicToolOptions returns a test helper to instantiate the session provider
 // for calls to StreamDocument.
 func getBasicToolOptions() *options.ToolOptions {
-	general := &options.General{}
-	ssl := testutil.GetSSLOptions()
-	auth := testutil.GetAuthOptions()
-	namespace := &options.Namespace{
-		DB:         testDb,
-		Collection: testCollection,
+	toolOptions, err := testutil.GetToolOptions()
+	if err != nil {
+		panic(fmt.Sprintf("could not get tool options: %v", err))
 	}
-	connection := &options.Connection{
-		Host: "localhost",
-		Port: db.DefaultTestPort,
-	}
+	toolOptions.Namespace.DB = testDb
+	toolOptions.Namespace.Collection = testCollection
 
-	return &options.ToolOptions{
-		General:      general,
-		SSL:          &ssl,
-		Namespace:    namespace,
-		Connection:   connection,
-		Auth:         &auth,
-		URI:          &options.URI{},
-		WriteConcern: wcwrapper.Majority(),
-	}
+	return toolOptions
 }
 
 func newOptions() Options {
@@ -1904,20 +1890,9 @@ func TestImportModeByID(t *testing.T) {
 
 func newImportTestClient(t *testing.T, dbName string) *mongo.Client {
 	t.Helper()
-	ssl := testutil.GetSSLOptions()
-	auth := testutil.GetAuthOptions()
-	sessionProvider, err := db.NewSessionProvider(options.ToolOptions{
-		General: &options.General{},
-		SSL:     &ssl,
-		Connection: &options.Connection{
-			Host: "localhost",
-			Port: db.DefaultTestPort,
-		},
-		Auth:         &auth,
-		URI:          &options.URI{},
-		Namespace:    &options.Namespace{},
-		WriteConcern: wcwrapper.Majority(),
-	})
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err, "should get tool options")
+	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	require.NoError(t, err, "should create session provider")
 	client, err := sessionProvider.GetSession()
 	require.NoError(t, err, "should get session")

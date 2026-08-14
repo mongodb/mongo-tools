@@ -22,7 +22,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,31 +30,26 @@ import (
 )
 
 var (
-	testDB     = "mongofiles_test_db"
-	testServer = "localhost"
-	testPort   = db.DefaultTestPort
+	testDB = "mongofiles_test_db"
 
-	ssl        = testutil.GetSSLOptions()
-	auth       = testutil.GetAuthOptions()
-	connection = &options.Connection{
-		Host: testServer,
-		Port: testPort,
-	}
-	toolOptions = &options.ToolOptions{
-		SSL:          &ssl,
-		Connection:   connection,
-		Auth:         &auth,
-		Verbosity:    &options.Verbosity{},
-		URI:          &options.URI{},
-		WriteConcern: wcwrapper.Majority(),
-	}
-	testFiles = map[string]bson.ObjectID{
+	ssl         = testutil.GetSSLOptions()
+	toolOptions = mustGetToolOptions()
+	testFiles   = map[string]bson.ObjectID{
 		"testfile1": bson.NewObjectID(),
 		"testfile2": bson.NewObjectID(),
 		"testfile3": bson.NewObjectID(),
 		"testfile4": bson.NewObjectID(),
 	}
 )
+
+func mustGetToolOptions() *options.ToolOptions {
+	toolOptions, err := testutil.GetToolOptions()
+	if err != nil {
+		panic(fmt.Sprintf("could not get tool options: %v", err))
+	}
+
+	return toolOptions
+}
 
 // put in some test data into GridFS.
 func setUpGridFSTestData() (map[string]int, error) {

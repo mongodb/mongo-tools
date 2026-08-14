@@ -4,12 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
@@ -48,25 +46,13 @@ func (s *ExportImportSuite) ExportOptions() mongoexport.Options {
 }
 
 func (s *ExportImportSuite) ImportOptions(dbName, collName string) mongoimport.Options {
-	ssl := testutil.GetSSLOptions()
-	auth := testutil.GetAuthOptions()
+	toolOptions, err := testutil.GetToolOptions()
+	s.Require().NoError(err)
+	toolOptions.Namespace.DB = dbName
+	toolOptions.Namespace.Collection = collName
 
 	return mongoimport.Options{
-		ToolOptions: &options.ToolOptions{
-			General: &options.General{},
-			SSL:     &ssl,
-			Connection: &options.Connection{
-				Host: "localhost",
-				Port: db.DefaultTestPort,
-			},
-			Auth: &auth,
-			URI:  &options.URI{},
-			Namespace: &options.Namespace{
-				DB:         dbName,
-				Collection: collName,
-			},
-			WriteConcern: wcwrapper.Majority(),
-		},
+		ToolOptions: toolOptions,
 		InputOptions: &mongoimport.InputOptions{
 			ParseGrace: "stop",
 		},

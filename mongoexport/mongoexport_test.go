@@ -27,7 +27,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -614,20 +613,9 @@ func TestExportNestedFieldsCSV(t *testing.T) {
 
 func newExportTestClient(t *testing.T, dbName string) *mongo.Client {
 	t.Helper()
-	ssl := testutil.GetSSLOptions()
-	auth := testutil.GetAuthOptions()
-	sessionProvider, err := db.NewSessionProvider(options.ToolOptions{
-		General: &options.General{},
-		SSL:     &ssl,
-		Connection: &options.Connection{
-			Host: "localhost",
-			Port: db.DefaultTestPort,
-		},
-		Auth:         &auth,
-		URI:          &options.URI{},
-		Namespace:    &options.Namespace{},
-		WriteConcern: wcwrapper.Majority(),
-	})
+	toolOptions, err := testutil.GetToolOptions()
+	require.NoError(t, err, "should get tool options")
+	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	require.NoError(t, err, "should create session provider")
 	client, err := sessionProvider.GetSession()
 	require.NoError(t, err, "should get session")
