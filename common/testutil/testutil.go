@@ -88,6 +88,10 @@ func GetToolOptions() (*options.ToolOptions, error) {
 				err,
 			)
 		}
+
+		// ParseArgs does not set this, but tools like mongoimport and mongorestore
+		// dereference it without a nil check.
+		toolOptions.WriteConcern = wcwrapper.Majority()
 	} else {
 		ssl := GetSSLOptions()
 		auth := GetAuthOptions()
