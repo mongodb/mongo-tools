@@ -997,11 +997,7 @@ func TestMongoFilesCommands(t *testing.T) {
 		})
 
 		Convey("Testing the 'put' command with multiple lorem ipsum files bytes should", func() {
-			localTestFiles := []string{
-				filepath.FromSlash("testdata/lorem_ipsum_multi_args_0.txt"),
-				filepath.FromSlash("testdata/lorem_ipsum_multi_args_1.txt"),
-				filepath.FromSlash("testdata/lorem_ipsum_multi_args_2.txt"),
-			}
+			localTestFiles := loremIpsumFiles
 
 			mf, err := simpleMongoFilesInstanceWithMultipleFileNames("put", localTestFiles...)
 			So(err, ShouldBeNil)
