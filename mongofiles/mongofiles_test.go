@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 var (
@@ -1184,7 +1183,7 @@ func TestDefaultWriteConcern(t *testing.T) {
 		So(
 			mf.ToolOptions.WriteConcern,
 			ShouldResemble,
-			writeconcern.Majority(),
+			wcwrapper.Majority(),
 		)
 	})
 
@@ -1194,7 +1193,7 @@ func TestDefaultWriteConcern(t *testing.T) {
 		So(
 			mf.ToolOptions.WriteConcern,
 			ShouldResemble,
-			writeconcern.Majority(),
+			wcwrapper.Majority(),
 		)
 	})
 }

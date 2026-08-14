@@ -1821,6 +1821,42 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
+  # Every other integration task runs with TLS on, which means a test that skips
+  # itself when TLS is enabled never runs anywhere. This task is the one that
+  # exercises the no-TLS path. It is deliberately not tagged with a server
+  # version, so that it runs only on the variants that ask for ".no-ssl".
+  - name: integration-latest-no-ssl
+    tags: ["no-ssl"]
+    commands:
+      - func: "fetch source"
+      # Variants that run integration tasks set mongod_args/mongo_args to their
+      # SSL values, and the startup scripts only look at the _tls variables when
+      # USE_TLS is true. Without these overrides, USE_TLS: "" would still start a
+      # requireSSL mongod and every test would fail to connect.
+      - command: expansions.update
+        params:
+          updates:
+            - key: "mongod_args"
+              value: ""
+            - key: "mongo_args"
+              value: *mongo_default_startup_args_string
+      - func: "install mise and go"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "latest"
+      - func: "start mongod"
+        vars:
+          USE_TLS: ""
+      - func: "wait for mongod to be ready"
+        vars:
+          USE_TLS: ""
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration ${testArgs}
+
   - name: integration-latest-auth
     tags: ["latest", "auth"]
     commands:
@@ -2730,6 +2766,7 @@ buildvariants:
       - name: ".8.3"
       - name: ".9.0"
       - name: ".latest"
+      - name: ".no-ssl"
       - name: ".kerberos"
       - name: "dist"
       - name: "sign"
