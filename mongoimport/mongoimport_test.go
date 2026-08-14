@@ -9,6 +9,7 @@ package mongoimport
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -1613,7 +1615,9 @@ func TestImportCollectionNameDerivation(t *testing.T) {
 
 	client := newImportTestClient(t, dbName)
 	t.Cleanup(func() {
-		_ = client.Database("testdb2").Drop(t.Context())
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		require.NoError(t, client.Database("testdb2").Drop(ctx))
 	})
 
 	tmpDir := t.TempDir()
@@ -1922,7 +1926,9 @@ func newImportTestClient(t *testing.T, dbName string) *mongo.Client {
 	client, err := sessionProvider.GetSession()
 	require.NoError(t, err, "should get session")
 	t.Cleanup(func() {
-		_ = client.Database(dbName).Drop(t.Context())
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		require.NoError(t, client.Database(dbName).Drop(ctx))
 	})
 	return client
 }
