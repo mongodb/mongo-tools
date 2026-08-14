@@ -1306,3 +1306,19 @@ func runPutIDTestCase(idToTest string, t *testing.T) {
 	So(err, ShouldBeNil)
 	So(isContentSame, ShouldBeTrue)
 }
+
+// TestRejectsUnknownFlag covers an unknown flag. The other way of naming
+// something mongofiles does not have, an unknown subcommand, is the "nonsensical
+// command" case of TestValidArguments, which reaches ValidateCommand without
+// connecting.
+func TestRejectsUnknownFlag(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	_, err := ParseOptions([]string{"--invalid", "33333", "put", "file"}, "", "")
+	require.ErrorContains(
+		t,
+		err,
+		"unknown option `invalid`",
+		"an unrecognized flag is rejected",
+	)
+}
