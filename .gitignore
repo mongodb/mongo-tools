@@ -14,6 +14,12 @@
 /silkbomb.env
 /temp*
 /mongodump/*/mongodump_test_db
+/mongodump/*/admin/
+/mongodump/*/config/
+/mongodump/*/test/
+/mongodump/*/mongorestore_test_*/
+/mongodump/*/prelude.json
+/mongoimport/testdata/10k1dup10k.json
 /mongorestore/testdata/txntest/oplog.bson
 /mongorestore/testdata/index_collation/test/*
 *.bson
