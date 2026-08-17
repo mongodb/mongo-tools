@@ -522,54 +522,9 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	if opts.SSL != nil && opts.UseSSL {
-		// Error on unsupported features
-		if opts.SSLFipsMode {
-			return nil, fmt.Errorf("FIPS mode not supported")
-		}
-		if opts.SSLCRLFile != "" {
-			return nil, fmt.Errorf("CRL files are not supported on this platform")
-		}
-
-		tlsConfig := &tls.Config{
-			MinVersion: tls.VersionTLS12, // for compat back to MongoDB 4.2
-		}
-		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure {
-			// #nosec G402 -- We intentionally allow known-insecure TLS options when certain CLI
-			// flags are set. These are `--tlsInsecure`, `--sslAllowInvalidCertificates`, and
-			// `--sslAllowInvalidHostnames`. When these are not set, we use secure TLS settings.
-			tlsConfig.InsecureSkipVerify = true
-		}
-
-		var x509Subject string
-		keyPasswd := opts.SSLPEMKeyPassword
-		var err error
-		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
-			keyPasswd = cs.SSLClientCertificateKeyPassword()
-		}
-		if cs.SSLClientCertificateKeyFileSet {
-			x509Subject, err = addClientCertFromFile(
-				tlsConfig,
-				cs.SSLClientCertificateKeyFile,
-				keyPasswd,
-			)
-		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
-			x509Subject, err = addClientCertFromSeparateFiles(
-				tlsConfig,
-				cs.SSLCertificateFile,
-				cs.SSLPrivateKeyFile,
-				keyPasswd,
-			)
-		}
+		tlsConfig, x509Subject, err := buildTLSConfig(&opts)
 		if err != nil {
-			return nil, fmt.Errorf(
-				"error configuring client, can't load client certificate: %v",
-				err,
-			)
-		}
-		if opts.SSLCAFile != "" {
-			if err := addCACertsFromFile(tlsConfig, opts.SSLCAFile); err != nil {
-				return nil, fmt.Errorf("error configuring client, can't load CA file: %v", err)
-			}
+			return nil, err
 		}
 
 		// If a username wasn't specified for x509, add one from the certificate.
@@ -588,6 +543,69 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	}
 
 	return mongo.Connect(clientopt)
+}
+
+// buildTLSConfig assembles the tls.Config the tools connect with from the SSL/TLS options and the
+// parsed connection string. It returns the config and, when a client certificate was loaded, that
+// certificate's subject.
+//
+// With no --sslCAFile the RootCAs field is left nil, so the Go runtime verifies the server against
+// the platform trust store. Server certificates are verified unless one of the insecure options is
+// set.
+func buildTLSConfig(opts *options.ToolOptions) (*tls.Config, string, error) {
+	// Error on unsupported features
+	if opts.SSLFipsMode {
+		return nil, "", fmt.Errorf("FIPS mode not supported")
+	}
+	if opts.SSLCRLFile != "" {
+		return nil, "", fmt.Errorf("CRL files are not supported on this platform")
+	}
+
+	cs := opts.ParsedConnString()
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12, // for compat back to MongoDB 4.2
+	}
+	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure {
+		// #nosec G402 -- We intentionally allow known-insecure TLS options when certain CLI flags
+		// are set. These are `--tlsInsecure`, `--sslAllowInvalidCertificates`, and
+		// `--sslAllowInvalidHostnames`. When these are not set, we use secure TLS settings.
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	var x509Subject string
+	keyPasswd := opts.SSLPEMKeyPassword
+	var err error
+	if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+		keyPasswd = cs.SSLClientCertificateKeyPassword()
+	}
+	if cs.SSLClientCertificateKeyFileSet {
+		x509Subject, err = addClientCertFromFile(
+			tlsConfig,
+			cs.SSLClientCertificateKeyFile,
+			keyPasswd,
+		)
+	} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
+		x509Subject, err = addClientCertFromSeparateFiles(
+			tlsConfig,
+			cs.SSLCertificateFile,
+			cs.SSLPrivateKeyFile,
+			keyPasswd,
+		)
+	}
+	if err != nil {
+		return nil, "", fmt.Errorf(
+			"error configuring client, can't load client certificate: %v",
+			err,
+		)
+	}
+	if opts.SSLCAFile != "" {
+		if err := addCACertsFromFile(tlsConfig, opts.SSLCAFile); err != nil {
+			return nil, "", fmt.Errorf("error configuring client, can't load CA file: %v", err)
+		}
+	}
+
+	return tlsConfig, x509Subject, nil
 }
 
 // FilterError determines whether an error needs to be propagated back to the user or can be continued through. If an
