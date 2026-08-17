@@ -4,8 +4,6 @@ import (
 	"path/filepath"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/mongodump"
-	"github.com/mongodb/mongo-tools/mongorestore"
 )
 
 // TestDumpRestoreOverReplicaSetHost dumps and restores through a
@@ -28,14 +26,19 @@ func (s *DumpRestoreSuite) TestDumpRestoreOverReplicaSetHost() {
 	hostArgs := s.ReplicaSetToolArgs()
 	dir := s.T().TempDir()
 
-	s.dumpOverReplicaSetHost(hostArgs, dir, testDB.Name(), collName)
+	s.dumpWithArgs(
+		hostArgs,
+		"--out", dir,
+		"--db", testDB.Name(),
+		"--collection", collName,
+	)
 	s.Require().NoError(coll.Drop(s.Context()), "can drop the collection before restoring it")
 
-	s.restoreOverReplicaSetHost(
+	s.restoreWithArgs(
 		hostArgs,
+		"--db", testDB.Name(),
+		"--collection", collName,
 		filepath.Join(dir, testDB.Name(), collName+".bson"),
-		testDB.Name(),
-		collName,
 	)
 
 	s.Assert().EqualValues(
@@ -43,41 +46,4 @@ func (s *DumpRestoreSuite) TestDumpRestoreOverReplicaSetHost() {
 		s.docCount(coll),
 		"every document comes back from a dump and restore addressed to the replica set",
 	)
-}
-
-func (s *DumpRestoreSuite) dumpOverReplicaSetHost(hostArgs []string, dir, dbName, collName string) {
-	args := append(append([]string{}, hostArgs...),
-		"--out", dir,
-		"--db", dbName,
-		"--collection", collName,
-	)
-	opts, err := mongodump.ParseOptions(args, "", "")
-	s.Require().NoError(err, "can parse the mongodump options")
-
-	dump := &mongodump.MongoDump{
-		ToolOptions:   opts.ToolOptions,
-		InputOptions:  opts.InputOptions,
-		OutputOptions: opts.OutputOptions,
-	}
-	s.Require().NoError(dump.Init(), "mongodump can connect to the replica set")
-	s.Require().NoError(dump.Dump(), "mongodump succeeds against the replica set")
-}
-
-func (s *DumpRestoreSuite) restoreOverReplicaSetHost(
-	hostArgs []string,
-	bsonFile, dbName, collName string,
-) {
-	args := append(append([]string{}, hostArgs...),
-		"--db", dbName,
-		"--collection", collName,
-		bsonFile,
-	)
-	opts, err := mongorestore.ParseOptions(args, "", "")
-	s.Require().NoError(err, "can parse the mongorestore options")
-
-	restore, err := mongorestore.New(opts)
-	s.Require().NoError(err, "mongorestore can connect to the replica set")
-	defer restore.Close()
-
-	s.Require().NoError(restore.Restore().Err, "mongorestore succeeds against the replica set")
 }

@@ -280,6 +280,29 @@ func getRestoreWithArgsForURI(
 	return restore, nil
 }
 
+// getRestoreWithHostArgs is getRestoreWithArgs for the tests that address a
+// specific host rather than the test deployment as a whole.
+func getRestoreWithHostArgs(
+	hostArgs []string,
+	additionalArgs ...string,
+) (*mongorestore.MongoRestore, error) {
+	opts, err := mongorestore.ParseOptions(
+		append(slices.Clone(hostArgs), additionalArgs...),
+		"",
+		"",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing args: %v", err)
+	}
+
+	restore, err := mongorestore.New(opts)
+	if err != nil {
+		return nil, fmt.Errorf("error making new instance of mongorestore: %v", err)
+	}
+
+	return restore, nil
+}
+
 func getArchiveMongoDumpForURI(
 	t *testing.T,
 	uri string,

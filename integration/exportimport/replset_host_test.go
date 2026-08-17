@@ -34,10 +34,10 @@ func (s *ExportImportSuite) TestExportImportOverReplicaSetHost() {
 	hostArgs := s.ReplicaSetToolArgs()
 	exportFile := filepath.Join(s.T().TempDir(), "export.json")
 
-	s.exportOverReplicaSetHost(hostArgs, exportFile, dbName, collName)
+	s.exportWithArgs(hostArgs, exportFile, dbName, collName)
 	s.Require().NoError(coll.Drop(s.Context()), "can drop the collection before importing it")
 
-	s.importOverReplicaSetHost(hostArgs, exportFile, dbName, collName)
+	s.importWithArgs(hostArgs, exportFile, dbName, collName)
 
 	count, err := coll.CountDocuments(s.Context(), bson.D{})
 	s.Require().NoError(err, "can count the imported documents")
@@ -48,7 +48,7 @@ func (s *ExportImportSuite) TestExportImportOverReplicaSetHost() {
 	)
 }
 
-func (s *ExportImportSuite) exportOverReplicaSetHost(
+func (s *ExportImportSuite) exportWithArgs(
 	hostArgs []string,
 	path, dbName, collName string,
 ) {
@@ -60,17 +60,17 @@ func (s *ExportImportSuite) exportOverReplicaSetHost(
 	s.Require().NoError(err, "can parse the mongoexport options")
 
 	me, err := mongoexport.New(opts)
-	s.Require().NoError(err, "mongoexport can connect to the replica set")
+	s.Require().NoError(err, "mongoexport can connect")
 	defer me.Close()
 
 	out, err := os.Create(path)
 	s.Require().NoError(err, "can create the export file")
 	_, err = me.Export(out)
-	s.Require().NoError(err, "mongoexport succeeds against the replica set")
+	s.Require().NoError(err, "mongoexport succeeds")
 	s.Require().NoError(out.Close(), "can close the export file")
 }
 
-func (s *ExportImportSuite) importOverReplicaSetHost(
+func (s *ExportImportSuite) importWithArgs(
 	hostArgs []string,
 	path, dbName, collName string,
 ) {
@@ -83,10 +83,10 @@ func (s *ExportImportSuite) importOverReplicaSetHost(
 	s.Require().NoError(err, "can parse the mongoimport options")
 
 	mi, err := mongoimport.New(opts)
-	s.Require().NoError(err, "mongoimport can connect to the replica set")
+	s.Require().NoError(err, "mongoimport can connect")
 	defer mi.Close()
 
 	_, failed, err := mi.ImportDocuments()
-	s.Require().NoError(err, "mongoimport succeeds against the replica set")
-	s.Require().Zero(failed, "no document is rejected by the replica set")
+	s.Require().NoError(err, "mongoimport succeeds")
+	s.Require().Zero(failed, "no document is rejected")
 }
