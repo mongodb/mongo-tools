@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -249,9 +250,9 @@ func TestParseAndSetOptions(t *testing.T) {
 		{
 			Name: "connection fields set",
 			CS: &connstring.ConnString{
-				ConnectTimeout:    time.Duration(100) * time.Millisecond,
+				ConnectTimeout:    time.Duration(100) * time.Second,
 				ConnectTimeoutSet: true,
-				SocketTimeout:     time.Duration(200) * time.Millisecond,
+				SocketTimeout:     time.Duration(200) * time.Second,
 				SocketTimeoutSet:  true,
 			},
 			OptsIn: &ToolOptions{
@@ -273,6 +274,146 @@ func TestParseAndSetOptions(t *testing.T) {
 				Connection: &Connection{
 					Timeout:       100,
 					SocketTimeout: 200,
+				},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			ShouldError: false,
+		},
+		{
+			// TOOLS-4336: dialTimeout/connectTimeoutMS is documented in seconds,
+			// so a URI-only connectTimeoutMS value must be interpreted as seconds.
+			Name: "connectTimeoutMS from URI is interpreted as seconds",
+			CS: &connstring.ConnString{
+				ConnectTimeout:    5 * time.Second,
+				ConnectTimeoutSet: true,
+			},
+			OptsIn: &ToolOptions{
+				General:   &General{},
+				Verbosity: &Verbosity{},
+				Connection: &Connection{
+					Timeout: 3, // The default value
+				},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			OptsExpected: &ToolOptions{
+				General:   &General{},
+				Verbosity: &Verbosity{},
+				Connection: &Connection{
+					Timeout: 5,
+				},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			ShouldError: false,
+		},
+		{
+			// TOOLS-4336: socketTimeoutMS is documented in seconds, so a URI-only
+			// socketTimeoutMS value must be interpreted as seconds.
+			Name: "socketTimeoutMS from URI is interpreted as seconds",
+			CS: &connstring.ConnString{
+				SocketTimeout:    5 * time.Second,
+				SocketTimeoutSet: true,
+			},
+			OptsIn: &ToolOptions{
+				General:        &General{},
+				Verbosity:      &Verbosity{},
+				Connection:     &Connection{},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			OptsExpected: &ToolOptions{
+				General:   &General{},
+				Verbosity: &Verbosity{},
+				Connection: &Connection{
+					SocketTimeout: 5,
+				},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			ShouldError: false,
+		},
+		{
+			// TOOLS-4336: serverSelectionTimeoutMS is documented in seconds, so a
+			// URI-only serverSelectionTimeoutMS value must be interpreted as seconds.
+			Name: "serverSelectionTimeoutMS from URI is interpreted as seconds",
+			CS: &connstring.ConnString{
+				ServerSelectionTimeout:    5 * time.Second,
+				ServerSelectionTimeoutSet: true,
+			},
+			OptsIn: &ToolOptions{
+				General:        &General{},
+				Verbosity:      &Verbosity{},
+				Connection:     &Connection{},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			OptsExpected: &ToolOptions{
+				General:   &General{},
+				Verbosity: &Verbosity{},
+				Connection: &Connection{
+					ServerSelectionTimeout: 5,
+				},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			ShouldError: false,
+		},
+		{
+			// TOOLS-4336: an equivalent --dialTimeout flag (seconds) and
+			// connectTimeoutMS URI value (milliseconds) must not conflict.
+			Name: "equivalent dialTimeout flag and connectTimeoutMS URI value do not conflict",
+			CS: &connstring.ConnString{
+				ConnectTimeout:    5 * time.Second,
+				ConnectTimeoutSet: true,
+			},
+			OptsIn: &ToolOptions{
+				General:   &General{},
+				Verbosity: &Verbosity{},
+				Connection: &Connection{
+					Timeout: 5,
+				},
+				URI:            &URI{},
+				SSL:            &SSL{},
+				Auth:           &Auth{},
+				Namespace:      &Namespace{},
+				Kerberos:       &Kerberos{},
+				enabledOptions: EnabledOptions{Connection: true, URI: true},
+			},
+			OptsExpected: &ToolOptions{
+				General:   &General{},
+				Verbosity: &Verbosity{},
+				Connection: &Connection{
+					Timeout: 5,
 				},
 				URI:            &URI{},
 				SSL:            &SSL{},
@@ -608,6 +749,11 @@ func TestParseAndSetOptions(t *testing.T) {
 			testCase.OptsExpected.SocketTimeout,
 			testCase.OptsIn.SocketTimeout,
 		)
+		require.Equal(
+			t,
+			testCase.OptsExpected.ServerSelectionTimeout,
+			testCase.OptsIn.ServerSelectionTimeout,
+		)
 		require.Equal(t, testCase.OptsExpected.Username, testCase.OptsIn.Username)
 		require.Equal(t, testCase.OptsExpected.Password, testCase.OptsIn.Password)
 		require.Equal(t, testCase.OptsExpected.Source, testCase.OptsIn.Source)
@@ -817,6 +963,23 @@ func createOptionsTestCases(s []string) []optionsTester {
 		ret[0].options = s[0]
 		ret[1].options = s[0]
 		ret[2].options = s[0]
+	}
+	// These flags are documented in seconds, but their corresponding URI query
+	// parameters are in milliseconds (per the connection string spec), so the
+	// URI value must be scaled by 1000 to be equivalent to the flag value.
+	if s[1] == "serverSelectionTimeoutMS" || s[1] == "connectTimeoutMS" ||
+		s[1] == "socketTimeoutMS" {
+		secs, err := strconv.Atoi(s[2])
+		if err != nil {
+			panic(err)
+		}
+		otherSecs, err := strconv.Atoi(s[3])
+		if err != nil {
+			panic(err)
+		}
+		ret[1].uri = fmt.Sprintf("mongodb://user:pass@foo/?%s=%d", s[1], secs*1000)
+		ret[2].uri = fmt.Sprintf("mongodb://user:pass@foo/?%s=%d", s[1], otherSecs*1000)
+		ret[3].uri = fmt.Sprintf("mongodb://user:pass@foo/?%s=%d", s[1], secs*1000)
 	}
 	return ret
 }
