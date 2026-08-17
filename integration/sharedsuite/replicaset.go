@@ -26,18 +26,32 @@ func (s *IntegrationSuite) ReplicaSetToolArgs() []string {
 // replicaSetHostArg builds the "<setName>/<host>,<host>" form of --host out of
 // what the server reports about the set it belongs to.
 func (s *IntegrationSuite) replicaSetHostArg() string {
+	status := s.replicaSetStatus()
+	s.Require().NotEmpty(status.SetName, "the server is a replica set member")
+	s.Require().NotEmpty(status.Hosts, "the replica set reports its members")
+
+	return status.SetName + "/" + strings.Join(status.Hosts, ",")
+}
+
+// replicaSetStatus is what the tests need to know about the replica set the
+// server belongs to.
+type replicaSetStatus struct {
+	SetName string   `bson:"setName"`
+	Primary string   `bson:"primary"`
+	Hosts   []string `bson:"hosts"`
+}
+
+// replicaSetStatus asks the server about the replica set it belongs to. Callers
+// assert on the fields they need, since a standalone answers this too, just
+// without any of them.
+func (s *IntegrationSuite) replicaSetStatus() replicaSetStatus {
 	// isMaster rather than hello because the servers this runs against include
 	// versions older than 5.0, where hello does not exist.
-	var isMaster struct {
-		SetName string   `bson:"setName"`
-		Hosts   []string `bson:"hosts"`
-	}
+	var status replicaSetStatus
 	err := s.Client().Database("admin").
 		RunCommand(s.Context(), bson.D{{"isMaster", 1}}).
-		Decode(&isMaster)
-	s.Require().NoError(err, "can ask the server which replica set it belongs to")
-	s.Require().NotEmpty(isMaster.SetName, "the server is a replica set member")
-	s.Require().NotEmpty(isMaster.Hosts, "the replica set reports its members")
+		Decode(&status)
+	s.Require().NoError(err, "can ask the server about the replica set it belongs to")
 
-	return isMaster.SetName + "/" + strings.Join(isMaster.Hosts, ",")
+	return status
 }

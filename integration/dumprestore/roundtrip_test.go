@@ -255,8 +255,17 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 }
 
 func getRestoreWithArgs(additionalArgs ...string) (*mongorestore.MongoRestore, error) {
+	return getRestoreWithHostArgs(testopts.GetBareArgs(), additionalArgs...)
+}
+
+// getRestoreWithHostArgs is getRestoreWithArgs for the tests that address a
+// specific host rather than the test deployment as a whole.
+func getRestoreWithHostArgs(
+	hostArgs []string,
+	additionalArgs ...string,
+) (*mongorestore.MongoRestore, error) {
 	opts, err := mongorestore.ParseOptions(
-		append(testopts.GetBareArgs(), additionalArgs...),
+		append(slices.Clone(hostArgs), additionalArgs...),
 		"",
 		"",
 	)
