@@ -46,6 +46,12 @@ const (
 
 	// Testing the tools with a replica set topology.
 	ReplSetTestType = "TOOLS_TESTING_REPLSET"
+
+	// Testing the tools against a replica set with three data-bearing nodes, for
+	// tests that need a secondary to connect to or a write concern greater than
+	// w:1. Anything that sets this also sets ReplSetTestType, since a three-node
+	// set satisfies the single-node replica set tests too.
+	MultiNodeReplSetTestType = "TOOLS_TESTING_MULTINODE_REPLSET"
 )
 
 func HasTestType(testType string) bool {

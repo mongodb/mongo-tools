@@ -644,6 +644,7 @@ functions:
           MONGOD_PORT: ${mongod_port}
           MONGO_ARGS: ${mongo_args}
           MONGO_ARGS_TLS: ${mongo_args_tls}
+          REPLSET_NODES: ${replset_nodes|1}
           REPLSETTEST_SSL_CONFIG: ${replsettest_ssl_config}
           REPLSETTEST_TLS_CONFIG: ${replsettest_tls_config}
           USE_SSL: ${USE_SSL}
@@ -661,6 +662,7 @@ functions:
           MONGOD_PORT: ${mongod_port}
           MONGO_ARGS: ${mongo_args}
           MONGO_ARGS_TLS: ${mongo_args_tls}
+          REPLSET_NODES: ${replset_nodes|1}
           USE_TLS: ${USE_TLS}
 
   "create sharded cluster":
@@ -1908,6 +1910,29 @@ tasks:
         vars:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
+  # Tagged "multinode" rather than "latest" on purpose: a "latest" tag would pull
+  # this into every variant that selects .latest, and only rhel88 runs it.
+  - name: integration-multinode-latest
+    tags: ["multinode"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "install mise and go"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "latest"
+      - func: "create repl_set"
+        vars:
+          USE_TLS: "true"
+          load_libs_version: *max_server_version
+          replset_nodes: "3"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:integration -ssl=true -topology=multiNodeReplSet ${testArgs}
+
   - name: integration-4.4-sharded
     tags: ["4.4", "sharded", "required-for-merge-queue"]
     commands:
@@ -2795,6 +2820,7 @@ buildvariants:
       - name: ".9.0"
       - name: ".latest"
       - name: ".no-ssl"
+      - name: ".multinode"
       - name: ".kerberos"
       - name: "dist"
       - name: "sign"
