@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/archive"
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -174,8 +175,20 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 		defer restore.Close()
 
 		_ = restore.Restore()
-		expectedVersion, _ := sessionProvider.ServerVersionArray()
-		require.Equal(restore.dumpServerVersion, expectedVersion)
+
+		// The prelude records the server's version *string*, so compare against
+		// that same source. buildInfo.versionArray reports the next, unreleased
+		// version for source builds (8.0.16-353-gb19191c has a versionArray of
+		// [8, 0, 17, -100]), which would not match.
+		serverVersionStr, err := sessionProvider.ServerVersion()
+		require.NoError(err)
+		expectedVersion, err := db.StrToVersion(serverVersionStr)
+		require.NoError(err)
+		require.Equal(
+			expectedVersion,
+			restore.dumpServerVersion,
+			"dumpServerVersion matches the version reported by the server",
+		)
 	})
 }
 
