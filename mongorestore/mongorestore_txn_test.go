@@ -7,18 +7,17 @@
 package mongorestore
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -39,23 +38,17 @@ type txnTestDataCase struct {
 func TestMongorestoreTxns(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	client, err := testutil.GetBareSession()
-	if err != nil {
-		t.Fatalf("No server available")
-	}
+	require.NoError(t, err, "must connect to the server")
 
 	restore, err := getRestoreWithArgs()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "must build a restore instance")
 
 	file := txnTestDataFilePre61
 	if restore.serverVersion.GTE(db.Version{6, 1, 0}) {
 		file = txnTestDataFile61Plus
 	}
 	data, err := readTxnTestData(file)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "must read the transaction test data")
 
 	// Create test collections (if they don't exist) and clear documents.
 	for _, v := range data {
@@ -63,37 +56,31 @@ func TestMongorestoreTxns(t *testing.T) {
 		db := client.Database(parts[0])
 		coll := db.Collection(parts[1])
 		err := coll.Drop(t.Context())
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err, "must drop the existing test collection")
 		res := db.RunCommand(t.Context(), bson.D{{"create", parts[1]}})
-		if res.Err() != nil {
-			t.Fatal(res.Err())
-		}
+		require.NoError(t, res.Err(), "must create the test collection")
 	}
 
 	// Create a dump directory from transactions.json
 	dumpPath := createTxnTestDataDir(t, data)
 
-	Convey("With a test MongoRestore", t, func() {
-		args := []string{
-			OplogReplayOption,
-			DropOption,
-			dumpPath,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		So(err, ShouldBeNil)
-		defer restore.Close()
+	args := []string{
+		OplogReplayOption,
+		DropOption,
+		dumpPath,
+	}
+	restore, err = getRestoreWithArgs(args...)
+	require.NoError(t, err, "should build a restore instance from the dump path")
+	defer restore.Close()
 
-		result := restore.Restore()
-		So(result.Err, ShouldBeNil)
+	result := restore.Restore()
+	require.NoError(t, result.Err, "should restore without error")
 
-		for k, v := range data {
-			_, err = Println("postImageCheck for", k)
-			So(err, ShouldBeNil)
-			So(postImageCheck(t, client, v), ShouldBeNil)
-		}
-	})
+	for k, v := range data {
+		t.Run(k, func(t *testing.T) {
+			postImageCheck(t, client, v)
+		})
+	}
 }
 
 // createTxnTestDataDir constructs a dump directory with an oplog.bson
@@ -114,9 +101,7 @@ func createTxnTestDataDir(t *testing.T, data txnTestDataMap) string {
 	}
 
 	err := dumpDir.Create()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "should create the dump directory")
 
 	return dumpDir.Path()
 }
@@ -140,54 +125,34 @@ func readTxnTestData(filename string) (txnTestDataMap, error) {
 	return txnTestData, nil
 }
 
-func postImageCheck(t *testing.T, client *mongo.Client, c *txnTestDataCase) error {
+func postImageCheck(t *testing.T, client *mongo.Client, c *txnTestDataCase) {
 	expected := make(map[int]bson.D)
 	for _, v := range c.PostImage {
 		id, err := bsonutil.FindIntByKey("_id", &v)
-		if err != nil {
-			return err
-		}
+		require.NoError(t, err, "should find the _id of each expected document")
 		expected[id] = v
 	}
 
 	parts := strings.SplitN(c.NS, ".", 2)
-	db := client.Database(parts[0])
-	coll := db.Collection(parts[1])
+	coll := client.Database(parts[0]).Collection(parts[1])
 
 	cursor, err := coll.Find(t.Context(), bson.D{})
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "should query the restored collection")
 	defer cursor.Close(t.Context())
+
 	var docs []bson.D
-	err = cursor.All(t.Context(), &docs)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, cursor.All(t.Context(), &docs), "should read every restored document")
 
 	for _, got := range docs {
 		id, err := bsonutil.FindIntByKey("_id", &got)
-		if err != nil {
-			return err
-		}
+		require.NoError(t, err, "should find the _id of each restored document")
+
 		want, ok := expected[id]
-		if !ok {
-			return fmt.Errorf("got unexpected document with _id '%d'", id)
-		}
-		if diff := cmp.Diff(got, want); diff != "" {
-			return errors.New(diff)
-		}
+		require.True(t, ok, "should restore only expected documents, got _id %d", id)
+
+		assert.Equal(t, want, got, "should restore document _id %d unchanged", id)
 		delete(expected, id)
 	}
 
-	// Check if all documents were found
-	if len(expected) != 0 {
-		var missing []int
-		for i := range expected {
-			missing = append(missing, i)
-		}
-		return fmt.Errorf("missing documents: %v", missing)
-	}
-
-	return nil
+	assert.Empty(t, expected, "should restore every expected document")
 }
