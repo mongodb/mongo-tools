@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/craiggwilson/goke/pkg/git"
@@ -28,9 +29,14 @@ var pkgNames = []string{
 	"mongostat", "mongotop",
 	"mongofiles",
 	"common",
+	"evergreen",
 	"release",
 	"integration",
 }
+
+// Packages that hold library or tooling code rather than a tool, so there is no
+// binary to build for them.
+var nonToolPkgs = []string{"common", "evergreen", "release", "integration"}
 
 func getMinimumGoVersion(ctx *task.Context) (string, error) {
 	root, err := repoRoot()
@@ -97,7 +103,7 @@ func CheckMinimumGoVersion(ctx *task.Context) error {
 // BuildTools is an Executor that builds the tools.
 func BuildTools(ctx *task.Context) error {
 	for _, pkg := range selectedPkgs(ctx) {
-		if pkg != "common" && pkg != "release" && pkg != "integration" {
+		if !slices.Contains(nonToolPkgs, pkg) {
 			err := buildToolBinary(ctx, pkg, "bin")
 			if err != nil {
 				return err
