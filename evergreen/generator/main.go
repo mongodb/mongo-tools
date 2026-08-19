@@ -17,11 +17,5 @@ func main() {
 		panic(err)
 	}
 
-	mq, err := c.MergeQueueAliasesYAML()
-	if err != nil {
-		panic(err)
-	}
-
 	fmt.Println(pr)
-	fmt.Println(mq)
 }

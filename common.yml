@@ -911,6 +911,16 @@ timeout:
   - func: "wait for resmoke to shutdown"
 
 tasks:
+  # A no-op whose dependencies are the tasks that gate a merge. It is the single required GitHub
+  # status check. See the merge-queue buildvariant.
+  - name: merge-queue-workaround
+    commands:
+      - command: shell.exec
+        params:
+          shell: bash
+          script: |
+            echo "This task is a no-op. It exists so that the merge queue has a single required status check."
+
   - name: dist
     tags: ["git_tag"]
     commands:
@@ -1029,7 +1039,7 @@ tasks:
       - func: "generate full JSON feed"
 
   - name: integration-4.2
-    tags: ["4.2"]
+    tags: ["4.2", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1051,7 +1061,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.2-auth
-    tags: ["4.2", "auth"]
+    tags: ["4.2", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1081,7 +1091,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-4.4
-    tags: ["4.4"]
+    tags: ["4.4", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1103,7 +1113,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-4.4-auth
-    tags: ["4.4", "auth"]
+    tags: ["4.4", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1133,7 +1143,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-4.4-cluster
-    tags: ["4.4", "cluster"]
+    tags: ["4.4", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1152,7 +1162,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: integration-5.0
-    tags: ["5.0"]
+    tags: ["5.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1174,7 +1184,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-5.0-auth
-    tags: ["5.0", "auth"]
+    tags: ["5.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1204,7 +1214,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-5.0-cluster
-    tags: ["5.0", "cluster"]
+    tags: ["5.0", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1223,7 +1233,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-5.0
-    tags: ["5.0", "aws-auth"]
+    tags: ["5.0", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1244,7 +1254,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: integration-6.0
-    tags: ["6.0"]
+    tags: ["6.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1266,7 +1276,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-6.0-auth
-    tags: ["6.0", "auth"]
+    tags: ["6.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1296,7 +1306,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-6.0-cluster
-    tags: ["6.0", "cluster"]
+    tags: ["6.0", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1315,7 +1325,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-6.0
-    tags: ["6.0", "aws-auth"]
+    tags: ["6.0", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1336,7 +1346,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: integration-7.0
-    tags: ["7.0"]
+    tags: ["7.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1358,7 +1368,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-7.0-auth
-    tags: ["7.0", "auth"]
+    tags: ["7.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1388,7 +1398,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-7.0-cluster
-    tags: ["7.0", "cluster"]
+    tags: ["7.0", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1407,7 +1417,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-7.0
-    tags: ["7.0", "aws-auth"]
+    tags: ["7.0", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1428,7 +1438,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: integration-8.0
-    tags: ["8.0"]
+    tags: ["8.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1450,7 +1460,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-8.0-auth
-    tags: ["8.0", "auth"]
+    tags: ["8.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1480,7 +1490,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-8.0-cluster
-    tags: ["8.0", "cluster"]
+    tags: ["8.0", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1499,7 +1509,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-8.0
-    tags: ["8.0", "aws-auth"]
+    tags: ["8.0", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1520,7 +1530,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: integration-8.2
-    tags: ["8.2"]
+    tags: ["8.2", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1542,7 +1552,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-8.2-auth
-    tags: ["8.2", "auth"]
+    tags: ["8.2", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1572,7 +1582,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-8.2-cluster
-    tags: ["8.2", "cluster"]
+    tags: ["8.2", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1592,7 +1602,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-8.2
-    tags: ["8.2", "aws-auth"]
+    tags: ["8.2", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1613,7 +1623,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: integration-8.3
-    tags: ["8.3"]
+    tags: ["8.3", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1635,7 +1645,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-8.3-auth
-    tags: ["8.3", "auth"]
+    tags: ["8.3", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1665,7 +1675,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-8.3-cluster
-    tags: ["8.3", "cluster"]
+    tags: ["8.3", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1685,7 +1695,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-8.3
-    tags: ["8.3", "aws-auth"]
+    tags: ["8.3", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1706,7 +1716,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: integration-9.0
-    tags: ["9.0"]
+    tags: ["9.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1728,7 +1738,7 @@ tasks:
           target: test:integration -ssl=true ${testArgs}
 
   - name: integration-9.0-auth
-    tags: ["9.0", "auth"]
+    tags: ["9.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1758,7 +1768,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-9.0-cluster
-    tags: ["9.0", "cluster"]
+    tags: ["9.0", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1778,7 +1788,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: aws-auth-9.0
-    tags: ["9.0", "aws-auth"]
+    tags: ["9.0", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1800,7 +1810,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: integration-latest
-    tags: ["latest"]
+    tags: ["latest", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1826,7 +1836,7 @@ tasks:
   # exercises the no-TLS path. It is deliberately not tagged with a server
   # version, so that it runs only on the variants that ask for ".no-ssl".
   - name: integration-latest-no-ssl
-    tags: ["no-ssl"]
+    tags: ["no-ssl", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Variants that run integration tasks set mongod_args/mongo_args to their
@@ -1858,7 +1868,7 @@ tasks:
           target: test:integration ${testArgs}
 
   - name: integration-latest-auth
-    tags: ["latest", "auth"]
+    tags: ["latest", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Concat auth args
@@ -1888,7 +1898,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-latest-cluster
-    tags: ["latest", "cluster"]
+    tags: ["latest", "cluster", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1908,7 +1918,7 @@ tasks:
           target: test:integration -ssl=true -topology=replSet ${testArgs}
 
   - name: integration-4.4-sharded
-    tags: ["4.4", "sharded"]
+    tags: ["4.4", "sharded", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1925,7 +1935,7 @@ tasks:
           target: test:sharded-integration ${testArgs}
 
   - name: integration-5.0-sharded
-    tags: ["5.0", "sharded"]
+    tags: ["5.0", "sharded", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1942,7 +1952,7 @@ tasks:
           target: test:sharded-integration ${testArgs}
 
   - name: integration-6.0-sharded
-    tags: ["6.0", "sharded"]
+    tags: ["6.0", "sharded", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1959,7 +1969,7 @@ tasks:
           target: test:sharded-integration ${testArgs}
 
   - name: integration-7.0-sharded
-    tags: ["7.0", "sharded"]
+    tags: ["7.0", "sharded", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1976,7 +1986,7 @@ tasks:
           target: test:sharded-integration ${testArgs}
 
   - name: integration-8.0-sharded
-    tags: ["8.0", "sharded"]
+    tags: ["8.0", "sharded", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1993,7 +2003,7 @@ tasks:
           target: test:sharded-integration ${testArgs}
 
   - name: integration-8.2-sharded
-    tags: ["8.2", "sharded"]
+    tags: ["8.2", "sharded", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2012,7 +2022,7 @@ tasks:
           target: test:sharded-integration ${testArgs}
 
   - name: integration-latest-sharded
-    tags: ["latest", "sharded"]
+    tags: ["latest", "sharded", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2031,7 +2041,7 @@ tasks:
           target: test:sharded-integration ${testArgs}
 
   - name: aws-auth-latest
-    tags: ["latest", "aws-auth"]
+    tags: ["latest", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2052,7 +2062,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: aws-auth-4.4
-    tags: ["4.4", "aws-auth"]
+    tags: ["4.4", "aws-auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2073,7 +2083,7 @@ tasks:
           target: test:awsauth ${testArgs}
 
   - name: kerberos
-    tags: ["kerberos"]
+    tags: ["kerberos", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       # Explicitly run ONLY Kerberos tests
@@ -2092,7 +2102,7 @@ tasks:
           target: test:kerberos ${testArgs}
 
   - name: legacy-jstests-4.2 # The server jstests from the tools removal from server in 4.2
-    tags: ["4.2", "no-race"]
+    tags: ["4.2", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2109,7 +2119,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-4.4 # The server jstests from the tools removal from server in 4.2
-    tags: ["4.4", "no-race"]
+    tags: ["4.4", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2126,7 +2136,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-5.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["5.0", "no-race"]
+    tags: ["5.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2143,7 +2153,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-6.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["6.0", "no-race"]
+    tags: ["6.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2160,7 +2170,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-7.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["7.0", "no-race"]
+    tags: ["7.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2177,7 +2187,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-8.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.0", "no-race"]
+    tags: ["8.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2194,7 +2204,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-8.2 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.2", "no-race"]
+    tags: ["8.2", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2212,7 +2222,7 @@ tasks:
           load_libs_version: "8.2"
 
   - name: legacy-jstests-8.3 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.3", "no-race"]
+    tags: ["8.3", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2230,7 +2240,7 @@ tasks:
           load_libs_version: "8.3"
 
   - name: legacy-jstests-9.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["9.0", "no-race"]
+    tags: ["9.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2248,7 +2258,7 @@ tasks:
           load_libs_version: "9.0"
 
   - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
-    tags: ["latest", "no-race"]
+    tags: ["latest", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2292,7 +2302,7 @@ tasks:
             EVG_WORKDIR: ${workdir}
 
   - name: qa-tests-5.0
-    tags: ["5.0", "no-race"]
+    tags: ["5.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2310,7 +2320,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-6.0
-    tags: ["6.0", "no-race"]
+    tags: ["6.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2328,7 +2338,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-7.0
-    tags: ["7.0", "no-race"]
+    tags: ["7.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2346,7 +2356,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-8.0
-    tags: ["8.0", "no-race"]
+    tags: ["8.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2364,7 +2374,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-8.2
-    tags: ["8.2", "no-race"]
+    tags: ["8.2", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2382,7 +2392,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-8.3
-    tags: ["8.3", "no-race"]
+    tags: ["8.3", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2400,7 +2410,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-9.0
-    tags: ["9.0", "no-race"]
+    tags: ["9.0", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2418,7 +2428,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-latest
-    tags: ["latest", "no-race"]
+    tags: ["latest", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2436,7 +2446,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-4.4
-    tags: ["4.4", "no-race"]
+    tags: ["4.4", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2454,7 +2464,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-4.2
-    tags: ["4.2", "no-race"]
+    tags: ["4.2", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2472,7 +2482,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: native-cert-ssl-4.4
-    tags: ["4.4", "no-race"]
+    tags: ["4.4", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2487,7 +2497,7 @@ tasks:
       - func: "run native-cert-ssl"
 
   - name: qa-dump-restore-with-archiving-4.4
-    tags: ["4.4", "no-race"]
+    tags: ["4.4", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2505,7 +2515,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-dump-restore-with-gzip-4.4
-    tags: ["4.4", "no-race"]
+    tags: ["4.4", "no-race", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2523,6 +2533,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: unit
+    tags: ["required-for-merge-queue"]
     commands:
       - command: expansions.update
       - func: "fetch source"
@@ -2593,6 +2604,47 @@ buildvariants:
       - name: check-third-party-notices
       - name: check-sbom-lite
       - name: check-sarif-report
+
+  #######################################
+  #      Merge Queue Buildvariant       #
+  #######################################
+
+  # The one variant GitHub branch protection requires, so that a PR can enter the merge queue as
+  # soon as the tasks below pass rather than waiting for every task the PR runs. The dependencies
+  # are what actually gate a merge.  See CONTRIBUTING.md.
+  - name: merge-queue
+    display_name: "! Required for Merge"
+    # This variant exists only to gate a merge, and it must not run on the waterfall. Evergreen
+    # activates a task's dependencies, and the dependencies below include the rhel88 variant, which
+    # is deliberately nightly-only (`cron`). Without this restriction every mainline commit would
+    # pull that whole nightly set in.
+    allowed_requesters: ["github_pr", "github_merge_queue", "patch"]
+    run_on:
+      - rhel80-small
+    tasks:
+      - name: merge-queue-workaround
+    depends_on:
+      - name: "*"
+        variant: static
+      - name: "*"
+        variant: rhel88-race
+      # Every task on this variant that runs tests, which is all of them except dist, push, and
+      # sign.
+      - name: .required-for-merge-queue
+        variant: rhel88
+      # These carry the required-for-merge-queue tag too, but they have to be named individually:
+      # the windows variant runs every server version, while pull request testing only runs the
+      # latest on it. Selecting by tag here would gate on tasks a pull request never ran.
+      - name: unit
+        variant: windows
+      - name: integration-latest
+        variant: windows
+      - name: integration-latest-auth
+        variant: windows
+      - name: integration-latest-cluster
+        variant: windows
+      - name: integration-latest-sharded
+        variant: windows
 
   #######################################
   #     Release Manager Buildvariant    #
@@ -3261,6 +3313,11 @@ github_pr_aliases:
   # Run push and record this PR run in Papertrail.
   - variant: ".*"
     task: "^push$"
+  # Report the merge queue gate on the PR too. Without this the required
+  # status check is never reported on the PR ref and GitHub waits for it
+  # forever.
+  - variant: "^merge-queue$"
+    task: ".*"
   # Run golang tests with the race detector enabled.
   - variant: "^rhel88-race$"
     task: "^(aws-auth|integration|kerberos|unit)"
@@ -3273,24 +3330,10 @@ github_pr_aliases:
   - variant: "^(rhel88|windows)$"
     task: "integration-latest"
 
-# This set of aliases is generated by the code in the `evergreen` directory.
-# Do not edit this by hand!
-# It can be regenerated by running `go run evergreen/generator/main.go`.
+# Unlike github_pr_aliases above, this block is not generated. The merge queue runs the no-op gate
+# task and nothing else, because Evergreen schedules that task's whole dependency closure, and those
+# dependencies are what gate a merge.  Change what gates a merge by editing the merge-queue
+# buildvariant's depends_on, not this block.
 commit_queue_aliases:
-  # Run all static analysis tasks.
-  - variant: "^static$"
+  - variant: "^merge-queue$"
     task: ".*"
-  # Run unit for every platform.
-  - variant: ".*"
-    task: "^unit$"
-  # Run golang tests with the race detector enabled.
-  - variant: "^rhel88-race$"
-    task: "^(aws-auth|integration|kerberos|unit)"
-  # Run all integration tests on one variant. We pick RHEL 8.8 because it's
-  # a relatively recent platform that supports a wide range of servers.
-  - variant: "^rhel88$"
-    task: "^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)"
-  # Run a subset of integration tests against the latest version of MongoDB
-  # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel88|windows)$"
-    task: "integration-latest"

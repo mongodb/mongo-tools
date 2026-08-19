@@ -43,7 +43,7 @@ func TestPlatformsMatchCI(t *testing.T) {
 		// Variant "mongodump_passthru_v" has been added to support mongodump
 		// passthrough testing.
 		if v.Name == "release" || v.Name == "static" || v.Name == "rhel88-race" ||
-			v.Name == "mongodump_passthru_v" {
+			v.Name == "mongodump_passthru_v" || v.Name == "merge-queue" {
 			continue
 		}
 
