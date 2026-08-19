@@ -2092,7 +2092,7 @@ tasks:
           target: test:kerberos ${testArgs}
 
   - name: legacy-jstests-4.2 # The server jstests from the tools removal from server in 4.2
-    tags: ["4.2"]
+    tags: ["4.2", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2109,7 +2109,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-4.4 # The server jstests from the tools removal from server in 4.2
-    tags: ["4.4"]
+    tags: ["4.4", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2126,7 +2126,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-5.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["5.0"]
+    tags: ["5.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2143,7 +2143,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-6.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["6.0"]
+    tags: ["6.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2160,7 +2160,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-7.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["7.0"]
+    tags: ["7.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2177,7 +2177,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-8.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.0"]
+    tags: ["8.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2194,7 +2194,7 @@ tasks:
           test_path: "test/legacy42"
 
   - name: legacy-jstests-8.2 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.2"]
+    tags: ["8.2", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2212,7 +2212,7 @@ tasks:
           load_libs_version: "8.2"
 
   - name: legacy-jstests-8.3 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.3"]
+    tags: ["8.3", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2230,7 +2230,7 @@ tasks:
           load_libs_version: "8.3"
 
   - name: legacy-jstests-9.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["9.0"]
+    tags: ["9.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2248,7 +2248,7 @@ tasks:
           load_libs_version: "9.0"
 
   - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
-    tags: ["latest"]
+    tags: ["latest", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2292,7 +2292,7 @@ tasks:
             EVG_WORKDIR: ${workdir}
 
   - name: qa-tests-5.0
-    tags: ["5.0"]
+    tags: ["5.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2310,7 +2310,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-6.0
-    tags: ["6.0"]
+    tags: ["6.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2328,7 +2328,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-7.0
-    tags: ["7.0"]
+    tags: ["7.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2346,7 +2346,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-8.0
-    tags: ["8.0"]
+    tags: ["8.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2364,7 +2364,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-8.2
-    tags: ["8.2"]
+    tags: ["8.2", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2382,7 +2382,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-8.3
-    tags: ["8.3"]
+    tags: ["8.3", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2400,7 +2400,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-9.0
-    tags: ["9.0"]
+    tags: ["9.0", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2418,7 +2418,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-latest
-    tags: ["latest"]
+    tags: ["latest", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2436,7 +2436,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-4.4
-    tags: ["4.4"]
+    tags: ["4.4", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2454,7 +2454,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-tests-4.2
-    tags: ["4.2"]
+    tags: ["4.2", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2472,7 +2472,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: native-cert-ssl-4.4
-    tags: ["4.4"]
+    tags: ["4.4", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2487,7 +2487,7 @@ tasks:
       - func: "run native-cert-ssl"
 
   - name: qa-dump-restore-with-archiving-4.4
-    tags: ["4.4"]
+    tags: ["4.4", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2505,7 +2505,7 @@ tasks:
           excludes: "requires_unstable,${excludes}"
 
   - name: qa-dump-restore-with-gzip-4.4
-    tags: ["4.4"]
+    tags: ["4.4", "no-race"]
     commands:
       - func: "fetch source"
       - func: "get buildnumber"
@@ -2792,16 +2792,19 @@ buildvariants:
       resmoke_args: --jobs 4
     tasks:
       - name: "unit"
-      - name: ".4.2"
-      - name: ".4.4"
-      - name: ".5.0"
-      - name: ".6.0"
-      - name: ".7.0"
-      - name: ".8.0"
-      - name: ".8.2"
-      - name: ".8.3"
-      - name: ".9.0"
-      - name: ".latest"
+      # The JS tests run via resmoke build the tools with the plain `build` target and run them as
+      # external processes, so they never run with race detection enabled. There's no point in
+      # running them as part of this variant.
+      - name: ".4.2 !.no-race"
+      - name: ".4.4 !.no-race"
+      - name: ".5.0 !.no-race"
+      - name: ".6.0 !.no-race"
+      - name: ".7.0 !.no-race"
+      - name: ".8.0 !.no-race"
+      - name: ".8.2 !.no-race"
+      - name: ".8.3 !.no-race"
+      - name: ".9.0 !.no-race"
+      - name: ".latest !.no-race"
       - name: ".kerberos"
 
   - name: rhel93
