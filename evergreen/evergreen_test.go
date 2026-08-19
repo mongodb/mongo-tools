@@ -212,3 +212,32 @@ func TestGitHubPRAliasBlockIsUpToDate(t *testing.T) {
 			" common.yml with its output)",
 	)
 }
+
+// This needs to be manually updated when we add a new Server version.
+const latestVersion = "9.0"
+
+func Test_mostRecentServerVersion(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	c, err := Load()
+	require.NoError(t, err, "loading common.yml")
+
+	var rhel88 Variant
+	for _, v := range c.Variants {
+		if v.Name == "rhel88" {
+			rhel88 = v
+			break
+		}
+	}
+
+	require.NotEmpty(t, rhel88.Name, "found the rhel88 variant")
+
+	ver, err := rhel88.mostRecentServerVersion()
+	require.NoError(t, err, "found the most recent version for the rhel88 variant")
+	require.Equal(
+		t,
+		latestVersion,
+		ver,
+		"found the correct most recent version for the rhel88 variant",
+	)
+}
