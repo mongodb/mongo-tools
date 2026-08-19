@@ -27,9 +27,6 @@ fi
 if grep --quiet "is valid with warnings" "$TEMP_FILE"; then
     while IFS= read -r line; do
         case "$line" in
-        "WARNING: task 'commit-queue-workaround' defined but not used by any variants; consider using or disabling")
-            continue
-            ;;
         "WARNING: task 't_resmoke_setup' defined but not used by any variants; consider using or disabling")
             continue
             ;;

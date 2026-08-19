@@ -15,13 +15,6 @@ variables:
   _src_dir: &src_dir src/mongosync
 
 tasks:
-  - name: commit-queue-workaround
-    commands:
-      - command: shell.exec
-        params:
-          script: |
-            echo "This task is a no-op to work around evergreen's commit queue behavior"
-
   # For mongodump passthrough, this builds and uploads the mongodump and mongorestore
   # binaries (but without coverage), and uploads them.  The name "compile_coverage"
   # is misleading, but that task name is used in the generated tasks from mongodump-task-gen

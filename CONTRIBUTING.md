@@ -88,16 +88,26 @@ locally.
 All merges go through the GitHub merge queue. The queue re-runs CI on the result of merging your
 branch into `master`, which can catch breakage that isn't seen just by running CI on the PR.
 
-The queue runs the same set of tasks as pull request testing, minus `push`. Both sets are generated
-from the same list in `evergreen/evergreen.go` and written into `common.yml` as `github_pr_aliases`
-and `commit_queue_aliases`. To regenerate these blocks run:
+This repo's branch protection rules require exactly one status check, `evergreen/merge-queue`, which
+is the `merge-queue` build variant in `common.yml`. The only task in that variant is a no-op that
+`depends_on` the tasks that gate a merge. It turns green as soon as those pass, so a PR can enter
+the queue without waiting for every task the PR runs.
+
+To change what gates a merge, edit that variant's `depends_on`. Many test tasks include the
+`required-for-merge-queue` tag, so **a new test task must carry the tag** if we want it to block
+merges. A unit test in `evergreen` fails if a dependency of the `merge-queue` variant is not also
+run for PRs, since the required check could then never pass. Note that the opposite is not required.
+PRs can run tasks that are not required by the merge queue.
+
+The `github_pr_aliases` config is generated because part of it is derived from each variant's task
+list rather than written out by hand:
 
 ```bash
 go run evergreen/generator/main.go
 ```
 
-That prints both blocks to stdout. Replace the corresponding blocks in `common.yml` with its output.
-A unit test in `evergreen` fails if the two ever drift apart.
+That prints the block to stdout. Replace the `github_pr_aliases` block in `common.yml` with its
+output. A unit test in `evergreen` fails if the two ever drift apart.
 
 ## JIRA Tickets
 
