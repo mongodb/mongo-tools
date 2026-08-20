@@ -11,6 +11,21 @@ import (
 // test deployment as a replica set, i.e. with the "<setName>/<seedlist>" form of
 // --host rather than a single host.
 func (s *IntegrationSuite) ReplicaSetToolArgs() []string {
+	setName, hosts := s.replicaSetNameAndHosts()
+
+	return s.replicaSetArgsFor(setName + "/" + strings.Join(hosts, ","))
+}
+
+// ReplicaSetToolArgsForHosts is ReplicaSetToolArgs over a seedlist of just the
+// given hosts. A seedlist naming only a secondary still has to reach the
+// primary, because the set name makes the driver discover the rest of the set.
+func (s *IntegrationSuite) ReplicaSetToolArgsForHosts(hosts ...string) []string {
+	setName, _ := s.replicaSetNameAndHosts()
+
+	return s.replicaSetArgsFor(setName + "/" + strings.Join(hosts, ","))
+}
+
+func (s *IntegrationSuite) replicaSetArgsFor(hostArg string) []string {
 	args := append([]string{}, testutil.GetSSLArgs()...)
 	if len(args) > 0 {
 		// A "<setName>/..." host makes the driver discover the set's members and
@@ -20,12 +35,12 @@ func (s *IntegrationSuite) ReplicaSetToolArgs() []string {
 	}
 	args = append(args, testutil.GetAuthArgs()...)
 
-	return append(args, "--host", s.replicaSetHostArg())
+	return append(args, "--host", hostArg)
 }
 
-// replicaSetHostArg builds the "<setName>/<host>,<host>" form of --host out of
-// what the server reports about the set it belongs to.
-func (s *IntegrationSuite) replicaSetHostArg() string {
+// replicaSetNameAndHosts returns the set's name and the hosts of every member,
+// as the set itself names them.
+func (s *IntegrationSuite) replicaSetNameAndHosts() (string, []string) {
 	// isMaster rather than hello because the servers this runs against include
 	// versions older than 5.0, where hello does not exist.
 	var isMaster struct {
@@ -39,5 +54,5 @@ func (s *IntegrationSuite) replicaSetHostArg() string {
 	s.Require().NotEmpty(isMaster.SetName, "the server is a replica set member")
 	s.Require().NotEmpty(isMaster.Hosts, "the replica set reports its members")
 
-	return isMaster.SetName + "/" + strings.Join(isMaster.Hosts, ",")
+	return isMaster.SetName, isMaster.Hosts
 }
