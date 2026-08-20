@@ -23,7 +23,7 @@ import (
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -362,7 +362,7 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 				}},
 			}}},
 		},
-		mopt.UpdateOne().SetUpsert(true),
+		options.UpdateOne().SetUpsert(true),
 	)
 	s.Require().NoError(err, "should insert (via update/upsert)")
 
@@ -421,7 +421,7 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
 				}},
 			}}},
 		},
-		mopt.UpdateOne().SetUpsert(true),
+		options.UpdateOne().SetUpsert(true),
 	)
 	s.Require().NoError(err, "should insert (via update/upsert)")
 
@@ -485,15 +485,15 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 				{Keys: bson.D{{"_id", "hashed"}}},
 				{
 					Keys: bson.D{{"_id", "hashed"}},
-					Options: mopt.Index().
+					Options: options.Index().
 						SetName("_id_hashed_de").
-						SetCollation(&mopt.Collation{Locale: "de"}),
+						SetCollation(&options.Collation{Locale: "de"}),
 				},
 				{
 					Keys: bson.D{{"_id", "hashed"}},
-					Options: mopt.Index().
+					Options: options.Index().
 						SetName("_id_hashed_ar").
-						SetCollation(&mopt.Collation{Locale: "ar"}),
+						SetCollation(&options.Collation{Locale: "ar"}),
 				},
 				{Keys: bson.D{{"_id", "2dsphere"}}},
 			},
