@@ -34,7 +34,7 @@ func newNumberConverter(targetType reflect.Type) converterFunc {
 }
 
 // making this package level so it is only evaluated once.
-var uint32Converter = newNumberConverter(reflect.TypeOf(uint32(0)))
+var uint32Converter = newNumberConverter(reflect.TypeFor[uint32]())
 
 // ToUInt32 is a function for converting any numeric type
 // into a uint32. This can easily result in a loss of information
@@ -48,7 +48,7 @@ func ToUInt32(number any) (uint32, error) {
 	return convert[uint32](asInterface)
 }
 
-var intConverter = newNumberConverter(reflect.TypeOf(int(0)))
+var intConverter = newNumberConverter(reflect.TypeFor[int]())
 
 // ToInt is a function for converting any numeric type
 // into an int. This can easily result in a loss of information
@@ -62,7 +62,7 @@ func ToInt(number any) (int, error) {
 	return convert[int](asInterface)
 }
 
-var float64Converter = newNumberConverter(reflect.TypeOf(float64(0)))
+var float64Converter = newNumberConverter(reflect.TypeFor[float64]())
 
 // ToFloat64 is a function for converting any numeric type
 // into a float64.

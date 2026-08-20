@@ -175,7 +175,7 @@ func doSequentialStreaming(
 		}
 
 		// close the read channels of all the workers
-		for i := 0; i < numWorkers; i++ {
+		for i := range numWorkers {
 			close(workers[i].unprocessedDataChan)
 		}
 		return nil
@@ -213,14 +213,14 @@ func doSequentialStreaming(
 // 34 in the document: bson.M{"person": bson.M{"age": 34}} whereas,
 // "person.name" would return nil.
 func getUpsertValue(field string, document bson.D) any {
-	index := strings.Index(field, ".")
-	if index == -1 {
+	before, after, ok := strings.Cut(field, ".")
+	if !ok {
 		// grab the value (ignoring errors because we are okay with nil)
 		val, _ := bsonutil.FindValueByKey(field, &document)
 		return val
 	}
 	// recurse into subdocuments
-	left := field[0:index]
+	left := before
 	subDoc, _ := bsonutil.FindValueByKey(left, &document)
 	if subDoc == nil {
 		log.Logvf(log.DebugHigh, "no subdoc found for %#q", left)
@@ -229,10 +229,10 @@ func getUpsertValue(field string, document bson.D) any {
 	switch subDoc := subDoc.(type) {
 	case bson.D:
 		subDocD := subDoc
-		return getUpsertValue(field[index+1:], subDocD)
+		return getUpsertValue(after, subDocD)
 	case *bson.D:
 		subDocD := subDoc
-		return getUpsertValue(field[index+1:], *subDocD)
+		return getUpsertValue(after, *subDocD)
 	default:
 		log.Logvf(log.DebugHigh, "subdoc found for %#q, but couldn't coerce to bson.D", left)
 		return nil

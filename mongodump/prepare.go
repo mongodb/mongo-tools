@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common"
@@ -27,7 +28,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/samber/lo"
-	"golang.org/x/exp/slices"
 )
 
 type NilPos struct{}
@@ -181,10 +181,8 @@ func isReshardingCollection(collName string) bool {
 // shouldSkipCollection returns true when a collection name is excluded
 // by the mongodump options.
 func (dump *MongoDump) shouldSkipCollection(colName string) bool {
-	for _, excludedCollection := range dump.OutputOptions.ExcludedCollections {
-		if colName == excludedCollection {
-			return true
-		}
+	if slices.Contains(dump.OutputOptions.ExcludedCollections, colName) {
+		return true
 	}
 	for _, excludedCollectionPrefix := range dump.OutputOptions.ExcludedCollectionPrefixes {
 		if strings.HasPrefix(colName, excludedCollectionPrefix) {

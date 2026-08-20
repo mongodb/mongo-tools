@@ -20,7 +20,7 @@ import (
 )
 
 // type for reflect code.
-var marshalDType = reflect.TypeOf(bsonutil.MarshalD{})
+var marshalDType = reflect.TypeFor[bsonutil.MarshalD]()
 
 // CSVExportOutput is an implementation of ExportOutput that writes documents to the output in CSV format.
 type CSVExportOutput struct {
@@ -84,10 +84,10 @@ func (csvExporter *CSVExportOutput) ExportDocument(document bson.D) error {
 		fieldVal := extractFieldByName(fieldName, extendedDoc)
 		if fieldVal == nil {
 			rowOut = append(rowOut, "")
-		} else if reflect.TypeOf(fieldVal) == reflect.TypeOf(bson.M{}) ||
-			reflect.TypeOf(fieldVal) == reflect.TypeOf(bson.D{}) ||
+		} else if reflect.TypeOf(fieldVal) == reflect.TypeFor[bson.M]() ||
+			reflect.TypeOf(fieldVal) == reflect.TypeFor[bson.D]() ||
 			reflect.TypeOf(fieldVal) == marshalDType ||
-			reflect.TypeOf(fieldVal) == reflect.TypeOf([]any{}) {
+			reflect.TypeOf(fieldVal) == reflect.TypeFor[[]any]() {
 			buf, err := json.Marshal(fieldVal)
 			if err != nil {
 				rowOut = append(rowOut, "")

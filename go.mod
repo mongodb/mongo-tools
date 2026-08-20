@@ -24,7 +24,6 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	go.mongodb.org/mongo-driver/v2 v2.7.0
-	golang.org/x/exp v0.0.0-20260611194520-c48552f49976
 	golang.org/x/mod v0.37.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/term v0.45.0

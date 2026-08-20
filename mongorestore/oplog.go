@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"golang.org/x/exp/slices"
 )
 
 type oplogContext struct {

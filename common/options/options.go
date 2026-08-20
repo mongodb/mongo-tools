@@ -14,6 +14,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -27,7 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 )
 

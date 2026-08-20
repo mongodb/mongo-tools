@@ -18,7 +18,7 @@ import (
 func TestNumberConverter(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	floatConverter := newNumberConverter(reflect.TypeOf(float32(0)))
+	floatConverter := newNumberConverter(reflect.TypeFor[float32]())
 
 	t.Run("numeric values", func(t *testing.T) {
 		out, err := floatConverter(21)

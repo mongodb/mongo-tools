@@ -342,8 +342,8 @@ func (node *NodeMonitor) Poll(
 			if cursorErr := shardCursor.Decode(&shard); cursorErr != nil {
 				return nil, fmt.Errorf("error decoding shard info: %v", err)
 			}
-			shardHosts := strings.Split(shard.Host, ",")
-			for _, shardHost := range shardHosts {
+			shardHosts := strings.SplitSeq(shard.Host, ",")
+			for shardHost := range shardHosts {
 				discover <- shardHost
 			}
 		}

@@ -12,7 +12,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
@@ -65,7 +64,7 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 
 		assert.Equal(
 			t,
-			wcwrapper.Wrap(&writeconcern.WriteConcern{W: 2, Journal: lo.ToPtr(true)}),
+			wcwrapper.Wrap(&writeconcern.WriteConcern{W: 2, Journal: new(true)}),
 			opts.ToolOptions.WriteConcern,
 		)
 	})

@@ -51,6 +51,24 @@ ok-exit-codes = [0]
 lint-failure-exit-codes = [1]
 labels = [ "default", "fast-tidy" ]
 
+[commands."go fix"]
+type = "both"
+include = "*.go"
+# The code in common/json is a forked copy of an older version of stdlib's json package. We don't
+# want to modernize it.
+exclude = "common/json/**/*.go"
+invoke.per-dir-or-once = 7
+working-dir = "root"
+# What we really want is something like "dir-with-dot" so we get paths like "./verifier" instead of
+# "verifier", but absolute paths work okay. See
+# https://github.com/houseabsolute/precious/issues/104.
+path-args = "absolute-dir"
+cmd = [ "mise", "exec", "go", "--", "go", "fix", "-tags", "mstests,ruleguard" ]
+lint-flags = "-diff"
+ok-exit-codes = 0
+lint-failure-exit-codes = 1
+labels = [ "default", "fast-tidy" ]
+
 # We could run this via golangci-lint but we want to exclude more directories
 # for gosec than we do for other linting. There doesn't seem to be a way to
 # configure these excludes when running gosec as part of golangci-lint.

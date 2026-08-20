@@ -95,14 +95,14 @@ func BuildURI(host, port string) string {
 func SplitNamespace(namespace string) (string, string) {
 
 	// find the first instance of "." in the namespace
-	firstDotIndex := strings.Index(namespace, ".")
+	before, after, ok := strings.Cut(namespace, ".")
 
 	// split the namespace, if applicable
 	var database string
 	var collection string
-	if firstDotIndex != -1 {
-		database = namespace[:firstDotIndex]
-		collection = namespace[firstDotIndex+1:]
+	if ok {
+		database = before
+		collection = after
 	} else {
 		database = namespace
 	}

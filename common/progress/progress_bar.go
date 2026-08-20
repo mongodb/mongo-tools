@@ -178,19 +178,17 @@ func drawBar(spaces int, percent float64) string {
 	var strBuffer bytes.Buffer
 	strBuffer.WriteString(BarLeft)
 
-	// the number of "#" to draw
+	// Nothing guarantees that percent is between 0 and 1 on the caller side, so we clamp the value
+	// here to avoid a weird result.
+	percent = max(
+		min(percent, 1),
+		0,
+	)
+	// The number of "#" to draw.
 	fullSpaces := int(percent * float64(spaces))
 
-	// some bounds for ensuring a constant width, even with weird inputs
-	if fullSpaces > spaces {
-		fullSpaces = spaces
-	}
-	if fullSpaces < 0 {
-		fullSpaces = 0
-	}
-
 	// write the "#"s for the current percentage
-	for i := 0; i < fullSpaces; i++ {
+	for range fullSpaces {
 		strBuffer.WriteString(BarFilling)
 	}
 	// fill out the remainder of the bar

@@ -96,7 +96,7 @@ func (r *TSVInputReader) ReadAndValidateHeader() (err error) {
 		return err
 	}
 	var headerFields []string
-	for _, field := range strings.Split(header, tokenSeparator) {
+	for field := range strings.SplitSeq(header, tokenSeparator) {
 		headerFields = append(headerFields, strings.TrimRight(field, "\r\n"))
 	}
 	r.colSpecs = ParseAutoHeaders(headerFields)
@@ -111,7 +111,7 @@ func (r *TSVInputReader) ReadAndValidateTypedHeader(parseGrace ParseGrace) (err 
 		return err
 	}
 	var headerFields []string
-	for _, field := range strings.Split(header, tokenSeparator) {
+	for field := range strings.SplitSeq(header, tokenSeparator) {
 		headerFields = append(headerFields, strings.TrimRight(field, "\r\n"))
 	}
 	r.colSpecs, err = ParseTypedHeaders(headerFields, parseGrace)

@@ -8,6 +8,7 @@
 package main
 
 import (
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -26,8 +27,8 @@ import (
 // the internal keyName mapping.
 func optionKeyNames(option string) map[string]string {
 	kn := make(map[string]string)
-	columns := strings.Split(option, ",")
-	for _, column := range columns {
+	columns := strings.SplitSeq(option, ",")
+	for column := range columns {
 		naming := strings.Split(column, "=")
 		if len(naming) == 1 {
 			kn[naming[0]] = naming[0]
@@ -41,8 +42,8 @@ func optionKeyNames(option string) map[string]string {
 // optionCustomHeaders interprets the CLI options Columns and AppendColumns
 // into a list of custom headers.
 func optionCustomHeaders(option string) (headers []string) {
-	columns := strings.Split(option, ",")
-	for _, column := range columns {
+	columns := strings.SplitSeq(option, ",")
+	for column := range columns {
 		naming := strings.Split(column, "=")
 		headers = append(headers, naming[0])
 	}
@@ -173,9 +174,7 @@ func main() {
 	}
 	if opts.AppendColumns != "" {
 		addKN := optionKeyNames(opts.AppendColumns)
-		for k, v := range addKN {
-			keyNames[k] = v
-		}
+		maps.Copy(keyNames, addKN)
 	}
 
 	readerConfig := &status.ReaderConfig{

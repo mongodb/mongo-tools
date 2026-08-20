@@ -198,12 +198,12 @@ func (mf *MongoFiles) findAndDisplay(query bson.M) (string, error) {
 		return "", fmt.Errorf("error retrieving list of GridFS files: %v", err)
 	}
 
-	var display string
+	var display strings.Builder
 	for _, gridFile := range gridFiles {
-		display += fmt.Sprintf("%s\t%d\n", gridFile.Name, gridFile.Length)
+		fmt.Fprintf(&display, "%s\t%d\n", gridFile.Name, gridFile.Length)
 	}
 
-	return display, nil
+	return display.String(), nil
 }
 
 // Return the local filename, as specified by the --local flag. Defaults to

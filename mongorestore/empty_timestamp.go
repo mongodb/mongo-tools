@@ -127,20 +127,20 @@ func bytesSuggestEmptyTimestamp(raw bson.Raw) bool {
 		// that byte is probably part of some other value. To narrow things
 		// down let’s find the next 9-NUL sequence.
 		bytesAfterTs := curRaw[1+tsAt:]
-		nineNulsAt := bytes.Index(bytesAfterTs, nineNuls)
+		before, _, ok := bytes.Cut(bytesAfterTs, nineNuls)
 
 		// Most likely:
-		if nineNulsAt == -1 {
+		if !ok {
 			continue
 		}
 
 		// It’s getting more likely that we have an empty timestamp. To confirm,
 		// we check to see if any NULs are between the 0x11 and the nine NULs.
-		firstNulBetweenAt := bytes.IndexByte(bytesAfterTs[:nineNulsAt], 0x00)
+		found := bytes.Contains(before, []byte{0x00})
 
 		// Most likely: we find a NUL between the 0x11 and the nine NULs, which
 		// means that we did not, in fact, find an empty timestamp.
-		if firstNulBetweenAt != -1 {
+		if found {
 			continue
 		}
 

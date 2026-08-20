@@ -1463,7 +1463,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 		Convey("testing that --query is order-preserving", func() {
 			// If order is not preserved, probabilistically, some of these
 			// loops will fail.
-			for i := 0; i < 100; i++ {
+			for range 100 {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
 				md, err := simpleMongoDumpInstance()
@@ -2479,7 +2479,7 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 
 	// The check should be run a few times due to the probabilistic nature
 	// of TOOLS-3411
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		dumpAndCheckPipelineOrder(t, collName, pipeline)
 	}
 
