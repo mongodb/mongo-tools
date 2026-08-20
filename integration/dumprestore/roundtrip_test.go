@@ -832,7 +832,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 
 	internalColl := client.Database(dbName).Collection(testName)
 
-	_, err = internalColl.InsertOne(ctx, bson.D{{"_id", 1}})
+	_, err = internalColl.InsertOne(ctx, bson.D{})
 	s.Require().NoError(err, "must write to the internal DB")
 
 	_, err = client.Database(testName).Collection(testName).InsertOne(ctx, bson.D{})
