@@ -654,7 +654,10 @@ func (restore *MongoRestore) GetDumpAuthVersion() (int, error) {
 			case int64:
 				return int(authVersion), nil
 			default:
-				return 0, fmt.Errorf("can't unmarshal system.version currentVersion as an int: %v", versionDoc["currentVersion"])
+				return 0, fmt.Errorf(
+					"can't unmarshal system.version currentVersion as an int: %v",
+					versionDoc["currentVersion"],
+				)
 			}
 		}
 		log.Logvf(

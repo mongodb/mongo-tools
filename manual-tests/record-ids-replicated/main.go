@@ -495,7 +495,14 @@ func (tc *testContext) verifyClustersMatch(ctx context.Context) error {
 				continue
 			}
 
-			if err := verifyCollection(ctx, srcDB.Collection(collName), dstDB.Collection(collName), dbName, collName); err != nil {
+			err := verifyCollection(
+				ctx,
+				srcDB.Collection(collName),
+				dstDB.Collection(collName),
+				dbName,
+				collName,
+			)
+			if err != nil {
 				return err
 			}
 		}

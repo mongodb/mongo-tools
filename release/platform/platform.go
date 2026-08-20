@@ -170,7 +170,10 @@ func DetectLocal() (Platform, error) {
 		case "Darwin":
 			os = "macos"
 		default:
-			return Platform{}, fmt.Errorf("failed to detect local platform from kernel name %q", kernelName)
+			return Platform{}, fmt.Errorf(
+				"failed to detect local platform from kernel name %q",
+				kernelName,
+			)
 		}
 
 		pf, foundPf = GetByOsAndArch(os, archName)

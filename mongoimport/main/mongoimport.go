@@ -62,7 +62,12 @@ func main() {
 					numFailure,
 				)
 			} else {
-				log.Logvf(log.Always, "%v document(s) imported successfully. %v document(s) failed to import.", numDocs, numFailure)
+				log.Logvf(
+					log.Always,
+					"%v document(s) imported successfully. %v document(s) failed to import.",
+					numDocs,
+					numFailure,
+				)
 			}
 		} else {
 			log.Logvf(log.Always, "done")

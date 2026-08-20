@@ -1109,7 +1109,12 @@ func uploadReleaseJSON(v version.Version) {
 					Sha256: sha256sum,
 				}
 			} else {
-				dl.Package = &download.ToolsPackage{URL: artifactURL, Md5: md5sum, Sha1: sha1sum, Sha256: sha256sum}
+				dl.Package = &download.ToolsPackage{
+					URL:    artifactURL,
+					Md5:    md5sum,
+					Sha1:   sha1sum,
+					Sha256: sha256sum,
+				}
 			}
 		}
 

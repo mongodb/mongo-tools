@@ -51,7 +51,11 @@ func TestPlatformsMatchCI(t *testing.T) {
 			releasePlatforms[v.Name] = true
 		} else if _, ok := s3OnlyPlatforms[v.Name]; ok {
 			for _, t := range v.Tasks {
-				assert.NotEqual(t.Name, "push", "s3-only buildvariants should not include the push task")
+				assert.NotEqual(
+					t.Name,
+					"push",
+					"s3-only buildvariants should not include the push task",
+				)
 			}
 		} else {
 			assert.Fail(

@@ -118,7 +118,11 @@ func (jsonExporter *JSONExportOutput) ExportDocument(document bson.D) error {
 			return err
 		}
 	} else {
-		extendedDoc, err := bson.MarshalExtJSON(document, jsonExporter.JSONFormat == Canonical, false)
+		extendedDoc, err := bson.MarshalExtJSON(
+			document,
+			jsonExporter.JSONFormat == Canonical,
+			false,
+		)
 		if err != nil {
 			return err
 		}

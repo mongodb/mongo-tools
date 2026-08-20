@@ -77,7 +77,13 @@ func (d *decodeState) getNumberInt() any {
 	case string:
 		number = Number(v)
 	default:
-		d.error(fmt.Errorf("expected int32 for first argument of NumberInt constructor, got %T (value was %v)", v, v))
+		d.error(
+			fmt.Errorf(
+				"expected int32 for first argument of NumberInt constructor, got %T (value was %v)",
+				v,
+				v,
+			),
+		)
 	}
 
 	d.useNumber = useNumber
@@ -136,7 +142,13 @@ func (d *decodeState) getNumberLong() any {
 		number = Number(v)
 
 	default:
-		d.error(fmt.Errorf("expected int64 for first argument of NumberLong constructor, got %T (value was %v)", v, v))
+		d.error(
+			fmt.Errorf(
+				"expected int64 for first argument of NumberLong constructor, got %T (value was %v)",
+				v,
+				v,
+			),
+		)
 	}
 
 	d.useNumber = useNumber

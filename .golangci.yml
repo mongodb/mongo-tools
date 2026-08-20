@@ -71,17 +71,16 @@ formatters:
   enable:
     - gci
     - goimports
+    - golines
+
   settings:
     gci:
       sections:
         - standard
         - default
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+    golines:
+      max-len: 100
+      reformat-tags: false
 
 issues:
   max-same-issues: 0

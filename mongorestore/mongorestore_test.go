@@ -1008,30 +1008,39 @@ func TestLongIndexName(t *testing.T) {
 				},
 			)
 		} else {
-			Convey("Creating index with a full name longer than 127 bytes should succeed (>=4.2)", func() {
-				restore.TargetDirectory = "testdata/longindextestdump"
-				result := restore.Restore()
-				So(result.Err, ShouldBeNil)
+			Convey(
+				"Creating index with a full name longer than 127 bytes should succeed (>=4.2)",
+				func() {
+					restore.TargetDirectory = "testdata/longindextestdump"
+					result := restore.Restore()
+					So(result.Err, ShouldBeNil)
 
-				indexes := session.Database("longindextest").Collection("test_collection").Indexes()
-				c, err := indexes.List(t.Context())
-				So(err, ShouldBeNil)
-
-				type indexRes struct {
-					Name string
-				}
-				var names []string
-				for c.Next(t.Context()) {
-					var r indexRes
-					err := c.Decode(&r)
+					indexes := session.Database("longindextest").
+						Collection("test_collection").
+						Indexes()
+					c, err := indexes.List(t.Context())
 					So(err, ShouldBeNil)
-					names = append(names, r.Name)
-				}
-				So(len(names), ShouldEqual, 2)
-				sort.Strings(names)
-				So(names[0], ShouldEqual, "_id_")
-				So(names[1], ShouldEqual, "a_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-			})
+
+					type indexRes struct {
+						Name string
+					}
+					var names []string
+					for c.Next(t.Context()) {
+						var r indexRes
+						err := c.Decode(&r)
+						So(err, ShouldBeNil)
+						names = append(names, r.Name)
+					}
+					So(len(names), ShouldEqual, 2)
+					sort.Strings(names)
+					So(names[0], ShouldEqual, "_id_")
+					So(
+						names[1],
+						ShouldEqual,
+						"a_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+					)
+				},
+			)
 		}
 
 	})

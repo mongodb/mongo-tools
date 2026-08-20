@@ -235,7 +235,10 @@ func (dump *MongoDump) CreateOplogIntents() error {
 	if dump.OutputOptions.Archive != "" {
 		oplogIntent.BSONFile = &archive.MuxIn{Mux: dump.archive.Mux, Intent: oplogIntent}
 	} else {
-		oplogIntent.BSONFile = &realBSONFile{path: dump.outputPath("oplog.bson", ""), intent: oplogIntent}
+		oplogIntent.BSONFile = &realBSONFile{
+			path:   dump.outputPath("oplog.bson", ""),
+			intent: oplogIntent,
+		}
 	}
 	dump.manager.Put(oplogIntent)
 	return nil
@@ -267,9 +270,27 @@ func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 		rolesIntent.BSONFile = &archive.MuxIn{Intent: rolesIntent, Mux: dump.archive.Mux}
 		versionIntent.BSONFile = &archive.MuxIn{Intent: versionIntent, Mux: dump.archive.Mux}
 	} else {
-		usersIntent.BSONFile = &realBSONFile{path: filepath.Join(outDir, nameGz(dump.OutputOptions.Gzip, "$admin.system.users.bson")), intent: usersIntent}
-		rolesIntent.BSONFile = &realBSONFile{path: filepath.Join(outDir, nameGz(dump.OutputOptions.Gzip, "$admin.system.roles.bson")), intent: rolesIntent}
-		versionIntent.BSONFile = &realBSONFile{path: filepath.Join(outDir, nameGz(dump.OutputOptions.Gzip, "$admin.system.version.bson")), intent: versionIntent}
+		usersIntent.BSONFile = &realBSONFile{
+			path: filepath.Join(
+				outDir,
+				nameGz(dump.OutputOptions.Gzip, "$admin.system.users.bson"),
+			),
+			intent: usersIntent,
+		}
+		rolesIntent.BSONFile = &realBSONFile{
+			path: filepath.Join(
+				outDir,
+				nameGz(dump.OutputOptions.Gzip, "$admin.system.roles.bson"),
+			),
+			intent: rolesIntent,
+		}
+		versionIntent.BSONFile = &realBSONFile{
+			path: filepath.Join(
+				outDir,
+				nameGz(dump.OutputOptions.Gzip, "$admin.system.version.bson"),
+			),
+			intent: versionIntent,
+		}
 	}
 	dump.manager.Put(usersIntent)
 	dump.manager.Put(rolesIntent)
@@ -338,11 +359,18 @@ func (dump *MongoDump) NewIntentFromOptions(
 		} else if ci.IsTimeseries() && !dump.serverVersionArray.SupportsRawData() {
 			// 8.3+ supports viewless timeseries, so they end up in the final else block as a normal
 			// collection.
-			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, common.TimeseriesBucketPrefix+ci.Name)+".bson")
+			path := nameGz(
+				dump.OutputOptions.Gzip,
+				dump.outputPath(dbName, common.TimeseriesBucketPrefix+ci.Name)+".bson",
+			)
 			intent.BSONFile = &realBSONFile{path: path, intent: intent}
 			intent.Location = path
 		} else if ci.IsView() && !dump.OutputOptions.ViewsAsCollections {
-			log.Logvf(log.DebugLow, "not dumping data for %#q because it is a view", dbName+"."+ci.Name)
+			log.Logvf(
+				log.DebugLow,
+				"not dumping data for %#q because it is a view",
+				dbName+"."+ci.Name,
+			)
 		} else {
 			// otherwise, if it's either not a view or we're treating views as collections
 			// then create a standard filesystem path for this collection.
@@ -362,7 +390,10 @@ func (dump *MongoDump) NewIntentFromOptions(
 				Buffer: &bytes.Buffer{},
 			}
 		} else {
-			path := nameGz(dump.OutputOptions.Gzip, dump.outputPath(dbName, ci.Name)+".metadata.json")
+			path := nameGz(
+				dump.OutputOptions.Gzip,
+				dump.outputPath(dbName, ci.Name)+".metadata.json",
+			)
 			intent.MetadataFile = &realMetadataFile{path: path, intent: intent}
 		}
 	}

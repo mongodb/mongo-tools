@@ -164,7 +164,9 @@ func vectoredInsert(ctx context.Context) error {
 				bson.D{{"_id", 100}, {"a", 1}},
 				bson.D{{"_id", 200}, {"a", 2}},
 			}
-			_, insertErr := client.Database(testDB).Collection(testCollectionNames[0]).InsertMany(ctx, docs)
+			_, insertErr := client.Database(testDB).
+				Collection(testCollectionNames[0]).
+				InsertMany(ctx, docs)
 			if insertErr != nil {
 				return insertErr
 			}

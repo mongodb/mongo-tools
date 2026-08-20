@@ -126,14 +126,30 @@ func TestPositionalArgumentParsing(t *testing.T) {
 				assert.Equal(t, tc.ExpectedOpts.Password, opts.Password)
 				assert.Equal(t, tc.ExpectedOpts.Mechanism, opts.Mechanism)
 				assert.Equal(t, tc.ExpectedOpts.AWSSessionToken, opts.AWSSessionToken)
-				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"], opts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"])
+				assert.Equal(
+					t,
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
+					opts.ConnString.AuthMechanismProperties["AWS_SESSION_TOKEN"],
+				)
 			case "kerberos":
 				assert.Equal(t, tc.ExpectedOpts.Username, opts.Username)
 				assert.Equal(t, tc.ExpectedOpts.Mechanism, opts.Mechanism)
 				assert.Equal(t, tc.ExpectedOpts.Source, opts.Source)
-				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_NAME"], opts.ConnString.AuthMechanismProperties["SERVICE_NAME"])
-				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"], opts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"])
-				assert.Equal(t, tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_REALM"], opts.ConnString.AuthMechanismProperties["SERVICE_REALM"])
+				assert.Equal(
+					t,
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_NAME"],
+					opts.ConnString.AuthMechanismProperties["SERVICE_NAME"],
+				)
+				assert.Equal(
+					t,
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"],
+					opts.ConnString.AuthMechanismProperties["CANONICALIZE_HOST_NAME"],
+				)
+				assert.Equal(
+					t,
+					tc.ExpectedOpts.ConnString.AuthMechanismProperties["SERVICE_REALM"],
+					opts.ConnString.AuthMechanismProperties["SERVICE_REALM"],
+				)
 				assert.Equal(t, tc.ExpectedOpts.Service, opts.Service)
 			}
 		}
