@@ -1,19 +1,11 @@
 package dumprestore
 
 import (
-	"bytes"
-	"net"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/integration/sharedsuite"
 	"github.com/mongodb/mongo-tools/mongodump"
-	"github.com/mongodb/mongo-tools/release/platform"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -40,8 +32,8 @@ func (s *DumpRestoreSuite) TestDumpFailsWhenServerDies() {
 		collName = "bar"
 	)
 
-	mongod := s.startThrowawayMongod()
-	coll := mongod.client.Database(dbName).Collection(collName)
+	mongod := s.StartThrowawayMongod()
+	coll := mongod.Client.Database(dbName).Collection(collName)
 	s.seedSlowDumpFixture(coll)
 
 	// The dump reads every document through a $where that sleeps, so it is still
@@ -80,146 +72,6 @@ func (s *DumpRestoreSuite) TestDumpFailsWhenServerDies() {
 const serverDiedErrors = `(?i)error reading from db|error reading collection|` +
 	`connection closed|interrupted|socket was unexpectedly closed`
 
-// throwawayMongod is a mongod this test owns, so it can be killed without
-// disturbing the deployment the rest of the suite shares.
-type throwawayMongod struct {
-	process *os.Process
-	host    string
-	client  *mongo.Client
-	stderr  *lockedBuffer
-}
-
-// lockedBuffer collects a subprocess's output for a failure message. os/exec fills it
-// from a goroutine of its own, so reading it while the process is still running needs
-// the lock.
-type lockedBuffer struct {
-	mutex  sync.Mutex
-	buffer bytes.Buffer
-}
-
-func (b *lockedBuffer) Write(p []byte) (int, error) {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	return b.buffer.Write(p)
-}
-
-func (b *lockedBuffer) String() string {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	return b.buffer.String()
-}
-
-func (s *DumpRestoreSuite) startThrowawayMongod() *throwawayMongod {
-	binary := s.mongodBinary()
-	dbPath := s.T().TempDir()
-	port := s.freePort()
-
-	// No auth and no TLS, whatever the deployment under test uses: nothing else
-	// connects to this server, and the test builds its own arguments for it.
-	cmd := exec.CommandContext(
-		s.Context(),
-		binary,
-		"--port", port,
-		"--dbpath", dbPath,
-		"--bind_ip", "localhost",
-	)
-
-	// Kept so that a mongod which refuses to start can say why, instead of the test
-	// only reporting that it never came up.
-	stderr := &lockedBuffer{}
-	cmd.Stderr = stderr
-
-	s.Require().NoError(cmd.Start(), "can start a mongod of our own from %s", binary)
-
-	mongod := &throwawayMongod{
-		process: cmd.Process,
-		host:    net.JoinHostPort("localhost", port),
-		stderr:  stderr,
-	}
-	s.T().Cleanup(func() {
-		// The test kills this process itself; this is only for the paths where it
-		// did not get that far.
-		_ = mongod.process.Kill()
-		_ = cmd.Wait()
-	})
-
-	mongod.client = s.waitForMongod(mongod)
-
-	return mongod
-}
-
-// mongodBinary returns the path to a mongod this test can start. CI downloads one
-// alongside the built tools and nothing tells the test where it is, so the default is
-// the path relative to the package directory, which is where go test runs.
-func (s *DumpRestoreSuite) mongodBinary() string {
-	if fromEnv := os.Getenv(mongodBinaryEnvVar); fromEnv != "" {
-		return fromEnv
-	}
-
-	binary := filepath.Join("..", "..", "bin", "mongod"+platform.GetLocalBinaryExt())
-	if _, err := os.Stat(binary); err == nil {
-		return binary
-	}
-
-	onPath, err := exec.LookPath("mongod")
-	if err == nil {
-		return onPath
-	}
-
-	s.T().Skipf(
-		"skipping because this test starts a mongod of its own and there is none at %s,"+
-			" none on the PATH, and %s is not set",
-		binary,
-		mongodBinaryEnvVar,
-	)
-
-	return ""
-}
-
-const mongodBinaryEnvVar = "TOOLS_TESTING_MONGOD_BINARY"
-
-// freePort returns a port nothing is listening on, by taking one from the operating
-// system and handing it straight back. Something else could claim it in between, in
-// which case mongod fails to bind and the test reports that it never came up.
-func (s *DumpRestoreSuite) freePort() string {
-	listener, err := net.Listen("tcp", "localhost:0")
-	s.Require().NoError(err, "can find a free port to start a mongod on")
-	defer func() {
-		s.Require().NoError(listener.Close(), "can release the port again")
-	}()
-
-	_, port, err := net.SplitHostPort(listener.Addr().String())
-	s.Require().NoError(err, "can read the port back out of the listener's address")
-
-	return port
-}
-
-func (s *DumpRestoreSuite) waitForMongod(mongod *throwawayMongod) *mongo.Client {
-	client := s.throwawayClient(mongod.host)
-	s.Require().Eventually(
-		func() bool { return client.Ping(s.Context(), nil) == nil },
-		mongodStartupTimeout,
-		mongodPollInterval,
-		"the mongod started on %s comes up; its stderr was:\n%s",
-		mongod.host,
-		mongod.stderr,
-	)
-	s.T().Cleanup(func() {
-		// The server this client is connected to is killed by the time the test
-		// ends, so a failure to disconnect from it is not a failure of the test.
-		_ = client.Disconnect(s.Context())
-	})
-
-	return client
-}
-
-const (
-	mongodStartupTimeout = 30 * time.Second
-	mongodPollInterval   = 100 * time.Millisecond
-)
-
 func (s *DumpRestoreSuite) seedSlowDumpFixture(coll *mongo.Collection) {
 	docs := make([]any, slowDumpDocCount)
 	for i := range docs {
@@ -236,13 +88,13 @@ const slowDumpDocCount = 1000
 // dumpWhileKillingServer starts a dump against the throwaway mongod and kills it
 // once the dump is under way, returning whatever the dump reports.
 func (s *DumpRestoreSuite) dumpWhileKillingServer(
-	mongod *throwawayMongod,
+	mongod *sharedsuite.ThrowawayMongod,
 	dumpArgs ...string,
 ) error {
 	opts, err := mongodump.ParseOptions(
 		append(
 			[]string{
-				"--host", mongod.host,
+				"--host", mongod.Host,
 				"--serverSelectionTimeout", strconv.Itoa(serverSelectionTimeoutSeconds),
 			},
 			dumpArgs...,
@@ -262,7 +114,7 @@ func (s *DumpRestoreSuite) dumpWhileKillingServer(
 	killed := make(chan error, 1)
 	go func() {
 		time.Sleep(dumpHeadStart)
-		killed <- mongod.process.Kill()
+		killed <- mongod.Process.Kill()
 	}()
 
 	dumpErr := dump.Dump()
@@ -282,27 +134,3 @@ const serverSelectionTimeoutSeconds = 2
 // The dump takes tens of seconds to finish, so this only has to be long enough for
 // it to have started reading.
 const dumpHeadStart = time.Second
-
-// throwawayClient connects to a server that has neither auth nor TLS, whatever the
-// deployment the suite otherwise talks to requires.
-func (s *DumpRestoreSuite) throwawayClient(host string) *mongo.Client {
-	toolOptions := &options.ToolOptions{
-		Connection: &options.Connection{Host: host},
-		Auth:       &options.Auth{},
-		SSL:        &options.SSL{},
-		Namespace:  &options.Namespace{},
-		URI:        &options.URI{},
-	}
-	s.Require().NoError(
-		toolOptions.NormalizeOptionsAndURI(),
-		"can normalize options for the throwaway mongod",
-	)
-
-	sessionProvider, err := db.NewSessionProvider(*toolOptions)
-	s.Require().NoError(err, "can build a session provider for the throwaway mongod")
-
-	client, err := sessionProvider.GetSession()
-	s.Require().NoError(err, "can get a session for the throwaway mongod")
-
-	return client
-}
