@@ -1989,6 +1989,301 @@ func docsWithoutIDs(t *testing.T, coll *mongo.Collection) []bson.D {
 	return docs
 }
 
+// TestImportRejectsInvalidOptions covers the option combinations the JS test
+// only checked for a nonzero exit code. Each case asserts the message as well,
+// so a case that starts failing for an unrelated reason is not mistaken for
+// the rejection it is meant to exercise. Some of these are caught while
+// validating settings and some only once the file is read, which is why every
+// case goes through the whole New-then-import path.
+func TestImportRejectsInvalidOptions(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_invalid_options_test"
+
+	newImportTestClient(t, dbName)
+
+	tmpDir := t.TempDir()
+	jsonFile := writeJSONLinesFile(t, tmpDir, "docs.json", []map[string]any{
+		{"a": 1, "b": 2, "c": 3},
+		{"a": 4, "b": 5, "c": 6},
+	})
+	csvFile := filepath.Join(tmpDir, "docs.csv")
+	writeXSVFile(t, csvFile, ',', [][]string{{"a", "b", "c"}, {"1", "2", "3"}, {"4", "5", "6"}})
+
+	cases := []struct {
+		name        string
+		ns          options.Namespace
+		input       InputOptions
+		ingest      IngestOptions
+		errContains string
+		// Set where the failure comes from the OS rather than from mongoimport,
+		// so the message differs by platform.
+		windowsErrContains string
+		skipOnWindows      string
+	}{
+		{
+			name:        "database name containing a dot",
+			ns:          options.Namespace{DB: "x.y.z", Collection: "c"},
+			input:       InputOptions{File: jsonFile},
+			errContains: "invalid database name",
+		},
+		{
+			name:        "database name containing a dollar sign",
+			ns:          options.Namespace{DB: "$x", Collection: "c"},
+			input:       InputOptions{File: jsonFile},
+			errContains: "invalid database name",
+		},
+		{
+			name:        "collection name containing a dollar sign",
+			ns:          options.Namespace{DB: dbName, Collection: "blah$asfsaf"},
+			input:       InputOptions{File: jsonFile},
+			errContains: "invalid collection name",
+		},
+		{
+			name:               "nonexistent file",
+			input:              InputOptions{File: filepath.Join(tmpDir, "no-such-file.json")},
+			errContains:        "no such file or directory",
+			windowsErrContains: "cannot find the file specified",
+		},
+		{
+			// getSourceReader opens the file without checking whether it is a
+			// directory, so this fails at read time. On Windows that read error has
+			// no message worth pinning to, so the case is skipped there.
+			name:          "file that is a directory",
+			input:         InputOptions{File: tmpDir},
+			errContains:   "is a directory",
+			skipOnWindows: "reading a directory handle on Windows has no stable error message",
+		},
+		{
+			name:        "unknown type",
+			input:       InputOptions{File: jsonFile, Type: "bogus"},
+			errContains: "unknown type bogus",
+		},
+		{
+			name:        "fields containing a dollar sign",
+			input:       InputOptions{File: csvFile, Type: CSV, Fields: fieldsPtr("a,$xz,b")},
+			errContains: "cannot start with a '$'",
+		},
+		{
+			name:        "duplicate field names",
+			input:       InputOptions{File: csvFile, Type: CSV, Fields: fieldsPtr("a,b,b")},
+			errContains: "fields cannot be identical: `b` and `b`",
+		},
+		{
+			name:        "field names of overlapping structures",
+			input:       InputOptions{File: csvFile, Type: CSV, Fields: fieldsPtr("a,b,b.c")},
+			errContains: "fields `b` and `b.c` are incompatible",
+		},
+		{
+			name:        "fields with JSON input",
+			input:       InputOptions{File: jsonFile, Type: JSON, Fields: fieldsPtr("a,b")},
+			errContains: "cannot use --fields when input type is JSON",
+		},
+		{
+			name: "fields with headerline",
+			input: InputOptions{
+				File: csvFile, Type: CSV, HeaderLine: true, Fields: fieldsPtr("a,b"),
+			},
+			errContains: "incompatible options: --fields and --headerline",
+		},
+		{
+			name: "fields with fieldFile",
+			input: InputOptions{
+				File: csvFile, Type: CSV, Fields: fieldsPtr("a,b"), FieldFile: &csvFile,
+			},
+			errContains: "incompatible options: --fields and --fieldFile",
+		},
+		{
+			name: "headerline with fieldFile",
+			input: InputOptions{
+				File: csvFile, Type: CSV, HeaderLine: true, FieldFile: &csvFile,
+			},
+			errContains: "incompatible options: --fieldFile and --headerline",
+		},
+		{
+			name:        "headerline with JSON input",
+			input:       InputOptions{File: jsonFile, Type: JSON, HeaderLine: true},
+			errContains: "cannot use --headerline when input type is JSON",
+		},
+		{
+			name:        "upsertFields containing a dollar sign",
+			input:       InputOptions{File: jsonFile},
+			ingest:      IngestOptions{UpsertFields: "a,$b"},
+			errContains: "invalid --upsertFields argument",
+		},
+		{
+			name:        "jsonArray with a file that is not an array",
+			input:       InputOptions{File: jsonFile, JSONArray: true},
+			errContains: "found no opening bracket '[' in input source",
+		},
+		{
+			name:        "JSON type with a CSV file",
+			input:       InputOptions{File: csvFile, Type: JSON},
+			errContains: "invalid character 'a'",
+		},
+		{
+			name:        "CSV type with a JSON file",
+			input:       InputOptions{File: jsonFile, Type: CSV, Fields: fieldsPtr("a,b,c")},
+			errContains: "bare \" in non-quoted-field",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if runtime.GOOS == "windows" && c.skipOnWindows != "" {
+				t.Skip(c.skipOnWindows)
+			}
+
+			// Only the cases about invalid names set a namespace of their own.
+			ns := c.ns
+			if ns == (options.Namespace{}) {
+				ns = options.Namespace{DB: dbName, Collection: "c"}
+			}
+			toolOpts, err := testutil.GetToolOptions()
+			require.NoError(t, err)
+			toolOpts.Namespace = &ns
+
+			input := c.input
+			if input.ParseGrace == "" {
+				input.ParseGrace = "stop"
+			}
+			ingest := c.ingest
+			mi, err := New(Options{
+				ToolOptions:   toolOpts,
+				InputOptions:  &input,
+				IngestOptions: &ingest,
+			})
+			if err == nil {
+				defer mi.Close()
+				_, _, err = mi.ImportDocuments()
+			}
+
+			want := c.errContains
+			if runtime.GOOS == "windows" && c.windowsErrContains != "" {
+				want = c.windowsErrContains
+			}
+			assert.ErrorContains(t, err, want, "%s is rejected", c.name)
+		})
+	}
+}
+
+func fieldsPtr(f string) *string {
+	return &f
+}
+
+// TestImportTypeIsCaseInsensitive checks that --type accepts any casing, since
+// validateSettings lowercases it before comparing.
+func TestImportTypeIsCaseInsensitive(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_type_case_test"
+	const collName = "c"
+
+	client := newImportTestClient(t, dbName)
+	tmpDir := t.TempDir()
+	jsonFile := writeJSONLinesFile(t, tmpDir, "docs.json", []map[string]any{
+		{"a": 1, "b": 2, "c": 3},
+		{"a": 4, "b": 5, "c": 6},
+	})
+	csvFile := filepath.Join(tmpDir, "docs.csv")
+	writeXSVFile(t, csvFile, ',', [][]string{{"1", "2", "3"}, {"4", "5", "6"}})
+
+	csvFields := "a,b,c"
+	cases := []struct {
+		typeName string
+		input    InputOptions
+	}{
+		{"", InputOptions{File: jsonFile}},
+		{"json", InputOptions{File: jsonFile}},
+		{"JSON", InputOptions{File: jsonFile}},
+		{"csv", InputOptions{File: csvFile, Fields: &csvFields}},
+		{"CSV", InputOptions{File: csvFile, Fields: &csvFields}},
+		{"cSv", InputOptions{File: csvFile, Fields: &csvFields}},
+	}
+	for _, c := range cases {
+		name := c.typeName
+		if name == "" {
+			name = "<unset>"
+		}
+		t.Run("type="+name, func(t *testing.T) {
+			coll := client.Database(dbName).Collection(collName)
+			require.NoError(t, coll.Drop(t.Context()))
+
+			input := c.input
+			input.Type = c.typeName
+			input.ParseGrace = "stop"
+			require.NoError(t, runTypedImport(t, dbName, collName, input),
+				"--type=%#q is accepted", c.typeName)
+
+			n, err := coll.CountDocuments(t.Context(), bson.D{})
+			require.NoError(t, err)
+			assert.EqualValues(t, 2, n, "both documents are imported with --type=%#q", c.typeName)
+		})
+	}
+}
+
+// TestImportDropReplacesCollection checks that --drop empties the collection
+// first, and that it is not an error when there is no collection to drop.
+func TestImportDropReplacesCollection(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const dbName = "mongoimport_drop_test"
+	const collName = "c"
+
+	client := newImportTestClient(t, dbName)
+	coll := client.Database(dbName).Collection(collName)
+
+	csvFile := filepath.Join(t.TempDir(), "docs.csv")
+	writeXSVFile(t, csvFile, ',', [][]string{
+		{"a", "b"},
+		{"foo", "bar"},
+		{"bob", "steve"},
+		{"one", "two"},
+	})
+	t.Run("existing collection is emptied first", func(t *testing.T) {
+		require.NoError(t, coll.Drop(t.Context()))
+		_, err := coll.InsertOne(t.Context(), bson.D{{"x", 1}})
+		require.NoError(t, err)
+
+		importCSVWithDrop(t, dbName, collName, csvFile)
+
+		n, err := coll.CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 3, n, "only the imported rows remain")
+		n, err = coll.CountDocuments(t.Context(), bson.D{{"x", 1}})
+		require.NoError(t, err)
+		assert.Zero(t, n, "the document that was there before the import is gone")
+	})
+
+	t.Run("nonexistent collection is not an error", func(t *testing.T) {
+		require.NoError(t, coll.Drop(t.Context()))
+
+		importCSVWithDrop(t, dbName, collName, csvFile)
+
+		n, err := coll.CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.EqualValues(t, 3, n, "the imported rows are all present")
+	})
+}
+
+func importCSVWithDrop(t *testing.T, dbName, collName, csvFile string) {
+	t.Helper()
+	toolOpts, err := testutil.GetToolOptions()
+	require.NoError(t, err)
+	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := New(Options{
+		ToolOptions: toolOpts,
+		InputOptions: &InputOptions{
+			File: csvFile, Type: CSV, HeaderLine: true, ParseGrace: "stop",
+		},
+		IngestOptions: &IngestOptions{Drop: true},
+	})
+	require.NoError(t, err)
+	defer mi.Close()
+	_, _, err = mi.ImportDocuments()
+	require.NoError(t, err, "import with --drop succeeds")
+}
+
 // TestImportModeUpsertFields tests --mode with --upsertFields a,c (compound key matching).
 func TestImportModeUpsertFields(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
