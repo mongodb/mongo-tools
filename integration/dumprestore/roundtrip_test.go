@@ -832,7 +832,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 
 	internalColl := client.Database(dbName).Collection(testName)
 
-	_, err = internalColl.InsertOne(ctx, bson.D{{"_id", 1}})
+	_, err = internalColl.InsertOne(ctx, bson.D{})
 	s.Require().NoError(err, "must write to the internal DB")
 
 	_, err = client.Database(testName).Collection(testName).InsertOne(ctx, bson.D{})
@@ -842,16 +842,21 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 	updatesDone := make(chan struct{})
 	go func() {
 		defer close(updatesDone)
+		currId := int32(0)
 
 		for writesCtx.Err() == nil {
 			_, err := internalColl.InsertOne(
 				writesCtx,
-				bson.D{},
+				bson.D{{"_id", currId}},
 			)
+			currId++
 
 			if !errors.Is(err, context.Canceled) {
 				s.Require().NoError(err, "must write to the internal DB")
 			}
+
+			// Throttle inserts to reduce the chance of oplog rolling over.
+			time.Sleep(10 * time.Millisecond)
 		}
 
 		s.T().Logf("Updates canceled: %v", context.Cause(writesCtx))
