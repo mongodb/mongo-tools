@@ -74,7 +74,8 @@ func (p *pauseSignal) signal() {
 // that need to pause code until externally resumed, the signaling to
 // coordinate that pause.
 type Failpoint struct {
-	pause *pauseSignal
+	pause    *pauseSignal
+	fireOnce sync.Once
 }
 
 func newFailpoint() *Failpoint {
@@ -97,6 +98,15 @@ func (fp *Failpoint) Reached(ctx context.Context) error {
 // Signal releases a call blocked in Wait. Safe to call more than once.
 func (fp *Failpoint) Signal() {
 	fp.pause.signal()
+}
+
+// FireOnce returns true the first time it is called and false every time
+// after. Failpoints that inject a transient error use this so that the
+// retry which is supposed to recover from that error is allowed to succeed.
+func (fp *Failpoint) FireOnce() bool {
+	fired := false
+	fp.fireOnce.Do(func() { fired = true })
+	return fired
 }
 
 // Manager tracks which failpoints are currently enabled.
