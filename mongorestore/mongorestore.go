@@ -408,12 +408,21 @@ func (restore *MongoRestore) Restore() Result {
 			if usedDefaultTarget {
 				log.Logv(log.Always, util.ShortUsage("mongorestore"))
 			}
-			return Result{Err: fmt.Errorf("mongorestore target '%v' invalid: %v", restore.TargetDirectory, err)}
+			return Result{
+				Err: fmt.Errorf(
+					"mongorestore target '%v' invalid: %v",
+					restore.TargetDirectory,
+					err,
+				),
+			}
 		}
 		preludeFileExists, err := restore.ReadPreludeMetadata(target)
 		if !preludeFileExists {
 			// don't error out here because mongodump versions before 100.12.0 will not include prelude.json
-			log.Logvf(log.DebugLow, "no prelude metadata found in target directory or parent, skipping")
+			log.Logvf(
+				log.DebugLow,
+				"no prelude metadata found in target directory or parent, skipping",
+			)
 		} else if err != nil {
 			return Result{Err: fmt.Errorf("error reading dump metadata: %w", err)}
 		}

@@ -87,7 +87,11 @@ func (dump *MongoDump) dumpMetadata(
 			return err
 		}
 		if indexesIter == nil {
-			log.Logvf(log.Always, "the collection %#q appears to have been dropped after the dump started", intent.Namespace())
+			log.Logvf(
+				log.Always,
+				"the collection %#q appears to have been dropped after the dump started",
+				intent.Namespace(),
+			)
 			return nil
 		}
 		defer indexesIter.Close(context.Background())
@@ -104,7 +108,11 @@ func (dump *MongoDump) dumpMetadata(
 		}
 
 		if err := indexesIter.Err(); err != nil {
-			return fmt.Errorf("error getting indexes for collection %#q: %v", intent.Namespace(), err)
+			return fmt.Errorf(
+				"error getting indexes for collection %#q: %v",
+				intent.Namespace(),
+				err,
+			)
 		}
 	}
 

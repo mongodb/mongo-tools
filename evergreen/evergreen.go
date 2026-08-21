@@ -258,7 +258,10 @@ func (c *Config) integrationTestAliases() ([]alias, error) {
 			if mostRecent == "" {
 				continue
 			}
-			variantsByServerVersion[mostRecent] = append(variantsByServerVersion[mostRecent], v.Name)
+			variantsByServerVersion[mostRecent] = append(
+				variantsByServerVersion[mostRecent],
+				v.Name,
+			)
 		}
 	}
 

@@ -185,7 +185,11 @@ func ParseSpecialKeys(special any) (any, error) {
 	case map[string]any:
 		doc = v
 	default:
-		return nil, fmt.Errorf("%v (type %T) is not valid input to ParseSpecialKeys", special, special)
+		return nil, fmt.Errorf(
+			"%v (type %T) is not valid input to ParseSpecialKeys",
+			special,
+			special,
+		)
 	}
 	// check document to see if it is special
 	switch len(doc) {
@@ -409,7 +413,9 @@ func ParseSpecialKeys(special any) (any, error) {
 				if err != nil {
 					return nil, err
 				} else if len(kind) != 1 {
-					return nil, errors.New("expected single byte (as hexadecimal string) for $type field")
+					return nil, errors.New(
+						"expected single byte (as hexadecimal string) for $type field",
+					)
 				}
 				binary.Subtype = kind[0]
 
@@ -427,7 +433,11 @@ func ParseSpecialKeys(special any) (any, error) {
 	case map[string]any:
 		return ConvertLegacyExtJSONValueToBSON(v)
 	default:
-		return nil, fmt.Errorf("%v (type %T) is not valid input to ParseSpecialKeys", special, special)
+		return nil, fmt.Errorf(
+			"%v (type %T) is not valid input to ParseSpecialKeys",
+			special,
+			special,
+		)
 	}
 }
 
@@ -487,7 +497,12 @@ func MarshalExtJSONReversible(
 	}
 
 	reversedVal := reflect.New(reflect.TypeOf(val)).Elem().Interface()
-	if unmarshalErr := bson.UnmarshalExtJSON(jsonBytes, canonical, &reversedVal); unmarshalErr != nil {
+	unmarshalErr := bson.UnmarshalExtJSON(
+		jsonBytes,
+		canonical,
+		&reversedVal,
+	)
+	if unmarshalErr != nil {
 		return nil, errors2.Wrap(unmarshalErr, "marshal is not reversible")
 	}
 

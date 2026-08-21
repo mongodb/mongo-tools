@@ -854,7 +854,12 @@ func (opts *ToolOptions) setOptionsFromURI(cs *connstring.ConnString) error {
 				}
 			}
 			if conflictingPorts {
-				return ConflictingArgsErrorFormat("port", strings.Join(cs.Hosts, ","), opts.Port, "--port")
+				return ConflictingArgsErrorFormat(
+					"port",
+					strings.Join(cs.Hosts, ","),
+					opts.Port,
+					"--port",
+				)
 			}
 			// remove trailing comma
 			opts.Host = opts.Host[:len(opts.Host)-1]

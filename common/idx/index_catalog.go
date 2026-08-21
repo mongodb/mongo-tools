@@ -258,7 +258,12 @@ func (i *IndexCatalog) DeleteIndexes(database, collection string, dropCmd bson.D
 			delete(collIndexes, td)
 		}
 
-		log.Logvf(log.DebugHigh, "Must drop index on %#q by key pattern: %v", database+"."+collection, indexToDrop)
+		log.Logvf(
+			log.DebugHigh,
+			"Must drop index on %#q by key pattern: %v",
+			database+"."+collection,
+			indexToDrop,
+		)
 		return nil
 	default:
 		return fmt.Errorf("could not drop index on %#q, could not handle %v: "+

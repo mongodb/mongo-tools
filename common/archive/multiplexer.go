@@ -114,7 +114,11 @@ func (mux *Multiplexer) Run() {
 					mux.Out = &nopCloseNopWriter{}
 					completionErr = err
 				}
-				log.Logvf(log.DebugLow, "Mux close namespace %#q", mux.ins[index].Intent.DataNamespace())
+				log.Logvf(
+					log.DebugLow,
+					"Mux close namespace %#q",
+					mux.ins[index].Intent.DataNamespace(),
+				)
 				mux.currentNamespace = ""
 				mux.selectCases = append(mux.selectCases[:index], mux.selectCases[index+1:]...)
 				mux.ins = append(mux.ins[:index], mux.ins[index+1:]...)

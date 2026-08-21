@@ -242,18 +242,35 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 		} else {
 			err := intent.MetadataFile.Open()
 			if err != nil {
-				return fmt.Errorf("could not open metadata file %v: %v", intent.MetadataLocation, err)
+				return fmt.Errorf(
+					"could not open metadata file %v: %v",
+					intent.MetadataLocation,
+					err,
+				)
 			}
 			defer intent.MetadataFile.Close()
 
-			log.Logvf(log.Always, "reading metadata for %#q from %#q", intent.Namespace(), intent.MetadataLocation)
+			log.Logvf(
+				log.Always,
+				"reading metadata for %#q from %#q",
+				intent.Namespace(),
+				intent.MetadataLocation,
+			)
 			metadataJSON, err := io.ReadAll(intent.MetadataFile)
 			if err != nil {
-				return fmt.Errorf("error reading metadata from %v: %v", intent.MetadataLocation, err)
+				return fmt.Errorf(
+					"error reading metadata from %v: %v",
+					intent.MetadataLocation,
+					err,
+				)
 			}
 			metadata, err = restore.MetadataFromJSON(metadataJSON)
 			if err != nil {
-				return fmt.Errorf("error parsing metadata from %v: %v", intent.MetadataLocation, err)
+				return fmt.Errorf(
+					"error parsing metadata from %v: %v",
+					intent.MetadataLocation,
+					err,
+				)
 			}
 			if metadata != nil {
 				intent.Options = metadata.Options
@@ -271,7 +288,12 @@ func (restore *MongoRestore) PopulateMetadataForIntents() error {
 
 				if restore.OutputOptions.PreserveUUID {
 					if metadata.UUID == "" {
-						log.Logvf(log.Always, "--preserveUUID used but no UUID found in %#q, generating new UUID for %#q", intent.MetadataLocation, intent.Namespace())
+						log.Logvf(
+							log.Always,
+							"--preserveUUID used but no UUID found in %#q, generating new UUID for %#q",
+							intent.MetadataLocation,
+							intent.Namespace(),
+						)
 					}
 					intent.UUID = metadata.UUID
 				}
@@ -385,7 +407,11 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 					intent.Namespace(),
 				)
 			} else {
-				log.Logvf(log.Always, "dropping collection %#q before restoring", intent.Namespace())
+				log.Logvf(
+					log.Always,
+					"dropping collection %#q before restoring",
+					intent.Namespace(),
+				)
 				err = restore.DropCollection(intent)
 				if err != nil {
 					return Result{Err: err} // no context needed
@@ -393,7 +419,11 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 				collectionExists = false
 			}
 		} else {
-			log.Logvf(log.DebugLow, "collection %#q doesn't exist, skipping drop command", intent.Namespace())
+			log.Logvf(
+				log.DebugLow,
+				"collection %#q doesn't exist, skipping drop command",
+				intent.Namespace(),
+			)
 		}
 	}
 
@@ -457,7 +487,11 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		}
 		restore.addToKnownCollections(intent)
 	} else {
-		log.Logvf(log.Info, "collection %#q already exists - skipping collection create", intent.Namespace())
+		log.Logvf(
+			log.Info,
+			"collection %#q already exists - skipping collection create",
+			intent.Namespace(),
+		)
 	}
 
 	var result Result
@@ -753,7 +787,10 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 					return
 				}
 
-				if collModErr := restore.EnableMixedSchemaInTimeseriesBucket(dbName, logicalColName); collModErr != nil {
+				if collModErr := restore.EnableMixedSchemaInTimeseriesBucket(
+					dbName,
+					logicalColName,
+				); collModErr != nil {
 					resultChan <- result.withErr(errors.Wrap(collModErr, "failed to enable mixed schema in a timeseries bucket"))
 					return
 				}

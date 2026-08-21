@@ -567,8 +567,13 @@ func tokensToBSON(
 			parsedValue = autoParse(token)
 			key := "field" + strconv.Itoa(index)
 			if util.StringSliceContains(ColumnNames(colSpecs), key) {
-				return nil, fmt.Errorf("duplicate field name - on %v - for token #%v (%#q) in document #%v",
-					key, index+1, parsedValue, numProcessed)
+				return nil, fmt.Errorf(
+					"duplicate field name - on %v - for token #%v (%#q) in document #%v",
+					key,
+					index+1,
+					parsedValue,
+					numProcessed,
+				)
 			}
 			document = append(document, bson.E{Key: key, Value: parsedValue})
 		}

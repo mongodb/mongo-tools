@@ -41,7 +41,9 @@ func newIndexDocumentFromD(doc bson.D) (*IndexDocument, error) {
 				indexDoc.PartialFilterExpression = &partialFilterExpression
 				continue
 			} else {
-				return nil, fmt.Errorf("index partialFilterExpression could not type assert to bson.D")
+				return nil, fmt.Errorf(
+					"index partialFilterExpression could not type assert to bson.D",
+				)
 			}
 		default:
 			indexDoc.Options[elem.Key] = elem.Value

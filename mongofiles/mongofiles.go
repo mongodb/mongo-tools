@@ -137,7 +137,9 @@ func (mf *MongoFiles) ValidateCommand(args []string) error {
 		if len(args) == 1 || args[1] == "" {
 			return fmt.Errorf("%#q argument missing", args[0])
 		} else if len(args) > 2 {
-			return fmt.Errorf("too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)")
+			return fmt.Errorf(
+				"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
+			)
 		}
 
 		mf.FileNameRegex = args[1]
@@ -282,7 +284,10 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 				"$options": mf.StorageOptions.RegexOptions,
 			},
 		}
-		minimumExpectedDocsError = fmt.Errorf("files matching the following pattern were not found: %#q", mf.FileNameRegex)
+		minimumExpectedDocsError = fmt.Errorf(
+			"files matching the following pattern were not found: %#q",
+			mf.FileNameRegex,
+		)
 	} else if mf.Id != "" {
 		// Case supporting queries by file ID specified in mongofiles ... get_id ...
 		minimumExpectedDocsError = fmt.Errorf("no such file with _id: %#q", mf.Id)
@@ -333,7 +338,10 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 						gf.Name,
 					)
 				} else {
-					return nil, fmt.Errorf("%#q lies outside the current directory; set --allowUnsafeTraversal if you really want to write to that path", gf.Name)
+					return nil, fmt.Errorf(
+						"%#q lies outside the current directory; set --allowUnsafeTraversal if you really want to write to that path",
+						gf.Name,
+					)
 				}
 			}
 		}
@@ -487,7 +495,12 @@ func (mf *MongoFiles) put(
 		}
 		dc := util.DeferredCloser{Closer: localFile}
 		defer dc.CloseWithErrorCapture(&err)
-		log.Logvf(log.DebugLow, "creating GridFS gridFile %#q from local gridFile %#q", mf.FileName, localFileName)
+		log.Logvf(
+			log.DebugLow,
+			"creating GridFS gridFile %#q from local gridFile %#q",
+			mf.FileName,
+			localFileName,
+		)
 	}
 
 	// check if --replace flag turned on

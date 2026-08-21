@@ -229,7 +229,9 @@ func (demux *Demultiplexer) End() error {
 	} else {
 		for ns, status := range demux.NamespaceStatus {
 			if status != NamespaceClosed {
-				err = newError(fmt.Sprintf("archive finished before all collections were seen (%#q)", ns))
+				err = newError(
+					fmt.Sprintf("archive finished before all collections were seen (%#q)", ns),
+				)
 			}
 		}
 	}

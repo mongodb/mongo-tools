@@ -61,7 +61,10 @@ func NewReadPreference(rp string, cs *connstring.ConnString) (*readpref.ReadPref
 		}
 
 		if doc.MaxStalenessSeconds != nil {
-			options = append(options, readpref.WithMaxStaleness(time.Duration(*doc.MaxStalenessSeconds)*time.Second))
+			options = append(
+				options,
+				readpref.WithMaxStaleness(time.Duration(*doc.MaxStalenessSeconds)*time.Second),
+			)
 		}
 	}
 
