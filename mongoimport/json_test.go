@@ -143,7 +143,7 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 			r := NewJSONInputReader(false, true, fileHandle, 1)
 			streamOutChan := make(chan bson.D, len(expectedReads))
 			So(r.StreamDocument(t.Context(), true, streamOutChan), ShouldBeNil)
-			for i := 0; i < len(expectedReads); i++ {
+			for i := range expectedReads {
 				for j, readDocument := range <-streamOutChan {
 					So(readDocument.Key, ShouldEqual, expectedReads[i][j].Key)
 					So(readDocument.Value, ShouldEqual, expectedReads[i][j].Value)

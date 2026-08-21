@@ -219,28 +219,28 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	var err error
 
 	// .bin supported for legacy reasons
-	if strings.HasSuffix(baseFileName, ".bin") {
-		collName = strings.TrimSuffix(baseFileName, ".bin")
+	if before, ok := strings.CutSuffix(baseFileName, ".bin"); ok {
+		collName = before
 		fileType = BSONFileType
 	} else if restore.InputOptions.Gzip && restore.InputOptions.Archive == "" {
 		// Gzip indicates that files in a dump directory should have a .gz suffix
 		// but it does not indicate that the "files" provided by the archive should,
 		// compressed or otherwise.
-		if strings.HasSuffix(baseFileName, ".metadata.json.gz") {
-			collName = strings.TrimSuffix(baseFileName, ".metadata.json.gz")
+		if before, ok := strings.CutSuffix(baseFileName, ".metadata.json.gz"); ok {
+			collName = before
 			fileType = MetadataFileType
 			metadataFullPath = filename
-		} else if strings.HasSuffix(baseFileName, ".bson.gz") {
-			collName = strings.TrimSuffix(baseFileName, ".bson.gz")
+		} else if before, ok := strings.CutSuffix(baseFileName, ".bson.gz"); ok {
+			collName = before
 			fileType = BSONFileType
 			metadataFullPath = strings.TrimSuffix(filename, ".bson.gz") + ".metadata.json.gz"
 		}
-	} else if strings.HasSuffix(baseFileName, ".metadata.json") {
-		collName = strings.TrimSuffix(baseFileName, ".metadata.json")
+	} else if before, ok := strings.CutSuffix(baseFileName, ".metadata.json"); ok {
+		collName = before
 		fileType = MetadataFileType
 		metadataFullPath = filename
-	} else if strings.HasSuffix(baseFileName, ".bson") {
-		collName = strings.TrimSuffix(baseFileName, ".bson")
+	} else if before, ok := strings.CutSuffix(baseFileName, ".bson"); ok {
+		collName = before
 		fileType = BSONFileType
 		metadataFullPath = strings.TrimSuffix(filename, ".bson") + ".metadata.json"
 	}

@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/http"
 	"os"
 	"os/exec"
@@ -348,7 +349,7 @@ func getLibraryPaths() []string {
 	check(err, "ldd\n"+out)
 
 	ret := []string{}
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		sp := strings.Split(line, "=>")
 		if len(sp) < 2 {
 			continue
@@ -1416,9 +1417,7 @@ func linuxRelease(v version.Version) {
 						// Remove sensitive information from curator input and log
 						curatorArgsLog := append([]string{}, curatorArgs...)
 						envOverridesLog := make(map[string]string)
-						for k, v := range envOverrides {
-							envOverridesLog[k] = v
-						}
+						maps.Copy(envOverridesLog, envOverrides)
 						apiKeyIdex := findArgIndex(curatorArgsLog, "--api_key")
 						if apiKeyIdex >= 0 {
 							curatorArgsLog[apiKeyIdex] = "[REDACTED]"

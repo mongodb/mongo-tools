@@ -15,7 +15,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
-	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
@@ -131,7 +130,7 @@ func parseJSONWriteConcern(
 
 	// Journal option
 	if jVal, ok := jsonWriteConcern[j]; ok && util.IsTruthy(jVal) {
-		wc.Journal = lo.ToPtr(true)
+		wc.Journal = new(true)
 	}
 
 	// Wtimeout option

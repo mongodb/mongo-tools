@@ -1,5 +1,7 @@
 package idx
 
+import "maps"
+
 var fieldTypeRequiredOpts = []struct {
 	fieldType string
 	option    string
@@ -28,9 +30,7 @@ func (idx IndexDocument) EnsureIndexVersions() map[string]any {
 		}
 	}
 
-	for optName, optVal := range inferred {
-		idx.Options[optName] = optVal
-	}
+	maps.Copy(idx.Options, inferred)
 
 	return inferred
 }

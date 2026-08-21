@@ -258,7 +258,7 @@ func makeFieldSelector(fields string) bson.M {
 		return selector
 	}
 
-	for _, field := range strings.Split(fields, ",") {
+	for field := range strings.SplitSeq(fields, ",") {
 		// Projections like "a.0" work fine for nested documents not for arrays
 		// - if passed directly to mongod. To handle this, we have to retrieve
 		// the entire top-level document and then filter afterwards. An exception

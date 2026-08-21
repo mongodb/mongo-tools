@@ -39,7 +39,7 @@ func TestBasicProgressBar(t *testing.T) {
 	// TODO make this test non-racy and reliable
 	time.Sleep(10 * time.Millisecond)
 	// iterate though each value 1-10, sleeping to make sure it is written
-	for localCounter := 0; localCounter < 10; localCounter++ {
+	for range 10 {
 		watching.Inc(1)
 		time.Sleep(30 * time.Millisecond)
 	}

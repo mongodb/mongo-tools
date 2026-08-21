@@ -215,7 +215,7 @@ func SkipUnlessStandalone(t *testing.T) {
 
 func dottedStringToSlice(s string) ([]int, error) {
 	parts := make([]int, 0, 2)
-	for _, v := range strings.Split(s, ".") {
+	for v := range strings.SplitSeq(s, ".") {
 		i, err := strconv.Atoi(v)
 		if err != nil {
 			return parts, err

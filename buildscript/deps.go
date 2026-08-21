@@ -130,19 +130,19 @@ func WriteThirdPartyNotices(ctx *task.Context) error {
 		return err
 	}
 
-	var notices string
+	var notices strings.Builder
 	for _, lf := range licenseFiles {
-		notices += "\n"
-		notices += horizontalLine
-		notices += "\n"
-		notices += fmt.Sprintf(
+		notices.WriteString("\n")
+		notices.WriteString(horizontalLine)
+		notices.WriteString("\n")
+		notices.WriteString(fmt.Sprintf(
 			"License notice for %s (%s)\n",
 			lf.packageName,
 			filepath.Base(lf.path),
-		)
-		notices += horizontalLine
-		notices += "\n"
-		notices += "\n"
+		))
+		notices.WriteString(horizontalLine)
+		notices.WriteString("\n")
+		notices.WriteString("\n")
 
 		content, err := os.ReadFile(lf.path)
 		if err != nil {
@@ -154,10 +154,10 @@ func WriteThirdPartyNotices(ctx *task.Context) error {
 		// Trim trailing space from each line.
 		contentStr = trailingSpaceRegexp.ReplaceAllString(contentStr, "")
 
-		notices += contentStr
+		notices.WriteString(contentStr)
 	}
 
-	return os.WriteFile(filepath.Join(root, "THIRD-PARTY-NOTICES"), []byte(notices), 0644)
+	return os.WriteFile(filepath.Join(root, "THIRD-PARTY-NOTICES"), []byte(notices.String()), 0644)
 }
 
 const vendorDir string = "vendor"

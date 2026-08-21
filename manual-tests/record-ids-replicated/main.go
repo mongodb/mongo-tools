@@ -534,7 +534,7 @@ func repoRoot() string {
 func insertTestDocuments(ctx context.Context, coll *mongo.Collection, spec collectionSpec) error {
 	docs := make([]any, docsPerCollection)
 
-	for i := 0; i < docsPerCollection; i++ {
+	for i := range docsPerCollection {
 		if spec.timeseries != nil {
 			docs[i] = bson.D{
 				{"timestamp", time.Now().Add(time.Duration(i) * time.Second)},
@@ -587,7 +587,7 @@ func runConcurrentOperations(ctx context.Context, client *mongo.Client, barrierF
 	opCount++
 
 	concurrentColl := concurrentDB.Collection(concurrentOpsColl)
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		_, err := concurrentColl.InsertOne(ctx, bson.D{
 			{"_id", bson.NewObjectID()},
 			{"concurrent_index", i},

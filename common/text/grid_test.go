@@ -43,8 +43,8 @@ func TestUpdateWidths(t *testing.T) {
 
 func writeData(gw *GridWriter) {
 	gw.Reset()
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
+	for i := range 3 {
+		for j := range 3 {
 			gw.WriteCell(fmt.Sprintf("(%v,%v)", i, j))
 		}
 		gw.EndRow()

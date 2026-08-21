@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -29,7 +30,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
-	"golang.org/x/exp/maps"
 )
 
 const insertBufferFactor = 16
@@ -159,8 +159,7 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		for _, index := range indexes {
 			if addedOpts := index.EnsureIndexVersions(); len(addedOpts) != 0 {
-				optNames := maps.Keys(addedOpts)
-				slices.Sort(optNames)
+				optNames := slices.Sorted(maps.Keys(addedOpts))
 
 				for _, optName := range optNames {
 					log.Logvf(
@@ -691,7 +690,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 
 	var warnedAboutEmptyTimestamp atomic.Bool
 
-	for i := 0; i < maxInsertWorkers; i++ {
+	for range maxInsertWorkers {
 		go func() {
 			var result Result
 
@@ -811,7 +810,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(
 	var finalErr error
 
 	// wait until all insert jobs finish
-	for done := 0; done < maxInsertWorkers; done++ {
+	for range maxInsertWorkers {
 		totalResult.combineWith(<-resultChan)
 		if finalErr == nil && totalResult.Err != nil {
 			finalErr = totalResult.Err

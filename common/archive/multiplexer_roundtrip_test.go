@@ -214,7 +214,7 @@ func makeIns(
 				return
 			}
 			staticBSONBuf := make([]byte, db.MaxBSONSize)
-			for i := 0; i < testDocCount; i++ {
+			for i := range testDocCount {
 				bsonBytes, _ := bson.Marshal(testDoc{Bar: index * i, Baz: ns})
 				bsonBuf := staticBSONBuf[:len(bsonBytes)]
 				copy(bsonBuf, bsonBytes)
@@ -329,11 +329,9 @@ func TestTOOLS1826(t *testing.T) {
 
 	var demuxErr error
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		demuxErr = demux.Run()
-	}()
+	})
 
 	// Closing the receiver before reading shouldn't panic.
 	muxOut.Close()
@@ -362,15 +360,13 @@ func TestTOOLS2403(t *testing.T) {
 
 	var demuxErr error
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		demuxErr = demux.Run()
-	}()
+	})
 
 	// Read all the documents, but don't read past into EOF.
 	bs := make([]byte, db.MaxBSONSize)
-	for i := 0; i < testDocCount; i++ {
+	for range testDocCount {
 		_, err := muxOut.Read(bs)
 		if err != nil {
 			t.Fatal(err)

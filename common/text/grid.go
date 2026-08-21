@@ -28,13 +28,6 @@ type GridWriter struct {
 	colWidths     []int
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // init() makes the initial row if this is the first time any data is being written.
 // otherwise, no-op.
 func (gw *GridWriter) init() {
