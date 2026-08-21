@@ -11,6 +11,21 @@ import (
 // test deployment as a replica set, i.e. with the "<setName>/<seedlist>" form of
 // --host rather than a single host.
 func (s *IntegrationSuite) ReplicaSetToolArgs() []string {
+	setName, hosts := s.replicaSetNameAndHosts()
+
+	return s.replicaSetArgsFor(setName + "/" + strings.Join(hosts, ","))
+}
+
+// ReplicaSetToolArgsForHosts is ReplicaSetToolArgs over a seedlist of just the
+// given hosts. A seedlist naming only a secondary still has to reach the
+// primary, because the set name makes the driver discover the rest of the set.
+func (s *IntegrationSuite) ReplicaSetToolArgsForHosts(hosts ...string) []string {
+	setName, _ := s.replicaSetNameAndHosts()
+
+	return s.replicaSetArgsFor(setName + "/" + strings.Join(hosts, ","))
+}
+
+func (s *IntegrationSuite) replicaSetArgsFor(hostArg string) []string {
 	args := append([]string{}, testopts.GetSSLArgs()...)
 	if len(args) > 0 {
 		// A "<setName>/..." host makes the driver discover the set's members and
@@ -20,17 +35,17 @@ func (s *IntegrationSuite) ReplicaSetToolArgs() []string {
 	}
 	args = append(args, testopts.GetAuthArgs()...)
 
-	return append(args, "--host", s.replicaSetHostArg())
+	return append(args, "--host", hostArg)
 }
 
-// replicaSetHostArg builds the "<setName>/<host>,<host>" form of --host out of
-// what the server reports about the set it belongs to.
-func (s *IntegrationSuite) replicaSetHostArg() string {
+// replicaSetNameAndHosts returns the set's name and the hosts of every member,
+// as the set itself names them.
+func (s *IntegrationSuite) replicaSetNameAndHosts() (string, []string) {
 	status := s.replicaSetStatus()
 	s.Require().NotEmpty(status.SetName, "the server is a replica set member")
 	s.Require().NotEmpty(status.Hosts, "the replica set reports its members")
 
-	return status.SetName + "/" + strings.Join(status.Hosts, ",")
+	return status.SetName, status.Hosts
 }
 
 // replicaSetStatus is what the tests need to know about the replica set the
