@@ -725,17 +725,17 @@
       "version": "v2.4.0"
     },
     {
-      "bom-ref": "pkg:golang/std@go1.26.5",
+      "bom-ref": "pkg:golang/std@go1.26.7",
       "externalReferences": [
         {
           "type": "website",
-          "url": "https://pkg.go.dev/None/std@go1.26.5"
+          "url": "https://pkg.go.dev/None/std@go1.26.7"
         }
       ],
       "name": "std",
-      "purl": "pkg:golang/std@go1.26.5",
+      "purl": "pkg:golang/std@go1.26.7",
       "type": "library",
-      "version": "go1.26.5"
+      "version": "go1.26.7"
     }
   ],
   "dependencies": [
@@ -827,11 +827,11 @@
       "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
     },
     {
-      "ref": "pkg:golang/std@go1.26.5"
+      "ref": "pkg:golang/std@go1.26.7"
     }
   ],
   "metadata": {
-    "timestamp": "2026-08-20T17:28:14.813628+00:00",
+    "timestamp": "2026-08-21T17:04:04.183023+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -875,7 +875,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 49,
+  "version": 50,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
