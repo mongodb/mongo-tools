@@ -114,42 +114,6 @@ func (v *Variant) includesLatest() bool {
 	return false
 }
 
-var versionRE = regexp.MustCompile(`\.(\d+)\.(\d+)$`)
-
-func (v *Variant) mostRecentServerVersion() (string, error) {
-	var versions [][2]int
-	for _, t := range v.Tasks {
-		if matches := versionRE.FindStringSubmatch(t.Name); len(matches) != 0 {
-			maj, err := strconv.Atoi(matches[1])
-			if err != nil {
-				return "", err
-			}
-			min, err := strconv.Atoi(matches[2])
-			if err != nil {
-				return "", err
-			}
-			versions = append(versions, [2]int{maj, min})
-		}
-	}
-	if len(versions) == 0 {
-		return "", nil
-	}
-
-	sort.SliceStable(versions, func(i, j int) bool {
-		majI := versions[i][0]
-		majJ := versions[j][0]
-		minI := versions[i][1]
-		minJ := versions[j][1]
-
-		if majI != majJ {
-			return majI < majJ
-		}
-		return minI < minJ
-	})
-
-	return fmt.Sprintf("%d.%d", versions[0][0], versions[0][1]), nil
-}
-
 type alias struct {
 	comment string
 	variant string
@@ -327,4 +291,40 @@ func (c *Config) integrationTestAliases() ([]alias, error) {
 	}
 
 	return aliases, nil
+}
+
+var versionRE = regexp.MustCompile(`\.(\d+)\.(\d+)$`)
+
+func (v *Variant) mostRecentServerVersion() (string, error) {
+	var versions [][2]int
+	for _, t := range v.Tasks {
+		if matches := versionRE.FindStringSubmatch(t.Name); len(matches) != 0 {
+			maj, err := strconv.Atoi(matches[1])
+			if err != nil {
+				return "", err
+			}
+			min, err := strconv.Atoi(matches[2])
+			if err != nil {
+				return "", err
+			}
+			versions = append(versions, [2]int{maj, min})
+		}
+	}
+	if len(versions) == 0 {
+		return "", nil
+	}
+
+	sort.SliceStable(versions, func(i, j int) bool {
+		majI := versions[i][0]
+		majJ := versions[j][0]
+		minI := versions[i][1]
+		minJ := versions[j][1]
+
+		if majI != majJ {
+			return majI > majJ
+		}
+		return minI > minJ
+	})
+
+	return fmt.Sprintf("%d.%d", versions[0][0], versions[0][1]), nil
 }
