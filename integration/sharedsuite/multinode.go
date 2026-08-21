@@ -2,6 +2,7 @@ package sharedsuite
 
 import (
 	"net/url"
+	"slices"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -29,7 +30,10 @@ func (s *IntegrationSuite) SecondaryHost() string {
 	return s.SecondaryHosts()[0]
 }
 
-// SecondaryHosts returns the hosts of every secondary in the replica set.
+// SecondaryHosts returns the hosts of every secondary in the replica set,
+// including the unelectable ones the server reports as passives: a passive is
+// still a secondary, holding data and serving reads, it just cannot be elected
+// primary.
 func (s *IntegrationSuite) SecondaryHosts() []string {
 	_, secondaries := s.replicaSetHosts()
 	s.Require().NotEmpty(secondaries, "the replica set has at least one secondary")
@@ -43,8 +47,8 @@ func (s *IntegrationSuite) replicaSetHosts() (string, []string) {
 	status := s.replicaSetStatus()
 	s.Require().NotEmpty(status.Primary, "the replica set has a primary")
 
-	secondaries := make([]string, 0, len(status.Hosts))
-	for _, host := range status.Hosts {
+	secondaries := make([]string, 0, len(status.Hosts)+len(status.Passives))
+	for _, host := range slices.Concat(status.Hosts, status.Passives) {
 		if host != status.Primary {
 			secondaries = append(secondaries, host)
 		}

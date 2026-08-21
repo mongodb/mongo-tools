@@ -214,16 +214,26 @@ fi
 
 # mongodb-runner gives every member but the first a priority of 0, which makes it passive: the
 # server reports passives separately from hosts in isMaster, and a passive can never be elected
-# primary. The tests want an ordinary replica set, in which any node can be primary, so the
-# membership is passed explicitly with the same priority on every member. This replaces the
-# runner's --secondaries flag, which cannot set a priority.
+# primary. The tests want an ordinary replica set in which the electable nodes can be primary, so
+# the membership is passed explicitly with the same priority on every electable member. This
+# replaces the runner's --secondaries flag, which cannot set a priority.
 if [ "$TOPOLOGY" = "replset" ]; then
     RS_MEMBERS=
     for ((member = 0; member <= SECONDARIES; member++)); do
         if [ -n "$RS_MEMBERS" ]; then
             RS_MEMBERS+=", "
         fi
-        RS_MEMBERS+='{"priority": 1}'
+        member_config='{"priority": 1}'
+        # One secondary is tagged so that integration tests have a node a tagged read preference can
+        # select. It is also made unelectable, so that it can never be the primary: a tagged node
+        # that might be primary would leave a test unable to tell a tool honoring a read preference
+        # from one reading the primary by default. The tag and the priority are both meaningless for
+        # anything that does not name the tag in a read preference or care which member is
+        # electable, so no other test is affected by them.
+        if ((member == 1)); then
+            member_config='{"priority": 0, "tags": {"use": "dumpTarget"}}'
+        fi
+        RS_MEMBERS+="${member_config}"
     done
     CONFIG_ENTRIES+=("\"rsMembers\": [${RS_MEMBERS}]")
 fi
