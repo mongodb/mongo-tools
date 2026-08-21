@@ -252,6 +252,11 @@ if [ "${#CONFIG_ENTRIES[@]}" -gt 0 ]; then
 fi
 
 MONGOD_ARGS=("${EXTRA_MONGOD_ARGS[@]}")
+# Test commands, and the fail points they gate, only exist on a server started with this. The
+# integration tests use them to control replication (the write-concern tests stop oplog application
+# on secondaries with rsSyncApplyStop), and mongod accepts repeated --setParameter, so this composes
+# with the AWS auth one below.
+MONGOD_ARGS+=(--setParameter "enableTestCommands=1")
 if [ -n "$ADDITIONAL_ARGS" ]; then
     # shellcheck disable=SC2206 # ADDITIONAL_ARGS is intentionally word-split
     MONGOD_ARGS+=($ADDITIONAL_ARGS)
