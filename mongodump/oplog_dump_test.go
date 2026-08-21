@@ -669,3 +669,53 @@ func TestOplogRollover(t *testing.T) {
 		"mongodump should crash when the oplog rolls over during dumping",
 	)
 }
+
+// TestOplogCheckSurvivesCappedPositionLost verifies that a CappedPositionLost
+// error while reading the oldest oplog entry is retried, rather than being
+// reported as an oplog overflow.
+//
+// Reading the front of the oplog in $natural order races the server's oplog
+// truncation, so on a busy oplog the read can fail with CappedPositionLost
+// (TOOLS-4338). That used to surface as "oplog overflow", which wrongly told
+// users the dump may have lost oplog entries. The FailOplogCheckRead failpoint
+// injects that error once so the retry can be tested without having to race
+// real truncation.
+func TestOplogCheckSurvivesCappedPositionLost(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	// Oplog is not available in a standalone topology.
+	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
+	md.ToolOptions.DB = ""
+	md.OutputOptions.Oplog = true
+	md.OutputOptions.Out = "oplog_capped_position_lost"
+	require.NoError(t, md.Init())
+	defer os.RemoveAll(md.OutputOptions.Out)
+
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.FailOplogCheckRead.String()))
+	defer failpoint.DefaultManager.Reset()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.FailOplogCheckRead)
+	require.True(t, ok, "FailOplogCheckRead failpoint should be enabled")
+
+	require.NoError(
+		t,
+		md.Dump(),
+		"mongodump should retry a lost oplog read instead of reporting an overflow",
+	)
+
+	// If the failpoint had not fired during the dump, this would be its first
+	// call and would return true, so this catches the dump silently passing
+	// because no error was ever injected.
+	require.False(
+		t,
+		fp.FireOnce(),
+		"the injected error should have fired during the dump, so the retry was really exercised",
+	)
+
+	oplogInfo, err := os.Stat(filepath.Join(md.OutputOptions.Out, "oplog.bson"))
+	require.NoError(t, err, "the retried dump should still have written an oplog")
+	require.NotZero(t, oplogInfo.Size(), "the dumped oplog should not be empty")
+}

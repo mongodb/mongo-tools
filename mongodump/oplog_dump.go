@@ -8,10 +8,13 @@ package mongodump
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -115,22 +118,7 @@ func (dump *MongoDump) getOplogCopyStartTime() (bson.Timestamp, error) {
 // still in the database and making sure it happened at or before the timestamp
 // captured at the start of the dump.
 func (dump *MongoDump) checkOplogTimestampExists(ts bson.Timestamp) (bool, error) {
-	oldestOplogEntry := db.Oplog{}
-	var tempBSON bson.Raw
-
-	err := dump.SessionProvider.FindOne(
-		"local",
-		dump.oplogCollection,
-		0,
-		nil,
-		&bson.M{"$natural": 1},
-		&tempBSON,
-		0,
-	)
-	if err != nil {
-		return false, fmt.Errorf("unable to read entry from oplog: %v", err)
-	}
-	err = bson.Unmarshal(tempBSON, &oldestOplogEntry)
+	oldestOplogEntry, err := dump.findOldestOplogEntry()
 	if err != nil {
 		return false, err
 	}
@@ -142,6 +130,102 @@ func (dump *MongoDump) checkOplogTimestampExists(ts bson.Timestamp) (bool, error
 		return false, nil
 	}
 	return true, nil
+}
+
+// cappedPositionLostErrCode is the server's CappedPositionLost error, returned
+// when a collection scan loses its place because the records it was reading
+// were deleted out from under it.
+const cappedPositionLostErrCode = 136
+
+// oplogReadAttempts bounds how many times findOldestOplogEntry retries a read
+// that lost its position.
+const oplogReadAttempts = 4
+
+// oplogReadRetryDelay is the wait before the first retry, doubled for each
+// retry after that. A single truncation pass has been seen to run for over a
+// second, so the delays have to add up to more than that: otherwise every
+// attempt lands inside the same pass that killed the first read. The delays
+// also can't grow without bound, because each one widens the window in which
+// truncation can legitimately advance past oplogStart and turn a good dump
+// into a reported overflow.
+const oplogReadRetryDelay = 250 * time.Millisecond
+
+// findOldestOplogEntry returns the oldest entry still in the oplog.
+//
+// Scanning the front of the oplog in $natural order races the server's oplog
+// truncation: on a busy oplog the entries being read can be deleted mid-scan,
+// which fails the whole read with CappedPositionLost even though the scan had
+// already found its one document. That says nothing about whether the dump's
+// starting timestamp survived, so such a read is retried rather than reported.
+func (dump *MongoDump) findOldestOplogEntry() (db.Oplog, error) {
+	var lastErr error
+	wait := oplogReadRetryDelay
+	for attempt := range oplogReadAttempts {
+		if attempt > 0 {
+			time.Sleep(wait)
+			wait *= 2
+		}
+
+		var tempBSON bson.Raw
+
+		lastErr = failOplogCheckReadFailpoint()
+		if lastErr == nil {
+			lastErr = dump.SessionProvider.FindOne(
+				"local",
+				dump.oplogCollection,
+				0,
+				nil,
+				&bson.M{"$natural": 1},
+				&tempBSON,
+				0,
+			)
+		}
+
+		if lastErr == nil {
+			oldestOplogEntry := db.Oplog{}
+			if err := bson.Unmarshal(tempBSON, &oldestOplogEntry); err != nil {
+				return db.Oplog{}, err
+			}
+			return oldestOplogEntry, nil
+		}
+
+		if !isCappedPositionLost(lastErr) {
+			return db.Oplog{}, fmt.Errorf("unable to read entry from oplog: %w", lastErr)
+		}
+
+		log.Logvf(log.DebugLow, "oplog read lost its position, retrying: %v", lastErr)
+	}
+
+	return db.Oplog{}, fmt.Errorf(
+		"unable to read entry from oplog after %d attempts: %w",
+		oplogReadAttempts,
+		lastErr,
+	)
+}
+
+// isCappedPositionLost reports whether err is the server saying that a
+// collection scan lost its place because the records it was reading were
+// deleted while it was reading them.
+func isCappedPositionLost(err error) bool {
+	var serverErr mongo.ServerError
+	return errors.As(err, &serverErr) && serverErr.HasErrorCode(cappedPositionLostErrCode)
+}
+
+// failOplogCheckReadFailpoint returns a synthetic CappedPositionLost error the
+// first time it is called with the FailOplogCheckRead failpoint enabled, so
+// that tests can exercise the retry in findOldestOplogEntry.
+func failOplogCheckReadFailpoint() error {
+	fp, ok := failpoint.DefaultManager.Get(failpoint.FailOplogCheckRead)
+	if !ok || !fp.FireOnce() {
+		return nil
+	}
+
+	return mongo.CommandError{
+		Code: cappedPositionLostErrCode,
+		Name: "CappedPositionLost",
+		Message: "CollectionScan died due to position in capped collection being deleted" +
+			" (injected by the FailOplogCheckRead failpoint)",
+	}
 }
 
 func oplogDocumentValidator(in []byte) error {

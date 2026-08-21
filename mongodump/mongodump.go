@@ -472,13 +472,13 @@ func (dump *MongoDump) Dump() (err error) {
 		// we started still exist, so we know we haven't lost data)
 		log.Logvf(log.DebugLow, "checking if oplog entry %v still exists", dump.oplogStart)
 		exists, err := dump.checkOplogTimestampExists(dump.oplogStart)
+		if err != nil {
+			return fmt.Errorf("unable to check oplog for overflow: %w", err)
+		}
 		if !exists {
 			return fmt.Errorf(
 				"oplog overflow: mongodump was unable to capture all new oplog entries during execution",
 			)
-		}
-		if err != nil {
-			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
 		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 
@@ -494,13 +494,13 @@ func (dump *MongoDump) Dump() (err error) {
 		// we copy it.
 		log.Logvf(log.DebugLow, "checking again if oplog entry %v still exists", dump.oplogStart)
 		exists, err = dump.checkOplogTimestampExists(dump.oplogStart)
+		if err != nil {
+			return fmt.Errorf("unable to check oplog for overflow: %w", err)
+		}
 		if !exists {
 			return fmt.Errorf(
 				"oplog overflow: mongodump was unable to capture all new oplog entries during execution",
 			)
-		}
-		if err != nil {
-			return fmt.Errorf("unable to check oplog for overflow: %v", err)
 		}
 		log.Logvf(log.DebugHigh, "oplog entry %v still exists", dump.oplogStart)
 	}
