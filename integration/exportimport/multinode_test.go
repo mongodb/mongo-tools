@@ -39,6 +39,8 @@ func (s *ExportImportSuite) TestImportToSecondaryFails() {
 	s.Require().NoError(err, "can read the export file")
 	s.Require().NotEmpty(contents, "the export from the primary is not empty")
 
+	s.Require().NoError(coll.Drop(s.Context()), "can drop the collection before importing it")
+
 	args := append(s.DirectToolArgs(s.SecondaryHost()),
 		"--db", dbName,
 		"--collection", collName,
@@ -58,4 +60,8 @@ func (s *ExportImportSuite) TestImportToSecondaryFails() {
 		err.Error(),
 		"mongoimport fails because the secondary will not take the writes",
 	)
+
+	count, err := coll.CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err, "can count the documents in the collection")
+	s.Assert().Zero(count, "the rejected import leaves the collection empty")
 }
