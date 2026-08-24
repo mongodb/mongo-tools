@@ -43,7 +43,7 @@ func (dump *MongoDump) dumpMetadata(
 	meta := Metadata{
 		// We have to initialize Indexes to an empty slice, not nil, so that an empty
 		// array is marshaled into json instead of null. That is, {indexes:[]} is okay
-		// but {indexes:null} will cause assertions in our legacy C++ mongotools
+		// but {indexes:null} is not.
 		Indexes: []bson.D{},
 	}
 
