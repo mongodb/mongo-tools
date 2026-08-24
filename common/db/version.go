@@ -10,6 +10,11 @@ import (
 
 type Version [3]int
 
+// MinimumSupportedServerVersion is the oldest MongoDB Server release these tools
+// work against. The code paths for older servers have been removed, so running
+// against one risks silently producing wrong results.
+var MinimumSupportedServerVersion = Version{4, 2, 0}
+
 func (v1 Version) Cmp(v2 Version) int {
 	for i := range v1 {
 		if v1[i] < v2[i] {
@@ -55,6 +60,12 @@ func (v Version) String() string {
 
 func (v Version) IsEmpty() bool {
 	return v == Version{}
+}
+
+// IsSupportedServer indicates whether the version is new enough for these tools
+// to work against.
+func (v Version) IsSupportedServer() bool {
+	return v.GTE(MinimumSupportedServerVersion)
 }
 
 // SupportsRawData indicates whether the version supports the rawData CRUD API.
