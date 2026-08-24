@@ -82,9 +82,6 @@ type MongoRestore struct {
 	includer *ns.Matcher
 	excluder *ns.Matcher
 
-	// indexes belonging to dbs and collections
-	dbCollectionIndexes map[string]collectionIndexes
-
 	indexCatalog *idx.IndexCatalog
 
 	archive *archive.Reader
@@ -100,8 +97,6 @@ type MongoRestore struct {
 	dumpServerVersion db.Version
 	serverVersion     db.Version
 }
-
-type collectionIndexes map[string][]*idx.IndexDocument
 
 // New initializes an instance of MongoRestore according to the provided options.
 func New(opts Options) (*MongoRestore, error) {
@@ -596,8 +591,7 @@ func (restore *MongoRestore) Restore() Result {
 			if intent == nil {
 				return Result{Err: fmt.Errorf("no intent for collection in archive: %#q", ns)}
 			}
-			if intent.IsSystemIndexes() ||
-				intent.IsUsers() ||
+			if intent.IsUsers() ||
 				intent.IsRoles() ||
 				intent.IsAuthVersion() {
 				log.Logvf(log.DebugLow, "special collection %#q found", ns)
@@ -631,11 +625,6 @@ func (restore *MongoRestore) Restore() Result {
 				err,
 			)}
 		}
-	}
-
-	err = restore.LoadIndexesFromBSON()
-	if err != nil {
-		return Result{Err: fmt.Errorf("restore error: %v", err)}
 	}
 
 	err = restore.PopulateMetadataForIntents()

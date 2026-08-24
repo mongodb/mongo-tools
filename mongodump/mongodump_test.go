@@ -84,10 +84,9 @@ func simpleMongoDumpInstance() (*MongoDump, error) {
 	}, nil
 }
 
-// returns the number of .bson files in a directory
-// excluding system.indexes.bson.
-func countNonIndexBSONFiles(dir string) (int, error) {
-	files, err := listNonIndexBSONFiles(dir)
+// returns the number of .bson files in a directory.
+func countBSONFiles(dir string) (int, error) {
+	files, err := listBSONFiles(dir)
 	if err != nil {
 		return 0, err
 	}
@@ -104,18 +103,8 @@ func assertBSONEqual(t *testing.T, expected, actual any) {
 	assert.Equal(t, string(expectedJSON), string(actualJSON))
 }
 
-func listNonIndexBSONFiles(dir string) ([]string, error) {
-	var files []string
-	matchingFiles, err := getMatchingFiles(dir, ".*\\.bson")
-	if err != nil {
-		return nil, err
-	}
-	for _, fileName := range matchingFiles {
-		if fileName != "system.indexes.bson" {
-			files = append(files, fileName)
-		}
-	}
-	return files, nil
+func listBSONFiles(dir string) ([]string, error) {
+	return getMatchingFiles(dir, ".*\\.bson")
 }
 
 // returns count of metadata files.
@@ -201,7 +190,7 @@ func readBSONIntoDatabase(t *testing.T, dir, restoreDBName string) error {
 
 	for _, fileInfo := range fileInfos {
 		fileName := fileInfo.Name()
-		if !strings.HasSuffix(fileName, ".bson") || fileName == "system.indexes.bson" {
+		if !strings.HasSuffix(fileName, ".bson") {
 			continue
 		}
 
@@ -550,7 +539,7 @@ func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
 	session, err := testutil.GetBareSession()
 	So(err, ShouldBeNil)
 
-	countColls, err := countNonIndexBSONFiles(dumpDBDir)
+	countColls, err := countBSONFiles(dumpDBDir)
 	So(err, ShouldBeNil)
 	So(countColls, ShouldEqual, 1)
 
@@ -753,7 +742,7 @@ func TestMongoDumpBSON(t *testing.T) {
 							So(fileDirExists(dumpDir), ShouldBeTrue)
 							So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
-							countColls, err := countNonIndexBSONFiles(dumpDBDir)
+							countColls, err := countBSONFiles(dumpDBDir)
 							So(err, ShouldBeNil)
 							So(countColls, ShouldEqual, len(testCollectionNames))
 
@@ -1099,7 +1088,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 			So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
 			Convey("having one metadata file per collection", func() {
-				c1, err := countNonIndexBSONFiles(dumpDBDir)
+				c1, err := countBSONFiles(dumpDBDir)
 				So(err, ShouldBeNil)
 
 				c2, err := countMetaDataFiles(dumpDBDir)
@@ -1547,7 +1536,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 			So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
 			Convey("having one metadata file per read-only view", func() {
-				c1, err := countNonIndexBSONFiles(dumpDBDir)
+				c1, err := countBSONFiles(dumpDBDir)
 				So(err, ShouldBeNil)
 
 				c2, err := countMetaDataFiles(dumpDBDir)
