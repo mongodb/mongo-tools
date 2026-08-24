@@ -136,17 +136,13 @@ func (it *Intent) IsAuthVersion() bool {
 	return false
 }
 
-func (it *Intent) IsSystemIndexes() bool {
-	return it.C == "system.indexes"
-}
-
 func (it *Intent) IsSystemProfile() bool {
 	return it.C == "system.profile"
 }
 
 func (it *Intent) IsSpecialCollection() bool {
 	// can't see oplog as special collection because when restore from archive it need to be a RegularCollectionReceiver
-	return it.IsSystemIndexes() || it.IsUsers() || it.IsRoles() || it.IsAuthVersion() ||
+	return it.IsUsers() || it.IsRoles() || it.IsAuthVersion() ||
 		it.IsSystemProfile()
 }
 
@@ -210,7 +206,6 @@ type Manager struct {
 	usersIntent   *Intent
 	rolesIntent   *Intent
 	versionIntent *Intent
-	indexIntents  map[string]*Intent
 
 	// Tells the manager if it should choose a single oplog when multiple are provided.
 	smartPickOplog bool
@@ -228,7 +223,6 @@ func NewIntentManager() *Manager {
 		intents:                 map[string]*Intent{},
 		specialIntents:          map[string]*Intent{},
 		intentsByDiscoveryOrder: []*Intent{},
-		indexIntents:            map[string]*Intent{},
 		smartPickOplog:          false,
 		oplogConflict:           false,
 		destinations:            map[string][]string{},
@@ -347,18 +341,17 @@ func (mgr *Manager) PutWithNamespace(ns string, intent *Intent) {
 	if intent == nil {
 		panic("cannot insert nil *Intent into IntentManager")
 	}
-	db, _ := util.SplitNamespace(ns)
-
 	// bucket special-case collections
 	if intent.IsOplog() {
 		mgr.PutOplogIntent(intent, intent.Namespace())
 		return
 	}
-	if intent.IsSystemIndexes() {
-		if intent.BSONFile != nil {
-			mgr.indexIntents[db] = intent
-			mgr.specialIntents[ns] = intent
-		}
+	// system.indexes was only written by dumps from servers older than 3.0, which
+	// are no longer supported. Dropping the intent keeps it from being restored as
+	// an ordinary collection.
+	if intent.C == "system.indexes" {
+		log.Logvf(log.Always,
+			"not restoring %#q; restoring dumps from servers older than 4.2 is not supported", ns)
 		return
 	}
 	if intent.IsUsers() {
@@ -407,9 +400,6 @@ func (mgr *Manager) GetDestinationConflicts() (errs []DestinationConflictError) 
 func (mgr *Manager) Intents() []*Intent {
 	allIntents := []*Intent{}
 	for _, intent := range mgr.intents {
-		allIntents = append(allIntents, intent)
-	}
-	for _, intent := range mgr.indexIntents {
 		allIntents = append(allIntents, intent)
 	}
 	if mgr.oplogIntent != nil {
@@ -477,20 +467,6 @@ func (mgr *Manager) Finish(intent *Intent) {
 // a very different way from other collections.
 func (mgr *Manager) Oplog() *Intent {
 	return mgr.oplogIntent
-}
-
-// SystemIndexes returns the system.indexes bson for a database.
-func (mgr *Manager) SystemIndexes(dbName string) *Intent {
-	return mgr.indexIntents[dbName]
-}
-
-// SystemIndexes returns the databases for which there are system.indexes.
-func (mgr *Manager) SystemIndexDBs() []string {
-	databases := []string{}
-	for dbname := range mgr.indexIntents {
-		databases = append(databases, dbname)
-	}
-	return databases
 }
 
 // Users returns the intent of the users collection to restore, a special case.

@@ -353,65 +353,6 @@ func (s *DumpRestoreSuite) indexSpecsByCollection(testDB *mongo.Database) map[st
 	return specs
 }
 
-// TestLegacySystemIndexes restores a dump in the pre-2.6 layout, where index
-// specs live in a system.indexes.bson file instead of a per-collection metadata
-// file. mongorestore falls back to that file when a database directory has no
-// metadata, and converts the legacy v1 specs it finds there. Unlike the other
-// cases here, this dump has to be built by hand, because no supported server can
-// produce that layout or a v1 secondary index.
-func (s *DumpRestoreSuite) TestLegacySystemIndexes() {
-	const collName = "foo"
-
-	testDB := s.database("legacy_system_indexes")
-	_, dbDir := s.newDumpDir(testDB.Name())
-
-	s.writeBSONFile(
-		filepath.Join(dbDir, collName+".bson"),
-		bson.D{{"_id", 1}, {"a", 2.0}},
-	)
-	// The namespaces deliberately name a different database than the restore
-	// target, because mongorestore has to take the target from --db rather than
-	// from the spec.
-	s.writeBSONFile(
-		filepath.Join(dbDir, "system.indexes.bson"),
-		bson.D{
-			{"ns", "test." + collName},
-			{"key", bson.D{{"_id", 1}}},
-			{"name", "_id_"},
-			{"v", 1},
-		},
-		bson.D{
-			{"ns", "test." + collName},
-			{"key", bson.D{{"a", 1.0}}},
-			{"name", "a_1"},
-			{"v", 1},
-		},
-	)
-
-	result := s.runRestore(
-		mongorestore.DBOption, testDB.Name(),
-		mongorestore.DirectoryOption, dbDir,
-	)
-	s.Require().NoError(result.Err, "can restore a dump that uses system.indexes")
-
-	coll := testDB.Collection(collName)
-	s.Assert().EqualValues(1, s.docCount(coll), "the document is restored")
-	s.Assert().ElementsMatch(
-		[]string{"_id_", "a_1"},
-		s.indexNames(coll),
-		"both legacy index specs are created",
-	)
-
-	for _, spec := range s.indexSpecs(coll) {
-		s.Assert().EqualValues(
-			2,
-			optionValue(spec, "v"),
-			"the legacy v1 index %#q is converted to the current version",
-			optionValue(spec, "name"),
-		)
-	}
-}
-
 // TestOrderedPartialIndex round-trips an index whose partialFilterExpression has
 // many fields. The expression is a document, so its field order has to survive
 // the trip through the dump's metadata file: reordering it would produce an index
