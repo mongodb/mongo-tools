@@ -78,9 +78,20 @@ Key suite methods:
 
 ## Code Conventions
 
-- **Callers before callees**: test functions before helpers, helpers before the helpers they call
+- **Callers before callees**: test functions before helpers, helpers before the helpers they call. A helper used by one test goes immediately below that test, not at the bottom of the file. A helper that creates or sets up collections for several tests goes in `suite_test.go` with the existing create-collection helpers, not in the test file.
 - **No comments that describe what code is doing** — use named functions, subtests, and descriptive variable names instead. Comments explaining *why* are fine.
 - Use `any` not `interface{}`
+- Use `bson.D` — not `bson.M` — for documents, filters, and commands, matching the rest of
+  the codebase. Build `bson.D`/`bson.E` literals unkeyed.
+- Use `for i := range n`, not `for i := 0; i < n; i++`.
+- Use a set for membership checks, rather than scanning a slice. Sets come from
+  `mapset "github.com/deckarep/golang-set/v2"` (aliased on import, as the rest of the codebase
+  does) — not a `map[string]struct{}`:
+
+    ```go
+    var systemDBs = mapset.NewSet("admin", "local", "config")
+    if systemDBs.Contains(name) { ... }
+    ```
 - Always include assertion messages: `assert.Equal(t, want, got, "description of what is being tested")`
 - Reset `map[string]any{}` before each `Decode` call — stale keys from previous decodes persist otherwise
 - Table-driven tests: define a `type fooCase struct` and loop over `[]fooCase`
@@ -88,6 +99,73 @@ Key suite methods:
     - `require.ErrorIs(t, err, something)`
     - `require.ErrorAs(t, err, &var)`
     - `require.ErrorContains(t, err, "substring")`
+
+## Naming and Scope
+
+Reviewers raise these on nearly every conversion PR. Get them right the first time.
+
+- **Declare a constant where it is used.** A `const` used inside exactly one function belongs
+  inside that function. Package-level constants are for values several functions share.
+- **Don't name a constant for a value that is arbitrary.** If the test just needs "some
+  documents", write the number inline or use a plain variable; `const fooDocCount = 7` invites
+  a reviewer to hunt for the significance of 7 and find none. Constants are worth naming when
+  the value is load-bearing (a size limit, a timeout the tool cares about).
+- **An assertion message describes that one assertion**, not the test around it. If the
+  assertion checks that a spec has a name, say that — not that indexes round-trip.
+- **A helper's name has to match what it does.** `assertFooRestored` that only counts
+  documents is misnamed, and a new `restoreFromArgs` sitting next to an existing
+  `getRestoreWithArgs` that does something different will confuse everyone. Check for an
+  existing helper with a similar name before adding one.
+- **One word, one meaning per file.** If "fixture" means a struct with attached state in one
+  place, don't use it for a function that only inserts documents in another.
+- **Arbitrary payload data should be boring.** Filler strings like `"drop"` or `"shard"` read
+  as meaningful and send reviewers looking for behavior that isn't there. Use obviously inert
+  values.
+- **Prefer a top-level test to a subtest that gains nothing.** Use `s.Run`/`t.Run` when the
+  cases share setup or form a table, not to group otherwise independent tests.
+
+## Don't Talk About the JS Test in the Go Code
+
+Reviewers have asked for this repeatedly. A comment saying "this converts `foo.js`", "the JS
+test's intent was...", or otherwise narrating the provenance of a test is not useful to anyone
+reading the Go code later. Delete them.
+
+Provenance belongs in the **commit message**, which is also the PR description: name the JS
+files the commit converts and deletes there.
+
+The one comment worth keeping in the code is a **coverage note**: when the Go test deliberately
+does *not* cover something the JS test did, say so where the test is, because that is a fact
+about the current test rather than a fact about history.
+
+## Fidelity to the Original
+
+The reviewer reads the deleted JS alongside the new Go, so any divergence gets noticed.
+
+- **Don't add behavior the JS test didn't have.** An extra assertion the original never made
+  can fail for reasons that have nothing to do with what is being tested. If you think a new
+  assertion is worth having, be able to say why it should be able to fail.
+- **Don't quietly drop behavior either.** If the JS test runs the tool ten times, passes a `v`
+  field, or dumps from one cluster and restores to another, either reproduce it or call it out
+  explicitly in the PR description as coverage not carried over. Both of those have been caught
+  in review.
+- **Match the target package's style, not the JS file's structure.** A test that runs dump and
+  restore goes in `integration/dumprestore` and looks like the tests already there, even if the
+  JS version lived somewhere else.
+- **Flag behavior we no longer support.** Some JS tests cover things like restoring from a v2.6
+  dump, which the tools no longer do. Convert it if that is what was asked for, but tell the
+  user, so they can decide whether to delete the test and the code behind it instead.
+
+## Keep PRs Reviewable
+
+A reviewer has told us directly that these PRs are hard to review, mostly because of size — one
+was nearly 2,000 lines. Reviewing a conversion means reading the deleted JS carefully *and* the
+new Go carefully.
+
+- Target 200-400 lines per PR, as `AGENTS.md` says. Split by test file or by theme rather than
+  converting a whole directory at once.
+- Write plain, unremarkable Go. Code that is "correct but nothing a human would write" costs
+  review time even when it works.
+- Avoid ornate wording in comments and test names. Plain description beats clever phrasing.
 
 ## Round-Trip Tests (export+import or dump+restore)
 
@@ -160,13 +238,16 @@ Always run the test locally before committing.
 5. Provide the user with a detailed explanation of the work. This should include:
     * What the JS test was testing
     * How the Go test tests the same thing
+    * Anything the JS test covered that the Go test does not
 6. Run a sub-agent that does not share the current context. Ask that agent to provide a review of the PR. This review should ensure the following things:
-    * The new Go test covers the same things that the JS test does.
-    * The new Go test follows all of the guidelines for Go tests in this skill.
+    * The new Go test covers the same things that the JS test does, and adds nothing the JS test did not do.
+    * The new Go test follows all of the guidelines for Go tests in this skill, particularly the Naming and Scope rules and the ban on comments referring to the JS test.
     * The new Go test is generally similar to other Go tests that use `testify`.
+    * Every assertion can actually fail. A test that would pass against a broken tool is worse than no test.
 7. Share the review with the user and ask if they'd like you to make further changes based on the review
 8. Prompt the user before deleting the JS file
 9. Delete the JS file
+10. Check the size of the diff. If it is much over 400 lines, propose splitting it before asking for review.
 
 ## Committing
 
