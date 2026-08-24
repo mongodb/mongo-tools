@@ -60,7 +60,8 @@ func NewMeta(op db.Oplog) (Meta, error) {
 		return Meta{}, nil
 	}
 
-	// Default prevOpTime to empty to "upgrade" 4.0 transactions without it.
+	// Default prevOpTime to empty so that an entry lacking the field is not
+	// treated as part of a multi-op transaction. See IsMultiOp.
 	m := Meta{
 		id:         ID{lsid: string(op.LSID), txnNumber: *op.TxnNumber},
 		prevOpTime: emptyPrev,
