@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type DumpRestoreSuite struct {
@@ -213,4 +214,172 @@ func (s *DumpRestoreSuite) setupTimeseriesWithMixedSchema(dbName string, collNam
 
 	_, err = bucketColl.InsertOne(s.Context(), bucketMap)
 	s.Require().NoError(err, "insert bucket doc")
+}
+
+// database returns a handle to a database named for the test that asked for it.
+// Each test names its own database rather than deriving one from the test name,
+// because the suite's DBName truncates to 63 bytes, which leaves too few
+// distinguishing characters for these deeply nested subtests.
+func (s *DumpRestoreSuite) database(name string) *mongo.Database {
+	session, err := testutil.GetBareSession()
+	s.Require().NoError(err, "can connect to the server")
+
+	return session.Database("dumprestore_" + name)
+}
+
+func (s *DumpRestoreSuite) createCollection(
+	testDB *mongo.Database,
+	collName string,
+	opts *options.CreateCollectionOptionsBuilder,
+) *mongo.Collection {
+	err := testDB.CreateCollection(s.Context(), collName, opts)
+	s.Require().NoError(err, "can create the collection %#q", collName)
+
+	return testDB.Collection(collName)
+}
+
+// newDumpDir creates a dump directory holding one database directory, for tests
+// that need a dump mongodump would not produce. It returns the dump root and the
+// database directory inside it.
+func (s *DumpRestoreSuite) newDumpDir(dbName string) (string, string) {
+	root := s.T().TempDir()
+	dbDir := filepath.Join(root, dbName)
+	s.Require().NoError(os.MkdirAll(dbDir, 0755), "can create the dump directory")
+
+	return root, dbDir
+}
+
+// writeBSONFile writes documents in the concatenated-BSON format that mongodump
+// produces for a collection.
+func (s *DumpRestoreSuite) writeBSONFile(path string, docs ...bson.D) {
+	var buf []byte
+	for _, doc := range docs {
+		marshaled, err := bson.Marshal(doc)
+		s.Require().NoError(err, "can marshal a document into the bson file")
+		buf = append(buf, marshaled...)
+	}
+
+	s.Require().NoError(os.WriteFile(path, buf, 0644), "can write the bson file %#q", path)
+}
+
+func (s *DumpRestoreSuite) runRestore(args ...string) mongorestore.Result {
+	restore, err := getRestoreWithArgs(args...)
+	s.Require().NoError(err, "can build mongorestore")
+	defer restore.Close()
+
+	return restore.Restore()
+}
+
+// dropDB drops the database and verifies that it is empty, so that a restore
+// which silently does nothing cannot pass by leaving the original data in place.
+func (s *DumpRestoreSuite) dropDB(testDB *mongo.Database) {
+	s.Require().NoError(
+		testDB.Drop(s.Context()),
+		"can drop the database %#q",
+		testDB.Name(),
+	)
+	s.Require().Empty(
+		s.collectionNames(testDB),
+		"dropping %#q removes all of its collections",
+		testDB.Name(),
+	)
+}
+
+func (s *DumpRestoreSuite) dropCollection(coll *mongo.Collection) {
+	s.Require().NoError(coll.Drop(s.Context()), "can drop the collection %#q", coll.Name())
+	s.Require().NotContains(
+		s.collectionNames(coll.Database()),
+		coll.Name(),
+		"dropping %#q removes it",
+		coll.Name(),
+	)
+}
+
+func (s *DumpRestoreSuite) collectionNames(testDB *mongo.Database) []string {
+	names, err := testDB.ListCollectionNames(s.Context(), bson.D{})
+	s.Require().NoError(err, "can list the collections in %#q", testDB.Name())
+
+	return names
+}
+
+func (s *DumpRestoreSuite) docCount(coll *mongo.Collection) int64 {
+	count, err := coll.CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err, "can count documents in %#q", coll.Name())
+
+	return count
+}
+
+func (s *DumpRestoreSuite) indexNames(coll *mongo.Collection) []string {
+	specs, err := coll.Indexes().ListSpecifications(s.Context())
+	s.Require().NoError(err, "can list indexes on %#q", coll.Name())
+
+	names := make([]string, 0, len(specs))
+	for _, spec := range specs {
+		names = append(names, spec.Name)
+	}
+
+	return names
+}
+
+// indexKey returns one index's key document as a bson.D, so that the value
+// types and field order are visible to assertions.
+func (s *DumpRestoreSuite) indexKey(coll *mongo.Collection, indexName string) bson.D {
+	cursor, err := coll.Indexes().List(s.Context())
+	s.Require().NoError(err, "can list indexes on %#q", coll.Name())
+
+	var indexes []struct {
+		Name string `bson:"name"`
+		Key  bson.D `bson:"key"`
+	}
+	s.Require().NoError(cursor.All(s.Context(), &indexes), "can read the index specs")
+
+	for _, index := range indexes {
+		if index.Name == indexName {
+			return index.Key
+		}
+	}
+
+	s.Require().Failf(
+		"index not found",
+		"the index %#q exists on %#q",
+		indexName,
+		coll.Name(),
+	)
+
+	return nil
+}
+
+// collectionOptions returns the collection's creation options, which is where
+// the server reports capped settings, validators, and collations.
+func (s *DumpRestoreSuite) collectionOptions(testDB *mongo.Database, collName string) bson.D {
+	cursor, err := testDB.ListCollections(s.Context(), bson.D{{"name", collName}})
+	s.Require().NoError(err, "can list collections")
+
+	var infos []struct {
+		Options bson.D `bson:"options"`
+	}
+	s.Require().NoError(cursor.All(s.Context(), &infos), "can read the collection info")
+	s.Require().Len(infos, 1, "the collection %#q exists", collName)
+
+	return infos[0].Options
+}
+
+// collectionOption returns one field of a collection's options.
+func (s *DumpRestoreSuite) collectionOption(
+	testDB *mongo.Database,
+	collName string,
+	key string,
+) any {
+	return optionValue(s.collectionOptions(testDB, collName), key)
+}
+
+// optionValue returns one field of an options document, or nil when the server
+// does not report that field at all.
+func optionValue(options bson.D, key string) any {
+	value, err := bsonutil.FindValueByKey(key, &options)
+	if err != nil {
+		return nil
+	}
+
+	return value
 }
