@@ -27,6 +27,7 @@ import (
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/youmark/pkcs8"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -124,8 +125,28 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 		return nil, fmt.Errorf("failed to connect to %s: %v", opts.ParsedConnString(), err)
 	}
 
-	// create the provider
-	return &SessionProvider{client: client}, nil
+	sp := &SessionProvider{client: client}
+
+	uri := util.SanitizeURI(opts.ConnectionString)
+
+	version, err := sp.ServerVersionArray()
+	if err != nil {
+		sp.Close()
+		return nil, fmt.Errorf(
+			"could not determine the version of the server at %s: %w",
+			uri,
+			err,
+		)
+	}
+	if !version.IsSupportedServer() {
+		sp.Close()
+		return nil, fmt.Errorf(
+			"the server at %s reports version %s, but these tools require %s or newer",
+			uri, version, MinimumSupportedServerVersion,
+		)
+	}
+
+	return sp, nil
 }
 
 // addClientCertFromFile adds a client certificate to the configuration given a path to the
