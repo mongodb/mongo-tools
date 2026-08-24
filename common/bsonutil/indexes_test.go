@@ -7,6 +7,7 @@
 package bsonutil
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -59,75 +60,49 @@ func TestIsIndexKeysEqual(t *testing.T) {
 func TestConvertLegacyIndexKeys(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	index1Key := bson.D{
-		{"foo", int32(0)},
-		{"int32field", int32(2)},
-		{"int64field", int64(-3)},
-		{"float64field", float64(0)},
-		{"float64field", float64(-1)},
-		{"float64field", float64(-1.1)},
-		{"float64field", float64(1e-9)},
-		{"float64field", float64(-1e-9)},
-		{"float64field", float64(1e-10)},
-		{"float64field", float64(-1e-10)},
+	type testCase struct {
+		input           any
+		expect          any
+		expectConverted bool
 	}
 
-	ConvertLegacyIndexKeys(index1Key, "test")
-
-	assert.Equal(
-		t,
-		bson.D{
-			{"foo", int32(1)},
-			{"int32field", int32(2)},
-			{"int64field", int64(-3)},
-			{"float64field", int32(1)},
-			{"float64field", float64(-1)},
-			{"float64field", float64(-1.1)},
-			{"float64field", float64(1e-9)},
-			{"float64field", float64(-1e-9)},
-			{"float64field", int32(1)},
-			{"float64field", int32(-1)},
-		},
-		index1Key,
-	)
-
-	decimalNOne, _ := bson.ParseDecimal128("-1")
+	decimalNegOne, _ := bson.ParseDecimal128("-1")
 	decimalZero, _ := bson.ParseDecimal128("0")
 	decimalOne, _ := bson.ParseDecimal128("1")
 	decimalZero1, _ := bson.ParseDecimal128("0.00")
-	index2Key := bson.D{
-		{"key1", decimalNOne},
-		{"key2", decimalZero},
-		{"key3", decimalOne},
-		{"key4", decimalZero1},
+
+	tests := []testCase{
+		{int32(0), int32(1), true},
+		{int32(2), int32(2), false},
+		{int64(-3), int64(-3), false},
+		{float64(0), int32(1), true},
+		{float64(-1), float64(-1), false},
+		{float64(-1.1), float64(-1.1), false},
+		{float64(1e-9), float64(1e-9), false},
+		{float64(-1e-9), float64(-1e-9), false},
+		{float64(1e-10), int32(1), true},
+		{float64(-1e-10), int32(-1), true},
+		{decimalNegOne, decimalNegOne, false},
+		{decimalZero, int32(1), true},
+		{decimalOne, decimalOne, false},
+		{decimalZero1, int32(1), true},
+		{"", int32(1), true},
+		{"2dsphere", "2dsphere", false},
+		{bson.Binary{}, int32(1), true},
 	}
 
-	ConvertLegacyIndexKeys(index2Key, "test")
-
-	assert.Equal(
-		t,
-		bson.D{
-			{"key1", decimalNOne},
-			{"key2", int32(1)},
-			{"key3", decimalOne},
-			{"key4", int32(1)},
-		},
-		index2Key,
-	)
-
-	index3Key := bson.D{{"key1", ""}, {"key2", "2dsphere"}}
-	ConvertLegacyIndexKeys(index3Key, "test")
-	assert.Equal(
-		t,
-		bson.D{{"key1", int32(1)}, {"key2", "2dsphere"}},
-		index3Key,
-	)
-
-	index4Key := bson.D{{"key1", bson.E{"invalid", 1}}, {"key2", bson.Binary{}}}
-	ConvertLegacyIndexKeys(index4Key, "test")
-	assert.Equal(
-		t,
-		bson.D{{"key1", int32(1)}, {"key2", int32(1)}},
-		index4Key,
-	)
+	for _, test := range tests {
+		t.Run(
+			fmt.Sprintf("%T(%v)", test.input, test.input),
+			func(t *testing.T) {
+				got, converted := ConvertLegacyIndexKeyValue(test.input)
+				assert.Equal(t, test.expect, got, "got expected value back")
+				if test.expectConverted {
+					assert.True(t, converted, "value was converted")
+				} else {
+					assert.False(t, converted, "value was not converted")
+				}
+			},
+		)
+	}
 }

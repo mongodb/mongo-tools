@@ -71,7 +71,6 @@ const (
 	DryRunOption                   = "--dryRun"
 	WriteConcernOption             = "--writeConcern"
 	NoIndexRestoreOption           = "--noIndexRestore"
-	ConvertLegacyIndexesOption     = "--convertLegacyIndexes"
 	NoOptionsRestoreOption         = "--noOptionsRestore"
 	KeepIndexVersionOption         = "--keepIndexVersion"
 	MaintainInsertionOrderOption   = "--maintainInsertionOrder"
@@ -83,7 +82,6 @@ const (
 	TempUsersCollOption            = "--tempUsersColl"
 	TempRolesCollOption            = "--tempRolesColl"
 	BulkBufferSizeOption           = "--batchSize"
-	FixDottedHashedIndexesOption   = "--fixDottedHashIndex"
 )
 
 // OutputOptions defines the set of options for restoring dump data.
@@ -94,7 +92,6 @@ type OutputOptions struct {
 	// By default mongorestore uses a write concern of 'majority'.
 	WriteConcern             string `long:"writeConcern" value-name:"<write-concern>" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
 	NoIndexRestore           bool   `long:"noIndexRestore" description:"don't restore indexes"`
-	ConvertLegacyIndexes     bool   `long:"convertLegacyIndexes" description:"Removes invalid index options and rewrites legacy option values (e.g. true becomes 1)."`
 	NoOptionsRestore         bool   `long:"noOptionsRestore" description:"don't restore collection options"`
 	KeepIndexVersion         bool   `long:"keepIndexVersion" description:"don't update index version"`
 	MaintainInsertionOrder   bool   `long:"maintainInsertionOrder" description:"restore the documents in the order of their appearance in the input source. By default the insertions will be performed in an arbitrary order. Setting this flag also enables the behavior of --stopOnError and restricts NumInsertionWorkersPerCollection to 1."`
@@ -106,7 +103,6 @@ type OutputOptions struct {
 	TempUsersColl            string `long:"tempUsersColl" default:"tempusers" hidden:"true"`
 	TempRolesColl            string `long:"tempRolesColl" default:"temproles" hidden:"true"`
 	BulkBufferSize           int    `long:"batchSize" default:"1000" hidden:"true"`
-	FixDottedHashedIndexes   bool   `long:"fixDottedHashIndex" description:"when enabled, all the hashed indexes on dotted fields will be created as single field ascending indexes on the destination"`
 }
 
 // Name returns a human-readable group name for output options.

@@ -175,12 +175,6 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 		}
 
 		log.Logvf(log.Always, "restoring indexes for collection %#q from metadata", namespaceString)
-		if restore.OutputOptions.ConvertLegacyIndexes {
-			indexes = restore.convertLegacyIndexes(indexes, namespaceString)
-		}
-		if restore.OutputOptions.FixDottedHashedIndexes {
-			fixDottedHashedIndexes(indexes)
-		}
 		for _, index := range indexes {
 			// A v:1 index dumped from a 9.0+ server carries a redundant simple collation that the
 			// server refuses to create alongside v:1; strip it before building the index.
@@ -514,39 +508,6 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	return result
 }
 
-func (restore *MongoRestore) convertLegacyIndexes(
-	indexes []*idx.IndexDocument,
-	ns string,
-) []*idx.IndexDocument {
-	var indexKeys []bson.D
-	var indexesConverted []*idx.IndexDocument
-	for _, index := range indexes {
-		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
-
-		foundIdenticalIndex := false
-		for _, keys := range indexKeys {
-			if bsonutil.IsIndexKeysEqual(keys, index.Key) {
-				foundIdenticalIndex = true
-				break
-			}
-		}
-
-		if foundIdenticalIndex {
-			log.Logvf(
-				log.Always,
-				"index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...",
-				index.Options["name"],
-			)
-			continue
-		}
-
-		indexKeys = append(indexKeys, index.Key)
-
-		indexesConverted = append(indexesConverted, index)
-	}
-	return indexesConverted
-}
-
 // stripSimpleCollation removes a redundant simple collation ({locale: "simple"}) from a v:1 index's
 // options. Starting in MongoDB 9.0, listIndexes reports collation: {locale: "simple"} for indexes
 // created without an explicit collation, whereas older servers omit it entirely. The server rejects
@@ -595,26 +556,6 @@ func isSimpleCollation(collation any) bool {
 		return c["locale"] == "simple"
 	}
 	return false
-}
-
-func fixDottedHashedIndexes(indexes []*idx.IndexDocument) {
-	for _, index := range indexes {
-		fixDottedHashedIndex(index)
-	}
-}
-
-// fixDottedHashedIndex fixes the issue introduced by a server bug where hashed index constraints are not
-// correctly enforced under all circumstance by changing the hashed index on the dotted field to an
-// ascending single field index.
-func fixDottedHashedIndex(index *idx.IndexDocument) {
-	indexFields := index.Key
-	for i, field := range indexFields {
-		fieldName := field.Key
-		if strings.Contains(fieldName, ".") && field.Value == "hashed" {
-			// Change the hashed index to single field index
-			indexFields[i].Value = int32(1)
-		}
-	}
 }
 
 // RestoreCollectionToDB pipes the given BSON data into the database.
