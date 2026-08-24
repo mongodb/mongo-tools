@@ -675,6 +675,15 @@ var invalidDumpOptionsCases = []invalidDumpOptionsCase{
 		wantErr: "cannot use --forceTableScan when specifying --query",
 	},
 	{
+		name: "dumpDbUsersAndRoles without a db",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = ""
+			md.ToolOptions.Collection = ""
+			md.OutputOptions.DumpDBUsersAndRoles = true
+		},
+		wantErr: "must specify a database when running with dumpDbUsersAndRoles",
+	},
+	{
 		name: "excludeCollection without a db",
 		setUp: func(md *MongoDump) {
 			md.ToolOptions.DB = ""
