@@ -7,6 +7,7 @@
 package db
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -115,7 +116,7 @@ func TestConfigureClientForSRV(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = configureClient(*toolOptions)
+	err = configureClientAndDisconnectAtEnd(t, *toolOptions)
 	require.NoError(t, err)
 }
 
@@ -387,7 +388,7 @@ func TestConfigureClientMultipleHosts(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = configureClient(*toolOptions)
+	err = configureClientAndDisconnectAtEnd(t, *toolOptions)
 	require.NoError(t, err)
 }
 
@@ -416,7 +417,7 @@ func TestConfigureClientAKS(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = configureClient(*toolOptions)
+	err = configureClientAndDisconnectAtEnd(t, *toolOptions)
 	require.NoError(t, err)
 	assert.Equal(t, "MONGODB-OIDC", toolOptions.Mechanism)
 }
@@ -444,6 +445,20 @@ func TestMisconfigureClientAKS(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = configureClient(*toolOptions)
+	err = configureClientAndDisconnectAtEnd(t, *toolOptions)
 	require.Error(t, err)
+}
+
+// configureClient starts background topology monitoring, so a client that is
+// never disconnected leaves goroutines resolving hostnames for the rest of the
+// package's test run.
+func configureClientAndDisconnectAtEnd(t *testing.T, opts options.ToolOptions) error {
+	client, err := configureClient(opts)
+	if client != nil {
+		t.Cleanup(func() {
+			require.NoError(t, client.Disconnect(context.Background()), "disconnect client")
+		})
+	}
+
+	return err
 }
