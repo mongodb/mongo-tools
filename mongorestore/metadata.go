@@ -164,16 +164,6 @@ func (restore *MongoRestore) CreateIndexes(
 		// update the namespace of the index before inserting
 		index.Options["ns"] = dbName + "." + collectionName
 
-		// check for length violations before building the command
-		if restore.serverVersion.LT(db.Version{4, 2, 0}) {
-			fullIndexName := fmt.Sprintf("%v.$%v", index.Options["ns"], index.Options["name"])
-			if len(fullIndexName) > 127 {
-				return fmt.Errorf(
-					"cannot restore index with namespace %#q: "+
-						"namespace is too long (max size is 127 bytes)", fullIndexName)
-			}
-		}
-
 		nameStr, isString := index.Options["name"].(string)
 		if !isString {
 			return fmt.Errorf(
@@ -201,6 +191,7 @@ func (restore *MongoRestore) CreateIndexes(
 	rawCommand := bson.D{
 		{"createIndexes", collectionName},
 		{"indexes", indexes},
+		{"ignoreUnknownIndexOptions", true},
 	}
 
 	log.Logvf(
@@ -208,10 +199,6 @@ func (restore *MongoRestore) CreateIndexes(
 		"\trun create Index command for indexes: %v",
 		strings.Join(indexNames, ", "),
 	)
-
-	if restore.serverVersion.GTE(db.Version{4, 1, 9}) {
-		rawCommand = append(rawCommand, bson.E{"ignoreUnknownIndexOptions", true})
-	}
 
 	ctx, cancel := restore.writeContext()
 	defer cancel()
@@ -278,26 +265,24 @@ func (restore *MongoRestore) CreateCollection(
 
 }
 
-// UpdateAutoIndexId updates {autoIndexId: false} to {autoIndexId: true} if the server version is
-// >= 4.0 and the database is not `local`.
+// UpdateAutoIndexId removes {autoIndexId: ...} on servers that reject it, and otherwise
+// updates {autoIndexId: false} to {autoIndexId: true} if the database is not `local`.
 func (restore *MongoRestore) UpdateAutoIndexId(options bson.D) bson.D {
-	if restore.serverVersion.GTE(db.Version{4, 0, 0}) {
-		for i, elem := range options {
-			if elem.Key == "autoIndexId" {
-				if restore.serverVersion.GTE(db.Version{8, 2, 0}) {
-					options = append(options[:i], options[i+1:]...)
-					log.Logvf(
-						log.Always,
-						"autoIndexId is not allowed in server versions >= 8.2.0. Removing.",
-					)
-				} else if elem.Value == false &&
-					restore.ToolOptions.DB != "local" {
-					options[i].Value = true
-					log.Logvf(
-						log.Always,
-						"{autoIndexId: false} is not allowed in server versions >= 4.0. Changing to {autoIndexId: true}.",
-					)
-				}
+	for i, elem := range options {
+		if elem.Key == "autoIndexId" {
+			if restore.serverVersion.GTE(db.Version{8, 2, 0}) {
+				options = append(options[:i], options[i+1:]...)
+				log.Logvf(
+					log.Always,
+					"autoIndexId is not allowed in server versions >= 8.2.0. Removing.",
+				)
+			} else if elem.Value == false &&
+				restore.ToolOptions.DB != "local" {
+				options[i].Value = true
+				log.Logvf(
+					log.Always,
+					"{autoIndexId: false} is not allowed. Changing to {autoIndexId: true}.",
+				)
 			}
 		}
 	}

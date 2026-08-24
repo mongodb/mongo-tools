@@ -52,10 +52,7 @@ func (ci *CollectionInfo) GetUUID() string {
 	return ""
 }
 
-// GetIndexes returns an iterator to thethe raw index info for a collection by
-// using the listIndexes command if available, or by falling back to querying
-// against system.indexes (pre-3.0 systems). nil is returned if the collection
-// does not exist.
+// GetIndexes returns an iterator to the raw index info for a collection.
 func GetIndexes(coll *mongo.Collection) (*mongo.Cursor, error) {
 	return coll.Indexes().List(context.Background())
 }

@@ -652,16 +652,9 @@ func (restore *MongoRestore) Restore() Result {
 	if restore.InputOptions.Archive != "" {
 		restore.manager.UsePrioritizer(restore.archive.Demux.NewPrioritizer(restore.manager))
 	} else if restore.OutputOptions.NumParallelCollections > 1 {
-		// 3.0+ has collection-level locking for writes, so it is most efficient to
-		// prioritize by collection size. Pre-3.0 we try to avoid inserting into collections
-		// in the same database simultaneously due to the database-level locking.
-		// Up to 4.2, foreground index builds take a database-level lock for the entire build,
-		// but this prioritizer is not used for index builds so we don't need to worry about that here.
-		if restore.serverVersion.GTE(db.Version{3, 0, 0}) {
-			restore.manager.Finalize(intents.LongestTaskFirst)
-		} else {
-			restore.manager.Finalize(intents.MultiDatabaseLTF)
-		}
+		// Writes take a collection-level lock, so it is most efficient to prioritize by
+		// collection size.
+		restore.manager.Finalize(intents.LongestTaskFirst)
 	} else {
 		// use legacy restoration order if we are single-threaded
 		restore.manager.Finalize(intents.Legacy)
