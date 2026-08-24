@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestVersionCmp(t *testing.T) {
@@ -105,5 +106,32 @@ func TestStrToVersion(t *testing.T) {
 		if got != c.v {
 			t.Errorf("StrToVersion(%v): got %v; wanted: %v, error: %v", c.str, got, c.v, err)
 		}
+	}
+}
+
+func TestIsSupportedServer(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	cases := []struct {
+		version   Version
+		supported bool
+	}{
+		{Version{}, false},
+		{Version{3, 6, 23}, false},
+		{Version{4, 0, 28}, false},
+		{Version{4, 1, 9}, false},
+		{Version{4, 2, 0}, true},
+		{Version{4, 4, 1}, true},
+		{Version{8, 0, 0}, true},
+	}
+
+	for _, c := range cases {
+		assert.Equal(
+			t,
+			c.supported,
+			c.version.IsSupportedServer(),
+			"IsSupportedServer() for %s",
+			c.version,
+		)
 	}
 }
