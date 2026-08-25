@@ -17,75 +17,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
-// var block and functions copied from testutil to avoid import cycle.
 var (
-	UserAdmin              = "uAdmin"
-	UserAdminPassword      = "password"
-	CreatedUserNameEnv     = "TOOLS_TESTING_AUTH_USERNAME"
-	CreatedUserPasswordEnv = "TOOLS_TESTING_AUTH_PASSWORD"
-	PKCS8Password          = "TOOLS_TESTING_PKCS8_PASSWORD"
-	kerberosUsername       = "drivers%40LDAPTEST.10GEN.CC"
-	kerberosConnection     = "ldaptest.10gen.cc:27017"
+	PKCS8Password      = "TOOLS_TESTING_PKCS8_PASSWORD"
+	kerberosUsername   = "drivers%40LDAPTEST.10GEN.CC"
+	kerberosConnection = "ldaptest.10gen.cc:27017"
 )
-
-func DBGetAuthOptions() options.Auth {
-	if testtype.HasTestType(testtype.AuthTestType) {
-		return options.Auth{
-			Username: os.Getenv(CreatedUserNameEnv),
-			Password: os.Getenv(CreatedUserPasswordEnv),
-			Source:   "admin",
-		}
-	}
-
-	return options.Auth{}
-}
-
-func DBGetSSLOptions() options.SSL {
-	if testtype.HasTestType(testtype.SSLTestType) {
-		return options.SSL{
-			UseSSL:        true,
-			SSLCAFile:     "../db/testdata/ca-ia.pem",
-			SSLPEMKeyFile: "../db/testdata/test-client.pem",
-		}
-	}
-
-	return options.SSL{
-		UseSSL: false,
-	}
-}
-
-func DBGetConnString() *options.URI {
-	if testtype.HasTestType(testtype.SSLTestType) {
-		return &options.URI{
-			ConnString: &connstring.ConnString{
-				SSLCaFileSet:                   true,
-				SSLCaFile:                      "../db/testdata/ca-ia.pem",
-				SSLClientCertificateKeyFileSet: true,
-				SSLClientCertificateKeyFile:    "../db/testdata/test-client.pem",
-			},
-		}
-	}
-
-	return &options.URI{}
-}
 
 func TestNewSessionProvider(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: testopts.DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -123,17 +66,7 @@ func TestConfigureClientForSRV(t *testing.T) {
 func TestDatabaseNames(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: testopts.DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -160,17 +93,7 @@ func TestDatabaseNames(t *testing.T) {
 func TestFindOne(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: testopts.DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -192,16 +115,7 @@ func TestFindOne(t *testing.T) {
 func TestGetIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: testopts.DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 	session, err := provider.GetSession()
@@ -247,18 +161,7 @@ func TestGetIndexes(t *testing.T) {
 func TestServerVersionArray(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: testopts.DefaultTestPort,
-			Host: "localhost",
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -271,23 +174,23 @@ func TestServerCertificateVerification(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
 
-	auth := DBGetAuthOptions()
-	sslOrigin := DBGetSSLOptions()
+	auth := testopts.GetAuthOptions()
+	sslOrigin := testopts.SSLOptionsWithCert("test-client.pem")
 
 	// intermediate certs only
 	ssl := sslOrigin
-	ssl.SSLCAFile = "../db/testdata/ia.pem"
+	ssl.SSLCAFile = testopts.TestDataPath("ia.pem")
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
 			Port:    testopts.DefaultTestPort,
 			Timeout: 10,
 		},
-		URI:  DBGetConnString(),
+		URI:  testopts.URIWithCert("test-client.pem"),
 		SSL:  &ssl,
 		Auth: &auth,
 	}
 
-	opts.ConnString.SSLCaFile = "../db/testdata/ia.pem"
+	opts.ConnString.SSLCaFile = testopts.TestDataPath("ia.pem")
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 	require.NoError(t, provider.client.Ping(t.Context(), nil))
@@ -299,24 +202,24 @@ func TestServerPKCS8Verification(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
 
-	auth := DBGetAuthOptions()
+	auth := testopts.GetAuthOptions()
 	ssl := options.SSL{
 		UseSSL:    true,
-		SSLCAFile: "../db/testdata/ca-ia.pem",
+		SSLCAFile: testopts.TestDataPath("ca-ia.pem"),
 	}
 
 	t.Run("with unencrypted password", func(t *testing.T) {
-		ssl.SSLPEMKeyFile = "../db/testdata/test-client-pkcs8-unencrypted.pem"
+		ssl.SSLPEMKeyFile = testopts.TestDataPath("test-client-pkcs8-unencrypted.pem")
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
 				Port:    testopts.DefaultTestPort,
 				Timeout: 10,
 			},
-			URI:  DBGetConnString(),
+			URI:  testopts.URIWithCert("test-client.pem"),
 			SSL:  &ssl,
 			Auth: &auth,
 		}
-		opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
+		opts.ConnString.SSLCaFile = testopts.TestDataPath("ca-ia.pem")
 		provider, err := NewSessionProvider(opts)
 		require.NoError(t, err)
 		require.NoError(t, provider.client.Ping(t.Context(), nil))
@@ -324,18 +227,18 @@ func TestServerPKCS8Verification(t *testing.T) {
 	})
 
 	t.Run("with encrypted password", func(t *testing.T) {
-		ssl.SSLPEMKeyFile = "../db/testdata/test-client-pkcs8-encrypted.pem"
+		ssl.SSLPEMKeyFile = testopts.TestDataPath("test-client-pkcs8-encrypted.pem")
 		ssl.SSLPEMKeyPassword = os.Getenv(PKCS8Password)
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
 				Port:    testopts.DefaultTestPort,
 				Timeout: 10,
 			},
-			URI:  DBGetConnString(),
+			URI:  testopts.URIWithCert("test-client.pem"),
 			SSL:  &ssl,
 			Auth: &auth,
 		}
-		opts.ConnString.SSLCaFile = "../db/testdata/ca-ia.pem"
+		opts.ConnString.SSLCaFile = testopts.TestDataPath("ca-ia.pem")
 		provider, err := NewSessionProvider(opts)
 		require.NoError(t, err)
 		require.NoError(t, provider.client.Ping(t.Context(), nil))

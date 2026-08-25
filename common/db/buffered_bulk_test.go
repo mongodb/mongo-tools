@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
@@ -21,18 +20,7 @@ import (
 func TestBufferedBulkInserterInserts(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: testopts.DefaultTestPort,
-		},
-		URI:  &options.URI{},
-		SSL:  &ssl,
-		Auth: &auth,
-	}
-	err := opts.NormalizeOptionsAndURI()
-	require.NoError(t, err)
+	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
