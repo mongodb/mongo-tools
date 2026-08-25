@@ -2,6 +2,7 @@ package dumprestore
 
 import (
 	"path/filepath"
+	"slices"
 	"strconv"
 
 	"github.com/mongodb/mongo-tools/mongorestore"
@@ -205,6 +206,83 @@ func (s *DumpRestoreSuite) indexSpecs(coll *mongo.Collection) []bson.D {
 	)
 
 	return specs
+}
+
+// TestNoIndexRestore checks that --noIndexRestore brings back the data without
+// the secondary indexes. The _id index is not the restore's to skip: the server
+// creates it with the collection.
+func (s *DumpRestoreSuite) TestNoIndexRestore() {
+	testDB := s.database("no_index_restore")
+	withoutIndexes := testDB.Collection("coll1")
+	withIndexes := testDB.Collection("coll2")
+
+	insertedIDs := make([]int, 0, 10)
+	docs := make([]any, 0, 10)
+	for i := range 10 {
+		insertedIDs = append(insertedIDs, i)
+		docs = append(docs, bson.D{{"_id", i}, {"num", i + 1}, {"s", strconv.Itoa(i)}})
+	}
+
+	for _, coll := range []*mongo.Collection{withoutIndexes, withIndexes} {
+		_, err := coll.InsertMany(s.Context(), docs)
+		s.Require().NoError(err, "can insert into %#q", coll.Name())
+	}
+
+	_, err := withIndexes.Indexes().CreateMany(s.Context(), []mongo.IndexModel{
+		{Keys: bson.D{{"num", 1}}},
+		{Keys: bson.D{{"num", 1}, {"s", -1}}},
+	})
+	s.Require().NoError(err, "can create the secondary indexes on %#q", withIndexes.Name())
+	s.Require().ElementsMatch(
+		[]string{"_id_", "num_1", "num_1_s_-1"},
+		s.indexNames(withIndexes),
+		"both secondary indexes were created before the dump",
+	)
+
+	s.withBSONMongodump(func(dir string) {
+		s.dropDB(testDB)
+
+		result := s.runRestore(mongorestore.NoIndexRestoreOption, dir)
+		s.Require().NoError(result.Err, "can restore with --noIndexRestore")
+	}, "--db", testDB.Name())
+
+	for _, coll := range []*mongo.Collection{withoutIndexes, withIndexes} {
+		s.Assert().Equal(
+			insertedIDs,
+			s.intDocumentIDs(coll),
+			"every document in %#q is restored, and only those",
+			coll.Name(),
+		)
+		s.Assert().Equal(
+			[]string{"_id_"},
+			s.indexNames(coll),
+			"--noIndexRestore leaves %#q with only the _id index",
+			coll.Name(),
+		)
+	}
+}
+
+// intDocumentIDs returns the _id of every document in the collection, sorted.
+func (s *DumpRestoreSuite) intDocumentIDs(coll *mongo.Collection) []int {
+	cursor, err := coll.Find(s.Context(), bson.D{})
+	s.Require().NoError(err, "can read the documents in %#q", coll.Name())
+
+	var docs []struct {
+		ID int `bson:"_id"`
+	}
+	s.Require().NoError(
+		cursor.All(s.Context(), &docs),
+		"can decode the documents in %#q",
+		coll.Name(),
+	)
+
+	ids := make([]int, 0, len(docs))
+	for _, doc := range docs {
+		ids = append(ids, doc.ID)
+	}
+	slices.Sort(ids)
+
+	return ids
 }
 
 // TestIndexVersionRoundTrip checks which version a restored index ends up at:
