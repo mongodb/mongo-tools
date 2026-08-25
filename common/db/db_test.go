@@ -71,20 +71,44 @@ func DBGetConnString() *options.URI {
 	return &options.URI{}
 }
 
-func TestNewSessionProvider(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+const uriEnvVar = "TOOLS_TESTING_MONGOD"
+
+// DBGetToolOptions is this package's stand-in for testutil.GetToolOptions, which it cannot call --
+// testutil imports this package, which is why the var block and DBGet* helpers above are copies
+// too. The server under test is not always on localhost:33333: the disaggregated-storage cluster in
+// CI listens on an ephemeral port and announces it through TOOLS_TESTING_MONGOD.
+func DBGetToolOptions(t *testing.T) options.ToolOptions {
+	t.Helper()
 
 	auth := DBGetAuthOptions()
 	ssl := DBGetSSLOptions()
-
 	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
+		Connection: &options.Connection{},
+		URI:        DBGetConnString(),
+		SSL:        &ssl,
+		Auth:       &auth,
 	}
+
+	if uri := os.Getenv(uriEnvVar); uri != "" {
+		opts.URI.ConnectionString = uri
+	} else {
+		opts.Connection.Host = "localhost"
+		opts.Connection.Port = DefaultTestPort
+	}
+
+	require.NoError(
+		t,
+		opts.NormalizeOptionsAndURI(),
+		"normalizing the tool options for the server under test",
+	)
+
+	return opts
+}
+
+func TestNewSessionProvider(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	opts := DBGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -122,17 +146,7 @@ func TestConfigureClientForSRV(t *testing.T) {
 func TestDatabaseNames(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := DBGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -159,17 +173,7 @@ func TestDatabaseNames(t *testing.T) {
 func TestFindOne(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := DBGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -191,16 +195,7 @@ func TestFindOne(t *testing.T) {
 func TestGetIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: DefaultTestPort,
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := DBGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 	session, err := provider.GetSession()
@@ -246,18 +241,7 @@ func TestGetIndexes(t *testing.T) {
 func TestServerVersionArray(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	auth := DBGetAuthOptions()
-	ssl := DBGetSSLOptions()
-
-	opts := options.ToolOptions{
-		Connection: &options.Connection{
-			Port: DefaultTestPort,
-			Host: "localhost",
-		},
-		URI:  DBGetConnString(),
-		SSL:  &ssl,
-		Auth: &auth,
-	}
+	opts := DBGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
