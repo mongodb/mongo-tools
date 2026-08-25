@@ -209,6 +209,79 @@ func (s *ExportImportSuite) TestRoundTripSortAndSkip() {
 	}
 }
 
+// TestRoundTripSortSkipAndLimit verifies that mongoexport passes a compound
+// --sort through whole, down to the direction of its second key, and that it
+// combines with --skip and --limit. Only the second key makes the answer
+// deterministic: sorting on a alone leaves the two a=3 documents in either
+// order, so a mongoexport that dropped the key would be flaky here rather than
+// reliably wrong, and one that flipped its direction selects a=3,b=4.
+//
+// The other two sort/skip/limit round trips in this file use a single ascending
+// key, and one of --skip or --limit but not both.
+func (s *ExportImportSuite) TestRoundTripSortSkipAndLimit() {
+	const dbName = "mongoimport_roundtrip_sortskiplimit_test"
+	const collName = "data"
+
+	client := s.Client()
+
+	coll := client.Database(dbName).Collection(collName)
+	_, err := coll.InsertMany(s.Context(), []any{
+		bson.D{{"a", 1}, {"b", 1}},
+		bson.D{{"a", 1}, {"b", 2}},
+		bson.D{{"a", 2}, {"b", 3}},
+		bson.D{{"a", 2}, {"b", 3}},
+		bson.D{{"a", 3}, {"b", 4}},
+		bson.D{{"a", 3}, {"b", 5}},
+	})
+	s.Require().NoError(err)
+
+	exportToolOptions, err := testutil.GetToolOptions()
+	s.Require().NoError(err)
+	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	me, err := mongoexport.New(mongoexport.Options{
+		ToolOptions: exportToolOptions,
+		OutputFormatOptions: &mongoexport.OutputFormatOptions{
+			Type: "json", JSONFormat: "relaxed",
+		},
+		InputOptions: &mongoexport.InputOptions{Sort: "{a:1, b:-1}", Skip: 4, Limit: 1},
+	})
+	s.Require().NoError(err)
+	defer me.Close()
+	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+	s.Require().NoError(err)
+	n, err := me.Export(tmpFile)
+	s.Require().NoError(err)
+	s.Require().NoError(tmpFile.Close())
+	s.Assert().EqualValues(1, n, "should export the single document left after the skip and limit")
+
+	s.Require().NoError(coll.Drop(s.Context()))
+
+	importToolOptions, err := testutil.GetToolOptions()
+	s.Require().NoError(err)
+	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+	mi, err := mongoimport.New(mongoimport.Options{
+		ToolOptions:   importToolOptions,
+		InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+		IngestOptions: &mongoimport.IngestOptions{},
+	})
+	s.Require().NoError(err)
+	imported, _, err := mi.ImportDocuments()
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, imported, "should import the one exported document")
+
+	count, err := coll.CountDocuments(s.Context(), bson.D{})
+	s.Require().NoError(err)
+	s.Assert().EqualValues(1, count, "collection should have exactly one document")
+
+	var got struct {
+		A int `bson:"a"`
+		B int `bson:"b"`
+	}
+	s.Require().NoError(coll.FindOne(s.Context(), bson.D{}).Decode(&got))
+	s.Assert().Equal(3, got.A, "the restored document has the a the skip and limit select")
+	s.Assert().Equal(5, got.B, "the restored document has the b the descending sort on b selects")
+}
+
 func (s *ExportImportSuite) exportAndImportWithQuery(
 	db *mongo.Database,
 	sourceDocs []any,
