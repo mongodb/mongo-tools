@@ -171,6 +171,11 @@ func (c *Config) aliases() ([]alias, error) {
 			variant: `^rhel88$`,
 			tasks:   `^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)`,
 		},
+		{
+			comment: "Run the integration tests against a disaggregated-storage cluster.",
+			variant: `^ubuntu2204-arm64-dsc$`,
+			tasks:   `.*`,
+		},
 	}
 
 	// This finds the most recent version of the server supported by each variant. Based on that it

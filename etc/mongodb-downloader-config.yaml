@@ -1,0 +1,16 @@
+s3:
+  bucket: c2c-testing-server-artifacts
+  region: us-east-1
+  serverBinariesPrefix: server-binaries
+  resmokePrefix: resmoke
+
+serverVersions:
+  - version: "9.1-dsc"
+    commit: 8161735c839119f6f21ccd4861df07e922f39335
+    disagg: true
+    resmoke: false
+    platforms:
+      - os: ubuntu2204
+        arch: arm64
+      - os: ubuntu2204
+        arch: x86_64

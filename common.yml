@@ -82,6 +82,7 @@ functions:
           - ${mise_and_go_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
         name: mise-and-go
@@ -109,6 +110,7 @@ functions:
           - ${mise_and_go_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
         name: mise-and-go
@@ -148,6 +150,7 @@ functions:
           - ${mise_all_tools_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
           - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
@@ -177,6 +180,7 @@ functions:
           - ${mise_all_tools_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
           - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
@@ -243,7 +247,96 @@ functions:
           TARGET: ${target}
           TOOLS_TESTING_AUTH_PASSWORD: ${auth_password}
           TOOLS_TESTING_AUTH_USERNAME: ${auth_username}
+          TOOLS_TESTING_MONGOD: ${TOOLS_TESTING_MONGOD}
           TOOLS_TESTING_PKCS8_PASSWORD: ${pkcs8_password}
+
+  #######################################
+  #  Disaggregated Storage (DSC) setup  #
+  #######################################
+  # A DSC cluster needs mongodb-downloader, which is in a private repo and so needs a generated
+  # token. It also needs credentials for two different AWS accounts.
+
+  "start dsc cluster":
+    # The order of these commands is important. ec2.assume_role overwrites existing AWS_*
+    # expansions, so each role has to be used before the next one is assumed. Two roles are needed
+    # because the SLS container images and the Server build live in different accounts. The GitHub
+    # token is generated first because assume_role does not touch it.
+    - command: github.generate_token
+      params:
+        owner: 10gen
+        repo: mongodb-downloader
+        expansion_name: generated_token_mongodb_downloader
+        permissions:
+          attestations: read
+          contents: read
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to pull SLS images from ECR
+      params:
+        role_arn: arn:aws:iam::664315256653:role/disagg-storage-tf-project-ro
+    - command: subprocess.exec
+      params:
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/authenticate-sls-ecr.sh"
+        env:
+          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to read Server builds from S3
+      params:
+        role_arn: arn:aws:iam::557821124784:role/evergreen.aws-c2c-sync
+    - command: subprocess.exec
+      params:
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/start-dsc-cluster.sh"
+        env:
+          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+          EVG_WORKDIR: ${workdir}
+          # mise installs mongodb-downloader from a private repo, so it needs a token.
+          GITHUB_TOKEN: ${generated_token_mongodb_downloader}
+    # The cluster's connection string is only known at runtime, and each command runs in its own
+    # shell, so the script passes this setting through a file rather than an exported variable. This
+    # lets the "run make target" function see TOOLS_TESTING_MONGOD.
+    - command: expansions.update
+      params:
+        file: src/github.com/mongodb/mongo-tools/dsc-cluster/expansions.yml
+
+  # These two tasks run in the project-wide "post" block, so they have to be safe for every
+  # task. Both are no-ops when the task never started a DSC cluster.
+  "stop dsc cluster":
+    - command: subprocess.exec
+      params:
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/stop-dsc-cluster.sh"
+        env:
+          EVG_WORKDIR: ${workdir}
+
+  "upload dsc cluster logs":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/mongodb/mongo-tools/dsc-cluster/logs.tgz
+        remote_file: mongo-tools/dsc-logs/${build_id}/${task_name}/logs.tgz
+        content_type: application/x-gzip
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "DSC cluster logs"
+        optional: true
 
   "download mongod and shell":
     - command: github.generate_token
@@ -891,6 +984,8 @@ post:
 
         rm -rf /data/db/*
         exit 0
+  - func: "stop dsc cluster"
+  - func: "upload dsc cluster logs"
   # Extra post steps needed for mongodump passthrough.
   - func: f_resmoke_report_attach
   - func: "attach artifacts"
@@ -1811,6 +1906,23 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
+  - name: integration-9.1-dsc
+    commands:
+      - func: "fetch source"
+      - func: "install mise and go"
+      - func: "install mise-managed tools"
+      # Starting the SLS services is slow, so we want to build the tools before starting the
+      # cluster.
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "start dsc cluster"
+      # No -ssl: mongodb-runner starts the replica set without TLS. The connection string reaches
+      # the suite through the TOOLS_TESTING_MONGOD expansion that "start dsc cluster" sets.
+      - func: "run make target"
+        vars:
+          target: test:integration -topology=replSet ${testArgs}
+
   - name: integration-latest
     tags: ["latest", "required-for-merge-queue"]
     commands:
@@ -2613,7 +2725,7 @@ buildvariants:
 
   # The one variant GitHub branch protection requires, so that a PR can enter the merge queue as
   # soon as the tasks below pass rather than waiting for every task the PR runs. The dependencies
-  # are what actually gate a merge.  See CONTRIBUTING.md.
+  # are what actually gate a merge. See CONTRIBUTING.md.
   - name: merge-queue
     display_name: "! Required for Merge"
     # This variant exists only to gate a merge, and it must not run on the waterfall. Evergreen
@@ -2634,6 +2746,8 @@ buildvariants:
       # sign.
       - name: .required-for-merge-queue
         variant: rhel88
+      - name: integration-9.1-dsc
+        variant: ubuntu2204-arm64-dsc
       # These carry the required-for-merge-queue tag too, but they have to be named individually:
       # the windows variant runs every server version, while pull request testing only runs the
       # latest on it. Selecting by tag here would gate on tasks a pull request never ran.
@@ -3134,6 +3248,27 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+  # Disaggregated storage, which the tools have to keep working against. This runs on every PR, via
+  # its own entry in github_pr_aliases, and nightly on the mainline. It needs that explicit alias
+  # because `integrationTestAliases` only matches tasks named like a tag selector (".9.0"), and this
+  # variant lists one literal task name.
+  #
+  # We're using Ubuntu 22.04 arm64 because it has docker-compose v2. The m7g.2xlarge is big enough
+  # to run the many containers for SLS.
+  #
+  # _platform is set because this variant's own name is not in release/platform's table, and
+  # ci-env.sh needs a name that is, or build.go drops the per-platform build tags - including
+  # "failpoints", which several integration tests need.
+  - name: ubuntu2204-arm64-dsc
+    display_name: "# Ubuntu 22.04 ARM Disaggregated Storage"
+    cron: 0 3 * * *
+    run_on:
+      - ubuntu2204-arm64-latest-large
+    expansions:
+      _platform: ubuntu2204-arm64
+    tasks:
+      - name: "integration-9.1-dsc"
+
   - name: amazon2023-aarch64
     display_name: Amazon Linux 2023 ARM
     run_on:
@@ -3302,6 +3437,14 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
+# Unlike github_pr_aliases, this block is not generated. The merge queue runs the no-op gate task
+# and nothing else, because Evergreen schedules that task's whole dependency closure, and those
+# dependencies are what gate a merge.  Change what gates a merge by editing the merge-queue
+# buildvariant's depends_on, not this block.
+commit_queue_aliases:
+  - variant: "^merge-queue$"
+    task: ".*"
+
 # This set of aliases is generated by the code in the `evergreen` directory.
 # Do not edit this by hand!
 # It can be regenerated by running `go run evergreen/generator/main.go`.
@@ -3327,15 +3470,10 @@ github_pr_aliases:
   # a relatively recent platform that supports a wide range of servers.
   - variant: "^rhel88$"
     task: "^(aws-auth|integration|kerberos|legacy|native-cert-ssl|qa-dump-restore|qa-tests)"
+  # Run the integration tests against a disaggregated-storage cluster.
+  - variant: "^ubuntu2204-arm64-dsc$"
+    task: ".*"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
   - variant: "^(rhel88|windows)$"
     task: "integration-latest"
-
-# Unlike github_pr_aliases above, this block is not generated. The merge queue runs the no-op gate
-# task and nothing else, because Evergreen schedules that task's whole dependency closure, and those
-# dependencies are what gate a merge.  Change what gates a merge by editing the merge-queue
-# buildvariant's depends_on, not this block.
-commit_queue_aliases:
-  - variant: "^merge-queue$"
-    task: ".*"

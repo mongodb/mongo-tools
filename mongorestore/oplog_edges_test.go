@@ -59,6 +59,10 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 	// permitted on a standalone: a replica set rejects direct oplog writes, and
 	// mongos rejects writes to the local database.
 	testutil.SkipUnlessStandalone(t)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
@@ -111,6 +115,10 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 // are skipped while the inserts around them are still applied.
 func TestOplogReplayNoop(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
@@ -149,6 +157,10 @@ func TestOplogReplayNoop(t *testing.T) {
 // chance.
 func TestOplogReplayPreservesComplexIDOrder(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
@@ -252,6 +264,10 @@ func writeOplogUpdate(t *testing.T, path, ns string, id bson.D) {
 // within the server's message size limit (TOOLS-939).
 func TestOplogReplaySizeSafety(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)

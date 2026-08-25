@@ -509,6 +509,10 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 
 func TestMongorestorePreserveUUID(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it restores with --preserveUUID, which mongorestore implements via applyOps, and DSC does not support that command",
+	)
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -1499,6 +1503,10 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 // related tables aren't applied via applyops when replaying the oplog.
 func TestSkipSystemCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -1647,6 +1655,10 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 // TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands.
 func TestCommitIndexBuild(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	ctx := t.Context()
 	testDB := "commit_index"
 
@@ -1737,6 +1749,10 @@ func TestCommitIndexBuild(t *testing.T) {
 // CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4.
 func TestCreateIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	ctx := t.Context()
 	testDB := "create_indexes"
 
@@ -2403,6 +2419,10 @@ func TestRestoreClusteredIndex(t *testing.T) {
 	require := require.New(t)
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")

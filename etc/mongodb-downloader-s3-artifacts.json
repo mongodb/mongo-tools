@@ -1,0 +1,17 @@
+{
+    "serverBinaries": {
+        "ubuntu2204-arm64": {
+            "9.1-dsc": {
+                "tarball": "ubuntu2204-arm64-9.1-dsc-8161735c839119f6f21ccd4861df07e922f39335.tar.xz",
+                "commit": "8161735c839119f6f21ccd4861df07e922f39335"
+            }
+        },
+        "ubuntu2204-x86_64": {
+            "9.1-dsc": {
+                "tarball": "ubuntu2204-x86_64-9.1-dsc-8161735c839119f6f21ccd4861df07e922f39335.tar.xz",
+                "commit": "8161735c839119f6f21ccd4861df07e922f39335"
+            }
+        }
+    },
+    "resmoke": null
+}
