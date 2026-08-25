@@ -58,19 +58,16 @@ version we support.
 
 ### Adjust load libs
 
-For the legacy JS tests running on server versions 8.1+, we need to shim some code that was removed
-from the server repo. The shim code for each version lives in
-[test/shell_common/libs/](./test/shell_common/libs/), in a filename called `load_libs-<VERSION>.js`
-(where the version is something like `8.3`). You can start by copying the file for the previous
-version.
+`scripts/create-repl-set.sh` and `scripts/create-sharded-cluster.sh` build the clusters the
+integration tests run against by driving `ReplSetTest` and `ShardingTest` in the mongo shell. On
+server versions 8.1+ those classes were removed from the server repo, so we ship our own copies. The
+shim code for each version lives in [test/shell_common/libs/](./test/shell_common/libs/), in a
+filename called `load_libs-<VERSION>.js` (where the version is something like `8.3`). You can start
+by copying the file for the previous version.
 
-You may need to add/adjust code in the load-libs files if the tests fail; that usually happens
-because some test code has been removed from the server repo. For the 8.3 release, it was sufficient
-to go back to the 8.2 server code and pull the relevant code and copy it into our shim.
-
-(This process is admittedly not great; we're in the process of rewriting these JS tests into Go.
-If/when we finish doing that, then we won't need any of this code at all, since they'll just be
-normal integration tests.)
+You may need to add/adjust code in the load-libs files if cluster setup fails; that usually happens
+because more code has been removed from the server repo. For the 8.3 release, it was sufficient to
+go back to the 8.2 server code and pull the relevant code and copy it into our shim.
 
 ## Write code for new version
 

@@ -24,9 +24,6 @@ In this tutorial, we will add a new platform support for Ubuntu2004-arm64.
     <<: *mongod_tls_startup_args
     <<: *mongo_tls_startup_args
     build_tags: "failpoints"
-    resmoke_use_tls: _tls
-    excludes: requires_mmap_available,requires_large_ram,requires_mongo_24,requires_mongo_26,requires_mongo_30
-    resmoke_args: -j 2
     USE_SSL: "true"
   tasks: *ubuntu2004_arm64_tasks
 ```

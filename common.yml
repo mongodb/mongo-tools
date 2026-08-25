@@ -191,29 +191,6 @@ functions:
           - .local/share/mise
         remote_path: mongo-tools/mise-cache
 
-  "run legacy tests":
-    command: subprocess.exec
-    type: test
-    params:
-      # binary must be bash (with the script passed via args), not the script
-      # directly: Windows can't execute a shebang script as a native binary.
-      binary: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      args:
-        - "./scripts/run-legacy-tests.sh"
-      env:
-        LOAD_LIBS_VERSION: ${load_libs_version}
-        TEST_PATH: ${test_path}
-
-  "run qa-tests":
-    command: subprocess.exec
-    params:
-      binary: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      args:
-        - "./scripts/run_qa.sh"
-      add_expansions_to_env: true
-
   "run make target":
     - command: subprocess.exec
       type: test
@@ -266,12 +243,6 @@ functions:
           PLATFORM_OVERRIDE: ${_platform}
           generated_token_mongo_release: ${generated_token_mongo_release}
 
-  "get buildnumber":
-    command: keyval.inc
-    params:
-      key: "${build_variant}_tools"
-      destination: "builder_num"
-
   "setup integration test":
     command: subprocess.exec
     params:
@@ -286,24 +257,6 @@ functions:
       env:
         KERBEROS_KEYTAB: ${kerberos_keytab}
         RUN_KINIT: ${run_kinit}
-
-  "setup credentials":
-    command: subprocess.exec
-    params:
-      # binary must be bash (with the script passed via args), not the script
-      # directly: Windows can't execute a shebang script as a native binary.
-      binary: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      silent: true
-      args:
-        - "./scripts/setup-credentials.sh"
-      env:
-        BUILDER_NUM: ${builder_num}
-        BUILD_VARIANT: ${build_variant}
-        EXECUTION: ${execution}
-        PASSWD: ${passwd}
-        SLAVE: ${slave}
-        TASK_NAME: ${task_name}
 
   "start mongod":
     command: subprocess.exec
@@ -829,7 +782,7 @@ pre:
         # This script intentionally doesn't set errexit or pipefail, since these commands can fail and that's ok.
         set -o verbose
 
-        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
+        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos} >/dev/null 2>&1
         rm -rf src /data/db/*
         exit 0
   # Extra pre steps needed for mongodump passthrough.
@@ -855,10 +808,6 @@ pre:
           value: v3
 
 post:
-  # attach.results works for jstests, gotest.parse_files for golang tests
-  - command: attach.results
-    params:
-      file_location: src/github.com/mongodb/mongo-tools/report.json
   - command: gotest.parse_files
     params:
       files: ["src/github.com/mongodb/mongo-tools/testing_output/*.suite"]
@@ -870,7 +819,7 @@ post:
         # This script intentionally doesn't set errexit or pipefail, since these commands can fail and that's ok.
         set -o verbose
 
-        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos; pkill -f buildlogger.py; pkill -f smoke.py} >/dev/null 2>&1
+        ${killall_mci|pkill -9 mongo; pkill -9 mongodump; pkill -9 mongoexport; pkill -9 mongoimport; pkill -9 mongofiles; pkill -9 mongorestore; pkill -9 mongostat; pkill -9 mongotop; pkill -9 mongod; pkill -9 mongos} >/dev/null 2>&1
         exit 0
   - command: shell.exec
     params:
@@ -2117,180 +2066,6 @@ tasks:
         vars:
           target: test:kerberos ${testArgs}
 
-  - name: legacy-jstests-4.2 # The server jstests from the tools removal from server in 4.2
-    tags: ["4.2", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "4.2"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-
-  - name: legacy-jstests-4.4 # The server jstests from the tools removal from server in 4.2
-    tags: ["4.4", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "4.4"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-
-  - name: legacy-jstests-5.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["5.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "5.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-
-  - name: legacy-jstests-6.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["6.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "6.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-
-  - name: legacy-jstests-7.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["7.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "7.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-
-  - name: legacy-jstests-8.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-
-  - name: legacy-jstests-8.2 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.2", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.2.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-          load_libs_version: "8.2"
-
-  - name: legacy-jstests-8.3 # The server jstests from the tools removal from server in 4.2
-    tags: ["8.3", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.3.0-rc4"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-          load_libs_version: "8.3"
-
-  - name: legacy-jstests-9.0 # The server jstests from the tools removal from server in 4.2
-    tags: ["9.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "9.0.0-rc0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-          load_libs_version: "9.0"
-
-  - name: legacy-jstests-latest # The server jstests from the tools removal from server in 4.2
-    tags: ["latest", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "latest"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run legacy tests"
-        vars:
-          test_path: "test/legacy42"
-          load_libs_version: *max_server_version
-
   - name: mod-tidy
     commands:
       - func: "fetch source"
@@ -2316,222 +2091,6 @@ tasks:
             - "./scripts/lint.sh"
           env:
             EVG_WORKDIR: ${workdir}
-
-  - name: qa-tests-5.0
-    tags: ["5.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "5.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-6.0
-    tags: ["6.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "6.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-7.0
-    tags: ["7.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "7.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-8.0
-    tags: ["8.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-8.2
-    tags: ["8.2", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.2.0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-8.3
-    tags: ["8.3", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "8.3.0-rc4"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-9.0
-    tags: ["9.0", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "9.0.0-rc0"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-latest
-    tags: ["latest", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "latest"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-4.4
-    tags: ["4.4", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "4.4"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-tests-4.2
-    tags: ["4.2", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "4.2"
-      - func: "run make target"
-        vars:
-          target: build
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "core${resmoke_use_tls}"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-dump-restore-with-archiving-4.4
-    tags: ["4.4", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "4.4"
-      - func: "run make target"
-        vars:
-          target: build -tools=mongodump,mongorestore
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "restore_archive"
-          excludes: "requires_unstable,${excludes}"
-
-  - name: qa-dump-restore-with-gzip-4.4
-    tags: ["4.4", "no-race", "required-for-merge-queue"]
-    commands:
-      - func: "fetch source"
-      - func: "get buildnumber"
-      - func: "setup credentials"
-      - func: "install mise and go"
-      - func: "download mongod and shell"
-        vars:
-          mongo_version: "4.4"
-      - func: "run make target"
-        vars:
-          target: build -tools=mongodump,mongorestore
-      - func: "run qa-tests"
-        vars:
-          resmoke_suite: "restore_gzip"
-          excludes: "requires_unstable,${excludes}"
 
   - name: unit
     tags: ["required-for-merge-queue"]
@@ -2804,9 +2363,7 @@ buildvariants:
           *mongod_tls_startup_args,
           *mongo_tls_startup_args,
         ]
-      resmoke_use_tls: _tls
       run_kinit: true
-      resmoke_args: --jobs 4
     tasks:
       - name: "unit"
       - name: ".4.2"
@@ -2841,24 +2398,19 @@ buildvariants:
           *mongo_tls_startup_args,
         ]
       testArgs: "-race=true"
-      resmoke_use_tls: _tls
       run_kinit: true
-      resmoke_args: --jobs 4
     tasks:
       - name: "unit"
-      # The JS tests run via resmoke build the tools with the plain `build` target and run them as
-      # external processes, so they never run with race detection enabled. There's no point in
-      # running them as part of this variant.
-      - name: ".4.2 !.no-race"
-      - name: ".4.4 !.no-race"
-      - name: ".5.0 !.no-race"
-      - name: ".6.0 !.no-race"
-      - name: ".7.0 !.no-race"
-      - name: ".8.0 !.no-race"
-      - name: ".8.2 !.no-race"
-      - name: ".8.3 !.no-race"
-      - name: ".9.0 !.no-race"
-      - name: ".latest !.no-race"
+      - name: ".4.2"
+      - name: ".4.4"
+      - name: ".5.0"
+      - name: ".6.0"
+      - name: ".7.0"
+      - name: ".8.0"
+      - name: ".8.2"
+      - name: ".8.3"
+      - name: ".9.0"
+      - name: ".latest"
       - name: ".kerberos"
 
   - name: rhel93
@@ -3021,9 +2573,6 @@ buildvariants:
         ]
       mongo_target: "windows"
       python_binary: "/cygdrive/c/python/Python311/python"
-      resmoke_args: --jobs 4
-      resmoke_use_tls: _tls
-      excludes: requires_large_ram,requires_mongo_24
       extension: .exe
       preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
       USE_SSL: "true"
@@ -3326,7 +2875,7 @@ github_pr_aliases:
   # Run all integration tests on one variant. We pick RHEL 8.8 because it's
   # a relatively recent platform that supports a wide range of servers.
   - variant: "^rhel88$"
-    task: "^(aws-auth|integration|kerberos|legacy|qa-dump-restore|qa-tests)"
+    task: "^(aws-auth|integration|kerberos)"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
   - variant: "^(rhel88|windows)$"

@@ -1,7 +1,8 @@
 /* Changes to replsettest.js copied over from 10gen/mongo repo at commit
  * 6d7a9ba952ab4a8428d83699ba26314efe55506c.
  * 1. Change import paths throughout file to correct location in shell_common/libs directory,
- *    assuming we're running the shell from test/qa-tests or test/legacy42
+ *    written relative to a sibling of shell_common so they resolve through the jsconfig.json
+ *    baseUrl
  * 2. set skipValidation to true by default in stopSet because we have been skipping validation until now and we
  *    don't need to validate replica set nodes before shutting them down in our js tests
 */
