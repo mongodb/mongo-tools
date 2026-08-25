@@ -19,7 +19,6 @@ go = "1.26.8"
 # Node and npm tools
 # node is here because the npm: tools below need a Node runtime to execute.
 node = "22.22.0"
-"npm:eslint" = "8.57.0"
 "npm:github-codeowners" = "0.2.1"
 # This opts out of the minimum_release_age below because this release is ours and is cut as it is
 # needed.

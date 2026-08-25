@@ -233,14 +233,6 @@ Example of how to run a specific integration test:
 TOOLS_TESTING_INTEGRATION=true go test -v ./... -run TestImportDocuments
 ```
 
-To run the quality assurance tests, you need to have the latest stable version of the rebuilt tools,
-`mongod`, `mongos`, and `mongo` in your current working directory.
-
-```
-cd test/qa-tests
-python buildscripts/smoke.py bson export files import oplog restore stat top
-```
-
 ### Writing Tests
 
 In the past, we used

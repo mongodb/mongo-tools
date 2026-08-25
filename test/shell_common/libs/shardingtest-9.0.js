@@ -6,8 +6,8 @@
  *    aggregation merge-type selection, priority-port initiation). This mirrors how the 8.1 lib
  *    comments out its single FeatureFlagUtil use.
  * 2. Change the Thread and ReplSetTest import paths (static and dynamic) to the vendored
- *    parallelTester-9.0.js / replsettest-9.0.js, assuming the shell runs from test/qa-tests or
- *    test/legacy42.
+ *    parallelTester-9.0.js / replsettest-9.0.js, written relative to a sibling of shell_common so
+ *    they resolve through the jsconfig.json baseUrl.
  * 3. When setting maxTransactionLockRequestTimeoutMillis, initialize TestData.setParameters
  *    instead of jsTest.options().setParameters, because jsTest.options() is rebuilt from TestData
  *    on every call and would otherwise reset the value.

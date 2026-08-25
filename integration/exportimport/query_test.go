@@ -235,7 +235,7 @@ func (s *ExportImportSuite) TestRoundTripSortSkipAndLimit() {
 	})
 	s.Require().NoError(err)
 
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -256,7 +256,7 @@ func (s *ExportImportSuite) TestRoundTripSortSkipAndLimit() {
 
 	s.Require().NoError(coll.Drop(s.Context()))
 
-	importToolOptions, err := testutil.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := mongoimport.New(mongoimport.Options{
