@@ -154,6 +154,10 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 // this is not a wired tiger collection.
 func TestMongoExportTOOLS1952(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it reads system.profile, and DSC does not support profile level 2",
+	)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
