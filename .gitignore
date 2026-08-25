@@ -51,3 +51,4 @@ test/qa-tests/[0-9]*
 test/qa-tests/install_compass
 test/qa-tests/mongo*
 test/qa-tests/venv
+dsc-cluster/

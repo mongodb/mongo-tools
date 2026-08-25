@@ -20,6 +20,11 @@ node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm ins
 "npm:eslint" = "8.57.0"
 "npm:github-codeowners" = "0.2.1"
 "npm:oxfmt" = "0.52.0"
+# mongodb-runner brings up the disaggregated-storage cluster that the integration suite runs
+# against in CI (TOOLS-4100). DSC support is new enough that we need releases as they land, so this
+# opts out of the minimum_release_age below. The version is still pinned, so a runner change reaches
+# CI when someone bumps this line rather than on whatever day the next release is cut.
+"npm:mongodb-runner" = { version = "6.10.0", minimum_release_age = "0d" }
 
 [settings]
 # This prevents us from upgrading to anything that was released less than 7 days ago. It gives us a
