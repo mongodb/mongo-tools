@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongodump"
@@ -1003,7 +1004,7 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 // baseToolOpts returns a fresh set of tool options from the environment.
 func baseToolOpts(t *testing.T) *options.ToolOptions {
 	t.Helper()
-	opts, err := testutil.GetToolOptions()
+	opts, err := testopts.GetToolOptions()
 	require.NoError(t, err)
 	return opts
 }
@@ -1012,7 +1013,7 @@ func baseToolOpts(t *testing.T) *options.ToolOptions {
 // authentication overridden to use the given username and password.
 func toolOptsForUser(t *testing.T, username, password string) *options.ToolOptions {
 	t.Helper()
-	opts, err := testutil.GetToolOptions()
+	opts, err := testopts.GetToolOptions()
 	require.NoError(t, err)
 	opts.Auth = &options.Auth{
 		Username: username,
@@ -1026,7 +1027,7 @@ func toolOptsForUser(t *testing.T, username, password string) *options.ToolOptio
 // authentication cleared. Connecting to an auth-required server will fail.
 func toolOptsNoAuth(t *testing.T) *options.ToolOptions {
 	t.Helper()
-	opts, err := testutil.GetToolOptions()
+	opts, err := testopts.GetToolOptions()
 	require.NoError(t, err)
 	opts.Auth = &options.Auth{}
 	return opts

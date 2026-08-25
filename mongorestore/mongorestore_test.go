@@ -23,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
@@ -61,7 +62,7 @@ func init() {
 }
 
 func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
-	opts, err := ParseOptions(append(testutil.GetBareArgs(), additionalArgs...), "", "")
+	opts, err := ParseOptions(append(testopts.GetBareArgs(), additionalArgs...), "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing args: %v", err)
 	}
@@ -1331,7 +1332,7 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 			//nolint:errcheck
 			defer dbName.Collection("test_auto_idx").Drop(ctx)
 
-			opts, err := ParseOptions(testutil.GetBareArgs(), "", "")
+			opts, err := ParseOptions(testopts.GetBareArgs(), "", "")
 			So(err, ShouldBeNil)
 
 			// Set retryWrites to false since it is unsupported on `local` db.
@@ -2682,7 +2683,7 @@ func runBSONMongodumpForCollection(
 func runMongodumpWithArgs(t *testing.T, args ...string) {
 	require := require.New(t)
 	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
-	cmd = append(cmd, testutil.GetBareArgs()...)
+	cmd = append(cmd, testopts.GetBareArgs()...)
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")

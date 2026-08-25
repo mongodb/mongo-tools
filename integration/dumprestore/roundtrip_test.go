@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/idx"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongodump"
@@ -235,7 +236,7 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 
 func getRestoreWithArgs(additionalArgs ...string) (*mongorestore.MongoRestore, error) {
 	opts, err := mongorestore.ParseOptions(
-		append(testutil.GetBareArgs(), additionalArgs...),
+		append(testopts.GetBareArgs(), additionalArgs...),
 		"",
 		"",
 	)

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ func TestBufferedBulkInserterInserts(t *testing.T) {
 	ssl := DBGetSSLOptions()
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port: DefaultTestPort,
+			Port: testopts.DefaultTestPort,
 		},
 		URI:  &options.URI{},
 		SSL:  &ssl,

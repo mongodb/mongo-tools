@@ -6,8 +6,8 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
@@ -28,7 +28,7 @@ func TestImportExport(t *testing.T) {
 }
 
 func (s *ExportImportSuite) ExportOptions() mongoexport.Options {
-	toolOptions, err := testutil.GetToolOptions()
+	toolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 
 	opts := mongoexport.Options{
@@ -46,7 +46,7 @@ func (s *ExportImportSuite) ExportOptions() mongoexport.Options {
 }
 
 func (s *ExportImportSuite) ImportOptions(dbName, collName string) mongoimport.Options {
-	toolOptions, err := testutil.GetToolOptions()
+	toolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	toolOptions.Namespace.DB = dbName
 	toolOptions.Namespace.Collection = collName
@@ -67,7 +67,7 @@ func (s *ExportImportSuite) importCollection(
 	filePath string,
 	ingestOpts mongoimport.IngestOptions,
 ) error {
-	toolOptions, err := testutil.GetToolOptions()
+	toolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -86,7 +86,7 @@ func (s *ExportImportSuite) importCollection(
 func (s *ExportImportSuite) exportCollectionToFile(ns *options.Namespace) string {
 	exportFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
 	s.Require().NoError(err)
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = ns
 	me, err := mongoexport.New(mongoexport.Options{

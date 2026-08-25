@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -42,7 +42,7 @@ func (s *ExportImportSuite) TestRoundTripFieldFile() {
 	s.Require().NoError(err)
 	s.Require().NoError(exportTarget.Close())
 
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -64,7 +64,7 @@ func (s *ExportImportSuite) TestRoundTripFieldFile() {
 	s.Require().NoError(f.Close())
 
 	fields := "a,b,c"
-	importToolOptions, err := testutil.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -165,7 +165,7 @@ func (s *ExportImportSuite) TestRoundTripNestedFieldsCSV() {
 	})
 	s.Require().NoError(err)
 
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -185,7 +185,7 @@ func (s *ExportImportSuite) TestRoundTripNestedFieldsCSV() {
 	s.Require().NoError(err)
 	s.Require().NoError(tmpFile.Close())
 
-	importToolOptions, err := testutil.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -230,7 +230,7 @@ func (s *ExportImportSuite) exportCSVAndImport(dbName, exportFields string, db *
 	s.Require().NoError(err)
 	s.Require().NoError(exportTarget.Close())
 
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -251,7 +251,7 @@ func (s *ExportImportSuite) exportCSVAndImport(dbName, exportFields string, db *
 	s.Require().NoError(f.Close())
 
 	importFields := "a,b,c"
-	importToolOptions, err := testutil.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{

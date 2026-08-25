@@ -21,8 +21,8 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
-	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -33,7 +33,7 @@ import (
 var (
 	testDB = "mongofiles_test_db"
 
-	ssl         = testutil.GetSSLOptions()
+	ssl         = testopts.GetSSLOptions()
 	toolOptions = mustGetToolOptions()
 	testFiles   = map[string]bson.ObjectID{
 		"testfile1": bson.NewObjectID(),
@@ -44,7 +44,7 @@ var (
 )
 
 func mustGetToolOptions() *options.ToolOptions {
-	toolOptions, err := testutil.GetToolOptions()
+	toolOptions, err := testopts.GetToolOptions()
 	if err != nil {
 		panic(fmt.Sprintf("could not get tool options: %v", err))
 	}
