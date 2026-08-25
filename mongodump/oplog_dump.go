@@ -168,7 +168,7 @@ func (dump *MongoDump) findOldestOplogEntry() (db.Oplog, error) {
 
 		var tempBSON bson.Raw
 
-		lastErr = failOplogCheckReadFailpoint()
+		lastErr = injectedOplogCheckReadError()
 		if lastErr == nil {
 			lastErr = dump.SessionProvider.FindOne(
 				"local",
@@ -211,21 +211,17 @@ func isCappedPositionLost(err error) bool {
 	return errors.As(err, &serverErr) && serverErr.HasErrorCode(cappedPositionLostErrCode)
 }
 
-// failOplogCheckReadFailpoint returns a synthetic CappedPositionLost error the
-// first time it is called with the FailOplogCheckRead failpoint enabled, so
-// that tests can exercise the retry in findOldestOplogEntry.
-func failOplogCheckReadFailpoint() error {
+// injectedOplogCheckReadError returns the error, if any, that the
+// FailOplogCheckRead failpoint has been told to inject in place of the
+// oldest-entry read. Tests supply that error, so they can exercise both the
+// retry and the reporting in findOldestOplogEntry.
+func injectedOplogCheckReadError() error {
 	fp, ok := failpoint.DefaultManager.Get(failpoint.FailOplogCheckRead)
-	if !ok || !fp.FireOnce() {
+	if !ok {
 		return nil
 	}
 
-	return mongo.CommandError{
-		Code: cappedPositionLostErrCode,
-		Name: "CappedPositionLost",
-		Message: "CollectionScan died due to position in capped collection being deleted" +
-			" (injected by the FailOplogCheckRead failpoint)",
-	}
+	return fp.InjectedError()
 }
 
 func oplogDocumentValidator(in []byte) error {

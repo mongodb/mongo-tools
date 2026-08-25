@@ -11,6 +11,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -700,22 +702,82 @@ func TestOplogCheckSurvivesCappedPositionLost(t *testing.T) {
 	fp, ok := failpoint.DefaultManager.Get(failpoint.FailOplogCheckRead)
 	require.True(t, ok, "FailOplogCheckRead failpoint should be enabled")
 
+	var injectOnce sync.Once
+	var injected atomic.Int64
+	fp.SetErrorFunc(func() error {
+		var err error
+		injectOnce.Do(func() {
+			injected.Add(1)
+			err = cappedPositionLostError()
+		})
+		return err
+	})
+
 	require.NoError(
 		t,
 		md.Dump(),
 		"mongodump should retry a lost oplog read instead of reporting an overflow",
 	)
 
-	// If the failpoint had not fired during the dump, this would be its first
-	// call and would return true, so this catches the dump silently passing
-	// because no error was ever injected.
-	require.False(
+	require.EqualValues(
 		t,
-		fp.FireOnce(),
-		"the injected error should have fired during the dump, so the retry was really exercised",
+		1,
+		injected.Load(),
+		"the injected error fired during the dump, so the retry was really exercised",
 	)
 
 	oplogInfo, err := os.Stat(filepath.Join(md.OutputOptions.Out, "oplog.bson"))
 	require.NoError(t, err, "the retried dump should still have written an oplog")
 	require.NotZero(t, oplogInfo.Size(), "the dumped oplog should not be empty")
+}
+
+// TestOplogCheckReportsPersistentReadError verifies that when the oldest-entry
+// read keeps failing, mongodump reports that read error rather than claiming an
+// oplog overflow. The overflow message tells users the dump may have lost oplog
+// entries, which is a very different thing from the check itself being unable to
+// read (TOOLS-4338).
+func TestOplogCheckReportsPersistentReadError(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	// Oplog is not available in a standalone topology.
+	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
+
+	md, err := simpleMongoDumpInstance()
+	require.NoError(t, err)
+
+	md.ToolOptions.DB = ""
+	md.OutputOptions.Oplog = true
+	md.OutputOptions.Out = "oplog_persistent_read_error"
+	require.NoError(t, md.Init())
+	defer os.RemoveAll(md.OutputOptions.Out)
+
+	require.NoError(t, failpoint.DefaultManager.Parse(failpoint.FailOplogCheckRead.String()))
+	defer failpoint.DefaultManager.Reset()
+
+	fp, ok := failpoint.DefaultManager.Get(failpoint.FailOplogCheckRead)
+	require.True(t, ok, "FailOplogCheckRead failpoint should be enabled")
+
+	fp.SetErrorFunc(cappedPositionLostError)
+
+	err = md.Dump()
+	require.ErrorContains(
+		t,
+		err,
+		"unable to check oplog for overflow",
+		"a read that never succeeds is reported as a failed check",
+	)
+	require.NotContains(
+		t,
+		err.Error(),
+		"oplog overflow:",
+		"a failed check is not reported as an oplog overflow",
+	)
+}
+
+func cappedPositionLostError() error {
+	return mongo.CommandError{
+		Code: cappedPositionLostErrCode,
+		Name: "CappedPositionLost",
+		Message: "CollectionScan died due to position in capped collection being deleted" +
+			" (injected by the FailOplogCheckRead failpoint)",
+	}
 }
