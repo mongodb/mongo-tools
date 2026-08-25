@@ -1172,8 +1172,14 @@ func TestDefaultWriteConcern(t *testing.T) {
 		t.Skip("Skipping non-SSL test with SSL configuration")
 	}
 
+	// These assert on parsed options, but New() still dials the server, so they have to point at
+	// the same one as every other test here. A hardcoded localhost:33333 is wrong whenever
+	// TOOLS_TESTING_MONGOD says otherwise -- the DSC cluster in CI listens on ephemeral ports.
 	Convey("with a URI that doesn't specify write concern", t, func() {
-		mf, err := getMongofilesWithArgs("get", "filename", "--uri", "mongodb://localhost:33333")
+		mf, err := getMongofilesWithArgs(
+			"get", "filename",
+			"--uri", toolOptions.URI.ConnectionString,
+		)
 		So(err, ShouldBeNil)
 		So(
 			mf.ToolOptions.WriteConcern,
@@ -1183,7 +1189,10 @@ func TestDefaultWriteConcern(t *testing.T) {
 	})
 
 	Convey("with no URI and no write concern option", t, func() {
-		mf, err := getMongofilesWithArgs("get", "filename", "--port", "33333")
+		mf, err := getMongofilesWithArgs(
+			"get", "filename",
+			"--host", strings.Join(toolOptions.URI.ConnString.Hosts, ","),
+		)
 		So(err, ShouldBeNil)
 		So(
 			mf.ToolOptions.WriteConcern,
