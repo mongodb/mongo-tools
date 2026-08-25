@@ -46,7 +46,7 @@ var (
 
 func TestMongorestoreShortArchive(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -101,7 +101,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 
 func TestMongorestoreArchiveWithOplog(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -125,7 +125,7 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 
 func TestMongorestoreBadFormatArchive(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -163,7 +163,7 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
 	withArchiveMongodump(t, func(archivePath string) {
-		sessionProvider, _, err := testutil.GetBareSessionProvider()
+		sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 		require.NoError(err)
 		args := []string{
 			NumParallelCollectionsOption, "1",
@@ -197,7 +197,7 @@ func TestMongorestoreArchiveAdminNamespaces(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")
 
 	fcv := testutil.GetFCV(session)
@@ -218,7 +218,7 @@ func TestMongorestoreArchiveAdminNamespaces(t *testing.T) {
 func testRestoreAdminNamespaces(t *testing.T) {
 	require := require.New(t)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
@@ -273,7 +273,7 @@ func testRestoreAdminNamespaces(t *testing.T) {
 func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 	require := require.New(t)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
@@ -423,8 +423,8 @@ func runArchiveMongodump(t *testing.T, file string, dumpArgs ...string) string {
 }
 
 // GetArchiveMongoDump returns a MongoDump that’s ready to call Dump().
-func GetArchiveMongoDump(output io.WriteCloser) (*mongodump.MongoDump, error) {
-	provider, toolOpts, err := testutil.GetBareSessionProvider()
+func GetArchiveMongoDump(t *testing.T, output io.WriteCloser) (*mongodump.MongoDump, error) {
+	provider, toolOpts, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider for dump")
 	}
@@ -448,8 +448,8 @@ func GetArchiveMongoDump(output io.WriteCloser) (*mongodump.MongoDump, error) {
 	return dump, nil
 }
 
-func GetArchiveMongoRestore(input io.ReadCloser) (*MongoRestore, error) {
-	_, toolOpts, err := testutil.GetBareSessionProvider()
+func GetArchiveMongoRestore(t *testing.T, input io.ReadCloser) (*MongoRestore, error) {
+	_, toolOpts, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider for dump")
 	}

@@ -101,7 +101,7 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "no cluster available")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
@@ -156,7 +156,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "no cluster available")
 
 	session, err := sessionProvider.GetSession()
@@ -242,7 +242,7 @@ func TestBadOptions(t *testing.T) {
 	dbName := "test"
 	collName := "mongoexport-bad-options"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestBrokenPipe(t *testing.T) {
 		collName = "docs"
 	)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 	client, err := sessionProvider.GetSession()
 	require.NoError(t, err)
@@ -706,7 +706,7 @@ func TestMongoExportMaxEstimatedScanBytes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "no cluster available")
 	defer sessionProvider.Close()
 

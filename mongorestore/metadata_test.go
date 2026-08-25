@@ -26,12 +26,12 @@ const ExistsDB = "restore_collection_exists"
 
 func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 	defer sessionProvider.Close()
 	restore := &MongoRestore{
@@ -67,13 +67,13 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 
 func TestCollectionExists(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
 
 	Convey("With a test mongorestore", t, func() {
-		sessionProvider, _, err := testutil.GetBareSessionProvider()
+		sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 		So(err, ShouldBeNil)
 		defer sessionProvider.Close()
 

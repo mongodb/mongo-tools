@@ -22,7 +22,7 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 
 	const collName = "coll"
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to the server")
 
 	testDB := session.Database(uniqueDBName())
@@ -109,7 +109,7 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 // latestOplogTimestamp returns the ts of the newest entry in local.oplog.rs,
 // which is the checkpoint the dump query filters on.
 func (s *DumpRestoreSuite) latestOplogTimestamp() bson.Timestamp {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to the server")
 
 	var entry struct {

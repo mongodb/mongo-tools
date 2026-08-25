@@ -20,9 +20,10 @@ func (s *IntegrationSuite) Context() context.Context {
 	return s.T().Context()
 }
 
-// Client creates a new MongoDB client. The caller is responsible for cleanup.
+// Client creates a new MongoDB client. It is disconnected when the test ends,
+// so the caller must not use it after that.
 func (s *IntegrationSuite) Client() *mongo.Client {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
 	s.Require().NoError(err, "no cluster available")
 
 	client, err := sessionProvider.GetSession()
@@ -76,7 +77,7 @@ func (s *IntegrationSuite) RequireFCVAtLeast(wantFCV string) {
 }
 
 func (s *IntegrationSuite) ServerVersion() db.Version {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
 	s.Require().NoError(err, "no cluster available")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()

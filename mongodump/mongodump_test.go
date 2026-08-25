@@ -189,7 +189,7 @@ func readBSONIntoDatabase(t *testing.T, dir, restoreDBName string) error {
 		return fmt.Errorf("error finding '%v' on local FS", dir)
 	}
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ func readBSONIntoDatabase(t *testing.T, dir, restoreDBName string) error {
 }
 
 func setUpMongoDumpTestData(t *testing.T) error {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func setUpMongoDumpTestData(t *testing.T) error {
 }
 
 func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "get session provider")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
@@ -345,8 +345,8 @@ func timeseriesCollName(version db.Version, base string) string {
 	return common.TimeseriesBucketPrefix + base
 }
 
-func setUpDBView(dbName string, colName string) error {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+func setUpDBView(t *testing.T, dbName string, colName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		return err
 	}
@@ -365,8 +365,8 @@ func setUpDBView(dbName string, colName string) error {
 	return nil
 }
 
-func turnOnProfiling(dbName string) error {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+func turnOnProfiling(t *testing.T, dbName string) error {
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		return err
 	}
@@ -409,7 +409,7 @@ func countSnapshotCmds(
 // function returns.  Any errors are passed back on the errs channel.
 func backgroundInsert(t *testing.T, ready, done chan struct{}, errs chan error) {
 	defer close(errs)
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		errs <- err
 		close(ready)
@@ -451,7 +451,7 @@ func backgroundInsert(t *testing.T, ready, done chan struct{}, errs chan error) 
 }
 
 func tearDownMongoDumpTestData(t *testing.T) error {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		return err
 	}
@@ -464,7 +464,7 @@ func tearDownMongoDumpTestData(t *testing.T) error {
 }
 
 func dropDB(t *testing.T, dbName string) error {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		return err
 	}
@@ -547,7 +547,7 @@ func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
 	So(err, ShouldBeNil)
 	So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	So(err, ShouldBeNil)
 
 	countColls, err := countNonIndexBSONFiles(dumpDBDir)
@@ -628,7 +628,7 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 	defer sessionProvider.Close()
 
@@ -790,7 +790,7 @@ func TestMongoDumpBSON(t *testing.T) {
 		Convey(
 			"testing that using MongoDump WITH a query dumps a subset of documents in a database and/or collection",
 			func() {
-				session, err := testutil.GetBareSession()
+				session, err := testutil.GetBareSession(t)
 				So(err, ShouldBeNil)
 				md, err := simpleMongoDumpInstance()
 				So(err, ShouldBeNil)
@@ -858,7 +858,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -971,7 +971,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		err = setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
-		sessionProvider, _, _ := testutil.GetBareSessionProvider()
+		sessionProvider, _, _ := testutil.GetBareSessionProvider(t)
 		So(sessionProvider, ShouldNotBeNil)
 		serverVersion, err := sessionProvider.ServerVersion()
 		So(err, ShouldBeNil)
@@ -1072,7 +1072,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-		session, err := testutil.GetBareSession()
+		session, err := testutil.GetBareSession(t)
 		So(session, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 
@@ -1172,7 +1172,7 @@ func TestMongoDumpOplog(t *testing.T) {
 	t.Skip()
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1268,7 +1268,7 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1325,7 +1325,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1361,7 +1361,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	}
 
 	// Turn on profiling.
-	if err = turnOnProfiling(dbName); err != nil {
+	if err = turnOnProfiling(t, dbName); err != nil {
 		t.Fatalf("Failed to turn on profiling: %v", err)
 	}
 
@@ -1392,7 +1392,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1518,10 +1518,10 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 
 		colName := "dump_view_as_collection"
 		dbName := testDB
-		err = setUpDBView(dbName, colName)
+		err = setUpDBView(t, dbName, colName)
 		So(err, ShouldBeNil)
 
-		err = turnOnProfiling(testDB)
+		err = turnOnProfiling(t, testDB)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
@@ -1558,7 +1558,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 			})
 
 			Convey("testing dumping a view, we should not hint index", func() {
-				session, err := testutil.GetBareSession()
+				session, err := testutil.GetBareSession(t)
 				So(err, ShouldBeNil)
 
 				dbStruct := session.Database(dbName)
@@ -1593,7 +1593,7 @@ func TestMongoDumpViews(t *testing.T) {
 
 		colName := "dump_views"
 		dbName := testDB
-		err = setUpDBView(dbName, colName)
+		err = setUpDBView(t, dbName, colName)
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
@@ -1628,7 +1628,7 @@ func TestMongoDumpViews(t *testing.T) {
 			})
 
 			Convey("testing dumping a view, we should not hint index", func() {
-				session, err := testutil.GetBareSession()
+				session, err := testutil.GetBareSession(t)
 				So(err, ShouldBeNil)
 
 				dbStruct := session.Database(dbName)
@@ -1743,7 +1743,7 @@ func TestCount(t *testing.T) {
 		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
-		session, err := testutil.GetBareSession()
+		session, err := testutil.GetBareSession(t)
 		So(err, ShouldBeNil)
 
 		collection := session.Database(testDB).Collection(testCollectionNames[0])
@@ -1787,7 +1787,7 @@ func TestCount(t *testing.T) {
 func TestTimeseriesCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
 
 	fcv := testutil.GetFCV(session)
@@ -1795,7 +1795,7 @@ func TestTimeseriesCollections(t *testing.T) {
 		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
 	}
 
-	sp, _, err := testutil.GetBareSessionProvider()
+	sp, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "get session provider")
 
 	serverVersion, err := sp.ServerVersionArray()
@@ -2180,7 +2180,7 @@ func TestTimeseriesCollections(t *testing.T) {
 func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
 
 	fcv := testutil.GetFCV(session)
@@ -2188,7 +2188,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 		t.Skipf("Requires server with FCV 5.0 or later; found %v", fcv)
 	}
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "get session provider")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
@@ -2268,7 +2268,7 @@ func TestFailDuringResharding(t *testing.T) {
 		"this test requires permissions that may not be available for an Atlas cluster",
 	)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("Failed to get session provider: %v", err)
 	}
@@ -2440,7 +2440,7 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 
 	collName := "students"
@@ -2540,7 +2540,7 @@ func TestBrokenPipe(t *testing.T) {
 		collName = "docs"
 	)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 	client, err := sessionProvider.GetSession()
 	require.NoError(t, err)
@@ -2573,7 +2573,7 @@ func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	log.SetWriter(io.Discard)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "get session provider")
 	defer sessionProvider.Close()
 
@@ -2698,10 +2698,10 @@ func TestTimeseriesDumpConcurrentWithSetFCV(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
 
-	sp, _, err := testutil.GetBareSessionProvider()
+	sp, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "get session provider")
 
 	serverVersion, err := sp.ServerVersionArray()

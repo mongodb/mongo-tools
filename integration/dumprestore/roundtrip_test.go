@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,7 +36,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 	s.T().Logf("start %#q", s.T().Name())
 	ctx := s.Context()
 
-	provider, _, err := testutil.GetBareSessionProvider()
+	provider, _, err := testutil.GetBareSessionProvider(s.T())
 	s.Require().NoError(err, "should get session provider")
 
 	s.T().Logf("getting session")
@@ -74,7 +75,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 	eg.Go(func() error {
 		defer writer.Close()
 
-		dump, err := getArchiveMongoDump(writer)
+		dump, err := getArchiveMongoDump(s.T(), writer)
 		if err != nil {
 			return errors.Wrap(err, "create mongodump")
 		}
@@ -89,7 +90,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 	eg.Go(func() error {
 		defer reader.Close()
 
-		restore, err := getArchiveMongoRestore(reader)
+		restore, err := getArchiveMongoRestore(s.T(), reader)
 		if err != nil {
 			return errors.Wrap(err, "create mongorestore")
 		}
@@ -118,7 +119,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 }
 
 func (s *DumpRestoreSuite) TestDumpAndRestoreConfigDB() {
-	_, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to server")
 
 	s.Run(
@@ -151,7 +152,7 @@ var userDefinedConfigCollectionNames = []string{
 }
 
 func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to server")
 
 	configDB := session.Database("config")
@@ -185,7 +186,7 @@ func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
 }
 
 func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections() {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to server")
 
 	// Drop any databases that other tests may have left behind with validators
@@ -250,8 +251,8 @@ func getRestoreWithArgs(additionalArgs ...string) (*mongorestore.MongoRestore, e
 	return restore, nil
 }
 
-func getArchiveMongoDump(output io.WriteCloser) (*mongodump.MongoDump, error) {
-	provider, toolOpts, err := testutil.GetBareSessionProvider()
+func getArchiveMongoDump(t *testing.T, output io.WriteCloser) (*mongodump.MongoDump, error) {
+	provider, toolOpts, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider for dump")
 	}
@@ -275,8 +276,8 @@ func getArchiveMongoDump(output io.WriteCloser) (*mongodump.MongoDump, error) {
 	return dump, nil
 }
 
-func getArchiveMongoRestore(input io.ReadCloser) (*mongorestore.MongoRestore, error) {
-	_, toolOpts, err := testutil.GetBareSessionProvider()
+func getArchiveMongoRestore(t *testing.T, input io.ReadCloser) (*mongorestore.MongoRestore, error) {
+	_, toolOpts, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider for restore")
 	}
@@ -319,7 +320,7 @@ func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) 
 func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 	ctx := s.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
@@ -381,7 +382,7 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
 	ctx := s.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
@@ -495,7 +496,7 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 					s.Run(
 						fmt.Sprintf("attempt %d", attemptNum),
 						func() {
-							session, err := testutil.GetBareSession()
+							session, err := testutil.GetBareSession(s.T())
 							s.Require().NoError(err, "should connect to server")
 
 							ctx := s.Context()
@@ -565,7 +566,7 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 	}
 }
 func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "no server available")
 
 	s.Run("drops tempusers and temproles", func() {
@@ -649,7 +650,7 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 	ctx := s.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
 	s.Require().NoError(err, "no cluster available")
 
 	defer sessionProvider.Close()
@@ -752,7 +753,7 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 	ctx := s.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
 	s.Require().NoError(err, "no cluster available")
 
 	defer sessionProvider.Close()
@@ -815,7 +816,7 @@ func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 }
 
 func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
 	s.Require().NoError(err)
 
 	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
@@ -827,7 +828,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 	testName := s.DBName()
 	dbName := s.DBName(util.MongoDBInternalDBPrefix)
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "must connect to server")
 
 	internalColl := client.Database(dbName).Collection(testName)
@@ -902,7 +903,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
 	ctx := s.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to server")
 
 	allNames := []string{

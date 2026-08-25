@@ -367,7 +367,7 @@ func writeNonDumpFile(t *testing.T) string {
 // finishes.
 func testClientWithDroppedDB(t *testing.T, dbName string) *mongo.Client {
 	t.Helper()
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "connecting to the test server")
 	t.Cleanup(func() { _ = client.Database(dbName).Drop(t.Context()) })
 	return client

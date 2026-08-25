@@ -141,7 +141,7 @@ func TestMongorestore(t *testing.T) {
 		testtype.ShardedIntegrationTestType,
 	)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -284,7 +284,7 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 		testtype.ShardedIntegrationTestType,
 	)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -392,7 +392,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -508,7 +508,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 
 func TestMongorestorePreserveUUID(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -667,7 +667,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 		t.Fatalf("Couldn't generate test data %v", err)
 	}
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -743,7 +743,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 
 func TestDeprecatedIndexOptions(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -819,7 +819,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -913,7 +913,7 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -1052,7 +1052,7 @@ func TestKnownCollections(t *testing.T) {
 		testtype.IntegrationTestType,
 		testtype.ShardedIntegrationTestType,
 	)
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -1097,7 +1097,7 @@ func TestKnownCollections(t *testing.T) {
 
 func TestReadPreludeMetadata(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -1196,7 +1196,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 
 func TestFixHashedIndexes(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -1299,7 +1299,7 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := t.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1315,7 +1315,7 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 		)
 	}
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -1370,7 +1370,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := t.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1386,7 +1386,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 		)
 	}
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -1500,7 +1500,7 @@ func TestSkipSystemCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := t.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1581,7 +1581,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	ctx := t.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1649,7 +1649,7 @@ func TestCommitIndexBuild(t *testing.T) {
 	ctx := t.Context()
 	testDB := "commit_index"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1739,7 +1739,7 @@ func TestCreateIndexes(t *testing.T) {
 	ctx := t.Context()
 	testDB := "create_indexes"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1824,7 +1824,7 @@ func TestGeoHaystackIndexes(t *testing.T) {
 	ctx := t.Context()
 	dbName := "geohaystack_test"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
 	}
@@ -1888,7 +1888,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	dbName := "timeseries_test"
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "no cluster available")
 
 	defer sessionProvider.Close()
@@ -2403,7 +2403,7 @@ func TestRestoreClusteredIndex(t *testing.T) {
 
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")
 
 	fcv := testutil.GetFCV(session)
@@ -2433,7 +2433,7 @@ func TestRestoreClusteredIndex(t *testing.T) {
 func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 	require := require.New(t)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()
@@ -2467,7 +2467,7 @@ func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 func testRestoreClusteredIndexFromOplog(t *testing.T, indexName string) {
 	require := require.New(t)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")
 
 	dbName := uniqueDBName()

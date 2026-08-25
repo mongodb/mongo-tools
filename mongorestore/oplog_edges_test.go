@@ -26,7 +26,7 @@ import (
 func TestOplogReplayConflict(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 	coll := client.Database("test").Collection("data")
 	require.NoError(t, coll.Drop(context.Background()), "dropping target collection")
@@ -60,7 +60,7 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 	// mongos rejects writes to the local database.
 	testutil.SkipUnlessStandalone(t)
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 	testDB := client.Database("test")
 	dataColl := testDB.Collection("data")
@@ -112,7 +112,7 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 func TestOplogReplayNoop(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 	coll := client.Database("test").Collection("data")
 	require.NoError(t, coll.Drop(context.Background()), "dropping target collection")
@@ -150,12 +150,12 @@ func TestOplogReplayNoop(t *testing.T) {
 func TestOplogReplayPreservesComplexIDOrder(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 	serverVersion, err := sessionProvider.ServerVersionArray()
 	require.NoError(t, err)
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 	testDB := client.Database("test")
 	coll := testDB.Collection("foobar")
@@ -253,7 +253,7 @@ func writeOplogUpdate(t *testing.T, path, ns string, id bson.D) {
 func TestOplogReplaySizeSafety(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 	testDB := client.Database("test")
 	coll := testDB.Collection("op")

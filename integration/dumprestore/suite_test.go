@@ -169,7 +169,7 @@ func (s *DumpRestoreSuite) timeseriesBucketsMayHaveMixedSchemaData(
 }
 
 func (s *DumpRestoreSuite) setupTimeseriesWithMixedSchema(dbName string, collName string) {
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
 	s.Require().NoError(err, "get session provider")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
@@ -221,7 +221,7 @@ func (s *DumpRestoreSuite) setupTimeseriesWithMixedSchema(dbName string, collNam
 // because the suite's DBName truncates to 63 bytes, which leaves too few
 // distinguishing characters for these deeply nested subtests.
 func (s *DumpRestoreSuite) database(name string) *mongo.Database {
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to the server")
 
 	return session.Database("dumprestore_" + name)
