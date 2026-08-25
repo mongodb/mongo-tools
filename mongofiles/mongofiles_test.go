@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -1173,7 +1174,10 @@ func TestDefaultWriteConcern(t *testing.T) {
 	}
 
 	Convey("with a URI that doesn't specify write concern", t, func() {
-		mf, err := getMongofilesWithArgs("get", "filename", "--uri", "mongodb://localhost:33333")
+		mf, err := getMongofilesWithArgs(
+			"get", "filename",
+			"--uri", uriWithoutWriteConcern(toolOptions.URI.ConnectionString),
+		)
 		So(err, ShouldBeNil)
 		So(
 			mf.ToolOptions.WriteConcern,
@@ -1183,7 +1187,10 @@ func TestDefaultWriteConcern(t *testing.T) {
 	})
 
 	Convey("with no URI and no write concern option", t, func() {
-		mf, err := getMongofilesWithArgs("get", "filename", "--port", "33333")
+		mf, err := getMongofilesWithArgs(
+			"get", "filename",
+			"--host", strings.Join(toolOptions.URI.ConnString.Hosts, ","),
+		)
 		So(err, ShouldBeNil)
 		So(
 			mf.ToolOptions.WriteConcern,
@@ -1191,6 +1198,24 @@ func TestDefaultWriteConcern(t *testing.T) {
 			wcwrapper.Majority(),
 		)
 	})
+}
+
+// TOOLS_TESTING_MONGOD may name a write concern, which would make the subtest above assert on that
+// instead of on the default it is testing for.
+func uriWithoutWriteConcern(uri string) string {
+	parsed, err := url.Parse(uri)
+	So(err, ShouldBeNil)
+
+	query := parsed.Query()
+	for key := range query {
+		switch strings.ToLower(key) {
+		case "w", "journal", "j", "wtimeoutms", "wtimeout", "safe":
+			query.Del(key)
+		}
+	}
+	parsed.RawQuery = query.Encode()
+
+	return parsed.String()
 }
 
 func runPutIDTestCase(idToTest string, t *testing.T) {
