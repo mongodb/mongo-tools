@@ -313,6 +313,34 @@ func SkipForAtlasCluster(t *testing.T, reason string) {
 	}
 }
 
+// SkipForDisaggregatedStorage will skip the test if the server is running with disaggregated
+// storage (DSC) enabled.
+//
+// Use this for tests that depend on a server feature DSC does not support, naming that feature in
+// the reason. It deliberately keys off DSC rather than off the unsupported operation failing, so an
+// unexpected failure of that same operation elsewhere still fails the test loudly instead of
+// quietly skipping it.
+func SkipForDisaggregatedStorage(t *testing.T, reason string) {
+	session, err := GetBareSession()
+	require.NoError(t, err, "getting a session to check for disaggregated storage")
+
+	var res struct {
+		DisaggregatedStorageEnabled bool `bson:"disaggregatedStorageEnabled"`
+	}
+
+	cmd := bson.D{{"getParameter", 1}, {"disaggregatedStorageEnabled", 1}}
+	err = session.Database("admin").RunCommand(t.Context(), cmd).Decode(&res)
+	if err != nil {
+		// A server built without disaggregated storage does not know this parameter at all, so an
+		// error here just means this is not a DSC server.
+		return
+	}
+
+	if res.DisaggregatedStorageEnabled {
+		t.Skipf("Skipping test because the server uses disaggregated storage: %s", reason)
+	}
+}
+
 // WriteTempFile writes the contents of r to a tempfile, then hands you back the (closed) file.
 func WriteTempFile(t *testing.T, r io.Reader) *os.File {
 	file, err := os.CreateTemp("", "toolstest_")
