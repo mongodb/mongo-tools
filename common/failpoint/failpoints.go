@@ -31,6 +31,7 @@ var (
 	PauseBeforeDumping = newName("PauseBeforeDumping")
 	SlowBSONDump       = newName("SlowBSONDump")
 	PauseUntilResumed  = newName("PauseUntilResumed")
+	FailOplogCheckRead = newName("FailOplogCheckRead")
 )
 
 // parseNames splits arg, a comma-separated list of failpoint names as

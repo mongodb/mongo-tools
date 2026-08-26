@@ -72,9 +72,13 @@ func (p *pauseSignal) signal() {
 
 // Failpoint represents one named failpoint's runtime state — for failpoints
 // that need to pause code until externally resumed, the signaling to
-// coordinate that pause.
+// coordinate that pause, and for failpoints that inject a failure, the error
+// to inject.
 type Failpoint struct {
 	pause *pauseSignal
+
+	mu      sync.Mutex
+	errFunc func() error
 }
 
 func newFailpoint() *Failpoint {
@@ -97,6 +101,30 @@ func (fp *Failpoint) Reached(ctx context.Context) error {
 // Signal releases a call blocked in Wait. Safe to call more than once.
 func (fp *Failpoint) Signal() {
 	fp.pause.signal()
+}
+
+// SetErrorFunc sets the function that InjectedError calls. Tests use it to
+// decide both which error this failpoint injects and how often, e.g. by
+// guarding the error with a sync.Once to inject a transient error that a retry
+// is then allowed to recover from.
+func (fp *Failpoint) SetErrorFunc(fn func() error) {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+	fp.errFunc = fn
+}
+
+// InjectedError returns the error that this failpoint should inject at the
+// point where it is called, or nil if no error func has been set.
+func (fp *Failpoint) InjectedError() error {
+	fp.mu.Lock()
+	fn := fp.errFunc
+	fp.mu.Unlock()
+
+	if fn == nil {
+		return nil
+	}
+
+	return fn()
 }
 
 // Manager tracks which failpoints are currently enabled.
