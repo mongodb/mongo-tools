@@ -124,6 +124,7 @@ func New(opts Options) (*MongoExport, error) {
 
 	exporter.version, err = provider.ServerVersionArray()
 	if err != nil {
+		provider.Close()
 		return nil, util.SetupError{
 			Err:     err,
 			Message: "failed to get server version",

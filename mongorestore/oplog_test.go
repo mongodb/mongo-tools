@@ -135,7 +135,7 @@ func TestValidOplogLimitChecking(t *testing.T) {
 func TestOplogRestore(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -181,7 +181,7 @@ func TestOplogRestore(t *testing.T) {
 func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -217,14 +217,14 @@ func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
 	//nolint:errcheck
 	defer session.Disconnect(t.Context())
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No session provider available")
 	}
@@ -496,7 +496,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -604,7 +604,7 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 
 func TestOplogRestoreTools2002(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	_, err := testutil.GetBareSession()
+	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}
@@ -706,7 +706,7 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
@@ -786,7 +786,7 @@ func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
@@ -850,7 +850,7 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
@@ -901,7 +901,7 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
@@ -957,7 +957,7 @@ func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "should be able to get a session")
 	//nolint:errcheck
 	defer session.Disconnect(ctx)
@@ -1053,7 +1053,7 @@ func TestOplogRestoreDropIdent(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "should be able to get a session")
 	//nolint:errcheck
 	defer session.Disconnect(ctx)

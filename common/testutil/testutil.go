@@ -26,10 +26,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
-// GetBareSession returns an mgo.Session from the environment or
-// from a default host and port.
-func GetBareSession() (*mongo.Client, error) {
-	sessionProvider, _, err := GetBareSessionProvider()
+// GetBareSession returns a client from the environment or from a default host
+// and port. The underlying session provider is closed when the test ends, so
+// the returned client must not be used after that.
+func GetBareSession(t *testing.T) (*mongo.Client, error) {
+	t.Helper()
+
+	sessionProvider, _, err := GetBareSessionProvider(t)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +44,17 @@ func GetBareSession() (*mongo.Client, error) {
 }
 
 // GetBareSessionProvider returns a session provider from the environment or
-// from a default host and port.
-func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error) {
+// from a default host and port. The provider is closed when the test ends, so
+// the caller must not close it, and must not use it after that.
+//
+// An unclosed provider leaves the driver's topology-monitoring goroutines
+// running for the remainder of the test binary's run, which is why this takes a
+// *testing.T rather than leaving the close to each caller.
+func GetBareSessionProvider(
+	t *testing.T,
+) (*db.SessionProvider, *options.ToolOptions, error) {
+	t.Helper()
+
 	toolOptions, err := GetToolOptions()
 	if err != nil {
 		return nil, nil, fmt.Errorf(
@@ -55,6 +67,7 @@ func GetBareSessionProvider() (*db.SessionProvider, *options.ToolOptions, error)
 	if err != nil {
 		return nil, nil, err
 	}
+	t.Cleanup(sessionProvider.Close)
 
 	return sessionProvider, toolOptions, nil
 }
@@ -183,7 +196,7 @@ func CompareFCV(x, y string) (int, error) {
 }
 
 func SkipIfFCVLessThan(t *testing.T, versionStr string, reason string) {
-	session, err := GetBareSession()
+	session, err := GetBareSession(t)
 	require.NoError(t, err)
 
 	fcv := GetFCV(session)
@@ -204,8 +217,9 @@ func SkipIfFCVLessThan(t *testing.T, versionStr string, reason string) {
 // only permitted on a standalone: a replica set rejects direct oplog writes and
 // mongos rejects writes to the local database.
 func SkipUnlessStandalone(t *testing.T) {
-	sessionProvider, _, err := GetBareSessionProvider()
+	sessionProvider, _, err := GetBareSessionProvider(t)
 	require.NoError(t, err)
+
 	nodeType, err := sessionProvider.GetNodeType()
 	require.NoError(t, err)
 	if nodeType != db.Standalone {

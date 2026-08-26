@@ -38,7 +38,7 @@ type txnTestDataCase struct {
 
 func TestMongorestoreTxns(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
 	}

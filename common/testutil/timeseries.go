@@ -12,7 +12,7 @@ import (
 // This sets up a timeseries collection and inserts 1000 logical documents into 10 bucket documents.
 // The timeField is 'ts', the metaField  is 'my_meta', and there's an index on 'my_meta.device'.
 func SetUpTimeseries(t *testing.T, dbName string, colName string) {
-	sessionProvider, _, err := GetBareSessionProvider()
+	sessionProvider, _, err := GetBareSessionProvider(t)
 	require.NoError(t, err, "get session provider")
 
 	timeseriesOptions := bson.D{

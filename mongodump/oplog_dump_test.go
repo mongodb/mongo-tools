@@ -73,7 +73,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 
 	log.SetWriter(io.Discard)
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
 	require.NoError(t, fp.Reached(context.TODO()))
-	require.NoError(t, vectoredInsert(ctx))
+	require.NoError(t, vectoredInsert(t, ctx))
 	fp.Signal()
 
 	require.NoError(t, <-dumpErrCh)
@@ -152,8 +152,8 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 	)
 }
 
-func vectoredInsert(ctx context.Context) error {
-	client, err := testutil.GetBareSession()
+func vectoredInsert(t *testing.T, ctx context.Context) error {
+	client, err := testutil.GetBareSession(t)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 	fp, ok := failpoint.DefaultManager.Get(failpoint.PauseUntilResumed)
 	require.True(t, ok, "PauseUntilResumed failpoint should be enabled")
 	require.NoError(t, fp.Reached(context.TODO()))
-	require.NoError(t, createIndexesAndCollModIndexUniqueness(ctx))
+	require.NoError(t, createIndexesAndCollModIndexUniqueness(t, ctx))
 	fp.Signal()
 
 	require.NoError(t, <-dumpErrCh)
@@ -284,8 +284,8 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 	require.Equal(t, 4, forceNonUniqueCount)
 }
 
-func createIndexesAndCollModIndexUniqueness(ctx context.Context) error {
-	client, err := testutil.GetBareSession()
+func createIndexesAndCollModIndexUniqueness(t *testing.T, ctx context.Context) error {
+	client, err := testutil.GetBareSession(t)
 	if err != nil {
 		return err
 	}
@@ -364,7 +364,7 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
@@ -446,7 +446,7 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 }
 
 func createCollectionWithValidatorAndInsertBypassValidation(ctx context.Context, t *testing.T) {
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 
 	testCollName := testCollectionNames[0]
@@ -504,7 +504,7 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 
 	ctx := t.Context()
 
-	session, err := testutil.GetBareSession()
+	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 
 	testCollName := testCollectionNames[0]
@@ -596,7 +596,7 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 }
 
 func convertIndexToTTL(ctx context.Context, t *testing.T) {
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 
 	testCollName := testCollectionNames[0]

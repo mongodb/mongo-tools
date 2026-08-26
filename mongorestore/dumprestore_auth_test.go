@@ -39,9 +39,9 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 		restoreFooUser     = "enforces_restfoo"
 	)
 
-	adminClient, err := testutil.GetBareSession()
+	adminClient, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 	serverVersion, err := sessionProvider.ServerVersionArray()
 	require.NoError(t, err)
@@ -252,7 +252,7 @@ func dumpRestorePreservesAdminUsersAndRoles(t *testing.T, backupRole, restoreRol
 		customRole2 = "preserves_custom2" // used in drop_restore_overrides_mutations subtest
 	)
 
-	adminClient, err := testutil.GetBareSession()
+	adminClient, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 
 	adminDB := adminClient.Database("admin")
@@ -460,7 +460,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		barUser2Name       = "singledb_baruser2"  // used in admin_db subtest
 	)
 
-	adminClient, err := testutil.GetBareSession()
+	adminClient, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
 
 	adminDB := adminClient.Database("admin")
@@ -924,9 +924,9 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 		dbUser = "restorewithauth_user"
 	)
 
-	adminClient, err := testutil.GetBareSession()
+	adminClient, err := testutil.GetBareSession(t)
 	require.NoError(t, err)
-	sessionProvider, _, err := testutil.GetBareSessionProvider()
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err)
 	serverVersion, err := sessionProvider.ServerVersionArray()
 	require.NoError(t, err)

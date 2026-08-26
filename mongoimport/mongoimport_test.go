@@ -1507,7 +1507,7 @@ func TestImportMIOSOE(t *testing.T) {
 		t.Fatalf("Could not generate test data: %v", err)
 	}
 
-	client, err := testutil.GetBareSession()
+	client, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available?? (%v)", err)
 	}
