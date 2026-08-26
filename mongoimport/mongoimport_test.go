@@ -53,27 +53,11 @@ func checkOnlyHasDocuments(
 		return err
 	}
 
-	collection := session.Database(testDb).Collection(testCollection)
-	cursor, err := collection.Find(
-		t.Context(),
-		bson.D{},
-		mopt.Find().SetSort(bson.D{{"_id", 1}}),
-	)
+	docs, err := findAllDocumentsByID(t, session)
 	if err != nil {
 		return err
 	}
 
-	var docs []bson.M
-	for cursor.Next(t.Context()) {
-		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(cursor.Current)))
-		decoder.DefaultDocumentM()
-		var doc bson.M
-		if err := decoder.Decode(&doc); err != nil {
-			return err
-		}
-
-		docs = append(docs, doc)
-	}
 	if len(docs) != len(expectedDocuments) {
 		return fmt.Errorf("document count mismatch: expected %#v, got %#v",
 			len(expectedDocuments), len(docs))
@@ -87,6 +71,60 @@ func checkOnlyHasDocuments(
 	}
 
 	return nil
+}
+
+// Some imports leave a document whose contents depend on which of several conflicting writes
+// reached the server first, which mongoimport only orders when --maintainInsertionOrder is set.
+// This passes if the collection matches any one of the acceptable outcomes.
+func checkOnlyHasOneOfDocumentSets(
+	t *testing.T,
+	sessionProvider *db.SessionProvider,
+	acceptableDocumentSets [][]bson.M,
+) error {
+	session, err := sessionProvider.GetSession()
+	if err != nil {
+		return err
+	}
+
+	docs, err := findAllDocumentsByID(t, session)
+	if err != nil {
+		return err
+	}
+
+	for _, expectedDocuments := range acceptableDocumentSets {
+		if reflect.DeepEqual(docs, expectedDocuments) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("document mismatch: expected any of %#v, got %#v",
+		acceptableDocumentSets, docs)
+}
+
+func findAllDocumentsByID(t *testing.T, session *mongo.Client) ([]bson.M, error) {
+	collection := session.Database(testDb).Collection(testCollection)
+	cursor, err := collection.Find(
+		t.Context(),
+		bson.D{},
+		mopt.Find().SetSort(bson.D{{"_id", 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var docs []bson.M
+	for cursor.Next(t.Context()) {
+		decoder := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(cursor.Current)))
+		decoder.DefaultDocumentM()
+		var doc bson.M
+		if err := decoder.Decode(&doc); err != nil {
+			return nil, err
+		}
+
+		docs = append(docs, doc)
+	}
+
+	return docs, cursor.Err()
 }
 
 func countDocuments(t *testing.T, sessionProvider *db.SessionProvider) (int, error) {
@@ -720,14 +758,23 @@ func TestImportDocuments(t *testing.T) {
 				So(numProcessed, ShouldEqual, 4)
 				So(numFailed, ShouldEqual, 1)
 
-				expectedDocuments := []bson.M{
-					{"_id": int32(1), "b": int32(2), "c": int32(3)},
-					{"_id": int32(3), "b": 5.4, "c": "string"},
-					{"_id": int32(5), "b": int32(6), "c": int32(6)},
-					{"_id": int32(8), "b": int32(6), "c": int32(6)},
+				// All docs except the one with a duplicate _id should be imported. This import is
+				// unordered (--maintainInsertionOrder is unset), which is what lets it continue
+				// past the duplicate key error, so whichever _id:5 row loses the race is the one
+				// that errors out and either may be the survivor.
+				var acceptableDocumentSets [][]bson.M
+				for _, cOfDuplicate := range []int32{6, 9} {
+					acceptableDocumentSets = append(acceptableDocumentSets, []bson.M{
+						{"_id": int32(1), "b": int32(2), "c": int32(3)},
+						{"_id": int32(3), "b": 5.4, "c": "string"},
+						{"_id": int32(5), "b": int32(6), "c": cOfDuplicate},
+						{"_id": int32(8), "b": int32(6), "c": int32(6)},
+					})
 				}
-				// all docs except the one with duplicate _id - should be imported
-				So(checkOnlyHasDocuments(t, imp.SessionProvider, expectedDocuments), ShouldBeNil)
+				So(
+					checkOnlyHasOneOfDocumentSets(t, imp.SessionProvider, acceptableDocumentSets),
+					ShouldBeNil,
+				)
 			},
 		)
 		Convey("no error should be thrown for CSV import on test data with --drop", func() {
@@ -931,6 +978,10 @@ func TestImportDocuments(t *testing.T) {
 			imp.IngestOptions.Mode = modeUpsert
 			imp.IngestOptions.StopOnError = true
 			imp.upsertFields = []string{"_id"}
+			// The file upserts _id:5 twice and this asserts the later row wins, which is only
+			// guaranteed when the writes are ordered. No document errors here, so ordering them
+			// does not change what this test covers.
+			imp.IngestOptions.MaintainInsertionOrder = true
 			numProcessed, numFailed, err := imp.ImportDocuments()
 			So(err, ShouldBeNil)
 			So(numProcessed, ShouldEqual, 5)
