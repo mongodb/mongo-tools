@@ -432,7 +432,9 @@ func TestMisconfigureClientAKS(t *testing.T) {
 		URI:        true,
 	}
 
-	// We don't set AZURE_FEDERATED_TOKEN_FILE here
+	// configureClient uses os.LookupEnv, so an ambient AZURE_FEDERATED_TOKEN_FILE
+	// would make this configuration succeed. t.Setenv can't express "unset".
+	unsetEnvForTest(t, "AZURE_FEDERATED_TOKEN_FILE")
 	t.Setenv("AZURE_APP_CLIENT_ID", "test")
 	t.Setenv("AZURE_IDENTITY_CLIENT_ID", "test")
 	t.Setenv("AZURE_TENANT_ID", "test")
@@ -461,4 +463,15 @@ func configureClientAndDisconnectAtEnd(t *testing.T, opts options.ToolOptions) e
 	}
 
 	return err
+}
+
+func unsetEnvForTest(t *testing.T, name string) {
+	orig, wasSet := os.LookupEnv(name)
+	require.NoError(t, os.Unsetenv(name), "unset %s", name)
+
+	if wasSet {
+		t.Cleanup(func() {
+			require.NoError(t, os.Setenv(name, orig), "restore %s", name)
+		})
+	}
 }
