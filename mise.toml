@@ -7,7 +7,7 @@
 [tools]
 # Go and Go tools
 go = "1.26.7"
-"go:golang.org/x/tools/gopls" = "0.21.1"
+"go:golang.org/x/tools/gopls" = "0.23.0"
 "github:golangci/golangci-lint" = "2.12.2"
 "github:securego/gosec" = "2.27.1"
 "github:houseabsolute/precious" = "0.10.2"
