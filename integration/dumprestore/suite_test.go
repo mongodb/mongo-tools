@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
@@ -41,7 +42,7 @@ func (s *DumpRestoreSuite) withBSONMongodump(testCase func(string), args ...stri
 
 func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
-	cmd = append(cmd, testutil.GetBareArgs()...)
+	cmd = append(cmd, testopts.GetBareArgs()...)
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")

@@ -32,6 +32,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/json"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/pkg/errors"
@@ -62,7 +63,7 @@ const (
 )
 
 func simpleMongoDumpInstance() (*MongoDump, error) {
-	toolOptions, err := testutil.GetToolOptions()
+	toolOptions, err := testopts.GetToolOptions()
 	if err != nil {
 		return nil, fmt.Errorf("error getting tool options to create a mongodump instance: %w", err)
 	}
@@ -2566,7 +2567,7 @@ func TestBrokenPipe(t *testing.T) {
 
 	args := append(
 		[]string{"run", filepath.Join("..", "mongodump", "main")},
-		testutil.GetBareArgs()...,
+		testopts.GetBareArgs()...,
 	)
 	args = append(args, "--db", dbName, "--archive=-")
 	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))

@@ -11,7 +11,7 @@ import (
 	"os"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -41,7 +41,7 @@ func (s *ExportImportSuite) TestImportDocumentValidation() {
 	_, err := db.Collection(collName).InsertMany(s.Context(), docs)
 	s.Require().NoError(err)
 
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	me, err := mongoexport.New(mongoexport.Options{

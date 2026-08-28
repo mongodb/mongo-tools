@@ -19,13 +19,12 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/wcwrapper"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 // GetBareSession returns a client from the environment or from a default host
@@ -57,7 +56,7 @@ func GetBareSessionProvider(
 ) (*db.SessionProvider, *options.ToolOptions, error) {
 	t.Helper()
 
-	toolOptions, err := GetToolOptions()
+	toolOptions, err := testopts.GetToolOptions()
 	if err != nil {
 		return nil, nil, fmt.Errorf(
 			"error getting tool options to create a bare session provider: %w",
@@ -72,80 +71,6 @@ func GetBareSessionProvider(
 	t.Cleanup(sessionProvider.Close)
 
 	return sessionProvider, toolOptions, nil
-}
-
-const uriEnvVar = "TOOLS_TESTING_MONGOD"
-
-func GetToolOptions() (*options.ToolOptions, error) {
-	var toolOptions *options.ToolOptions
-	// get ToolOptions from URI or defaults
-	if uri := os.Getenv(uriEnvVar); uri != "" {
-		parse, err := connstring.ParseAndValidate(uri)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"%#q from the %#q env var is not a valid connection string: %w",
-				uri,
-				uriEnvVar,
-				err,
-			)
-		}
-
-		fakeArgs := []string{"--uri=" + uri}
-		opts := options.EnabledOptions{Auth: parse.UsernameSet, URI: true}
-		toolOptions = options.New("mongodump", "", "", "", true, opts)
-
-		_, err = toolOptions.ParseArgs(fakeArgs)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"could not create toolOptions with %#q from the %#q env var: %w",
-				uri,
-				uriEnvVar,
-				err,
-			)
-		}
-
-		// ParseArgs does not set this, but tools like mongoimport and mongorestore
-		// dereference it without a nil check.
-		toolOptions.WriteConcern = wcwrapper.Majority()
-	} else {
-		ssl := GetSSLOptions()
-		auth := GetAuthOptions()
-		connection := &options.Connection{
-			Host: "localhost",
-			Port: db.DefaultTestPort,
-		}
-		toolOptions = &options.ToolOptions{
-			General:      &options.General{},
-			SSL:          &ssl,
-			Connection:   connection,
-			Auth:         &auth,
-			Verbosity:    &options.Verbosity{},
-			URI:          &options.URI{},
-			Namespace:    &options.Namespace{},
-			WriteConcern: wcwrapper.Majority(),
-		}
-	}
-
-	err := toolOptions.NormalizeOptionsAndURI()
-	if err != nil {
-		return nil, err
-	}
-
-	return toolOptions, nil
-}
-
-func GetBareArgs() []string {
-	args := []string{}
-
-	args = append(args, GetSSLArgs()...)
-	args = append(args, GetAuthArgs()...)
-	if uri := os.Getenv(uriEnvVar); uri != "" {
-		args = append(args, "--uri", uri)
-	} else {
-		args = append(args, "--host", "localhost", "--port", db.DefaultTestPort)
-	}
-
-	return args
 }
 
 // GetFCV returns the featureCompatibilityVersion string for an mgo Session
@@ -313,7 +238,7 @@ var atlasDomains = []string{
 
 // SkipForAtlasCluster will skip the test if `TOOLS_TESTING_MONGOD` is an Atlas URI.
 func SkipForAtlasCluster(t *testing.T, reason string) {
-	uri := os.Getenv(uriEnvVar)
+	uri := os.Getenv(testopts.URIEnvVar)
 	if uri == "" {
 		return
 	}
@@ -322,7 +247,7 @@ func SkipForAtlasCluster(t *testing.T, reason string) {
 		if strings.Contains(uri, d) {
 			t.Skipf(
 				"The %#q env var is for an Atlas cluster: %s",
-				uriEnvVar,
+				testopts.URIEnvVar,
 				reason,
 			)
 		}

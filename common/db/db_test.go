@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,7 +60,6 @@ func DBGetSSLOptions() options.SSL {
 func DBGetConnString() *options.URI {
 	if testtype.HasTestType(testtype.SSLTestType) {
 		return &options.URI{
-			//ConnectionString: "mongodb://localhost" + DefaultTestPort + "/",
 			ConnString: &connstring.ConnString{
 				SSLCaFileSet:                   true,
 				SSLCaFile:                      "../db/testdata/ca-ia.pem",
@@ -80,7 +80,7 @@ func TestNewSessionProvider(t *testing.T) {
 
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port: DefaultTestPort,
+			Port: testopts.DefaultTestPort,
 		},
 		URI:  DBGetConnString(),
 		SSL:  &ssl,
@@ -128,7 +128,7 @@ func TestDatabaseNames(t *testing.T) {
 
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port: DefaultTestPort,
+			Port: testopts.DefaultTestPort,
 		},
 		URI:  DBGetConnString(),
 		SSL:  &ssl,
@@ -165,7 +165,7 @@ func TestFindOne(t *testing.T) {
 
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port: DefaultTestPort,
+			Port: testopts.DefaultTestPort,
 		},
 		URI:  DBGetConnString(),
 		SSL:  &ssl,
@@ -196,7 +196,7 @@ func TestGetIndexes(t *testing.T) {
 	ssl := DBGetSSLOptions()
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port: DefaultTestPort,
+			Port: testopts.DefaultTestPort,
 		},
 		URI:  DBGetConnString(),
 		SSL:  &ssl,
@@ -252,7 +252,7 @@ func TestServerVersionArray(t *testing.T) {
 
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port: DefaultTestPort,
+			Port: testopts.DefaultTestPort,
 			Host: "localhost",
 		},
 		URI:  DBGetConnString(),
@@ -279,7 +279,7 @@ func TestServerCertificateVerification(t *testing.T) {
 	ssl.SSLCAFile = "../db/testdata/ia.pem"
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port:    DefaultTestPort,
+			Port:    testopts.DefaultTestPort,
 			Timeout: 10,
 		},
 		URI:  DBGetConnString(),
@@ -309,7 +309,7 @@ func TestServerPKCS8Verification(t *testing.T) {
 		ssl.SSLPEMKeyFile = "../db/testdata/test-client-pkcs8-unencrypted.pem"
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
-				Port:    DefaultTestPort,
+				Port:    testopts.DefaultTestPort,
 				Timeout: 10,
 			},
 			URI:  DBGetConnString(),
@@ -328,7 +328,7 @@ func TestServerPKCS8Verification(t *testing.T) {
 		ssl.SSLPEMKeyPassword = os.Getenv(PKCS8Password)
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
-				Port:    DefaultTestPort,
+				Port:    testopts.DefaultTestPort,
 				Timeout: 10,
 			},
 			URI:  DBGetConnString(),

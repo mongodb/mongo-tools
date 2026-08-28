@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -90,7 +90,7 @@ func (s *ExportImportSuite) TestRoundTripJSONArray() {
 	_, err := coll.InsertMany(s.Context(), docs)
 	s.Require().NoError(err)
 
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -112,7 +112,7 @@ func (s *ExportImportSuite) TestRoundTripJSONArray() {
 
 	s.Require().NoError(coll.Drop(s.Context()))
 
-	importWithoutFlagOpts, err := testutil.GetToolOptions()
+	importWithoutFlagOpts, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	importWithoutFlagOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -128,7 +128,7 @@ func (s *ExportImportSuite) TestRoundTripJSONArray() {
 	s.Require().NoError(err)
 	s.Assert().EqualValues(0, n, "nothing should have been imported without --jsonArray")
 
-	importToolOptions, err := testutil.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err = mongoimport.New(mongoimport.Options{
@@ -162,7 +162,7 @@ func (s *ExportImportSuite) exportJSONAndImport(dbName, fields string, db *mongo
 	s.Require().NoError(err)
 	s.Require().NoError(tmpFile.Close())
 
-	exportToolOptions, err := testutil.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -182,7 +182,7 @@ func (s *ExportImportSuite) exportJSONAndImport(dbName, fields string, db *mongo
 	s.Require().NoError(err)
 	s.Require().NoError(f.Close())
 
-	importToolOptions, err := testutil.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptions()
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
