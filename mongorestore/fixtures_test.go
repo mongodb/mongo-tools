@@ -159,10 +159,10 @@ func (tdd *testDumpDir) Create() error {
 	return nil
 }
 
-// Cleanup removes the test directory unless "NO_CLEANUP" is set in the environment.
+// Cleanup removes the test directory unless the `TOOLS_TESTING_NO_CLEANUP` env
+// var is set to a non-empty value, matching testutil.MakeTempDir.
 func (tdd *testDumpDir) Cleanup() error {
-	noCleanup := os.Getenv("NO_CLEANUP")
-	if noCleanup == "0" {
+	if os.Getenv("TOOLS_TESTING_NO_CLEANUP") != "" {
 		return nil
 	}
 	return os.RemoveAll(tdd.Path())
