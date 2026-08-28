@@ -14,15 +14,16 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
+	"github.com/mongodb/mongo-tools/mongodump"
 )
 
 // FileType describes the various types of restore documents.
@@ -430,12 +431,6 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 	return nil
 }
 
-var specialDollarPrefixedCollections = mapset.NewSet(
-	"$admin.system.users",
-	"$admin.system.roles",
-	"$admin.system.version",
-)
-
 // CreateIntentsForDB drills down into the dir folder, creating intents
 // for all of the collection dump files it finds for the db database.
 func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) (err error) {
@@ -466,8 +461,19 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					// Dollar-prefixed collections are internal to dump/restore.
 					// They need special consideration.
 
-					if !specialDollarPrefixedCollections.Contains(collection) {
+					if !slices.Contains(mongodump.FauxCollNames, collection) {
 						return fmt.Errorf("found unexpected special collection %#q; this dump may be corrupted", collection)
+					}
+
+					// mongodump writes these files only into a non-admin database's
+					// directory; a dump of admin itself holds plain system.* collections.
+					// Honoring one here would merge it into admin.system.users even
+					// though no dump could have produced it.
+					if db == "admin" {
+						return fmt.Errorf(
+							"found special collection %#q in a dump of the admin database; this dump may be corrupted",
+							collection,
+						)
 					}
 
 					// Dumps of a single database (i.e. with the -d flag) may contain special
