@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"cmp"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/intents"
@@ -428,6 +430,12 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 	return nil
 }
 
+var specialDollarPrefixedCollections = mapset.NewSet(
+	"$admin.system.users",
+	"$admin.system.roles",
+	"$admin.system.version",
+)
+
 // CreateIntentsForDB drills down into the dir folder, creating intents
 // for all of the collection dump files it finds for the db database.
 func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) (err error) {
@@ -453,20 +461,44 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 			switch fileType {
 			case BSONFileType:
 				var skip bool
-				// Dumps of a single database (i.e. with the -d flag) may contain special
-				// db-specific files that start with a "$" (for example, $admin.system.users
-				// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
-				// If these special files manage to be included in a dump directory during a full
-				// (multi-db) restore, we should ignore them.
-				if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" &&
-					strings.HasPrefix(collection, "$") {
-					log.Logvf(
-						log.DebugLow,
-						"not restoring special collection %#q",
-						db+"."+collection,
+
+				if strings.HasPrefix(collection, "$") {
+					// Dollar-prefixed collections are internal to dump/restore.
+					// They need special consideration.
+
+					if !specialDollarPrefixedCollections.Contains(collection) {
+						return fmt.Errorf("found unexpected special collection %#q; this dump may be corrupted", collection)
+					}
+
+					// Dumps of a single database (i.e. with the -d flag) may contain special
+					// db-specific files that start with a "$" (for example, $admin.system.users
+					// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
+					// If these special files manage to be included in a dump directory during a full
+					// (multi-db) restore, we should ignore them here.
+					if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" {
+						log.Logvf(
+							log.DebugLow,
+							"not restoring special collection %#q",
+							db+"."+collection,
+						)
+						skip = true
+					}
+				} else {
+					invalid := cmp.Or(
+						// Reject collection names with invalid characters:
+						strings.ContainsAny(collection, util.InvalidCollectionChars),
+
+						// The server forbids this prefix in time-series collection names:
+						strings.HasPrefix(collection, common.TimeseriesBucketPrefix+"system."),
 					)
-					skip = true
+
+					// We treat invalid collection names as fatal because their
+					// presence indicates something nefarious.
+					if invalid {
+						return fmt.Errorf("found invalidly-named collection %#q; this dump may be corrupted", collection)
+					}
 				}
+
 				// TOOLS-717: disallow restoring to the system.profile collection.
 				// Server versions >= 3.0.3 disallow user inserts to system.profile so
 				// it would likely fail anyway.
