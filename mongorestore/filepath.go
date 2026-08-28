@@ -443,6 +443,9 @@ var authCollections = []string{
 // Every collection name mongorestore acts on must pass through here, whether
 // it came from --collection or was inferred from a file name.
 func validateDumpCollectionName(db string, collection string) error {
+	if collection == "" {
+		return fmt.Errorf("found empty collection name; this dump may be corrupted")
+	}
 	if slices.Contains(authCollections, collection) {
 		// mongodump writes these files only into a non-admin database's
 		// directory; a dump of admin itself holds plain system.* collections.
