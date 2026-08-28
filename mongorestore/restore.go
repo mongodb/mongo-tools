@@ -551,12 +551,6 @@ func (restore *MongoRestore) convertLegacyIndexes(
 
 		indexKeys = append(indexKeys, index.Key)
 
-		// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
-		// force the server to remove unknown options. But ignoreUnknownIndexOptions was only added in 4.1.9.
-		// So for pre 3.4 indexes being added to servers < 4.1.9 we must strip the options here.
-		if restore.serverVersion.LT(db.Version{4, 1, 9}) {
-			bsonutil.ConvertLegacyIndexOptions(index.Options)
-		}
 		indexesConverted = append(indexesConverted, index)
 	}
 	return indexesConverted

@@ -366,11 +366,6 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			}
 			return nil
 		case "collMod":
-			if restore.serverVersion.GTE(db.Version{4, 1, 11}) {
-				_, _ = bsonutil.RemoveKey("noPadding", &op.Object)
-				_, _ = bsonutil.RemoveKey("usePowerOf2Sizes", &op.Object)
-			}
-
 			indexModValue, found := bsonutil.RemoveKey("index", &op.Object)
 			if !found {
 				break
@@ -553,30 +548,11 @@ func ParseTimestampFlag(ts string) (bson.Timestamp, error) {
 	return bson.Timestamp{T: secsU32, I: incU32}, nil
 }
 
-// Server versions 3.6.0-3.6.8 and 4.0.0-4.0.2 require a 'ui' field
-// in the createIndexes command.
-func (restore *MongoRestore) needsCreateIndexWorkaround() bool {
-	sv := restore.serverVersion
-	if (sv.GTE(db.Version{3, 6, 0}) && sv.LTE(db.Version{3, 6, 8})) ||
-		(sv.GTE(db.Version{4, 0, 0}) && sv.LTE(db.Version{4, 0, 2})) {
-		return true
-	}
-	return false
-}
-
 // filterUUIDs removes 'ui' entries from ops, including nested applyOps ops.
-// It also modifies ops that rely on 'ui'.
 func (restore *MongoRestore) filterUUIDs(op db.Oplog) (db.Oplog, error) {
 	// Remove UUIDs from oplog entries
 	if !restore.OutputOptions.PreserveUUID {
 		op.UI = nil
-
-		// The createIndexes oplog command requires 'ui' for some server versions, so
-		// in that case we fall back to an old-style system.indexes insert.
-		if op.Operation == "c" && op.Object[0].Key == "createIndexes" &&
-			restore.needsCreateIndexWorkaround() {
-			return convertCreateIndexToIndexInsert(op)
-		}
 	}
 
 	// Check for and filter nested applyOps ops
@@ -602,34 +578,6 @@ func (restore *MongoRestore) filterRecordIdsReplicated(op db.Oplog) db.Oplog {
 	}
 
 	return op
-}
-
-// convertCreateIndexToIndexInsert converts from new-style create indexes
-// command to old style special index insert.
-func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
-	dbName, _ := util.SplitNamespace(op.Namespace)
-
-	cmdValue := op.Object[0].Value
-	collName, ok := cmdValue.(string)
-	if !ok {
-		return db.Oplog{}, fmt.Errorf("unknown format for createIndexes")
-	}
-
-	indexSpec := op.Object[1:]
-	if len(indexSpec) < 3 {
-		return db.Oplog{}, fmt.Errorf("unknown format for createIndexes, index spec " +
-			"must have at least \"v\", \"key\", and \"name\" fields")
-	}
-
-	// createIndexes does not include the "ns" field but index inserts
-	// do. Add it as the third field, after "v", "key", and "name".
-	ns := bson.D{{"ns", fmt.Sprintf("%s.%s", dbName, collName)}}
-	indexSpec = append(indexSpec[:3], append(ns, indexSpec[3:]...)...)
-	op.Object = indexSpec
-	op.Namespace = fmt.Sprintf("%s.system.indexes", dbName)
-	op.Operation = "i"
-
-	return op, nil
 }
 
 // extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument

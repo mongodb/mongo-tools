@@ -508,9 +508,8 @@ func (mgr *Manager) AuthVersion() *Intent {
 	return mgr.versionIntent
 }
 
-// Finalize processes the intents for prioritization. Currently only two
-// kinds of prioritizers are supported. No more "Put" operations may be done
-// after finalize is called.
+// Finalize processes the intents for prioritization. No more "Put" operations
+// may be done after finalize is called.
 func (mgr *Manager) Finalize(pType PriorityType) {
 	switch pType {
 	case Legacy:
@@ -519,12 +518,6 @@ func (mgr *Manager) Finalize(pType PriorityType) {
 	case LongestTaskFirst:
 		log.Logv(log.DebugHigh, "finalizing intent manager with longest task first prioritizer")
 		mgr.prioritizer = newLongestTaskFirstPrioritizer(mgr.intentsByDiscoveryOrder)
-	case MultiDatabaseLTF:
-		log.Logv(
-			log.DebugHigh,
-			"finalizing intent manager with multi-database longest task first prioritizer",
-		)
-		mgr.prioritizer = newMultiDatabaseLTFPrioritizer(mgr.intentsByDiscoveryOrder)
 	default:
 		panic("cannot initialize IntentPrioritizer with unknown type")
 	}
