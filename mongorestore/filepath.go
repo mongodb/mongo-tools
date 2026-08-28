@@ -741,6 +741,12 @@ func (restore *MongoRestore) CreateIntentForCollection(
 		return fmt.Errorf("file %#q does not have .bson or .bson.gz extension", bsonFile.Path())
 	}
 
+	// This must happen before the bucket prefix is stripped below, since
+	// stripping it is what turns a crafted name into a faux auth collection.
+	if err := validateDumpCollectionName(db, collection); err != nil {
+		return err
+	}
+
 	var isTimeseries bool
 	if strings.HasPrefix(bsonFile.Name(), common.TimeseriesBucketPrefix) {
 		isTimeseries = true

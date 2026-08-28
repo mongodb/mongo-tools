@@ -437,6 +437,30 @@ func TestSmuggledUsersNamespaceInArchiveIsRejected(t *testing.T) {
 	}
 }
 
+// TestExplicitCollectionFlagIsValidated covers the --db/--collection path.
+// ValidateCollectionGrammar in ParseAndValidateOptions rejects a "$" in an
+// explicit --collection, but not a "system.buckets.system." prefix, which
+// CreateIntentForCollection would strip down to a real system collection.
+func TestExplicitCollectionFlagIsValidated(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	root := writeDumpDir(
+		t,
+		"admin/system.buckets.system.users.bson",
+		"admin/system.users.metadata.json",
+	)
+
+	mr := newRestoreWithNamespaces(t, "admin", nil)
+	bsonFile, err := newActualPath(
+		filepath.Join(root, "admin", "system.buckets.system.users.bson"),
+	)
+	require.NoError(t, err)
+
+	err = mr.CreateIntentForCollection("admin", "system.buckets.system.users", bsonFile)
+	require.Error(t, err, "a crafted --collection name should be rejected")
+	assert.Nil(t, mr.manager.Users(), "the crafted name should not become the users intent")
+}
+
 // TestEmptyCollectionNameDoesNotPanic covers a file named ".bson", which
 // getInfoFromFile reports as a BSON file with an empty collection name.
 func TestEmptyCollectionNameDoesNotPanic(t *testing.T) {
