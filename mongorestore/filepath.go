@@ -430,6 +430,53 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 	return nil
 }
 
+var authCollections = []string{
+	intents.FauxUsersCollection,
+	intents.FauxRolesCollection,
+	intents.FauxAuthVersionCollection,
+}
+
+// validateDumpCollectionName rejects collection names that no mongodump could
+// have written. Their presence indicates a hand-assembled dump, and the faux
+// auth collections would otherwise be merged into admin.system.users.
+//
+// Every collection name mongorestore acts on must pass through here, whether
+// it came from --collection or was inferred from a file name.
+func validateDumpCollectionName(db string, collection string) error {
+	if slices.Contains(authCollections, collection) {
+		// mongodump writes these files only into a non-admin database's
+		// directory; a dump of admin itself holds plain system.* collections.
+		// Honoring one here would merge it into admin.system.users even
+		// though no dump could have produced it.
+		if db == "admin" {
+			return fmt.Errorf(
+				"found special collection %#q in a dump of the admin database; this dump may be corrupted",
+				collection,
+			)
+		}
+		return nil
+	}
+
+	invalid := cmp.Or(
+		// Reject collection names with invalid characters:
+		strings.ContainsAny(collection, util.InvalidCollectionChars),
+
+		// The server forbids this prefix in time-series collection names:
+		strings.HasPrefix(collection, common.TimeseriesBucketPrefix+"system."),
+	)
+
+	// We treat invalid collection names as fatal because their
+	// presence indicates something nefarious.
+	if invalid {
+		return fmt.Errorf(
+			"found invalidly-named collection %#q; this dump may be corrupted",
+			collection,
+		)
+	}
+
+	return nil
+}
+
 // CreateIntentsForDB drills down into the dir folder, creating intents
 // for all of the collection dump files it finds for the db database.
 func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) (err error) {
@@ -456,63 +503,26 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 			case BSONFileType:
 				var skip bool
 
-				authCollections := []string{
-					intents.FauxUsersCollection,
-					intents.FauxRolesCollection,
-					intents.FauxAuthVersionCollection,
+				if err := validateDumpCollectionName(db, collection); err != nil {
+					return err
 				}
 
-				specialCollections := append(
-					slices.Clone(authCollections),
-					intents.FauxOplogCollection,
-				)
-
 				switch {
-				case slices.Contains(specialCollections, collection):
-					// These collections are internal to dump/restore.
-					// They need special consideration.
-
-					// mongodump writes these files only into a non-admin database's
-					// directory; a dump of admin itself holds plain system.* collections.
-					// Honoring one here would merge it into admin.system.users even
-					// though no dump could have produced it.
-					if db == "admin" {
-						return fmt.Errorf(
-							"found special collection %#q in a dump of the admin database; this dump may be corrupted",
-							collection,
+				case slices.Contains(authCollections, collection):
+					// Dumps of a single database (i.e. with the -d flag) may contain special
+					// db-specific files that start with a "$" (for example, $admin.system.users
+					// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
+					// If these special files manage to be included in a dump directory during a full
+					// (multi-db) restore, we should ignore them here.
+					if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" {
+						log.Logvf(
+							log.DebugLow,
+							"not restoring special auth collection %#q",
+							db+"."+collection,
 						)
-					}
-
-					if slices.Contains(authCollections, collection) {
-						// Dumps of a single database (i.e. with the -d flag) may contain special
-						// db-specific files that start with a "$" (for example, $admin.system.users
-						// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
-						// If these special files manage to be included in a dump directory during a full
-						// (multi-db) restore, we should ignore them here.
-						if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" {
-							log.Logvf(
-								log.DebugLow,
-								"not restoring special auth collection %#q",
-								db+"."+collection,
-							)
-							skip = true
-						}
+						skip = true
 					}
 				default:
-					invalid := cmp.Or(
-						// Reject collection names with invalid characters:
-						strings.ContainsAny(collection, util.InvalidCollectionChars),
-
-						// The server forbids this prefix in time-series collection names:
-						strings.HasPrefix(collection, common.TimeseriesBucketPrefix+"system."),
-					)
-
-					// We treat invalid collection names as fatal because their
-					// presence indicates something nefarious.
-					if invalid {
-						return fmt.Errorf("found invalidly-named collection %#q; this dump may be corrupted", collection)
-					}
-
 					// TOOLS-717: disallow restoring to the system.profile collection.
 					// Server versions >= 3.0.3 disallow user inserts to system.profile so
 					// it would likely fail anyway.
@@ -864,7 +874,10 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 			restore.ToolOptions.DB,
 		)
 	}
-	return nil
+
+	// An inferred name never passed through the --collection validation in
+	// ParseAndValidateOptions, so it gets checked here instead.
+	return validateDumpCollectionName(restore.ToolOptions.DB, restore.ToolOptions.Collection)
 }
 
 type actualPath struct {

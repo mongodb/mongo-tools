@@ -547,9 +547,8 @@ func (restore *MongoRestore) Restore() Result {
 	if restore.manager.GetOplogConflict() {
 		return Result{
 			Err: fmt.Errorf(
-				"cannot provide both an oplog.bson file and an oplog file with --oplogFile, "+
-					"nor can you provide both a local/oplog.rs.bson and a local/%s.bson file",
-				intents.FauxOplogCollection,
+				"cannot provide both an oplog.bson file and an oplog file with --oplogFile, " +
+					"nor can you provide both a local/oplog.rs.bson and a local/main.$oplog.bson file",
 			),
 		}
 	}

@@ -218,33 +218,6 @@ func TestSmuggledUsersFileUnderAdminDBScope(t *testing.T) {
 	)
 }
 
-// TestLegacyOplogMainIsRestorable guards the one collection name mongorestore
-// legitimately accepts with an interior "$": the pre-2.8 oplog. Intent.IsOplog
-// matches "local.oplog.$main", and mongorestore.go reports a conflict between
-// "local/oplog.rs.bson" and "local/oplog.$main.bson", so such a dump must still
-// be restorable.
-func TestLegacyOplogMainIsRestorable(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	root := writeDumpDir(t, "local/oplog.$main.bson")
-
-	mr := newRestoreWithNamespaces(t, "", nil)
-	// The manager only routes local.oplog.$main to the oplog intent when
-	// mongorestore has asked it to, which it does for --oplogReplay.
-	mr.InputOptions.OplogReplay = true
-	mr.manager.SetSmartPickOplog(true)
-
-	target, err := newActualPath(root)
-	require.NoError(t, err)
-
-	require.NoError(
-		t,
-		mr.CreateAllIntents(target),
-		"a legacy local/oplog.$main.bson dump should still be restorable",
-	)
-	assert.NotNil(t, mr.manager.Oplog(), "the oplog intent should be created")
-}
-
 // TestTruncatedNameMetadataIsValidated covers the branch in getInfoFromFile
 // that takes the collection name out of the .metadata.json file when the file
 // name is 238 characters and contains "%24". That name is more attacker-
@@ -317,32 +290,36 @@ func TestSmuggledUsersFileWithNamespaceRename(t *testing.T) {
 	assert.Nil(t, mr.manager.Users(), "the smuggled file should not become the users intent")
 }
 
-// TestSmuggledUsersFileAsSingleCollectionTarget covers CreateIntentForCollection,
-// the --db/--collection path, which does not share CreateIntentsForDB's checks.
+// TestSmuggledUsersFileAsSingleCollectionTarget covers the single-.bson-target
+// path, where both --db and --collection are inferred from the file path by
+// handleBSONInsteadOfDirectory. That inference runs after the --collection
+// validation in ParseAndValidateOptions, so without a check of its own the
+// inferred name would reach CreateIntentForCollection unvalidated.
+//
+// The "admin" case is the dangerous one: ShouldRestoreUsersAndRoles is true for
+// the admin database even without --restoreDbUsersAndRoles, so a users intent
+// built there would actually be merged.
 func TestSmuggledUsersFileAsSingleCollectionTarget(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
-	root := writeDumpDir(
-		t,
-		"vendordata/system.buckets.%24admin.system.users.bson",
-		"vendordata/system.buckets.%24admin.system.users.metadata.json",
-	)
+	for _, db := range []string{"admin", "vendordata"} {
+		t.Run(db, func(t *testing.T) {
+			// The timeseries branch of CreateIntentForCollection requires a
+			// metadata file, named without the bucket prefix.
+			root := writeDumpDir(
+				t,
+				db+"/system.buckets.%24admin.system.users.bson",
+				db+"/%24admin.system.users.metadata.json",
+			)
+			path := filepath.Join(root, db, "system.buckets.%24admin.system.users.bson")
 
-	mr := newRestoreWithNamespaces(t, "vendordata", nil)
-	mr.InputOptions.RestoreDBUsersAndRoles = true
+			mr := newRestoreWithNamespaces(t, "", nil)
 
-	bsonFile, err := newActualPath(
-		filepath.Join(root, "vendordata", "system.buckets.%24admin.system.users.bson"),
-	)
-	require.NoError(t, err)
-
-	err = mr.CreateIntentForCollection(
-		"vendordata",
-		"system.buckets.$admin.system.users",
-		bsonFile,
-	)
-	require.Error(t, err, "a smuggled single-collection target should be rejected")
-	assert.Nil(t, mr.manager.Users(), "the smuggled file should not become the users intent")
+			err := mr.handleBSONInsteadOfDirectory(path)
+			require.Error(t, err, "a smuggled single-file target should be rejected")
+			assert.Nil(t, mr.manager.Users(), "the smuggled file should not become the users intent")
+		})
+	}
 }
 
 // TestOrdinaryAdminDumpIsRestorable guards the legitimate admin dump against

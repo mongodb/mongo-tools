@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/intents"
-
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -45,8 +43,8 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 	}
 
 	log.Logvf(log.DebugLow, "not connected to a replica set, assuming master/slave")
-	log.Logvf(log.DebugHigh, "oplog located in local.%s", intents.FauxOplogCollection)
-	dump.oplogCollection = intents.FauxOplogCollection
+	log.Logvf(log.DebugHigh, "oplog located in local.%s", "oplog.$main")
+	dump.oplogCollection = "oplog.$main"
 	return nil
 
 }

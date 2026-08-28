@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	FauxOplogCollection       = "oplog.$main"
 	FauxUsersCollection       = "$admin.system.users"
 	FauxRolesCollection       = "$admin.system.roles"
 	FauxAuthVersionCollection = "$admin.system.version"
@@ -110,7 +109,7 @@ func (it *Intent) IsOplog() bool {
 	if it.DB == "" && it.C == "oplog" {
 		return true
 	}
-	return it.DB == "local" && (it.C == "oplog.rs" || it.C == FauxOplogCollection)
+	return it.DB == "local" && (it.C == "oplog.rs" || it.C == "oplog.$main")
 }
 
 func (it *Intent) IsUsers() bool {
