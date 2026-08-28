@@ -12,9 +12,11 @@ package testopts
 import (
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
@@ -82,6 +84,17 @@ func GetToolOptions() (*options.ToolOptions, error) {
 	}
 
 	return toolOptions, nil
+}
+
+// MustGetToolOptions is GetToolOptions for the tests that have nothing left to do if the options
+// cannot be built.
+func MustGetToolOptions(t *testing.T) options.ToolOptions {
+	t.Helper()
+
+	opts, err := GetToolOptions()
+	require.NoError(t, err, "getting the tool options for the server under test")
+
+	return *opts
 }
 
 func GetBareArgs() []string {
