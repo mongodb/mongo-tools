@@ -23,7 +23,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/intents"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/util"
-	"github.com/mongodb/mongo-tools/mongodump"
 )
 
 // FileType describes the various types of restore documents.
@@ -457,13 +456,21 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 			case BSONFileType:
 				var skip bool
 
-				if strings.HasPrefix(collection, "$") {
-					// Dollar-prefixed collections are internal to dump/restore.
-					// They need special consideration.
+				authCollections := []string{
+					intents.FauxUsersCollection,
+					intents.FauxRolesCollection,
+					intents.FauxAuthVersionCollection,
+				}
 
-					if !slices.Contains(mongodump.FauxCollNames, collection) {
-						return fmt.Errorf("found unexpected special collection %#q; this dump may be corrupted", collection)
-					}
+				specialCollections := append(
+					slices.Clone(authCollections),
+					intents.FauxOplogCollection,
+				)
+
+				switch {
+				case slices.Contains(specialCollections, collection):
+					// These collections are internal to dump/restore.
+					// They need special consideration.
 
 					// mongodump writes these files only into a non-admin database's
 					// directory; a dump of admin itself holds plain system.* collections.
@@ -476,20 +483,22 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 						)
 					}
 
-					// Dumps of a single database (i.e. with the -d flag) may contain special
-					// db-specific files that start with a "$" (for example, $admin.system.users
-					// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
-					// If these special files manage to be included in a dump directory during a full
-					// (multi-db) restore, we should ignore them here.
-					if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" {
-						log.Logvf(
-							log.DebugLow,
-							"not restoring special collection %#q",
-							db+"."+collection,
-						)
-						skip = true
+					if slices.Contains(authCollections, collection) {
+						// Dumps of a single database (i.e. with the -d flag) may contain special
+						// db-specific files that start with a "$" (for example, $admin.system.users
+						// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
+						// If these special files manage to be included in a dump directory during a full
+						// (multi-db) restore, we should ignore them here.
+						if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" {
+							log.Logvf(
+								log.DebugLow,
+								"not restoring special auth collection %#q",
+								db+"."+collection,
+							)
+							skip = true
+						}
 					}
-				} else {
+				default:
 					invalid := cmp.Or(
 						// Reject collection names with invalid characters:
 						strings.ContainsAny(collection, util.InvalidCollectionChars),
@@ -503,26 +512,26 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					if invalid {
 						return fmt.Errorf("found invalidly-named collection %#q; this dump may be corrupted", collection)
 					}
-				}
 
-				// TOOLS-717: disallow restoring to the system.profile collection.
-				// Server versions >= 3.0.3 disallow user inserts to system.profile so
-				// it would likely fail anyway.
-				if collection == "system.profile" {
-					log.Logvf(
-						log.DebugLow,
-						"skipping restore of system.profile collection in %#q",
-						db,
-					)
-					skip = true
-				}
-				// skip restoring the indexes collection if we are using metadata
-				// files to store index information, to eliminate redundancy
-				if collection == "system.indexes" && usesMetadataFiles {
-					log.Logvf(log.DebugLow,
-						"not restoring system.indexes collection because database %#q "+
-							"has .metadata.json files", db)
-					skip = true
+					// TOOLS-717: disallow restoring to the system.profile collection.
+					// Server versions >= 3.0.3 disallow user inserts to system.profile so
+					// it would likely fail anyway.
+					if collection == "system.profile" {
+						log.Logvf(
+							log.DebugLow,
+							"skipping restore of system.profile collection in %#q",
+							db,
+						)
+						skip = true
+					}
+					// skip restoring the indexes collection if we are using metadata
+					// files to store index information, to eliminate redundancy
+					if collection == "system.indexes" && usesMetadataFiles {
+						log.Logvf(log.DebugLow,
+							"not restoring system.indexes collection because database %#q "+
+								"has .metadata.json files", db)
+						skip = true
+					}
 				}
 
 				checkSourceNS := db + "." + strings.TrimPrefix(
@@ -546,6 +555,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					)
 					skip = true
 				}
+
 				destNS := restore.renamer.Get(sourceNS)
 				destDB, destC := util.SplitNamespace(destNS)
 				destC = strings.TrimPrefix(destC, common.TimeseriesBucketPrefix)

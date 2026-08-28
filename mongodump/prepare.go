@@ -30,14 +30,6 @@ import (
 	"github.com/samber/lo"
 )
 
-// FauxCollNames are the faux collection names that mongodump writes to
-// capture non-user data in user databases.
-var FauxCollNames = []string{
-	"$admin.system.users",
-	"$admin.system.roles",
-	"$admin.system.version",
-}
-
 type NilPos struct{}
 
 func (NilPos) Pos() int64 {
@@ -256,7 +248,13 @@ func (dump *MongoDump) CreateOplogIntents() error {
 func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 	outDir := dump.outputPath(db, "")
 
-	for _, collName := range FauxCollNames {
+	fauxCollNames := []string{
+		intents.FauxUsersCollection,
+		intents.FauxRolesCollection,
+		intents.FauxAuthVersionCollection,
+	}
+
+	for _, collName := range fauxCollNames {
 		intent := intents.Intent{
 			ServerVersion: dump.serverVersionArray,
 			DB:            db,

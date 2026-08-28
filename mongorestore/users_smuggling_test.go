@@ -9,6 +9,7 @@ package mongorestore
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/archive"
@@ -143,11 +144,13 @@ func TestSmuggledUsersFileIsNotRestoredAsUsers(t *testing.T) {
 					intent.C,
 					file,
 				)
-				assert.NotContains(
+				assert.False(
 					t,
+					intent.IsUsers() || intent.IsRoles(),
+					"intent %s.%s from smuggled %s should not be a users or roles intent",
+					intent.DB,
 					intent.C,
-					"$",
-					"no intent should carry a $ in its collection name",
+					file,
 				)
 			}
 		})
@@ -207,13 +210,168 @@ func TestSmuggledUsersFileUnderAdminDBScope(t *testing.T) {
 	require.NoError(t, err)
 
 	err = mr.CreateIntentsForDB("admin", target)
-	if err == nil {
-		assert.Nil(
-			t,
-			mr.manager.Users(),
-			"a $-prefixed users file in admin/ should not become the users intent",
-		)
-	}
+	require.Error(t, err, "a $-prefixed users file in a dump of admin should be rejected")
+	assert.Nil(
+		t,
+		mr.manager.Users(),
+		"a $-prefixed users file in admin/ should not become the users intent",
+	)
+}
+
+// TestLegacyOplogMainIsRestorable guards the one collection name mongorestore
+// legitimately accepts with an interior "$": the pre-2.8 oplog. Intent.IsOplog
+// matches "local.oplog.$main", and mongorestore.go reports a conflict between
+// "local/oplog.rs.bson" and "local/oplog.$main.bson", so such a dump must still
+// be restorable.
+func TestLegacyOplogMainIsRestorable(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	root := writeDumpDir(t, "local/oplog.$main.bson")
+
+	mr := newRestoreWithNamespaces(t, "", nil)
+	// The manager only routes local.oplog.$main to the oplog intent when
+	// mongorestore has asked it to, which it does for --oplogReplay.
+	mr.InputOptions.OplogReplay = true
+	mr.manager.SetSmartPickOplog(true)
+
+	target, err := newActualPath(root)
+	require.NoError(t, err)
+
+	require.NoError(
+		t,
+		mr.CreateAllIntents(target),
+		"a legacy local/oplog.$main.bson dump should still be restorable",
+	)
+	assert.NotNil(t, mr.manager.Oplog(), "the oplog intent should be created")
+}
+
+// TestTruncatedNameMetadataIsValidated covers the branch in getInfoFromFile
+// that takes the collection name out of the .metadata.json file when the file
+// name is 238 characters and contains "%24". That name is more attacker-
+// controlled than the file name, so it must face the same validation.
+func TestTruncatedNameMetadataIsValidated(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	// getInfoFromFile only consults the metadata file for a name of exactly
+	// this length that contains an escaped "$".
+	truncatedName := "%24" + strings.Repeat("a", 235)
+	require.Len(t, truncatedName, 238, "the file name must hit the truncated-name branch")
+
+	root := t.TempDir()
+	dbDir := filepath.Join(root, "vendordata")
+	require.NoError(t, os.MkdirAll(dbDir, 0755))
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(dbDir, truncatedName+".bson"), []byte{}, 0644),
+	)
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dbDir, truncatedName+".metadata.json"),
+		[]byte(`{"collectionName":"system.buckets.$admin.system.users","indexes":[]}`),
+		0644,
+	))
+
+	mr := newRestoreWithNamespaces(t, "", []string{"admin.*"})
+	target, err := newActualPath(root)
+	require.NoError(t, err)
+
+	err = mr.CreateAllIntents(target)
+	require.Error(t, err, "a crafted collection name from a metadata file should be rejected")
+	assert.Nil(t, mr.manager.Users(), "the smuggled name should not become the users intent")
+}
+
+// TestSmuggledUsersFileWithGzip covers the --gzip file naming, which
+// getInfoFromFile parses through a separate branch.
+func TestSmuggledUsersFileWithGzip(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	root := writeDumpDir(t, "vendordata/system.buckets.%24admin.system.users.bson.gz")
+
+	mr := newRestoreWithNamespaces(t, "", []string{"admin.*"})
+	mr.InputOptions.Gzip = true
+
+	target, err := newActualPath(root)
+	require.NoError(t, err)
+
+	err = mr.CreateAllIntents(target)
+	require.Error(t, err, "a smuggled file should be rejected in a gzipped dump too")
+	assert.Nil(t, mr.manager.Users(), "the smuggled file should not become the users intent")
+}
+
+// TestSmuggledUsersFileWithNamespaceRename checks that a rename cannot be used
+// to launder the name: validation must happen before --nsFrom/--nsTo is applied.
+func TestSmuggledUsersFileWithNamespaceRename(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	root := writeDumpDir(t, "vendordata/system.buckets.$admin.system.users.bson")
+
+	mr := newRestoreWithNamespaces(t, "", nil)
+	renamer, err := ns.NewRenamer([]string{"vendordata.*"}, []string{"elsewhere.*"})
+	require.NoError(t, err)
+	mr.renamer = renamer
+
+	target, err := newActualPath(root)
+	require.NoError(t, err)
+
+	err = mr.CreateAllIntents(target)
+	require.Error(t, err, "a rename should not launder a smuggled collection name")
+	assert.Nil(t, mr.manager.Users(), "the smuggled file should not become the users intent")
+}
+
+// TestSmuggledUsersFileAsSingleCollectionTarget covers CreateIntentForCollection,
+// the --db/--collection path, which does not share CreateIntentsForDB's checks.
+func TestSmuggledUsersFileAsSingleCollectionTarget(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	root := writeDumpDir(
+		t,
+		"vendordata/system.buckets.%24admin.system.users.bson",
+		"vendordata/system.buckets.%24admin.system.users.metadata.json",
+	)
+
+	mr := newRestoreWithNamespaces(t, "vendordata", nil)
+	mr.InputOptions.RestoreDBUsersAndRoles = true
+
+	bsonFile, err := newActualPath(
+		filepath.Join(root, "vendordata", "system.buckets.%24admin.system.users.bson"),
+	)
+	require.NoError(t, err)
+
+	err = mr.CreateIntentForCollection(
+		"vendordata",
+		"system.buckets.$admin.system.users",
+		bsonFile,
+	)
+	require.Error(t, err, "a smuggled single-collection target should be rejected")
+	assert.Nil(t, mr.manager.Users(), "the smuggled file should not become the users intent")
+}
+
+// TestOrdinaryAdminDumpIsRestorable guards the legitimate admin dump against
+// the db == "admin" rejection: admin holds a plain system.users.bson, ordinary
+// user collections, and possibly mongorestore's own leftover staging
+// collections. None of those are $-prefixed, so none should be rejected.
+func TestOrdinaryAdminDumpIsRestorable(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	root := writeDumpDir(
+		t,
+		"admin/system.users.bson",
+		"admin/system.roles.bson",
+		"admin/system.version.bson",
+		"admin/audit_config.bson",
+		"admin/tempusers.bson",
+		"admin/temproles.bson",
+	)
+
+	mr := newRestoreWithNamespaces(t, "", nil)
+	target, err := newActualPath(root)
+	require.NoError(t, err)
+
+	require.NoError(t, mr.CreateAllIntents(target), "an ordinary admin dump should be restorable")
+
+	users := mr.manager.Users()
+	require.NotNil(t, users, "the users intent should be created")
+	assert.Equal(t, "admin", users.DB)
+	assert.Equal(t, "system.users", users.C)
 }
 
 // archiveExplorer builds a PreludeExplorer over a hand-assembled archive
