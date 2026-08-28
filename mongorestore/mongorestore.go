@@ -548,7 +548,7 @@ func (restore *MongoRestore) Restore() Result {
 		return Result{
 			Err: fmt.Errorf(
 				"cannot provide both an oplog.bson file and an oplog file with --oplogFile, " +
-					"nor can you provide both a local/oplog.rs.bson and a local/main.$oplog.bson file",
+					"nor can you provide both a local/oplog.rs.bson and a local/oplog.$main.bson file",
 			),
 		}
 	}

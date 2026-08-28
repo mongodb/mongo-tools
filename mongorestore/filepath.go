@@ -517,7 +517,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" {
 						log.Logvf(
 							log.DebugLow,
-							"not restoring special auth collection %#q",
+							"not restoring special collection %#q",
 							db+"."+collection,
 						)
 						skip = true
