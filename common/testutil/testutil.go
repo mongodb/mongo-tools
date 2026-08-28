@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
@@ -325,6 +327,59 @@ func SkipForAtlasCluster(t *testing.T, reason string) {
 			)
 		}
 	}
+}
+
+// SkipForDisaggregatedStorage will skip the test if the server is running with disaggregated
+// storage (DSC) enabled.
+//
+// Use this for tests that depend on a server feature DSC does not support, naming that feature in
+// the reason. It deliberately keys off DSC rather than off the unsupported operation failing, so an
+// unexpected failure of that same operation elsewhere still fails the test loudly instead of
+// quietly skipping it.
+func SkipForDisaggregatedStorage(t *testing.T, reason string) {
+	session, err := GetBareSession(t)
+	require.NoError(t, err, "getting a session to check for disaggregated storage")
+
+	if isDisaggregatedStorage(t, session) {
+		t.Skipf("Skipping test because the server uses disaggregated storage: %s", reason)
+	}
+}
+
+// A disaggregated server reports this as its WiredTiger storage type, where a normal one reports
+// "file".
+const disaggregatedStorageType = "layered"
+
+// The storage type comes from $collStats rather than from a server parameter because the parameter
+// naming DSC only exists on mongod: through a mongos it looks exactly like a server too old to know
+// it, and the test would run instead of skipping.
+func isDisaggregatedStorage(t *testing.T, session *mongo.Client) bool {
+	opts := mopt.Database().SetReadConcern(readconcern.Majority())
+	coll := session.Database("admin", opts).Collection("system.version")
+
+	pipeline := mongo.Pipeline{
+		bson.D{{"$collStats", bson.D{{"storageStats", bson.D{}}}}},
+		bson.D{{"$project", bson.D{{"type", "$storageStats.wiredTiger.type"}}}},
+	}
+
+	cursor, err := coll.Aggregate(t.Context(), pipeline)
+	require.NoError(t, err, "fetching the cluster storage type")
+
+	var stats []struct {
+		Type string `bson:"type"`
+	}
+	require.NoError(
+		t,
+		cursor.All(t.Context(), &stats),
+		"reading the cluster storage type",
+	)
+
+	for _, stat := range stats {
+		if stat.Type == disaggregatedStorageType {
+			return true
+		}
+	}
+
+	return false
 }
 
 // WriteTempFile writes the contents of r to a tempfile, then hands you back the (closed) file.
