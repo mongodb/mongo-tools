@@ -43,7 +43,7 @@ func (dump *MongoDump) determineOplogCollectionName() error {
 	}
 
 	log.Logvf(log.DebugLow, "not connected to a replica set, assuming master/slave")
-	log.Logvf(log.DebugHigh, "oplog located in local.%s", "oplog.$main")
+	log.Logvf(log.DebugHigh, "oplog located in local.oplog.$main")
 	dump.oplogCollection = "oplog.$main"
 	return nil
 
