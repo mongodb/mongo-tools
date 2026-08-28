@@ -317,7 +317,11 @@ func TestSmuggledUsersFileAsSingleCollectionTarget(t *testing.T) {
 
 			err := mr.handleBSONInsteadOfDirectory(path)
 			require.Error(t, err, "a smuggled single-file target should be rejected")
-			assert.Nil(t, mr.manager.Users(), "the smuggled file should not become the users intent")
+			assert.Nil(
+				t,
+				mr.manager.Users(),
+				"the smuggled file should not become the users intent",
+			)
 		})
 	}
 }
@@ -419,8 +423,16 @@ func TestSmuggledUsersNamespaceInArchiveIsRejected(t *testing.T) {
 
 			err := mr.CreateAllIntents(target)
 			require.Error(t, err, "a crafted namespace in an archive prelude should be rejected")
-			assert.Nil(t, mr.manager.Users(), "the smuggled namespace should not become the users intent")
-			assert.Nil(t, mr.manager.Roles(), "the smuggled namespace should not become the roles intent")
+			assert.Nil(
+				t,
+				mr.manager.Users(),
+				"the smuggled namespace should not become the users intent",
+			)
+			assert.Nil(
+				t,
+				mr.manager.Roles(),
+				"the smuggled namespace should not become the roles intent",
+			)
 		})
 	}
 }
