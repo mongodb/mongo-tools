@@ -32,8 +32,6 @@ Then run:
 mise trust
 # Install all dev tools (Go, linters, etc.)
 mise install
-# Install Node packages needed by eslint, prettier, etc.
-npm install
 ```
 
 After `mise install`, all tools (including `go`) are available directly in your shell when you're in
