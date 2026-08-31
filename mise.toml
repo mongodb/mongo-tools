@@ -16,7 +16,7 @@ go = "1.26.7"
 "github:mvdan/sh" = { version = "3.13.1", bin = "shfmt" }
 
 # Node and npm tools
-node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm install --loglevel verbose" }
+node = "22.22.0"
 "npm:github-codeowners" = "0.2.1"
 "npm:oxfmt" = "0.52.0"
 

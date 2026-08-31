@@ -22,8 +22,7 @@ export PATH="${EVG_WORKDIR:?}/.local/bin:$PATH"
 export MISE_DATA_DIR="${EVG_WORKDIR:?}/.local/share/mise"
 
 # Cache hit: .local/bin and .local/share/mise were already restored from S3, so there's no need to
-# reinstall those. We don't cache node_modules though (see the cache.save comment in common.yml), so
-# `npm install` always has to run, cache hit or not.
+# reinstall those.
 if [ "${MISE_ALL_TOOLS_CACHE_HIT:-}" != "true" ]; then
     # We only retry twice here because each attempt uses up some of the GitHub API's rate limit.
     RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
