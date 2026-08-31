@@ -8,6 +8,7 @@ package mongorestore
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -999,6 +1000,155 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 	assert.Equal(t, int64(4), docCount(t, bazColl), "baz restored with 4 documents")
 	assert.Equal(t, 2, countIndexes(t, barColl), "bar has _id and x indexes after restore")
 	assert.Equal(t, 1, countIndexes(t, bazColl), "baz has only its _id index after restore")
+}
+
+// TestDumpAdminSystemProfileAsBackupUser checks that a user holding only the
+// backup role can dump the admin database along with admin.system.profile, and
+// that what lands on disk is readable profiler data. admin is the one database
+// whose system collections are dumped: shouldSkipSystemNamespace leaves out
+// only admin.system.keys, while for every other database it skips system.*.
+func TestDumpAdminSystemProfileAsBackupUser(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+
+	const (
+		backupUser   = "dumpauth_backup"
+		backupPass   = "password"
+		collName     = "dumpauth_testcol"
+		profiledDocs = 100
+	)
+
+	adminClient, err := testutil.GetBareSession(t)
+	require.NoError(t, err)
+
+	adminDB := adminClient.Database("admin")
+	coll := adminDB.Collection(collName)
+
+	t.Cleanup(func() {
+		silentDropUser(adminDB, backupUser)
+		_ = coll.Drop(context.Background())
+	})
+	mustCreateUser(t, adminDB, backupUser, backupPass, bson.A{adminRole("backup")})
+
+	// Profiling has to be on for the server to write admin.system.profile at all,
+	// and it is global to the database, so it is put back the way it was found.
+	// The profile collection can only be dropped while profiling is off, and it is
+	// capped, so clearing it here is what keeps entries from earlier runs of this
+	// test out of the assertions below.
+	previousLevel := setProfilingLevel(t, adminDB, 0)
+	profileColl := adminDB.Collection("system.profile")
+	require.NoError(
+		t,
+		profileColl.Drop(context.Background()),
+		"can clear admin.system.profile before profiling this run",
+	)
+	setProfilingLevel(t, adminDB, 2)
+	t.Cleanup(func() { setProfilingLevel(t, adminDB, previousLevel) })
+
+	docs := make([]any, 0, profiledDocs)
+	for i := range profiledDocs {
+		docs = append(docs, bson.D{{"x", i}})
+	}
+	_, err = coll.InsertMany(context.Background(), docs)
+	require.NoError(t, err, "can insert the documents whose inserts get profiled")
+
+	profiledNS := adminDB.Name() + "." + collName
+	profiledInserts, err := profileColl.CountDocuments(
+		context.Background(),
+		bson.D{{"ns", profiledNS}, {"op", "insert"}},
+	)
+	require.NoError(t, err, "can count the profile entries for this run's inserts")
+	require.Positive(t, profiledInserts, "profiling recorded this run's inserts")
+
+	dumpDir, cleanDump := testutil.MakeTempDir(t)
+	defer cleanDump()
+
+	opts := toolOptsForUser(t, backupUser, backupPass)
+	opts.Namespace = &options.Namespace{DB: "admin"}
+	require.NoError(
+		t,
+		runDump(t, opts, dumpDir, nil),
+		"a user holding only the backup role can dump the admin database",
+	)
+
+	// Counting the entries that record this run's own inserts, rather than only
+	// checking that the file parses as BSON, is what tells profiler data apart from
+	// anything else that might have landed at this path.
+	profileEntries := readBSONFile(t, filepath.Join(dumpDir, "admin", "system.profile.bson"))
+	assert.Positive(
+		t,
+		insertEntriesForNS(profileEntries, profiledNS),
+		"the dumped admin.system.profile holds the profiler's record of this run's inserts",
+	)
+
+	assert.Len(
+		t,
+		readBSONFile(t, filepath.Join(dumpDir, "admin", collName+".bson")),
+		profiledDocs,
+		"the dump also holds the ordinary collection in admin",
+	)
+}
+
+// insertEntriesForNS counts the profiler entries that record an insert into ns.
+func insertEntriesForNS(entries []bson.D, ns string) int {
+	matches := 0
+	for _, entry := range entries {
+		op, opErr := bsonutil.FindValueByKey("op", &entry)
+		entryNS, nsErr := bsonutil.FindValueByKey("ns", &entry)
+		if opErr != nil || nsErr != nil {
+			continue
+		}
+		if op == "insert" && entryNS == ns {
+			matches++
+		}
+	}
+
+	return matches
+}
+
+// setProfilingLevel sets the profiling level on db and returns the level that
+// was in effect beforehand.
+func setProfilingLevel(t *testing.T, db *mongo.Database, level int32) int32 {
+	t.Helper()
+
+	var res struct {
+		Was int32 `bson:"was"`
+	}
+	require.NoError(
+		t,
+		db.RunCommand(context.Background(), bson.D{{"profile", level}}).Decode(&res),
+		"can set the profiling level on %#q to %d",
+		db.Name(),
+		level,
+	)
+
+	return res.Was
+}
+
+// readBSONFile decodes every document in a .bson file written by mongodump.
+func readBSONFile(t *testing.T, path string) []bson.D {
+	t.Helper()
+
+	file, err := os.Open(path)
+	require.NoError(t, err, "the dump contains %#q", path)
+	defer file.Close()
+
+	source := db.NewDecodedBSONSource(db.NewBSONSource(file))
+	defer source.Close()
+
+	// The decoder reuses the target's backing array, so a single doc declared
+	// outside the loop would leave every entry in docs aliasing the last one.
+	var docs []bson.D
+	for {
+		var doc bson.D
+		if !source.Next(&doc) {
+			break
+		}
+		docs = append(docs, doc)
+	}
+	require.NoError(t, source.Err(), "can decode %#q", path)
+
+	return docs
 }
 
 // baseToolOpts returns a fresh set of tool options from the environment.
