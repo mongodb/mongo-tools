@@ -5,7 +5,6 @@ selector:
       - jstests/files/*.js
       - jstests/import/*.js
       - jstests/restore/*.js
-      - jstests/top/*.js
 
 executor:
   js_test:
