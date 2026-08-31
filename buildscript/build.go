@@ -213,6 +213,13 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 		if ctx.Get("topology") == "replSet" {
 			env = append(env, testtype.ReplSetTestType+"=true")
 		}
+		if ctx.Get("topology") == "multiNodeReplSet" {
+			env = append(
+				env,
+				testtype.ReplSetTestType+"=true",
+				testtype.MultiNodeReplSetTestType+"=true",
+			)
+		}
 		if ctx.Get("topology") == "sharded" {
 			env = append(env, testtype.ShardedIntegrationTestType+"=true")
 		}
