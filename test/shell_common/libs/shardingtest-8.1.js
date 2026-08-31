@@ -2,7 +2,8 @@
  * 6d7a9ba952ab4a8428d83699ba26314efe55506c.
  * 1. Comment out import of FeatureFlagUtil and its single use case
  * 2. Change import paths throughout file to correct location in shell_common/libs directory,
- *    assuming we're running the shell from test/qa-tests or test/legacy42
+ *    written relative to a sibling of shell_common so they resolve through the jsconfig.json
+ *    baseUrl
  * 3. When setting maxTransactionLockRequestTimeoutMillis, don't initialize jsTest.options().setParameters because that will get reset every time
  *    jsTest.options() is called. jsTest.options() is based on TestData, so initialize that instead.
  */

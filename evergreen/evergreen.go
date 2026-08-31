@@ -169,7 +169,7 @@ func (c *Config) aliases() ([]alias, error) {
 				" it's a relatively recent platform that supports a wide range of" +
 				" servers.",
 			variant: `^rhel88$`,
-			tasks:   `^(aws-auth|integration|kerberos|legacy|qa-dump-restore|qa-tests)`,
+			tasks:   `^(aws-auth|integration|kerberos)`,
 		},
 	}
 

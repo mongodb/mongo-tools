@@ -9,7 +9,6 @@
 /mongodb-database-tools-*
 /purls.txt
 /release.*
-/report.json
 /rpm_build
 /silkbomb.env
 /temp*
@@ -47,7 +46,3 @@ tags
 testing_output/
 vendor/pkg
 test/**/*.json
-test/qa-tests/[0-9]*
-test/qa-tests/install_compass
-test/qa-tests/mongo*
-test/qa-tests/venv
