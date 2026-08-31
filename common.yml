@@ -181,11 +181,6 @@ functions:
           - src/github.com/mongodb/mongo-tools/package.json
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
         name: mise-all-tools
-        # We deliberately don't cache node_modules: Evergreen's cache.save dereferences symlinks
-        # when archiving, but npm creates node_modules/.bin/<tool> as a symlink into the package's
-        # own directory. After a cache.restore those become plain file copies sitting in the wrong
-        # place, breaking any tool that resolves paths relative to its own real location (e.g.
-        # `require("../package.json")`), so `npm install` always runs fresh instead.
         paths:
           - .local/bin
           - .local/share/mise
