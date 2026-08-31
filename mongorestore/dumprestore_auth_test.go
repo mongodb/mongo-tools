@@ -10,6 +10,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
@@ -1149,6 +1150,258 @@ func readBSONFile(t *testing.T, path string) []bson.D {
 	require.NoError(t, source.Err(), "can decode %#q", path)
 
 	return docs
+}
+
+// TestDumpDBUsersAndRolesIsScopedToOneDB checks that --dumpDbUsersAndRoles and
+// --restoreDbUsersAndRoles carry only the named database's users and roles. Every
+// database's definitions live together in admin.system.users and
+// admin.system.roles, so a dump scoped to one database has to pick out its own
+// and a restore has to put back only those.
+func TestDumpDBUsersAndRolesIsScopedToOneDB(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const (
+		dumpedDBName = "testdr_scoped_dumped"
+		otherDBName  = "testdr_scoped_other"
+		dumpedUser   = "scoped_dumped_user"
+		dumpedRole   = "scoped_dumped_role"
+		otherUser    = "scoped_other_user"
+		otherRole    = "scoped_other_role"
+	)
+
+	client, err := testutil.GetBareSession(t)
+	require.NoError(t, err, "can connect to the test server")
+
+	dumpedDB := client.Database(dumpedDBName)
+	otherDB := client.Database(otherDBName)
+
+	dropUsersAndRoles := func() {
+		silentDropUser(dumpedDB, dumpedUser)
+		silentDropRole(dumpedDB, dumpedRole)
+		silentDropUser(otherDB, otherUser)
+		silentDropRole(otherDB, otherRole)
+	}
+	cleanup := func() {
+		dropUsersAndRoles()
+		_ = dumpedDB.Drop(context.Background())
+		_ = otherDB.Drop(context.Background())
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	createUserAndRole := func(db *mongo.Database, user, role string) {
+		mustCreateRole(t, db, role, bson.A{privilege(db.Name(), "", bson.A{"find"})}, bson.A{})
+		mustCreateUser(t, db, user, "pass", bson.A{dbRole(role, db.Name())})
+	}
+	createUserAndRole(dumpedDB, dumpedUser, dumpedRole)
+	createUserAndRole(otherDB, otherUser, otherRole)
+
+	coll := dumpedDB.Collection("bar")
+	_, err = coll.InsertOne(context.Background(), bson.D{{"a", 1}})
+	require.NoError(t, err, "seeding the collection in the database that gets dumped")
+
+	dumpDir, cleanDump := testutil.MakeTempDir(t)
+	t.Cleanup(cleanDump)
+
+	dumpOpts := baseToolOpts(t)
+	dumpOpts.Namespace = &options.Namespace{DB: dumpedDBName}
+	require.NoError(
+		t,
+		runDump(t, dumpOpts, dumpDir, func(d *mongodump.MongoDump) {
+			d.OutputOptions.DumpDBUsersAndRoles = true
+		}),
+		"dumping one database together with its users and roles",
+	)
+
+	dropUsersAndRoles()
+	require.NoError(
+		t,
+		coll.Drop(context.Background()),
+		"clearing the data so the restore has to bring it back",
+	)
+
+	restoreOpts := baseToolOpts(t)
+	require.NoError(
+		t,
+		runRestore(t, restoreOpts, filepath.Join(dumpDir, dumpedDBName), func(o *Options) {
+			o.ToolOptions.Namespace = &options.Namespace{DB: dumpedDBName}
+			o.InputOptions.RestoreDBUsersAndRoles = true
+		}),
+		"restoring one database together with its users and roles",
+	)
+
+	assert.Equal(
+		t,
+		int64(1),
+		docCount(t, coll),
+		"the dumped database's data comes back",
+	)
+	assert.Equal(
+		t,
+		int64(1),
+		sysUsersWhere(t, client, bson.D{{"user", dumpedUser}, {"db", dumpedDBName}}),
+		"the dumped database's user comes back",
+	)
+	assert.Equal(
+		t,
+		int64(1),
+		sysRolesWhere(t, client, bson.D{{"role", dumpedRole}, {"db", dumpedDBName}}),
+		"the dumped database's role comes back",
+	)
+	assert.Equal(
+		t,
+		int64(0),
+		sysUsersWhere(t, client, bson.D{{"user", otherUser}, {"db", otherDBName}}),
+		"the other database's user is left out",
+	)
+	assert.Equal(
+		t,
+		int64(0),
+		sysRolesWhere(t, client, bson.D{{"role", otherRole}, {"db", otherDBName}}),
+		"the other database's role is left out",
+	)
+}
+
+// TestDropRestoreDropsTheUserItAuthenticatedAs checks that a --drop restore of the
+// admin database runs to completion even when the user it is authenticated as is
+// absent from the dump, and so is one of the things --drop removes. mongorestore
+// stages users and roles in temporary collections and merges them at the very end,
+// which is what keeps the connection it is working over usable until then.
+//
+// A --drop restore of admin merges users and roles with drop: true and db: "" -- the
+// sentinel for every database -- so this is authoritative over every user and role on
+// the server, not just admin's. Everything present when the dump ran comes back with
+// it; a user or role created by something else between the dump and the restore does
+// not. That is the behavior under test, so it cannot be scoped any further.
+func TestDropRestoreDropsTheUserItAuthenticatedAs(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+
+	const (
+		backupUser  = "dropauth_backup"
+		restoreUser = "dropauth_restore"
+		dumpedRole  = "dropauth_extra"
+		collName    = "dropauth_data"
+		password    = "password"
+	)
+
+	adminClient, err := testutil.GetBareSession(t)
+	require.NoError(t, err, "can connect to the test server")
+
+	adminDB := adminClient.Database("admin")
+	coll := adminDB.Collection(collName)
+
+	cleanup := func() {
+		silentDropUser(adminDB, backupUser)
+		silentDropUser(adminDB, restoreUser)
+		silentDropRole(adminDB, dumpedRole)
+		_ = coll.Drop(context.Background())
+		// The restore loses its authorization the moment it drops its own user, so
+		// its own cleanup of these cannot go through and they outlive it.
+		_ = adminDB.Collection("tempusers").Drop(context.Background())
+		_ = adminDB.Collection("temproles").Drop(context.Background())
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	mustCreateUser(t, adminDB, backupUser, password, bson.A{adminRole("backup")})
+	mustCreateRole(t, adminDB, dumpedRole, bson.A{privilege("admin", "", bson.A{"find"})}, bson.A{})
+
+	dumpedIDs := insertDocsWithIDs(t, coll, 0, 10)
+
+	dumpDir, cleanDump := testutil.MakeTempDir(t)
+	t.Cleanup(cleanDump)
+
+	dumpOpts := toolOptsForUser(t, backupUser, password)
+	dumpOpts.Namespace = &options.Namespace{DB: "admin"}
+	require.NoError(t, runDump(t, dumpOpts, dumpDir, nil), "dumping admin as the backup user")
+
+	_, err = coll.DeleteMany(context.Background(), bson.D{})
+	require.NoError(t, err, "clearing the documents the dump captured")
+
+	// Created after the dump, so the dump holds no record of it. That is what makes
+	// the restore below drop the very user it is authenticated as.
+	mustCreateUser(t, adminDB, restoreUser, password, bson.A{adminRole("restore")})
+
+	insertDocsWithIDs(t, coll, len(dumpedIDs), 10)
+
+	restoreOpts := toolOptsForUser(t, restoreUser, password)
+	require.NoError(
+		t,
+		runRestore(t, restoreOpts, filepath.Join(dumpDir, "admin"), func(o *Options) {
+			o.ToolOptions.Namespace = &options.Namespace{DB: "admin"}
+			o.OutputOptions.Drop = true
+		}),
+		"the restore finishes even though it drops the user it authenticated as",
+	)
+
+	assert.Equal(
+		t,
+		dumpedIDs,
+		documentIDs(t, coll),
+		"the dumped documents replace the ones --drop discarded",
+	)
+	assert.Equal(
+		t,
+		int64(0),
+		sysUsersWhere(t, adminClient, bson.D{{"user", restoreUser}}),
+		"the user that was absent from the dump is gone once the restore is done",
+	)
+	assert.Equal(
+		t,
+		int64(1),
+		sysUsersWhere(t, adminClient, bson.D{{"user", backupUser}}),
+		"the user that was in the dump is still there",
+	)
+	assert.Equal(
+		t,
+		int64(1),
+		sysRolesWhere(t, adminClient, bson.D{{"role", dumpedRole}}),
+		"the role that was in the dump is still there",
+	)
+}
+
+// insertDocsWithIDs inserts count documents whose _ids run from first, and returns
+// those _ids.
+func insertDocsWithIDs(t *testing.T, coll *mongo.Collection, first, count int) []int {
+	t.Helper()
+
+	docs := make([]any, 0, count)
+	ids := make([]int, 0, count)
+	for i := first; i < first+count; i++ {
+		docs = append(docs, bson.D{{"_id", i}})
+		ids = append(ids, i)
+	}
+	_, err := coll.InsertMany(context.Background(), docs)
+	require.NoError(t, err, "can insert documents with _ids %d through %d", first, first+count-1)
+
+	return ids
+}
+
+// documentIDs returns the _id of every document in the collection, in order.
+func documentIDs(t *testing.T, coll *mongo.Collection) []int {
+	t.Helper()
+
+	cursor, err := coll.Find(context.Background(), bson.D{})
+	require.NoError(t, err, "can read the documents in %#q", coll.Name())
+
+	var docs []struct {
+		ID int `bson:"_id"`
+	}
+	require.NoError(
+		t,
+		cursor.All(context.Background(), &docs),
+		"can decode the documents in %#q",
+		coll.Name(),
+	)
+
+	ids := make([]int, 0, len(docs))
+	for _, doc := range docs {
+		ids = append(ids, doc.ID)
+	}
+	slices.Sort(ids)
+
+	return ids
 }
 
 // baseToolOpts returns a fresh set of tool options from the environment.
