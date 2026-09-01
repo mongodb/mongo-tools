@@ -6,7 +6,7 @@
 # for example from editors on save. Slower tidiers should only be invoked manually, either by
 # running the relevant mage command or by explicitly running `precious` from the CLI.
 
-exclude = [".agents/**/*", ".claude/**/*", ".gocache/**/*", "vendor/**/*"]
+exclude = [".agents/**/*", ".claude/**/*", "!.claude/skills/**/*", ".gocache/**/*", "vendor/**/*"]
 
 [commands.golangci-lint]
 type = "both"
