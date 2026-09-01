@@ -5,7 +5,7 @@
   "tabWidth": 2,
   "overrides": [
     {
-      "files": ["*.js", "*.mjs"],
+      "files": ["*.js", "*.mjs", "*.toml"],
       "options": {
         "tabWidth": 4
       }
