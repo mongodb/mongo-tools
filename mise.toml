@@ -16,14 +16,11 @@ go = "1.26.7"
 "github:mvdan/sh" = { version = "3.13.1", bin = "shfmt" }
 
 # Node and npm tools
-node = { version = "22.22.0", postinstall = "$MISE_TOOL_INSTALL_PATH/bin/npm install --loglevel verbose" }
+# node is here because the npm: tools below need a Node runtime to execute.
+node = "22.22.0"
 "npm:eslint" = "8.57.0"
 "npm:github-codeowners" = "0.2.1"
 "npm:oxfmt" = "0.52.0"
-
-[hooks]
-# This exists for the sake of worktrees, since we need to run `npm install` in every new worktree.
-enter = "./etc/maybe-run-npm-install.sh"
 
 [settings]
 # This prevents us from upgrading to anything that was released less than 7 days ago. It gives us a
