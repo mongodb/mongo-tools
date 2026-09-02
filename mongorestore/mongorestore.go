@@ -16,6 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -41,6 +42,11 @@ const (
 	deprecatedDBAndCollectionsOptionsWarning = "The --db and --collection flags are deprecated for " +
 		"this use-case; please use --nsInclude instead, " +
 		"i.e. with --nsInclude=${DATABASE}.${COLLECTION}"
+
+	// maxParallelCollectionsPerProc bounds how many parallel collections an archive's
+	// header can request per GOMAXPROCS, so a crafted or corrupt archive can't force
+	// mongorestore to spin up an unreasonable number of goroutines.
+	maxParallelCollectionsPerProc = 4
 )
 
 var (
@@ -450,18 +456,10 @@ func (restore *MongoRestore) Restore() Result {
 		restore.OutputOptions.NumInsertionWorkers = restore.OutputOptions.NumParallelCollections
 	}
 	if restore.InputOptions.Archive != "" {
-		if int(
-			restore.archive.Prelude.Header.ConcurrentCollections,
-		) > restore.OutputOptions.NumParallelCollections {
-			restore.OutputOptions.NumParallelCollections = int(
-				restore.archive.Prelude.Header.ConcurrentCollections,
-			)
-			log.Logvf(
-				log.Always,
-				"setting number of parallel collections to number of parallel collections in archive (%v)",
-				restore.archive.Prelude.Header.ConcurrentCollections,
-			)
-		}
+		restore.OutputOptions.NumParallelCollections = numParallelCollectionsForArchive(
+			int(restore.archive.Prelude.Header.ConcurrentCollections),
+			restore.OutputOptions.NumParallelCollections,
+		)
 	}
 
 	// Create the demux before intent creation, because muted archive intents need
@@ -701,6 +699,37 @@ func (restore *MongoRestore) Restore() Result {
 	}
 
 	return result
+}
+
+// numParallelCollectionsForArchive returns the number of parallel collections to use
+// when restoring from an archive, raising currentNumParallelCollections to match the
+// concurrency the archive was written with. The archive's requested value is capped so
+// that a crafted or corrupt archive can't force mongorestore to spin up an unreasonable
+// number of goroutines.
+func numParallelCollectionsForArchive(
+	archiveConcurrentCollections, currentNumParallelCollections int,
+) int {
+	maxParallelCollections := runtime.GOMAXPROCS(0) * maxParallelCollectionsPerProc
+	if archiveConcurrentCollections > maxParallelCollections {
+		log.Logvf(
+			log.Always,
+			"archive requested %v parallel collections, which exceeds the maximum of %v for "+
+				"this machine; using the maximum instead",
+			archiveConcurrentCollections,
+			maxParallelCollections,
+		)
+		archiveConcurrentCollections = maxParallelCollections
+	}
+	if archiveConcurrentCollections > currentNumParallelCollections {
+		log.Logvf(
+			log.Always,
+			"setting number of parallel collections to %v, the number of concurrent collections "+
+				"used to write the archive (possibly capped for this machine)",
+			archiveConcurrentCollections,
+		)
+		return archiveConcurrentCollections
+	}
+	return currentNumParallelCollections
 }
 
 // ReadPreludeMetadata finds and parses the prelude.json file if it's present.
