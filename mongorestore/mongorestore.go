@@ -322,6 +322,10 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return fmt.Errorf("cannot specify --preserveUUID without --drop")
 	}
 
+	if err := restore.checkDSCGuardrail(); err != nil {
+		return err
+	}
+
 	// a single dash signals reading from stdin
 	if restore.TargetDirectory == "-" {
 		if restore.InputOptions.Archive != "" {
@@ -334,6 +338,42 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 	if restore.InputReader == nil {
 		restore.InputReader = os.Stdin
+	}
+
+	return nil
+}
+
+// checkDSCGuardrail fails the restore when --oplogReplay or --preserveUUID is used against a
+// disaggregated storage (DSC) cluster, since mongorestore implements both on top of the applyOps
+// command, which DSC does not support.
+//
+// Detecting DSC requires reading the storage engine type from $collStats on admin.system.version,
+// which needs privileges a restricted restore user may not have. Failing the restore on a
+// detection error would break otherwise-valid restores on normal clusters, so an inconclusive
+// check is treated as "not DSC".
+func (restore *MongoRestore) checkDSCGuardrail() error {
+	isDSC, err := restore.SessionProvider.IsDisaggregatedStorage()
+	if err != nil {
+		log.Logvf(
+			log.DebugLow,
+			"could not check for disaggregated storage, assuming the server is not one: %v",
+			err,
+		)
+		return nil
+	}
+	if !isDSC {
+		return nil
+	}
+
+	if restore.InputOptions.OplogReplay {
+		return fmt.Errorf(
+			"cannot use --oplogReplay when restoring to a disaggregated storage cluster",
+		)
+	}
+	if restore.OutputOptions.PreserveUUID {
+		return fmt.Errorf(
+			"--preserveUUID cannot be used when restoring to a disaggregated storage cluster",
+		)
 	}
 
 	return nil
