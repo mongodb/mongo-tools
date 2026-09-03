@@ -33,12 +33,14 @@ recreate_npm_bin_symlinks() {
     for install_dir in "${mise_data_dir}/installs"/npm-*/*/; do
         local lib_modules="${install_dir}lib/node_modules"
         [ -d "${lib_modules}" ] || continue
-        for pkg_dir in "${lib_modules}"/*/; do
-            [ -f "${pkg_dir}package.json" ] || continue
+        # A plain glob over node_modules/* misses scoped packages, which live one level deeper at
+        # node_modules/@scope/pkg, so find the package.json files instead.
+        while IFS= read -r pkg_json; do
             local pkg_name
-            pkg_name=$(basename "${pkg_dir}")
-            python3 "$SCRIPT_DIR/recreate-npm-bin-symlinks.py" "${install_dir%/}" "${pkg_name}" "${pkg_dir}package.json"
-        done
+            pkg_name="${pkg_json#"${lib_modules}"/}"
+            pkg_name="${pkg_name%/package.json}"
+            python3 "$SCRIPT_DIR/recreate-npm-bin-symlinks.py" "${install_dir%/}" "${pkg_name}" "${pkg_json}"
+        done < <(find "${lib_modules}" -mindepth 2 -maxdepth 3 -name package.json -type f)
     done
 }
 

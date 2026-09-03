@@ -20,6 +20,9 @@ go = "1.26.7"
 node = "22.22.0"
 "npm:eslint" = "8.57.0"
 "npm:github-codeowners" = "0.2.1"
+# This opts out of the minimum_release_age below because this release is ours and is cut as it is
+# needed.
+"npm:@mongodb-js/mongodb-runner" = { version = "6.12.0", minimum_release_age = "0d" }
 "npm:oxfmt" = "0.52.0"
 
 [settings]

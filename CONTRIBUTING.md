@@ -69,6 +69,30 @@ case.
 All programmatic tool invocations should use `mise exec <tool>`. This will work in CI as well as
 locally.
 
+## Running DSC Clusters Locally
+
+In order to run these locally, you need access to the private `10gen/mongo-downloader` repo. This is
+only available for MongoDB employees.
+
+First, you must authenticate with aws using a profile that has access to the SLS image repo. You
+also need to authenticate with a profile that can access the S3 bucket containing Server binaries
+used by `mongodb-downloader. This can be two different profiles or just one.
+
+In order to start a DSC cluster, run this command:
+
+```
+MISE_ENV=dsc SLS_AWS_ECR_PROFILE=... ./scripts/start-dsc-cluster.sh
+```
+
+The `SLS_AWS_ECR_PROFILE` value should be the name of the authenticated profile which has access to
+the ECR repo.
+
+You can stop the cluster with:
+
+```
+MISE_ENV=dsc mise exec -- ./scripts/start-dsc-cluster.sh
+```
+
 ## Getting Started
 
 1. Create a [MongoDB JIRA account](https://jira.mongodb.org/secure/Signup!default.jspa).

@@ -1,0 +1,20 @@
+# mongodb-downloader lives here rather than in mise.toml because 10gen/mongodb-downloader is a
+# private repo. Running `mise install` would fail with a 404 for anyone without a token that can
+# read that repo. This would break lint and every other task that installs mise-managed tools. mise
+# has no way to make a tool conditional on the user having access, so instead this config
+# environment keeps it out of sight of everything except the code that actually wants it.
+#
+# When `MISE_ENV=dsc` is set, then this config file is included when `mise install` is run. This is
+# set by `scripts/start-dsc-cluster.sh`.
+
+[tools]
+# This opts out of mise.toml's minimum_release_age because these releases are ours and are cut as
+# they are needed.
+"github:10gen/mongodb-downloader" = { version = "0.0.4", minimum_release_age = "0d" }
+
+[settings]
+# Evergreen passes GITHUB_TOKEN, which takes precedence over this, so if the Evergreen hosts don't
+# have the `gh` command installed, this is not an issue. Locally, this saves everyone from having to
+# export a token by hand: mise does not pick up gh's token on its own for private release assets,
+# even though github.gh_cli_tokens defaults to true.
+github.credential_command = "gh auth token"

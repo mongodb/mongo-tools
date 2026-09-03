@@ -134,6 +134,10 @@ func TestValidOplogLimitChecking(t *testing.T) {
 
 func TestOplogRestore(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
@@ -180,6 +184,10 @@ func TestOplogRestore(t *testing.T) {
 
 func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
@@ -216,6 +224,10 @@ func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 
 func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
@@ -495,6 +507,10 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 
 func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
@@ -604,6 +620,10 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 
 func TestOplogRestoreTools2002(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -703,6 +723,10 @@ func TestOplogRestoreVectoredInsert(t *testing.T) {
 
 func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	ctx := t.Context()
 
@@ -783,6 +807,10 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 
 func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	ctx := t.Context()
 
@@ -847,6 +875,10 @@ func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 
 func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	ctx := t.Context()
 
@@ -897,6 +929,10 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 
 func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	testutil.SkipIfFCVLessThan(t, "6.0", "collMod TTL is not supported")
 
 	ctx := t.Context()
@@ -954,6 +990,10 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 // generic "unknown oplog command name" error.
 func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	ctx := t.Context()
 
@@ -1050,6 +1090,10 @@ func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
 // forwarded to the target, whether it appears on its own or nested inside an applyOps.
 func TestOplogRestoreDropIdent(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	ctx := t.Context()
 

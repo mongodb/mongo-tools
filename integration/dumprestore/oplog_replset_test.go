@@ -19,6 +19,10 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 	// local.oplog.rs only exists on a replica set. The suite as a whole gates on
 	// the integration test type, so this case needs a gate of its own.
 	testtype.SkipUnlessTestType(s.T(), testtype.ReplSetTestType)
+	testutil.SkipForDisaggregatedStorage(
+		s.T(),
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	const collName = "coll"
 

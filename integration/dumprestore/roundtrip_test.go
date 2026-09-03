@@ -824,6 +824,11 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 		s.T().Skip("replica set required")
 	}
 
+	testutil.SkipForDisaggregatedStorage(
+		s.T(),
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
+
 	ctx := s.Context()
 
 	testName := s.DBName()
