@@ -485,7 +485,10 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 		},
 	)
 	if err := singleRes.Err(); err != nil {
-		return fmt.Errorf("applyOps: %v", err)
+		return fmt.Errorf(
+			"applyOps (note that --oplogReplay and --preserveUUID are not supported with sharded or disaggregated storage clusters): %v",
+			err,
+		)
 	}
 	res := bson.M{}
 	if err := singleRes.Decode(&res); err != nil {
