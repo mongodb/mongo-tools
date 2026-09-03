@@ -19,6 +19,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+const (
+	FauxUsersCollection       = "$admin.system.users"
+	FauxRolesCollection       = "$admin.system.roles"
+	FauxAuthVersionCollection = "$admin.system.version"
+)
+
 type file interface {
 	io.ReadWriteCloser
 	Open() error
@@ -107,7 +113,7 @@ func (it *Intent) IsOplog() bool {
 }
 
 func (it *Intent) IsUsers() bool {
-	if it.C == "$admin.system.users" {
+	if it.C == FauxUsersCollection {
 		return true
 	}
 	if it.DB == "admin" && it.C == "system.users" {
@@ -117,7 +123,7 @@ func (it *Intent) IsUsers() bool {
 }
 
 func (it *Intent) IsRoles() bool {
-	if it.C == "$admin.system.roles" {
+	if it.C == FauxRolesCollection {
 		return true
 	}
 	if it.DB == "admin" && it.C == "system.roles" {
@@ -127,7 +133,7 @@ func (it *Intent) IsRoles() bool {
 }
 
 func (it *Intent) IsAuthVersion() bool {
-	if it.C == "$admin.system.version" {
+	if it.C == FauxAuthVersionCollection {
 		return true
 	}
 	if it.DB == "admin" && it.C == "system.version" {

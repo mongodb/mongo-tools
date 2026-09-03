@@ -248,51 +248,36 @@ func (dump *MongoDump) CreateOplogIntents() error {
 func (dump *MongoDump) CreateUsersRolesVersionIntentsForDB(db string) error {
 	outDir := dump.outputPath(db, "")
 
-	usersIntent := &intents.Intent{
-		ServerVersion: dump.serverVersionArray,
-		DB:            db,
-		C:             "$admin.system.users",
+	fauxCollNames := []string{
+		intents.FauxUsersCollection,
+		intents.FauxRolesCollection,
+		intents.FauxAuthVersionCollection,
 	}
-	rolesIntent := &intents.Intent{
-		ServerVersion: dump.serverVersionArray,
-		DB:            db,
-		C:             "$admin.system.roles",
-	}
-	versionIntent := &intents.Intent{
-		ServerVersion: dump.serverVersionArray,
-		DB:            db,
-		C:             "$admin.system.version",
-	}
-	if dump.OutputOptions.Archive != "" {
-		usersIntent.BSONFile = &archive.MuxIn{Intent: usersIntent, Mux: dump.archive.Mux}
-		rolesIntent.BSONFile = &archive.MuxIn{Intent: rolesIntent, Mux: dump.archive.Mux}
-		versionIntent.BSONFile = &archive.MuxIn{Intent: versionIntent, Mux: dump.archive.Mux}
-	} else {
-		usersIntent.BSONFile = &realBSONFile{
-			path: filepath.Join(
-				outDir,
-				nameGz(dump.OutputOptions.Gzip, "$admin.system.users.bson"),
-			),
-			intent: usersIntent,
+
+	for _, collName := range fauxCollNames {
+		intent := intents.Intent{
+			ServerVersion: dump.serverVersionArray,
+			DB:            db,
+			C:             collName,
 		}
-		rolesIntent.BSONFile = &realBSONFile{
-			path: filepath.Join(
-				outDir,
-				nameGz(dump.OutputOptions.Gzip, "$admin.system.roles.bson"),
-			),
-			intent: rolesIntent,
+
+		if dump.OutputOptions.Archive != "" {
+			intent.BSONFile = &archive.MuxIn{
+				Mux:    dump.archive.Mux,
+				Intent: &intent,
+			}
+		} else {
+			intent.BSONFile = &realBSONFile{
+				path: filepath.Join(
+					outDir,
+					nameGz(dump.OutputOptions.Gzip, collName+".bson"),
+				),
+				intent: &intent,
+			}
 		}
-		versionIntent.BSONFile = &realBSONFile{
-			path: filepath.Join(
-				outDir,
-				nameGz(dump.OutputOptions.Gzip, "$admin.system.version.bson"),
-			),
-			intent: versionIntent,
-		}
+
+		dump.manager.Put(&intent)
 	}
-	dump.manager.Put(usersIntent)
-	dump.manager.Put(rolesIntent)
-	dump.manager.Put(versionIntent)
 
 	return nil
 }
