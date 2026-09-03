@@ -1588,6 +1588,10 @@ func TestSkipSystemCollections(t *testing.T) {
 // entries are skipped when restoring the oplog.
 func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)

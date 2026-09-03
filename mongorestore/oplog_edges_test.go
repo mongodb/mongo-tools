@@ -25,6 +25,10 @@ import (
 // applies no data rather than silently choosing one of the two.
 func TestOplogReplayConflict(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 
 	client, err := testutil.GetBareSession(t)
 	require.NoError(t, err)

@@ -11,6 +11,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/db/dsctest"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -39,6 +40,25 @@ func TestNewSessionProvider(t *testing.T) {
 	)
 
 	provider.Close()
+}
+
+func TestIsDisaggregatedStorage(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	opts := testopts.MustGetToolOptions(t)
+	provider, err := NewSessionProvider(opts)
+	require.NoError(t, err, "creating a session provider")
+	defer provider.Close()
+
+	// Against a DSC cluster the detector legitimately reports true, which is not what this test
+	// asserts, so skip there.
+	client, err := provider.GetSession()
+	require.NoError(t, err, "getting a session")
+	dsctest.SkipForDisaggregatedStorage(t, client, "the test asserts the non-DSC result")
+
+	isDSC, err := provider.IsDisaggregatedStorage()
+	require.NoError(t, err, "checking for disaggregated storage")
+	assert.False(t, isDSC, "a normal server reports no disaggregated storage")
 }
 
 func TestConfigureClientForSRV(t *testing.T) {
