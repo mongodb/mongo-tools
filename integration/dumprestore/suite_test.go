@@ -110,14 +110,21 @@ func (s *DumpRestoreSuite) withBSONMongodumpForCollection(
 	collection string,
 	testCase func(string),
 ) {
+	s.withBSONMongodumpForCollectionForURI(os.Getenv(testopts.URIEnvVar), db, collection, testCase)
+}
+
+func (s *DumpRestoreSuite) withBSONMongodumpForCollectionForURI(
+	uri, db, collection string,
+	testCase func(string),
+) {
 	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
-	s.runBSONMongodumpForCollection(dir, db, collection)
+	s.runBSONMongodumpForCollectionForURI(uri, dir, db, collection)
 	testCase(dir)
 }
 
-func (s *DumpRestoreSuite) runBSONMongodumpForCollection(
-	dir, db, collection string,
+func (s *DumpRestoreSuite) runBSONMongodumpForCollectionForURI(
+	uri, dir, db, collection string,
 	args ...string,
 ) string {
 	baseArgs := []string{
@@ -125,7 +132,8 @@ func (s *DumpRestoreSuite) runBSONMongodumpForCollection(
 		"--db", db,
 		"--collection", collection,
 	}
-	s.runMongodumpWithArgs(
+	s.runMongodumpWithArgsForURI(
+		uri,
 		append(baseArgs, args...)...,
 	)
 	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
