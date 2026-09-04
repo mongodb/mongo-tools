@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -247,6 +248,7 @@ func (s *DumpRestoreSuite) TestDumpToStdout() {
 
 	s.runMongodumpToWriter(
 		bsonFile,
+		os.Getenv(testopts.URIEnvVar),
 		"--out", "-",
 		"--db", testDB.Name(),
 		"--collection", collName,

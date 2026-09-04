@@ -32,32 +32,40 @@ func TestDumpRestore(t *testing.T) {
 }
 
 func (s *DumpRestoreSuite) withBSONMongodump(testCase func(string), args ...string) {
+	s.withBSONMongodumpForURI(os.Getenv(testopts.URIEnvVar), testCase, args...)
+}
+
+func (s *DumpRestoreSuite) withBSONMongodumpForURI(
+	uri string,
+	testCase func(string),
+	args ...string,
+) {
 	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
 	dirArgs := []string{
 		"--out", dir,
 	}
-	s.runMongodumpWithArgs(append(dirArgs, args...)...)
+	s.runMongodumpWithArgsForURI(nil, uri, append(dirArgs, args...)...)
 	testCase(dir)
 }
 
 func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
-	s.runMongodump(nil, args...)
+	s.runMongodumpWithArgsForURI(nil, os.Getenv(testopts.URIEnvVar), args...)
 }
 
-// runMongodumpToWriter runs mongodump with its standard output redirected to
-// stdout, for the dumps that write their data there rather than to a directory.
-func (s *DumpRestoreSuite) runMongodumpToWriter(stdout io.Writer, args ...string) {
-	s.runMongodump(stdout, args...)
+// runMongodumpToWriter runs mongodump with its standard output redirected to stdout, for the dumps
+// that write their data there rather than to a directory.
+func (s *DumpRestoreSuite) runMongodumpToWriter(stdout io.Writer, uri string, args ...string) {
+	s.runMongodumpWithArgsForURI(stdout, uri, args...)
 }
 
-// runMongodump runs mongodump and requires it to succeed without reporting a
-// missing namespace. A nil stdout leaves mongodump's own standard output to be
-// captured alongside its diagnostics; otherwise standard output carries the
-// dump itself and only the diagnostics are captured.
-func (s *DumpRestoreSuite) runMongodump(stdout io.Writer, args ...string) {
+func (s *DumpRestoreSuite) runMongodumpWithArgsForURI(
+	stdout io.Writer,
+	uri string,
+	args ...string,
+) {
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
-	cmd = append(cmd, testopts.GetBareArgs()...)
+	cmd = append(cmd, testopts.GetBareArgsForURI(uri)...)
 	cmd = append(cmd, args...)
 	cmdStr := strings.Join(cmd, " ")
 
@@ -151,15 +159,25 @@ func (s *DumpRestoreSuite) runBSONMongodumpForCollection(
 }
 
 func (s *DumpRestoreSuite) withArchiveMongodump(testCase func(string), dumpArgs ...string) {
+	s.withArchiveMongodumpForURI(os.Getenv(testopts.URIEnvVar), testCase, dumpArgs...)
+}
+
+func (s *DumpRestoreSuite) withArchiveMongodumpForURI(
+	uri string,
+	testCase func(string),
+	dumpArgs ...string,
+) {
 	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
 	file := filepath.Join(dir, "archive")
-	s.runArchiveMongodump(file, dumpArgs...)
+	s.runArchiveMongodumpForURI(uri, file, dumpArgs...)
 	testCase(file)
 }
 
-func (s *DumpRestoreSuite) runArchiveMongodump(file string, dumpArgs ...string) {
-	s.runMongodumpWithArgs(
+func (s *DumpRestoreSuite) runArchiveMongodumpForURI(uri, file string, dumpArgs ...string) {
+	s.runMongodumpWithArgsForURI(
+		nil,
+		uri,
 		append(
 			[]string{mongorestore.ArchiveOption + "=" + file},
 			dumpArgs...,
