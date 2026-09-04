@@ -20,18 +20,39 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
-// DefaultTestPort is the port the test suites expect a mongod on unless the environment overrides it
-// through URIEnvVar.
-const DefaultTestPort = "33333"
+const (
+	// DefaultTestPort is the port the test suites expect a mongod on unless the environment overrides it
+	// through URIEnvVar.
+	DefaultTestPort = "33333"
 
-// URIEnvVar names the env var that points the test suites at the server under test, overriding
-// localhost:DefaultTestPort.
-const URIEnvVar = "TOOLS_TESTING_MONGOD"
+	// URIEnvVar names the env var that points the test suites at the server under test, overriding
+	// localhost:DefaultTestPort.
+	URIEnvVar = "TOOLS_TESTING_MONGOD"
+
+	// URIEnvVar2 names the env var that points the test suites at a second, distinct server under
+	// test.
+	//
+	// Tests that need a second cluster (e.g. a dump on one cluster restored into another) read it
+	// through SecondURI, and are skipped when it is empty.
+	URIEnvVar2 = "TOOLS_TESTING_MONGOD2"
+)
+
+// SecondURI returns the connection string for the second server under test, or the empty string
+// when none is configured.
+func SecondURI() string {
+	return os.Getenv(URIEnvVar2)
+}
 
 func GetToolOptions() (*options.ToolOptions, error) {
+	return GetToolOptionsForURI(os.Getenv(URIEnvVar))
+}
+
+// GetToolOptionsForURI builds ToolOptions pointing at the given URI, or at the default
+// localhost:DefaultTestPort when uri is empty.
+func GetToolOptionsForURI(uri string) (*options.ToolOptions, error) {
 	var toolOptions *options.ToolOptions
 	// get ToolOptions from URI or defaults
-	if uri := os.Getenv(URIEnvVar); uri != "" {
+	if uri != "" {
 		parse, err := connstring.ParseAndValidate(uri)
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -98,11 +119,17 @@ func MustGetToolOptions(t *testing.T) options.ToolOptions {
 }
 
 func GetBareArgs() []string {
+	return GetBareArgsForURI(os.Getenv(URIEnvVar))
+}
+
+// GetBareArgsForURI returns the command-line args that point a tool at the given URI, or at the
+// default localhost:DefaultTestPort when uri is empty.
+func GetBareArgsForURI(uri string) []string {
 	args := []string{}
 
 	args = append(args, GetSSLArgs()...)
 	args = append(args, GetAuthArgs()...)
-	if uri := os.Getenv(URIEnvVar); uri != "" {
+	if uri != "" {
 		args = append(args, "--uri", uri)
 	} else {
 		args = append(args, "--host", "localhost", "--port", DefaultTestPort)
