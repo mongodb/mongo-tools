@@ -3,6 +3,7 @@ package dumprestore
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,21 +42,47 @@ func (s *DumpRestoreSuite) withBSONMongodump(testCase func(string), args ...stri
 }
 
 func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
+	s.runMongodump(nil, args...)
+}
+
+// runMongodumpToWriter runs mongodump with its standard output redirected to
+// stdout, for the dumps that write their data there rather than to a directory.
+func (s *DumpRestoreSuite) runMongodumpToWriter(stdout io.Writer, args ...string) {
+	s.runMongodump(stdout, args...)
+}
+
+// runMongodump runs mongodump and requires it to succeed without reporting a
+// missing namespace. A nil stdout leaves mongodump's own standard output to be
+// captured alongside its diagnostics; otherwise standard output carries the
+// dump itself and only the diagnostics are captured.
+func (s *DumpRestoreSuite) runMongodump(stdout io.Writer, args ...string) {
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
 	cmd = append(cmd, testopts.GetBareArgs()...)
 	cmd = append(cmd, args...)
-	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")
+
+	command := exec.Command(cmd[0], cmd[1:]...)
+
+	var diagnostics strings.Builder
+	command.Stderr = &diagnostics
+	if stdout == nil {
+		command.Stdout = &diagnostics
+	} else {
+		command.Stdout = stdout
+	}
+
+	err := command.Run()
+	out := diagnostics.String()
 	s.Require().NoError(err, "can execute command %s with output: %s", cmdStr, out)
 	s.Require().NotContains(
-		string(out),
+		out,
 		"does not exist",
 		"running [%s] does not tell us the namespace does not exist",
 		cmdStr,
 	)
 
 	// So we can see dump's output when debugging test failures:
-	fmt.Print(string(out))
+	fmt.Print(out)
 }
 
 func (s *DumpRestoreSuite) createCollectionsWithTestDocuments(
