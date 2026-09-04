@@ -7,6 +7,7 @@
 package mongorestore
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -173,12 +174,35 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 			NumParallelCollectionsOption, "1",
 			NumInsertionWorkersOption, "1",
 			ArchiveOption + "=" + archivePath,
+			// `ParseOptions` calls `log.SetVerbosity` with the options it parsed, which resets the
+			// global verbosity this package's `init()` raised, so the debug lines below are only
+			// emitted if the restore asks for them.
+			"-vvv",
 		}
 		restore, err := getRestoreWithArgs(args...)
 		require.NoError(err)
 		defer restore.Close()
 
+		// The three versions read out of the archive prelude are only reported through the log, so
+		// the log is the only place they can be checked.
+		var logged bytes.Buffer
+		log.SetWriter(&logged)
+		defer log.SetWriter(os.Stderr)
+
 		_ = restore.Restore()
+
+		for _, want := range []string{
+			"archive format version",
+			"archive server version",
+			"archive tool version",
+		} {
+			require.Regexp(
+				want+" `\\S+`",
+				logged.String(),
+				"the restore log reports the %s from the archive prelude",
+				want,
+			)
+		}
 
 		// The prelude records the server's version *string*, so compare against
 		// that same source. buildInfo.versionArray reports the next, unreleased
