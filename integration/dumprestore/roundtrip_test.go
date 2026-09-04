@@ -611,79 +611,52 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 	})
 }
 func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
-	session, err := testutil.GetBareSession(s.T())
-	s.Require().NoError(err, "no server available")
-
-	s.Run("drops tempusers and temproles", func() {
-		restore, err := getRestoreWithArgs(
-			mongorestore.NumParallelCollectionsOption, "1",
-			mongorestore.NumInsertionWorkersOption, "1",
-		)
-		s.Require().NoError(err)
-		defer restore.Close()
-
-		adminDB := session.Database("admin")
-		restore.TargetDirectory = usersDumpDir
-		result := restore.Restore()
-		s.Require().NoError(result.Err, "can run mongorestore")
-
-		adminCollections, err := adminDB.ListCollectionNames(s.Context(), bson.M{})
-		s.Require().NoError(err, "can list admin collections")
-
-		for _, collName := range adminCollections {
-			s.Assert().NotEqual("tempusers", collName, "tempusers should not exist after restore")
-			s.Assert().NotEqual("temproles", collName, "temproles should not exist after restore")
-		}
-	})
-
-	s.Run("with a nonempty temp users collection", s.testRestoreUsersWithNonemptyTempColl)
-	s.Run("with custom temp collection names", s.testRestoreUsersWithCustomTempColls)
-	s.Run("a database's own users and roles round-trip", s.testRoundTripDBUsersAndRoles)
-
-	s.Run("without --dumpUsersAndRoles", func() {
-		s.Run("db directory restore fails", func() {
-			restore, err := getRestoreWithArgs(
+	s.withCrossCluster(func(cc crossCluster) {
+		s.Run("drops tempusers and temproles", func() {
+			restore, err := getRestoreWithArgsForURI(
+				cc.targetURI,
 				mongorestore.NumParallelCollectionsOption, "1",
 				mongorestore.NumInsertionWorkersOption, "1",
-				mongorestore.RestoreDBUsersAndRolesOption,
-				mongorestore.DBOption,
-				"db1",
-				"../../mongorestore/testdata/testdirs/db1",
 			)
 			s.Require().NoError(err)
 			defer restore.Close()
 
+			adminDB := cc.target.Database("admin")
+			restore.TargetDirectory = usersDumpDir
 			result := restore.Restore()
-			s.Require().
-				ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
+			s.Require().NoError(result.Err, "can run mongorestore")
+
+			adminCollections, err := adminDB.ListCollectionNames(s.Context(), bson.M{})
+			s.Require().NoError(err, "can list admin collections")
+
+			for _, collName := range adminCollections {
+				s.Assert().
+					NotEqual("tempusers", collName, "tempusers should not exist after restore")
+				s.Assert().
+					NotEqual("temproles", collName, "temproles should not exist after restore")
+			}
 		})
 
-		s.Run("base dump directory restore fails", func() {
-			restore, err := getRestoreWithArgs(
-				mongorestore.NumParallelCollectionsOption, "1",
-				mongorestore.NumInsertionWorkersOption, "1",
-				mongorestore.RestoreDBUsersAndRolesOption,
-				mongorestore.DBOption,
-				"db1",
-				"../../mongorestore/testdata/testdirs",
-			)
-			s.Require().NoError(err)
-			defer restore.Close()
-
-			result := restore.Restore()
-			s.Require().
-				ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
+		s.Run("with a nonempty temp users collection", func() {
+			s.testRestoreUsersWithNonemptyTempColl(cc)
+		})
+		s.Run("with custom temp collection names", func() {
+			s.testRestoreUsersWithCustomTempColls(cc)
+		})
+		s.Run("a database's own users and roles round-trip", func() {
+			s.testRoundTripDBUsersAndRoles(cc)
 		})
 
-		s.Run("archive of entire dump restore fails", func() {
-			s.withArchiveMongodump(func(archivePath string) {
-				restore, err := getRestoreWithArgs(
+		s.Run("without --dumpUsersAndRoles", func() {
+			s.Run("db directory restore fails", func() {
+				restore, err := getRestoreWithArgsForURI(
+					cc.targetURI,
 					mongorestore.NumParallelCollectionsOption, "1",
 					mongorestore.NumInsertionWorkersOption, "1",
 					mongorestore.RestoreDBUsersAndRolesOption,
 					mongorestore.DBOption,
 					"db1",
-					mongorestore.ArchiveOption+"="+archivePath,
+					"../../mongorestore/testdata/testdirs/db1",
 				)
 				s.Require().NoError(err)
 				defer restore.Close()
@@ -691,6 +664,44 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 				result := restore.Restore()
 				s.Require().
 					ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
+			})
+
+			s.Run("base dump directory restore fails", func() {
+				restore, err := getRestoreWithArgsForURI(
+					cc.targetURI,
+					mongorestore.NumParallelCollectionsOption, "1",
+					mongorestore.NumInsertionWorkersOption, "1",
+					mongorestore.RestoreDBUsersAndRolesOption,
+					mongorestore.DBOption,
+					"db1",
+					"../../mongorestore/testdata/testdirs",
+				)
+				s.Require().NoError(err)
+				defer restore.Close()
+
+				result := restore.Restore()
+				s.Require().
+					ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
+			})
+
+			s.Run("archive of entire dump restore fails", func() {
+				s.withArchiveMongodumpForURI(cc.sourceURI, func(archivePath string) {
+					restore, err := getRestoreWithArgsForURI(
+						cc.targetURI,
+						mongorestore.NumParallelCollectionsOption, "1",
+						mongorestore.NumInsertionWorkersOption, "1",
+						mongorestore.RestoreDBUsersAndRolesOption,
+						mongorestore.DBOption,
+						"db1",
+						mongorestore.ArchiveOption+"="+archivePath,
+					)
+					s.Require().NoError(err)
+					defer restore.Close()
+
+					result := restore.Restore()
+					s.Require().
+						ErrorIs(result.Err, mongorestore.NoUsersOrRolesInDumpError, "should get NoUsersOrRolesInDumpError")
+				})
 			})
 		})
 	})
@@ -715,15 +726,15 @@ const (
 // testRestoreUsersWithNonemptyTempColl leaves a document behind in the temp users collection before
 // restoring. mongorestore stages users there before merging them, so leftovers from an interrupted
 // earlier run must not derail the restore or survive it.
-func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl() {
-	adminDB := s.Client().Database("admin")
+func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl(cc crossCluster) {
+	adminDB := cc.target.Database("admin")
 	s.dropDumpedUsersAndRoles(adminDB)
 
 	_, err := adminDB.Collection(defaultTempCollNames[0]).
 		InsertOne(s.Context(), bson.D{{"_id", "corruption"}})
 	s.Require().NoError(err, "can leave a document in the temp users collection")
 
-	s.restoreUsersDump()
+	s.restoreUsersDump(cc)
 
 	s.assertTempCollectionsGone(adminDB, defaultTempCollNames...)
 	s.assertDumpedUserAndRoleExist(adminDB)
@@ -732,8 +743,8 @@ func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl() {
 // testRestoreUsersWithCustomTempColls checks that --tempUsersColl and --tempRolesColl stage users
 // and roles in the named collections, which are cleaned up like the default ones. Nothing else
 // covers those two options.
-func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls() {
-	adminDB := s.Client().Database("admin")
+func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls(cc crossCluster) {
+	adminDB := cc.target.Database("admin")
 	s.dropDumpedUsersAndRoles(adminDB)
 
 	// The default temp collections are seeded so that naming different ones really does leave these
@@ -746,6 +757,7 @@ func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls() {
 	}
 
 	s.restoreUsersDump(
+		cc,
 		mongorestore.TempUsersCollOption, customTempCollNames[0],
 		mongorestore.TempRolesCollOption, customTempCollNames[1],
 	)
@@ -775,31 +787,39 @@ const roundTripRoleName = "roundTripRole"
 // it with --restoreDbUsersAndRoles. The rest of these cases restore a checked-in dump directory, so
 // nothing else covers mongodump's half of the option pair, or a database whose users and roles are
 // its own rather than the admin database's.
-func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles() {
-	testDB := s.database("db_users_and_roles")
-	s.dropRoundTripUsersAndRoles(testDB)
-	s.T().Cleanup(func() { s.dropRoundTripUsersAndRoles(testDB) })
+func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles(cc crossCluster) {
+	dbName := "dumprestore_db_users_and_roles"
+	sourceDB := cc.source.Database(dbName)
+	targetDB := cc.target.Database(dbName)
 
-	s.insertNamespacedDocs(testDB.Collection("coll"))
-	s.createRoundTripUsersAndRoles(testDB)
+	s.dropRoundTripUsersAndRoles(sourceDB)
+	s.dropRoundTripUsersAndRoles(targetDB)
+	s.T().Cleanup(func() {
+		s.dropRoundTripUsersAndRoles(sourceDB)
+		s.dropRoundTripUsersAndRoles(targetDB)
+	})
 
-	s.withBSONMongodump(func(dir string) {
-		s.dropDB(testDB)
-		s.dropRoundTripUsersAndRoles(testDB)
+	s.insertNamespacedDocs(sourceDB.Collection("coll"))
+	s.createRoundTripUsersAndRoles(sourceDB)
 
-		restore, err := getRestoreWithArgs(
-			mongorestore.DBOption, testDB.Name(),
+	s.withBSONMongodumpForURI(cc.sourceURI, func(dir string) {
+		s.dropDB(targetDB)
+		s.dropRoundTripUsersAndRoles(targetDB)
+
+		restore, err := getRestoreWithArgsForURI(
+			cc.targetURI,
+			mongorestore.DBOption, dbName,
 			mongorestore.RestoreDBUsersAndRolesOption,
-			filepath.Join(dir, testDB.Name()),
+			filepath.Join(dir, dbName),
 		)
 		s.Require().NoError(err, "can build mongorestore")
 		defer restore.Close()
 
 		result := restore.Restore()
 		s.Require().NoError(result.Err, "can restore a database with its users and roles")
-	}, "--db", testDB.Name(), "--dumpDbUsersAndRoles")
+	}, "--db", dbName, "--dumpDbUsersAndRoles")
 
-	s.assertDocsCameFrom(testDB.Collection("coll"), testDB.Name()+".coll")
+	s.assertDocsCameFrom(targetDB.Collection("coll"), dbName+".coll")
 
 	// usersInfo and rolesInfo are run against the database that owns them, not
 	// admin, which is the distinction these two options exist for.
@@ -808,7 +828,7 @@ func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles() {
 			User string `bson:"user"`
 		} `bson:"users"`
 	}
-	err := testDB.RunCommand(s.Context(), bson.D{{"usersInfo", 1}}).Decode(&usersInfo)
+	err := targetDB.RunCommand(s.Context(), bson.D{{"usersInfo", 1}}).Decode(&usersInfo)
 	s.Require().NoError(err, "can look up the restored database's users")
 
 	gotUserNames := lo.Map(usersInfo.Users, func(u struct {
@@ -827,7 +847,7 @@ func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles() {
 			Role string `bson:"role"`
 		} `bson:"roles"`
 	}
-	err = testDB.RunCommand(s.Context(), bson.D{{"rolesInfo", 1}}).Decode(&rolesInfo)
+	err = targetDB.RunCommand(s.Context(), bson.D{{"rolesInfo", 1}}).Decode(&rolesInfo)
 	s.Require().NoError(err, "can look up the restored database's roles")
 
 	gotRoleNames := lo.Map(rolesInfo.Roles, func(r struct {
@@ -872,7 +892,7 @@ func (s *DumpRestoreSuite) dropRoundTripUsersAndRoles(testDB *mongo.Database) {
 	testDB.RunCommand(s.Context(), bson.D{{"dropRole", roundTripRoleName}})
 }
 
-func (s *DumpRestoreSuite) restoreUsersDump(extraArgs ...string) {
+func (s *DumpRestoreSuite) restoreUsersDump(cc crossCluster, extraArgs ...string) {
 	args := append(
 		[]string{
 			mongorestore.NumParallelCollectionsOption, "1",
@@ -881,7 +901,7 @@ func (s *DumpRestoreSuite) restoreUsersDump(extraArgs ...string) {
 		extraArgs...,
 	)
 
-	restore, err := getRestoreWithArgs(args...)
+	restore, err := getRestoreWithArgsForURI(cc.targetURI, args...)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
 
@@ -949,105 +969,103 @@ func (s *DumpRestoreSuite) dropDumpedUsersAndRoles(adminDB *mongo.Database) {
 }
 
 func (s *DumpRestoreSuite) TestUnversionedIndexes() {
-	ctx := s.Context()
+	s.withCrossCluster(func(cc crossCluster) {
+		ctx := s.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
-	s.Require().NoError(err, "no cluster available")
+		sessionProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.sourceURI)
+		s.Require().NoError(err, "no source cluster available")
 
-	defer sessionProvider.Close()
+		serverVersion, err := sessionProvider.ServerVersionArray()
+		s.Require().NoError(err, "get cluster version")
 
-	session, err := sessionProvider.GetSession()
-	s.Require().NoError(err, "no client available")
+		dbName := uniqueDBName()
+		collName := "coll"
 
-	serverVersion, err := sessionProvider.ServerVersionArray()
-	s.Require().NoError(err, "get cluster version")
-
-	dbName := s.DBName()
-	collName := "coll"
-
-	coll := session.Database(dbName).Collection(collName)
-
-	metadataEJSON, err := bson.MarshalExtJSON(
-		bson.D{
-			{"collectionName", collName},
-			{"type", "collection"},
-			{"uuid", uuid.New().String()},
-			{"indexes", []bson.D{
-				{
-					{"v", 2},
-					{"key", bson.D{{"_id", 1}}},
-					{"name", "_id_"},
-				},
-				{
-					{"v", 2},
-					{"key", bson.D{{"myfield", "2dsphere"}}},
-					{"name", "my2dsphere"},
-				},
-			}},
-		},
-		false,
-		false,
-	)
-	s.Require().NoError(err, "should marshal metadata to extJSON")
-
-	simpleArchive := archive.SimpleArchive{
-		Header: archive.Header{
-			ServerVersion: serverVersion.String(),
-		},
-		CollectionMetadata: []archive.CollectionMetadata{
-			{
-				Database:   dbName,
-				Collection: collName,
-				Metadata:   string(metadataEJSON),
-				Size:       0,
+		metadataEJSON, err := bson.MarshalExtJSON(
+			bson.D{
+				{"collectionName", collName},
+				{"type", "collection"},
+				{"uuid", uuid.New().String()},
+				{"indexes", []bson.D{
+					{
+						{"v", 2},
+						{"key", bson.D{{"_id", 1}}},
+						{"name", "_id_"},
+					},
+					{
+						{"v", 2},
+						{"key", bson.D{{"myfield", "2dsphere"}}},
+						{"name", "my2dsphere"},
+					},
+				}},
 			},
-		},
-		Namespaces: []archive.SimpleNamespace{
-			{
-				Database:   dbName,
-				Collection: collName,
-			},
-		},
-	}
-	archiveBytes, err := simpleArchive.Marshal()
-	s.Require().NoError(err, "should marshal the archive")
-
-	s.withArchiveMongodump(func(archivePath string) {
-		s.Require().NoError(os.WriteFile(archivePath, archiveBytes, 0644))
-
-		restore, err := getRestoreWithArgs(
-			mongorestore.DropOption,
-			mongorestore.ArchiveOption+"="+archivePath,
+			false,
+			false,
 		)
-		s.Require().NoError(err)
-		defer restore.Close()
+		s.Require().NoError(err, "should marshal metadata to extJSON")
 
-		result := restore.Restore()
-		s.Require().NoError(result.Err, "can run mongorestore")
-		s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
-
-		cursor, err := coll.Indexes().List(ctx)
-		s.Require().NoError(err, "should open index-list cursor")
-
-		var indexes []idx.IndexDocument
-		err = cursor.All(ctx, &indexes)
-		s.Require().NoError(err, "should fetch index specs")
-
-		s.T().Logf("indexes: %+v", indexes)
-
-		var twoDIndexDoc idx.IndexDocument
-		for _, index := range indexes {
-			if index.Options["name"] == "my2dsphere" {
-				twoDIndexDoc = index
-			}
+		simpleArchive := archive.SimpleArchive{
+			Header: archive.Header{
+				ServerVersion: serverVersion.String(),
+			},
+			CollectionMetadata: []archive.CollectionMetadata{
+				{
+					Database:   dbName,
+					Collection: collName,
+					Metadata:   string(metadataEJSON),
+					Size:       0,
+				},
+			},
+			Namespaces: []archive.SimpleNamespace{
+				{
+					Database:   dbName,
+					Collection: collName,
+				},
+			},
 		}
+		archiveBytes, err := simpleArchive.Marshal()
+		s.Require().NoError(err, "should marshal the archive")
 
-		s.Require().NotNil(twoDIndexDoc.Key, "should find 2dsphere index (indexes: %+v)", indexes)
-		s.Assert().Equal(
-			int32(1),
-			twoDIndexDoc.Options["2dsphereIndexVersion"],
-			"should have version 1 2dsphere index (unversioned)",
-		)
+		s.withArchiveMongodumpForURI(cc.sourceURI, func(archivePath string) {
+			s.Require().NoError(os.WriteFile(archivePath, archiveBytes, 0644))
+
+			restore, err := getRestoreWithArgsForURI(
+				cc.targetURI,
+				mongorestore.DropOption,
+				mongorestore.ArchiveOption+"="+archivePath,
+			)
+			s.Require().NoError(err)
+			defer restore.Close()
+
+			result := restore.Restore()
+			s.Require().NoError(result.Err, "can run mongorestore")
+			s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+
+			targetColl := cc.target.Database(dbName).Collection(collName)
+			cursor, err := targetColl.Indexes().List(ctx)
+			s.Require().NoError(err, "should open index-list cursor")
+
+			var indexes []idx.IndexDocument
+			err = cursor.All(ctx, &indexes)
+			s.Require().NoError(err, "should fetch index specs")
+
+			s.T().Logf("indexes: %+v", indexes)
+
+			var twoDIndexDoc idx.IndexDocument
+			for _, index := range indexes {
+				if index.Options["name"] == "my2dsphere" {
+					twoDIndexDoc = index
+				}
+			}
+
+			s.Require().
+				NotNil(twoDIndexDoc.Key, "should find 2dsphere index (indexes: %+v)", indexes)
+			s.Assert().Equal(
+				int32(1),
+				twoDIndexDoc.Options["2dsphereIndexVersion"],
+				"should have version 1 2dsphere index (unversioned)",
+			)
+		})
 	})
 }
 
