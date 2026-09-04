@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 type DumpRestoreSuite struct {
@@ -249,28 +250,71 @@ func (s *DumpRestoreSuite) database(name string) *mongo.Database {
 	return session.Database("dumprestore_" + name)
 }
 
-// targetSession returns a session to the cluster a restore writes to and that a restore's data is
-// verified on. That is the second cluster when one is configured via TOOLS_TESTING_MONGOD2, else
-// the source cluster, so single-cluster runs behave exactly as before.
-//
-//nolint:unused // the cross-cluster routing (a follow-up PR) is the only caller
-func (s *DumpRestoreSuite) targetSession() *mongo.Client {
-	uri := testopts.SecondURI()
-	if uri == "" {
-		uri = os.Getenv(testopts.URIEnvVar)
-	}
-
-	session, err := testutil.GetBareSessionForURI(s.T(), uri)
-	s.Require().NoError(err, "can connect to the target cluster")
-
-	return session
+// crossCluster names the two clusters a round-trip test runs between and which
+// side each role maps to. Setup and dump use the source; restore and the
+// post-restore assertions use the target.
+type crossCluster struct {
+	source, target       *mongo.Client
+	sourceURI, targetURI string
 }
 
-// targetDatabase returns a handle to a named database on the target cluster.
-//
-//nolint:unused // the cross-cluster routing (a follow-up PR) is the only caller
-func (s *DumpRestoreSuite) targetDatabase(name string) *mongo.Database {
-	return s.targetSession().Database("dumprestore_" + name)
+// withOrientations runs a round-trip test body once per source/target
+// orientation. In single-cluster mode it runs once, with source and target both
+// the primary cluster. In cross-cluster mode it runs twice, once with each
+// cluster as the source, so a test exercises the boundary in both directions.
+func (s *DumpRestoreSuite) withOrientations(body func(crossCluster)) {
+	primaryURI := os.Getenv(testopts.URIEnvVar)
+	secondURI := testopts.SecondURI()
+
+	if secondURI == "" {
+		session, err := testutil.GetBareSession(s.T())
+		s.Require().NoError(err, "can connect to the server")
+		body(crossCluster{
+			source:    session,
+			target:    session,
+			sourceURI: primaryURI,
+			targetURI: primaryURI,
+		})
+		return
+	}
+
+	for _, orientation := range []struct {
+		source, target string
+	}{
+		{primaryURI, secondURI},
+		{secondURI, primaryURI},
+	} {
+		s.Run(
+			fmt.Sprintf(
+				"dump from %s restore into %s",
+				uriLabel(orientation.source),
+				uriLabel(orientation.target),
+			),
+			func() {
+				source, err := testutil.GetBareSessionForURI(s.T(), orientation.source)
+				s.Require().NoError(err, "can connect to the source cluster")
+				target, err := testutil.GetBareSessionForURI(s.T(), orientation.target)
+				s.Require().NoError(err, "can connect to the target cluster")
+
+				body(crossCluster{
+					source:    source,
+					target:    target,
+					sourceURI: orientation.source,
+					targetURI: orientation.target,
+				})
+			},
+		)
+	}
+}
+
+// uriLabel returns a short human-readable name for a cluster URI, for use in
+// test subtest names.
+func uriLabel(uri string) string {
+	cs, err := connstring.ParseAndValidate(uri)
+	if err != nil {
+		return uri
+	}
+	return strings.Join(cs.Hosts, ",")
 }
 
 func (s *DumpRestoreSuite) createCollection(

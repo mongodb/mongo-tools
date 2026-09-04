@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -29,94 +30,99 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// dbNameCounter makes uniqueDBName distinct on every call, so that a round-trip
+// test run in both cluster orientations never reuses a name on the shared
+// clusters.
+var dbNameCounter atomic.Int64
+
 func uniqueDBName() string {
-	return fmt.Sprintf("mongorestore_test_%d_%d", os.Getpid(), time.Now().UnixMilli())
+	return fmt.Sprintf(
+		"mongorestore_test_%d_%d_%d",
+		os.Getpid(),
+		time.Now().UnixMilli(),
+		dbNameCounter.Add(1),
+	)
 }
 
 func (s *DumpRestoreSuite) TestPipedDumpRestore() {
-	s.T().Logf("start %#q", s.T().Name())
-	ctx := s.Context()
+	s.withOrientations(func(cc crossCluster) {
+		s.T().Logf("start %#q", s.T().Name())
+		ctx := s.Context()
 
-	provider, _, err := testutil.GetBareSessionProvider(s.T())
-	s.Require().NoError(err, "should get session provider")
+		srcCollNames := []string{"alpha", "beta", "gamma", "delta", "epsilon"}
 
-	s.T().Logf("getting session")
-	sess, err := provider.GetSession()
-	s.Require().NoError(err, "should get session")
+		db := cc.source.Database(uniqueDBName())
 
-	srcCollNames := []string{"alpha", "beta", "gamma", "delta", "epsilon"}
+		s.T().Logf("creating collections")
 
-	db := sess.Database(uniqueDBName())
-
-	s.T().Logf("creating collections")
-
-	for _, collName := range srcCollNames {
-		docs := lo.RepeatBy(
-			10_000,
-			func(_ int) bson.D {
-				return bson.D{
-					{"someNum", rand.Float64()},
-				}
-			},
-		)
-
-		_, err := db.Collection(collName).InsertMany(
-			ctx,
-			lo.ToAnySlice(docs),
-		)
-
-		s.Require().NoError(err, "should insert docs into %#q", collName)
-	}
-
-	s.T().Log("Finished creating documents.")
-
-	reader, writer := io.Pipe()
-
-	eg, _ := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		defer writer.Close()
-
-		dump, err := getArchiveMongoDump(s.T(), writer)
-		if err != nil {
-			return errors.Wrap(err, "create mongodump")
-		}
-
-		dump.ToolOptions.DB = db.Name()
-
-		s.Assert().NoError(dump.Dump(), "dump should work")
-
-		return nil
-	})
-
-	eg.Go(func() error {
-		defer reader.Close()
-
-		restore, err := getArchiveMongoRestore(s.T(), reader)
-		if err != nil {
-			return errors.Wrap(err, "create mongorestore")
-		}
-
-		restore.NSOptions = &mongorestore.NSOptions{
-			NSFrom: lo.Map(
-				srcCollNames,
-				func(cn string, _ int) string {
-					return db.Name() + "." + cn
+		for _, collName := range srcCollNames {
+			docs := lo.RepeatBy(
+				10_000,
+				func(_ int) bson.D {
+					return bson.D{
+						{"someNum", rand.Float64()},
+					}
 				},
-			),
-			NSTo: lo.Map(
-				srcCollNames,
-				func(cn string, _ int) string {
-					return db.Name() + ".dst-" + cn
-				},
-			),
+			)
+
+			_, err := db.Collection(collName).InsertMany(
+				ctx,
+				lo.ToAnySlice(docs),
+			)
+
+			s.Require().NoError(err, "should insert docs into %#q", collName)
 		}
 
-		s.Assert().NoError(restore.Restore().Err, "restore should work")
+		s.T().Log("Finished creating documents.")
 
-		return nil
+		reader, writer := io.Pipe()
+
+		eg, _ := errgroup.WithContext(ctx)
+		eg.Go(func() error {
+			defer writer.Close()
+
+			dump, err := getArchiveMongoDumpForURI(s.T(), cc.sourceURI, writer)
+			if err != nil {
+				return errors.Wrap(err, "create mongodump")
+			}
+
+			dump.ToolOptions.DB = db.Name()
+
+			s.Assert().NoError(dump.Dump(), "dump should work")
+
+			return nil
+		})
+
+		eg.Go(func() error {
+			defer reader.Close()
+
+			restore, err := getArchiveMongoRestoreForURI(s.T(), cc.targetURI, reader)
+			if err != nil {
+				return errors.Wrap(err, "create mongorestore")
+			}
+
+			restore.NSOptions = &mongorestore.NSOptions{
+				NSFrom: lo.Map(
+					srcCollNames,
+					func(cn string, _ int) string {
+						return db.Name() + "." + cn
+					},
+				),
+				NSTo: lo.Map(
+					srcCollNames,
+					func(cn string, _ int) string {
+						return db.Name() + ".dst-" + cn
+					},
+				),
+			}
+
+			s.Assert().NoError(restore.Restore().Err, "restore should work")
+
+			return nil
+		})
+
+		s.Require().NoError(eg.Wait())
 	})
-
-	s.Require().NoError(eg.Wait())
 }
 
 func (s *DumpRestoreSuite) TestDumpAndRestoreConfigDB() {
@@ -259,10 +265,6 @@ func getRestoreWithArgsForURI(
 	return restore, nil
 }
 
-func getArchiveMongoDump(t *testing.T, output io.WriteCloser) (*mongodump.MongoDump, error) {
-	return getArchiveMongoDumpForURI(t, os.Getenv(testopts.URIEnvVar), output)
-}
-
 func getArchiveMongoDumpForURI(
 	t *testing.T,
 	uri string,
@@ -290,10 +292,6 @@ func getArchiveMongoDumpForURI(
 	}
 
 	return dump, nil
-}
-
-func getArchiveMongoRestore(t *testing.T, input io.ReadCloser) (*mongorestore.MongoRestore, error) {
-	return getArchiveMongoRestoreForURI(t, os.Getenv(testopts.URIEnvVar), input)
 }
 
 func getArchiveMongoRestoreForURI(
