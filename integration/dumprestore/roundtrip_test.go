@@ -340,68 +340,82 @@ func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) 
 }
 
 func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
-	ctx := s.Context()
+	s.withOrientations(func(cc crossCluster) {
+		ctx := s.Context()
 
-	session, err := testutil.GetBareSession(s.T())
-	s.Require().NoError(err, "can connect to server")
+		dbName := uniqueDBName()
+		testDB := cc.source.Database(dbName)
 
-	dbName := uniqueDBName()
-	testDB := session.Database(dbName)
+		coll := testDB.Collection("mycoll")
 
-	coll := testDB.Collection("mycoll")
+		docID := bson.Timestamp{}
 
-	docID := bson.Timestamp{}
-
-	_, err = coll.UpdateOne(
-		ctx,
-		bson.D{
-			{"_id", docID},
-		},
-		mongo.Pipeline{
-			{{"$replaceRoot", bson.D{
-				{"newRoot", bson.D{
-					{"$literal", bson.D{
-						{"empty_time", bson.Timestamp{}},
-						{"other", "$$ROOT"},
+		_, err := coll.UpdateOne(
+			ctx,
+			bson.D{
+				{"_id", docID},
+			},
+			mongo.Pipeline{
+				{{"$replaceRoot", bson.D{
+					{"newRoot", bson.D{
+						{"$literal", bson.D{
+							{"empty_time", bson.Timestamp{}},
+							{"other", "$$ROOT"},
+						}},
 					}},
-				}},
-			}}},
-		},
-		mopt.UpdateOne().SetUpsert(true),
-	)
-	s.Require().NoError(err, "should insert (via update/upsert)")
-
-	s.withBSONMongodumpForCollection(coll.Database().Name(), coll.Name(), func(dir string) {
-		restore, err := getRestoreWithArgs(
-			mongorestore.DropOption,
-			dir,
+				}}},
+			},
+			mopt.UpdateOne().SetUpsert(true),
 		)
-		s.Require().NoError(err)
-		defer restore.Close()
+		s.Require().NoError(err, "should insert (via update/upsert)")
 
-		result := restore.Restore()
-		s.Require().NoError(result.Err, "can run mongorestore (result: %+v)", result)
-		s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+		s.withBSONMongodumpForCollectionForURI(
+			cc.sourceURI,
+			coll.Database().Name(),
+			coll.Name(),
+			func(dir string) {
+				restore, err := getRestoreWithArgsForURI(
+					cc.targetURI,
+					mongorestore.DropOption,
+					dir,
+				)
+				s.Require().NoError(err)
+				defer restore.Close()
+
+				result := restore.Restore()
+				s.Require().NoError(result.Err, "can run mongorestore (result: %+v)", result)
+				s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+			},
+		)
+
+		targetColl := cc.target.Database(dbName).Collection("mycoll")
+
+		cursor, err := targetColl.Find(ctx, bson.D{})
+		s.Require().NoError(err, "should find docs")
+		docs := []bson.M{}
+		s.Require().NoError(cursor.All(ctx, &docs), "should read docs")
+
+		s.Require().Len(docs, 1, "expect docs count")
+		s.Assert().Equal(
+			bson.M{
+				"_id":        docID,
+				"empty_time": bson.Timestamp{},
+				"other":      "$$ROOT",
+			},
+			docs[0],
+			"expect empty timestamp restored",
+		)
 	})
-
-	cursor, err := coll.Find(ctx, bson.D{})
-	s.Require().NoError(err, "should find docs")
-	docs := []bson.M{}
-	s.Require().NoError(cursor.All(ctx, &docs), "should read docs")
-
-	s.Require().Len(docs, 1, "expect docs count")
-	s.Assert().Equal(
-		bson.M{
-			"_id":        docID,
-			"empty_time": bson.Timestamp{},
-			"other":      "$$ROOT",
-		},
-		docs[0],
-		"expect empty timestamp restored",
-	)
 }
 
 func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
+	if testopts.SecondURI() != "" {
+		s.T().Skip(
+			"restore is expected to conflict with pre-existing data on the same cluster, " +
+				"which a cross-cluster run (empty target) cannot produce",
+		)
+	}
+
 	ctx := s.Context()
 
 	session, err := testutil.GetBareSession(s.T())
@@ -505,87 +519,88 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 		},
 	}
 
-	dbName := uniqueDBName()
+	s.withOrientations(func(cc crossCluster) {
+		for c := range cases {
+			curCase := cases[c]
+			indexesToCreate := curCase.Indexes
 
-	for c := range cases {
-		curCase := cases[c]
-		indexesToCreate := curCase.Indexes
+			s.Run(
+				curCase.Label,
+				func() {
+					for attemptNum := range [20]any{} {
+						s.Run(
+							fmt.Sprintf("attempt %d", attemptNum),
+							func() {
+								dbName := uniqueDBName()
+								ctx := s.Context()
 
-		s.Run(
-			curCase.Label,
-			func() {
-				for attemptNum := range [20]any{} {
-					s.Run(
-						fmt.Sprintf("attempt %d", attemptNum),
-						func() {
-							session, err := testutil.GetBareSession(s.T())
-							s.Require().NoError(err, "should connect to server")
+								testDB := cc.source.Database(dbName)
 
-							ctx := s.Context()
+								collName := strings.ReplaceAll(
+									fmt.Sprintf("%s %d", curCase.Label, attemptNum),
+									" ",
+									"-",
+								)
+								coll := testDB.Collection(collName)
 
-							testDB := session.Database(dbName)
+								_, err := coll.Indexes().CreateMany(ctx, indexesToCreate)
+								s.Require().NoError(err, "indexes should be created")
 
-							collName := strings.ReplaceAll(
-								fmt.Sprintf("%s %d", curCase.Label, attemptNum),
-								" ",
-								"-",
-							)
-							coll := testDB.Collection(collName)
+								archivedIndexes := []bson.M{}
+								s.Require().NoError(
+									listIndexes(ctx, coll, &archivedIndexes),
+									"should list indexes",
+								)
 
-							_, err = coll.Indexes().CreateMany(ctx, indexesToCreate)
-							s.Require().NoError(err, "indexes should be created")
+								s.withBSONMongodumpForCollectionForURI(
+									cc.sourceURI,
+									testDB.Name(),
+									coll.Name(),
+									func(dir string) {
+										restore, err := getRestoreWithArgsForURI(
+											cc.targetURI,
+											mongorestore.DropOption,
+											dir,
+										)
+										s.Require().NoError(err)
+										defer restore.Close()
 
-							archivedIndexes := []bson.M{}
-							s.Require().NoError(
-								listIndexes(ctx, coll, &archivedIndexes),
-								"should list indexes",
-							)
+										result := restore.Restore()
+										s.Require().NoError(
+											result.Err,
+											"%s: mongorestore should finish OK",
+											curCase.Label,
+										)
+										s.Require().EqualValues(
+											0,
+											result.Failures,
+											"%s: mongorestore should report 0 failures",
+											curCase.Label,
+										)
+									},
+								)
 
-							s.withBSONMongodumpForCollection(
-								testDB.Name(),
-								coll.Name(),
-								func(dir string) {
-									restore, err := getRestoreWithArgs(
-										mongorestore.DropOption,
-										dir,
-									)
-									s.Require().NoError(err)
-									defer restore.Close()
+								targetColl := cc.target.Database(dbName).Collection(collName)
+								restoredIndexes := []bson.M{}
+								s.Require().NoError(
+									listIndexes(ctx, targetColl, &restoredIndexes),
+									"should list indexes",
+								)
 
-									result := restore.Restore()
-									s.Require().NoError(
-										result.Err,
-										"%s: mongorestore should finish OK",
-										curCase.Label,
-									)
-									s.Require().EqualValues(
-										0,
-										result.Failures,
-										"%s: mongorestore should report 0 failures",
-										curCase.Label,
-									)
-								},
-							)
+								s.Assert().ElementsMatch(
+									archivedIndexes,
+									restoredIndexes,
+									"indexes should round-trip dump/restore (attempt #%d)",
+									1+attemptNum,
+								)
+							},
+						)
+					}
+				},
+			)
 
-							restoredIndexes := []bson.M{}
-							s.Require().NoError(
-								listIndexes(ctx, coll, &restoredIndexes),
-								"should list indexes",
-							)
-
-							s.Assert().ElementsMatch(
-								archivedIndexes,
-								restoredIndexes,
-								"indexes should round-trip dump/restore (attempt #%d)",
-								1+attemptNum,
-							)
-						},
-					)
-				}
-			},
-		)
-
-	}
+		}
+	})
 }
 func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 	session, err := testutil.GetBareSession(s.T())
