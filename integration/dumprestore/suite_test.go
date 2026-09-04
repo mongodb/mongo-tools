@@ -31,18 +31,30 @@ func TestDumpRestore(t *testing.T) {
 }
 
 func (s *DumpRestoreSuite) withBSONMongodump(testCase func(string), args ...string) {
+	s.withBSONMongodumpForURI(os.Getenv(testopts.URIEnvVar), testCase, args...)
+}
+
+func (s *DumpRestoreSuite) withBSONMongodumpForURI(
+	uri string,
+	testCase func(string),
+	args ...string,
+) {
 	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
 	dirArgs := []string{
 		"--out", dir,
 	}
-	s.runMongodumpWithArgs(append(dirArgs, args...)...)
+	s.runMongodumpWithArgsForURI(uri, append(dirArgs, args...)...)
 	testCase(dir)
 }
 
 func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
+	s.runMongodumpWithArgsForURI(os.Getenv(testopts.URIEnvVar), args...)
+}
+
+func (s *DumpRestoreSuite) runMongodumpWithArgsForURI(uri string, args ...string) {
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
-	cmd = append(cmd, testopts.GetBareArgs()...)
+	cmd = append(cmd, testopts.GetBareArgsForURI(uri)...)
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")
@@ -124,15 +136,24 @@ func (s *DumpRestoreSuite) runBSONMongodumpForCollection(
 }
 
 func (s *DumpRestoreSuite) withArchiveMongodump(testCase func(string), dumpArgs ...string) {
+	s.withArchiveMongodumpForURI(os.Getenv(testopts.URIEnvVar), testCase, dumpArgs...)
+}
+
+func (s *DumpRestoreSuite) withArchiveMongodumpForURI(
+	uri string,
+	testCase func(string),
+	dumpArgs ...string,
+) {
 	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
 	file := filepath.Join(dir, "archive")
-	s.runArchiveMongodump(file, dumpArgs...)
+	s.runArchiveMongodumpForURI(uri, file, dumpArgs...)
 	testCase(file)
 }
 
-func (s *DumpRestoreSuite) runArchiveMongodump(file string, dumpArgs ...string) {
-	s.runMongodumpWithArgs(
+func (s *DumpRestoreSuite) runArchiveMongodumpForURI(uri, file string, dumpArgs ...string) {
+	s.runMongodumpWithArgsForURI(
+		uri,
 		append(
 			[]string{mongorestore.ArchiveOption + "=" + file},
 			dumpArgs...,
@@ -226,6 +247,30 @@ func (s *DumpRestoreSuite) database(name string) *mongo.Database {
 	s.Require().NoError(err, "can connect to the server")
 
 	return session.Database("dumprestore_" + name)
+}
+
+// targetSession returns a session to the cluster a restore writes to and that a restore's data is
+// verified on. That is the second cluster when one is configured via TOOLS_TESTING_MONGOD2, else
+// the source cluster, so single-cluster runs behave exactly as before.
+//
+//nolint:unused // the cross-cluster routing (a follow-up PR) is the only caller
+func (s *DumpRestoreSuite) targetSession() *mongo.Client {
+	uri := testopts.SecondURI()
+	if uri == "" {
+		uri = os.Getenv(testopts.URIEnvVar)
+	}
+
+	session, err := testutil.GetBareSessionForURI(s.T(), uri)
+	s.Require().NoError(err, "can connect to the target cluster")
+
+	return session
+}
+
+// targetDatabase returns a handle to a named database on the target cluster.
+//
+//nolint:unused // the cross-cluster routing (a follow-up PR) is the only caller
+func (s *DumpRestoreSuite) targetDatabase(name string) *mongo.Database {
+	return s.targetSession().Database("dumprestore_" + name)
 }
 
 func (s *DumpRestoreSuite) createCollection(
