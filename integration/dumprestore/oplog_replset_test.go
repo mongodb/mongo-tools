@@ -2,12 +2,18 @@ package dumprestore
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -110,6 +116,86 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 	)
 }
 
+// TestDumpOplogSnapshotDuringWrites checks the point-in-time guarantee `--oplog` makes about a dump
+// taken while writes are in flight: the collection data plus the captured oplog together account
+// for every document that existed when the dump finished. A dump without `--oplog` cannot promise
+// that, because documents inserted after its cursor passed them are in neither half.
+//
+// The guarantee is checked against the two halves directly rather than by restoring with
+// `--oplogReplay`. mongorestore rejects `--oplogReplay` alongside `--nsInclude`, and `--oplog` is
+// only accepted on a full dump, so a replaying restore would have to write the whole cluster back
+// - including admin and config - to test one collection. What replay would produce is exactly the
+// union asserted here, and TestOplogReplayFromLocalOplogRS covers the replay machinery itself.
+func (s *DumpRestoreSuite) TestDumpOplogSnapshotDuringWrites() {
+	// The oplog only exists on a replica set. The suite as a whole gates on the
+	// integration test type, so this case needs a gate of its own.
+	testtype.SkipUnlessTestType(s.T(), testtype.ReplSetTestType)
+
+	const collName = "bar"
+
+	testDB := s.database("oplog_snapshot")
+	coll := testDB.Collection(collName)
+
+	// Dropping the database does not clear the server's oplog, so earlier runs of this test could
+	// have written entries for this same namespace that are still there. The lookup of the
+	// concurrent inserts below starts from here to leave them out.
+	since := s.latestOplogTimestamp()
+
+	s.insertNamespacedDocs(coll)
+	preexistingIDs := s.documentIDs(coll)
+	countBefore := s.docCount(coll)
+	s.Require().Positive(countBefore, "the collection holds documents before the dump")
+
+	ns := testDB.Name() + "." + collName
+
+	var wantIDs, oplogIDs []string
+	s.withConcurrentInserts(
+		coll,
+		func(stopInserts func()) {
+			s.withBSONMongodump(func(dir string) {
+				stopInserts()
+
+				s.Require().Greater(
+					s.docCount(coll),
+					countBefore,
+					"the concurrent inserts landed while the dump was running",
+				)
+
+				oplogPath := filepath.Join(dir, "oplog.bson")
+				var lastTS bson.Timestamp
+				oplogIDs, lastTS = s.idsAndLastTimestampFromOplogFile(oplogPath, ns)
+
+				// The dump's point in time is where its captured oplog ends, which is earlier than now:
+				// mongodump takes that timestamp and then still has to write the oplog out and exit,
+				// and the inserts ran until it did.
+				//
+				// The pre-existing documents are added separately because they predate the dump either
+				// way, and because they went in as one batch, which the server records as a single
+				// applyOps entry rather than an insert op each.
+				wantIDs = lo.Union(preexistingIDs, s.insertedIDsFromServerOplog(ns, since, lastTS))
+
+				s.dropDB(testDB)
+
+				result := s.runRestore(mongorestore.NSIncludeOption, testDB.Name()+".*", dir)
+				s.Require().NoError(result.Err, "can restore the collection half of the dump")
+			}, "--oplog")
+		},
+	)
+
+	// Without this the union below could hold whatever the data half happened to
+	// hold, and would still match if --oplog had captured nothing at all.
+	s.Require().NotEmpty(
+		oplogIDs,
+		"the captured oplog holds inserts, so the dump really did span concurrent writes",
+	)
+
+	s.Assert().ElementsMatch(
+		wantIDs,
+		lo.Union(s.documentIDs(coll), oplogIDs),
+		"the dumped data and the captured oplog together account for exactly the documents that existed at the dump's point in time",
+	)
+}
+
 // latestOplogTimestamp returns the ts of the newest entry in local.oplog.rs,
 // which is the checkpoint the dump query filters on.
 func (s *DumpRestoreSuite) latestOplogTimestamp() bson.Timestamp {
@@ -129,4 +215,96 @@ func (s *DumpRestoreSuite) latestOplogTimestamp() bson.Timestamp {
 	s.Require().NoError(err, "reading the newest oplog entry")
 
 	return entry.TS
+}
+
+// stringIDDoc decodes just the `_id` of a document. Every document these tests insert has a string
+// `_id`, so the ids can be compared as sets.
+type stringIDDoc struct {
+	ID string `bson:"_id"`
+}
+
+// documentIDs returns the `_id` values in the given collection.
+func (s *DumpRestoreSuite) documentIDs(coll *mongo.Collection) []string {
+	cursor, err := coll.Find(s.Context(), bson.D{})
+	s.Require().NoError(err, "can read %#q", coll.Name())
+
+	var docs []stringIDDoc
+	s.Require().
+		NoError(cursor.All(s.Context(), &docs), "can decode the documents in %#q", coll.Name())
+
+	return lo.Map(docs, func(doc stringIDDoc, _ int) string {
+		return doc.ID
+	})
+}
+
+// idsAndLastTimestampFromOplogFile reads an oplog file. It returns all the `_id` values in the
+// oplog, as well as the timestamp of the last op.
+func (s *DumpRestoreSuite) idsAndLastTimestampFromOplogFile(
+	path, ns string,
+) ([]string, bson.Timestamp) {
+	var (
+		ids    []string
+		lastTS bson.Timestamp
+	)
+
+	file, err := os.Open(path)
+	s.Require().NoError(err, "the dump contains a captured oplog at %#q", path)
+	defer file.Close()
+
+	source := db.NewDecodedBSONSource(db.NewBSONSource(file))
+	defer source.Close()
+
+	op := db.Oplog{}
+	for source.Next(&op) {
+		if util.TimestampGreaterThan(op.Timestamp, lastTS) {
+			lastTS = op.Timestamp
+		}
+
+		if op.Operation != "i" || op.Namespace != ns {
+			continue
+		}
+
+		id, err := bsonutil.FindValueByKey("_id", &op.Object)
+		s.Require().NoError(err, "an insert op in the captured oplog has an _id")
+
+		idStr, ok := id.(string)
+		s.Require().True(ok, "the _id of an insert op in the captured oplog is a string")
+		ids = append(ids, idStr)
+
+	}
+	s.Require().NoError(source.Err(), "can read the captured oplog")
+
+	return ids, lastTS
+}
+
+// insertedIDsFromServerOplog returns the _ids inserted into ns after since and at or before upTo,
+// read from the server's own oplog. That is the set of documents a point-in-time snapshot taken at
+// upTo has to contain.
+func (s *DumpRestoreSuite) insertedIDsFromServerOplog(
+	ns string,
+	since, upTo bson.Timestamp,
+) []string {
+	session, err := testutil.GetBareSession(s.T())
+	s.Require().NoError(err, "can connect to the server")
+
+	cursor, err := session.Database("local").Collection("oplog.rs").Find(
+		s.Context(),
+		bson.D{
+			{"ns", ns},
+			{"op", "i"},
+			{"ts", bson.D{{"$gt", since}, {"$lte", upTo}}},
+		},
+	)
+	s.Require().NoError(err, "can read the server's oplog")
+
+	var ops []struct {
+		Object stringIDDoc `bson:"o"`
+	}
+	s.Require().NoError(cursor.All(s.Context(), &ops), "can decode the server's oplog entries")
+
+	return lo.Map(ops, func(op struct {
+		Object stringIDDoc `bson:"o"`
+	}, _ int) string {
+		return op.Object.ID
+	})
 }
