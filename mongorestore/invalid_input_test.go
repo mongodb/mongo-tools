@@ -313,11 +313,42 @@ func testRestoreObjcheckValidBSON(t *testing.T) {
 }
 
 func testRestoreOplogReplayNoOplogFile(t *testing.T) {
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	result := runRestoreFromArgs(t, OplogReplayOption, t.TempDir())
 	require.ErrorContains(
 		t, result.Err, "no oplog file to replay",
 		"--oplogReplay against a dump with no oplog.bson errors",
 	)
+}
+
+// TestRestoreDSCGuardrail checks that --oplogReplay and --preserveUUID fail fast against a
+// disaggregated storage (DSC) cluster, before any data is restored, since mongorestore implements
+// both on top of the applyOps command that DSC does not support. It only runs on the DSC CI variant.
+func TestRestoreDSCGuardrail(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testutil.SkipUnlessDisaggregatedStorage(
+		t,
+		"the guardrail only fires against a DSC cluster",
+	)
+
+	t.Run("--oplogReplay is rejected", func(t *testing.T) {
+		result := runRestoreFromArgs(t, OplogReplayOption, t.TempDir())
+		require.ErrorContains(
+			t, result.Err, "cannot use --oplogReplay",
+			"--oplogReplay against a DSC cluster errors",
+		)
+	})
+
+	t.Run("--preserveUUID is rejected", func(t *testing.T) {
+		result := runRestoreFromArgs(t, PreserveUUIDOption, DropOption, t.TempDir())
+		require.ErrorContains(
+			t, result.Err, "--preserveUUID cannot be used",
+			"--preserveUUID against a DSC cluster errors",
+		)
+	})
 }
 
 // runRestoreFromArgs builds a MongoRestore from the given args, runs it, and returns the
