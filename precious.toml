@@ -149,6 +149,26 @@ invoke = "once"
 ok-exit-codes = 0
 lint-failure-exit-codes = 2
 
+[commands.omegasort-gitignore]
+type = "both"
+include = "**/.gitignore"
+cmd = [
+    "mise",
+    "exec",
+    "github:houseabsolute/omegasort",
+    "--",
+    "omegasort",
+    "--sort=path",
+    "--comment-prefix=# ",
+    "--unique",
+]
+lint-flags = "--check"
+tidy-flags = "--in-place"
+ok-exit-codes = 0
+lint-failure-exit-codes = 1
+ignore-stderr = ".*"
+labels = ["default", "fast-tidy"]
+
 [commands.shellcheck]
 type = "lint"
 include = "**/*.sh"
