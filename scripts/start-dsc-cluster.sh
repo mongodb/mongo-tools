@@ -125,6 +125,10 @@ trap cleanup_started_cluster EXIT
 # and the per-mongod logs. The runner writes its diagnostics to stderr and only the connection
 # string to stdout, so capturing stdout keeps it parseable; the tee is there to keep those
 # diagnostics visible on the terminal as they happen.
+#
+# The trailing `--` arguments are passed straight to mongod. They enable the metrics-filtering
+# feature flags that a DSC cluster runs with in production, so the integration suite exercises the
+# same filtered metrics a real customer would see. The mongosync tool enables the same four flags.
 OUTPUT="$("${RUNNER[@]}" start \
     --topology=replset \
     --slsCompose="${COMPOSE_FILE:?}" \
@@ -132,7 +136,13 @@ OUTPUT="$("${RUNNER[@]}" start \
     --binDir="${INSTALL_DIR:?}/bin" \
     --logDir="${LOG_DIR:?}" \
     --id="${CLUSTER_ID:?}" \
-    --debug | tee /dev/stderr)"
+    --debug \
+    -- \
+    --setParameter featureFlagCollStatsMetricsFiltering=true \
+    --setParameter featureFlagMetricsFiltering=true \
+    --setParameter featureFlagReplSetGetStatusMetricsFiltering=true \
+    --setParameter featureFlagServerStatusMetricsFiltering=true |
+    tee /dev/stderr)"
 
 # The runner prints the cluster URI last, after the per-node startup output. The grep can legitimately
 # fail when the cluster comes up but the URI is missing from the output, so the `if !` here is what
