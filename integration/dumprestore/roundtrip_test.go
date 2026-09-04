@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/archive"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/db/dsctest"
 	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
@@ -791,158 +792,169 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 }
 
 func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
-	ctx := s.Context()
+	s.withOrientations(func(cc crossCluster) {
+		ctx := s.Context()
 
-	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
-	s.Require().NoError(err, "no cluster available")
+		sessionProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.sourceURI)
+		s.Require().NoError(err, "no source cluster available")
 
-	defer sessionProvider.Close()
-
-	session, err := sessionProvider.GetSession()
-	s.Require().NoError(err, "no client available")
-
-	fcv := testutil.GetFCV(session)
-	// TODO: Enable tests for 6.0, 7.0 and 8.0 (TOOLS-3597).
-	// The server fix for SERVER-84531 was only backported to 7.3.
-	if cmp, err := testutil.CompareFCV(fcv, "7.3"); err != nil || cmp < 0 {
-		s.Require().NoError(err, "get fcv")
-		s.T().Skip("Requires server with FCV 7.3 or later")
-	}
-
-	if cmp, err := testutil.CompareFCV(fcv, "8.0"); cmp >= 0 {
-		s.Require().NoError(err, "get fcv")
-		s.T().Skip("The test currently fails on v8.0 because of SERVER-92222")
-	}
-
-	serverVersion, err := sessionProvider.ServerVersionArray()
-	s.Require().NoError(err, "parse server version")
-
-	dbName := "timeseries_test_DB"
-	collName := "timeseries_mixed_schema"
-	testdb := session.Database(dbName)
-	bucketColl := testdb.Collection(timeseriesCollName(serverVersion, collName))
-
-	s.setupTimeseriesWithMixedSchema(dbName, collName)
-
-	s.withArchiveMongodump(func(file string) {
-		s.Require().NoError(testdb.Collection(collName).Drop(ctx))
-		s.Require().NoError(bucketColl.Drop(ctx))
-
-		restore, err := getRestoreWithArgs(
-			mongorestore.DropOption,
-			mongorestore.ArchiveOption+"="+file,
-		)
-		s.Require().NoError(err)
-		defer restore.Close()
-
-		result := restore.Restore()
-		s.Require().NoError(result.Err, "can run mongorestore")
-		s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
-
-		count, err := testdb.Collection(collName).CountDocuments(ctx, bson.M{})
-		s.Require().NoError(err)
-		s.Require().Equal(int64(2), count, "should have 2 documents in timeseries collection")
-
-		count, err = bucketColl.CountDocuments(ctx, bson.M{})
-		s.Require().NoError(err)
-		s.Require().Equal(int64(1), count, "should have 1 document in bucket collection")
-
-		hasMixedSchema := s.timeseriesBucketsMayHaveMixedSchemaData(bucketColl)
-		s.Require().True(hasMixedSchema, "bucket collection should have mixed schema flag set")
-
-		//nolint:errcheck
-		defer testdb.Collection(collName).Drop(ctx)
-	})
-}
-
-func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
-	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
-	s.Require().NoError(err)
-
-	if ok, _ := sessionProvider.IsReplicaSet(); !ok {
-		s.T().Skip("replica set required")
-	}
-
-	testutil.SkipForDisaggregatedStorage(
-		s.T(),
-		"it replays an oplog, and DSC does not support the applyOps command",
-	)
-
-	ctx := s.Context()
-
-	testName := s.DBName()
-	dbName := s.DBName(util.MongoDBInternalDBPrefix)
-
-	client, err := testutil.GetBareSession(s.T())
-	s.Require().NoError(err, "must connect to server")
-
-	internalColl := client.Database(dbName).Collection(testName)
-
-	_, err = internalColl.InsertOne(ctx, bson.D{})
-	s.Require().NoError(err, "must write to the internal DB")
-
-	_, err = client.Database(testName).Collection(testName).InsertOne(ctx, bson.D{})
-	s.Require().NoError(err, "must write to the user DB")
-
-	writesCtx, writesCancel := context.WithCancelCause(ctx)
-	updatesDone := make(chan struct{})
-	go func() {
-		defer close(updatesDone)
-		currId := int32(0)
-
-		for writesCtx.Err() == nil {
-			_, err := internalColl.InsertOne(
-				writesCtx,
-				bson.D{{"_id", currId}},
-			)
-			currId++
-
-			if !errors.Is(err, context.Canceled) {
-				s.Require().NoError(err, "must write to the internal DB")
-			}
-
-			// Throttle inserts to reduce the chance of oplog rolling over.
-			time.Sleep(10 * time.Millisecond)
+		fcv := testutil.GetFCV(cc.source)
+		// TODO: Enable tests for 6.0, 7.0 and 8.0 (TOOLS-3597).
+		// The server fix for SERVER-84531 was only backported to 7.3.
+		if cmp, err := testutil.CompareFCV(fcv, "7.3"); err != nil || cmp < 0 {
+			s.Require().NoError(err, "get fcv")
+			s.T().Skip("Requires server with FCV 7.3 or later")
 		}
 
-		s.T().Logf("Updates canceled: %v", context.Cause(writesCtx))
-	}()
+		if cmp, err := testutil.CompareFCV(fcv, "8.0"); cmp >= 0 {
+			s.Require().NoError(err, "get fcv")
+			s.T().Skip("The test currently fails on v8.0 because of SERVER-92222")
+		}
 
-	s.withArchiveMongodump(
-		func(archivePath string) {
-			writesCancel(fmt.Errorf("archive is finished"))
-			<-updatesDone
+		serverVersion, err := sessionProvider.ServerVersionArray()
+		s.Require().NoError(err, "parse server version")
 
-			s.Require().NoError(client.Database(internalColl.Database().Name()).Drop(ctx))
-			s.Require().NoError(client.Database(testName).Drop(ctx))
+		dbName := uniqueDBName()
+		collName := "timeseries_mixed_schema"
 
-			restore, err := getRestoreWithArgs(
-				mongorestore.ArchiveOption+"="+archivePath,
-				"-vv",
-				"--oplogReplay",
-				"--drop",
+		s.setupTimeseriesWithMixedSchema(dbName, collName)
+
+		s.withArchiveMongodumpForURI(cc.sourceURI, func(file string) {
+			targetDB := cc.target.Database(dbName)
+			targetBucketColl := targetDB.Collection(timeseriesCollName(serverVersion, collName))
+
+			s.Require().NoError(targetDB.Collection(collName).Drop(ctx))
+			s.Require().NoError(targetBucketColl.Drop(ctx))
+
+			restore, err := getRestoreWithArgsForURI(
+				cc.targetURI,
+				mongorestore.DropOption,
+				mongorestore.ArchiveOption+"="+file,
 			)
 			s.Require().NoError(err)
 			defer restore.Close()
 
 			result := restore.Restore()
 			s.Require().NoError(result.Err, "can run mongorestore")
-			s.Require().EqualValues(
-				0,
-				result.Failures,
-				"mongorestore reports 0 failures (result=%+v)",
-				result,
-			)
-		},
-		"--oplog",
-		"-vv",
-	)
+			s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-	dbNames, err := client.ListDatabaseNames(ctx, bson.D{})
-	s.Require().NoError(err)
+			count, err := targetDB.Collection(collName).CountDocuments(ctx, bson.M{})
+			s.Require().NoError(err)
+			s.Require().Equal(int64(2), count, "should have 2 documents in timeseries collection")
 
-	s.Assert().Contains(dbNames, testName, "user DB restored")
-	s.Assert().NotContains(dbNames, internalColl.Database().Name(), "internal DB ignored")
+			count, err = targetBucketColl.CountDocuments(ctx, bson.M{})
+			s.Require().NoError(err)
+			s.Require().Equal(int64(1), count, "should have 1 document in bucket collection")
+
+			hasMixedSchema := s.timeseriesBucketsMayHaveMixedSchemaData(targetBucketColl)
+			s.Require().True(hasMixedSchema, "bucket collection should have mixed schema flag set")
+
+			//nolint:errcheck
+			defer targetDB.Collection(collName).Drop(ctx)
+		})
+	})
+}
+
+func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
+	s.withOrientations(func(cc crossCluster) {
+		sourceProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.sourceURI)
+		s.Require().NoError(err, "no source cluster available")
+
+		targetProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.targetURI)
+		s.Require().NoError(err, "no target cluster available")
+
+		if ok, _ := sourceProvider.IsReplicaSet(); !ok {
+			s.T().Skip("replica set required for a --oplog dump")
+		}
+		if ok, _ := targetProvider.IsReplicaSet(); !ok {
+			s.T().Skip("replica set required for --oplogReplay")
+		}
+
+		// Replaying an oplog runs applyOps, which DSC does not support, so the
+		// skip keys off the restore target rather than the primary cluster.
+		dsctest.SkipForDisaggregatedStorage(
+			s.T(),
+			cc.target,
+			"it replays an oplog, and DSC does not support the applyOps command",
+		)
+
+		ctx := s.Context()
+
+		testName := uniqueDBName()
+		dbName := util.MongoDBInternalDBPrefix + testName
+
+		client := cc.source
+
+		internalColl := client.Database(dbName).Collection(testName)
+
+		_, err = internalColl.InsertOne(ctx, bson.D{})
+		s.Require().NoError(err, "must write to the internal DB")
+
+		_, err = client.Database(testName).Collection(testName).InsertOne(ctx, bson.D{})
+		s.Require().NoError(err, "must write to the user DB")
+
+		writesCtx, writesCancel := context.WithCancelCause(ctx)
+		updatesDone := make(chan struct{})
+		go func() {
+			defer close(updatesDone)
+			currId := int32(0)
+
+			for writesCtx.Err() == nil {
+				_, err := internalColl.InsertOne(
+					writesCtx,
+					bson.D{{"_id", currId}},
+				)
+				currId++
+
+				if !errors.Is(err, context.Canceled) {
+					s.Require().NoError(err, "must write to the internal DB")
+				}
+
+				// Throttle inserts to reduce the chance of oplog rolling over.
+				time.Sleep(10 * time.Millisecond)
+			}
+
+			s.T().Logf("Updates canceled: %v", context.Cause(writesCtx))
+		}()
+
+		s.withArchiveMongodumpForURI(
+			cc.sourceURI,
+			func(archivePath string) {
+				writesCancel(fmt.Errorf("archive is finished"))
+				<-updatesDone
+
+				s.Require().NoError(cc.target.Database(internalColl.Database().Name()).Drop(ctx))
+				s.Require().NoError(cc.target.Database(testName).Drop(ctx))
+
+				restore, err := getRestoreWithArgsForURI(
+					cc.targetURI,
+					mongorestore.ArchiveOption+"="+archivePath,
+					"-vv",
+					"--oplogReplay",
+					"--drop",
+				)
+				s.Require().NoError(err)
+				defer restore.Close()
+
+				result := restore.Restore()
+				s.Require().NoError(result.Err, "can run mongorestore")
+				s.Require().EqualValues(
+					0,
+					result.Failures,
+					"mongorestore reports 0 failures (result=%+v)",
+					result,
+				)
+			},
+			"--oplog",
+			"-vv",
+		)
+
+		dbNames, err := cc.target.ListDatabaseNames(ctx, bson.D{})
+		s.Require().NoError(err)
+
+		s.Assert().Contains(dbNames, testName, "user DB restored")
+		s.Assert().NotContains(dbNames, internalColl.Database().Name(), "internal DB ignored")
+	})
 }
 
 func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
