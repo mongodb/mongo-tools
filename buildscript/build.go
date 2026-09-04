@@ -128,6 +128,14 @@ func TestIntegration(ctx *task.Context) error {
 	return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
 }
 
+// TestCrossCluster runs the dump/restore round-trip tests across two clusters. It targets only the
+// dumprestore package, and the second cluster is enabled by the TOOLS_TESTING_MONGOD2 env var that
+// the CI task stands up. When that var is set, the routed round-trip tests run in both orientations;
+// when not, they run single-cluster against the primary.
+func TestCrossCluster(ctx *task.Context) error {
+	return runTests(ctx, []string{"integration/dumprestore"}, testtype.IntegrationTestType)
+}
+
 // TestShardedIntegration runs tests that require a sharded cluster (mongos) topology.
 // It sets only ShardedIntegrationTestType, intentionally not setting IntegrationTestType,
 // so regular integration tests (which expect a standalone mongod) are not run against mongos.

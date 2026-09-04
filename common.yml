@@ -301,6 +301,9 @@ functions:
           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+          # The cross-cluster task points this at TOOLS_TESTING_MONGOD2 so a separately-started ASC
+          # mongod can own the primary var. Defaults to TOOLS_TESTING_MONGOD in the script.
+          EVG_EXPANSION_VAR: ${EVG_EXPANSION_VAR|TOOLS_TESTING_MONGOD}
           EVG_WORKDIR: ${workdir}
           # mise installs mongodb-downloader from a private repo, so it needs a token.
           GITHUB_TOKEN: ${generated_token_mongodb_downloader}
@@ -1923,6 +1926,33 @@ tasks:
         vars:
           target: test:integration -topology=replSet ${testArgs}
 
+  # Runs the dump/restore round-trip tests across a plain 9.0 ASC mongod and the 9.1 DSC cluster, in
+  # both directions. The ASC mongod owns the primary connection (localhost:33333); the DSC URI goes
+  # to TOOLS_TESTING_MONGOD2 so the routed tests exercise the boundary both ways.
+  - name: integration-9.1-dsc-cross-cluster
+    tags: ["9.1", "dsc", "cross-cluster"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "install mise and go"
+      - func: "install mise-managed tools"
+      # The ASC mongod runs without TLS to match the DSC cluster, which mongodb-runner starts
+      # without TLS, so the same connection options apply to both clusters.
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "9.0.0-rc0"
+      - func: "start mongod"
+      - func: "wait for mongod to be ready"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "start dsc cluster"
+        vars:
+          EVG_EXPANSION_VAR: "TOOLS_TESTING_MONGOD2"
+      - func: "run make target"
+        vars:
+          target: test:cross-cluster ${testArgs}
+
   - name: integration-latest
     tags: ["latest", "required-for-merge-queue"]
     commands:
@@ -2748,6 +2778,8 @@ buildvariants:
         variant: rhel88
       - name: integration-9.1-dsc
         variant: ubuntu2204-arm64-dsc
+      - name: integration-9.1-dsc-cross-cluster
+        variant: ubuntu2204-arm64-dsc
       # These carry the required-for-merge-queue tag too, but they have to be named individually:
       # the windows variant runs every server version, while pull request testing only runs the
       # latest on it. Selecting by tag here would gate on tasks a pull request never ran.
@@ -3268,6 +3300,7 @@ buildvariants:
       _platform: ubuntu2204-arm64
     tasks:
       - name: "integration-9.1-dsc"
+      - name: "integration-9.1-dsc-cross-cluster"
 
   - name: amazon2023-aarch64
     display_name: Amazon Linux 2023 ARM
