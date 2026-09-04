@@ -30,9 +30,14 @@ import (
 // and port. The underlying session provider is closed when the test ends, so
 // the returned client must not be used after that.
 func GetBareSession(t *testing.T) (*mongo.Client, error) {
+	return GetBareSessionForURI(t, os.Getenv(testopts.URIEnvVar))
+}
+
+// GetBareSessionForURI is GetBareSession for a specific connection string.
+func GetBareSessionForURI(t *testing.T, uri string) (*mongo.Client, error) {
 	t.Helper()
 
-	sessionProvider, _, err := GetBareSessionProvider(t)
+	sessionProvider, _, err := GetBareSessionProviderForURI(t, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +60,18 @@ func GetBareSessionProvider(
 ) (*db.SessionProvider, *options.ToolOptions, error) {
 	t.Helper()
 
-	toolOptions, err := testopts.GetToolOptions()
+	return GetBareSessionProviderForURI(t, os.Getenv(testopts.URIEnvVar))
+}
+
+// GetBareSessionProviderForURI is GetBareSessionProvider for a specific
+// connection string.
+func GetBareSessionProviderForURI(
+	t *testing.T,
+	uri string,
+) (*db.SessionProvider, *options.ToolOptions, error) {
+	t.Helper()
+
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	if err != nil {
 		return nil, nil, fmt.Errorf(
 			"error getting tool options to create a bare session provider: %w",
