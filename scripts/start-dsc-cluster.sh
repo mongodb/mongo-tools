@@ -154,9 +154,11 @@ fi
 
 echo "${CONNECTION_STRING:?}" >"${CLUSTER_DIR:?}/connection-string"
 
-# Evergreen's expansions.update reads a YAML file. This is written unconditionally so that a local
-# run produces the same artifacts as a CI run.
-echo "TOOLS_TESTING_MONGOD: '${CONNECTION_STRING:?}'" >"${CLUSTER_DIR:?}/expansions.yml"
+# The expansions.update command in common.yml reads this file. Default to TOOLS_TESTING_MONGOD so the
+# single-cluster DSC task is unchanged; the cross-cluster task sets EVG_EXPANSION_VAR to
+# TOOLS_TESTING_MONGOD2 so a separately-started 9.0 ASC mongod can own the primary var.
+EVG_EXPANSION_VAR="${EVG_EXPANSION_VAR:-TOOLS_TESTING_MONGOD}"
+echo "${EVG_EXPANSION_VAR:?}: '${CONNECTION_STRING:?}'" >"${CLUSTER_DIR:?}/expansions.yml"
 
 # Now that the cluster is running properly, we don't want to stop it when the script exits.
 trap - EXIT

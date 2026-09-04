@@ -312,8 +312,12 @@ func (s *DumpRestoreSuite) withOrientations(body func(crossCluster)) {
 }
 
 // uriLabel returns a short human-readable name for a cluster URI, for use in
-// test subtest names.
+// test subtest names. An empty URI means the default localhost:DefaultTestPort.
 func uriLabel(uri string) string {
+	if uri == "" {
+		return "localhost:" + testopts.DefaultTestPort
+	}
+
 	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		return uri
