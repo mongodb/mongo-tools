@@ -300,8 +300,12 @@ func (s *DumpRestoreSuite) timeseriesBucketsMayHaveMixedSchemaData(
 	return hasMixedSchema.Boolean()
 }
 
-func (s *DumpRestoreSuite) setupTimeseriesWithMixedSchema(dbName string, collName string) {
-	sessionProvider, _, err := testutil.GetBareSessionProvider(s.T())
+func (s *DumpRestoreSuite) setupTimeseriesWithMixedSchema(
+	uri string,
+	dbName string,
+	collName string,
+) {
+	sessionProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), uri)
 	s.Require().NoError(err, "get session provider")
 
 	serverVersion, err := sessionProvider.ServerVersionArray()
