@@ -144,10 +144,6 @@ func (s *DumpRestoreSuite) runBSONMongodumpForCollectionForURI(
 	return bsonFile
 }
 
-func (s *DumpRestoreSuite) withArchiveMongodump(testCase func(string), dumpArgs ...string) {
-	s.withArchiveMongodumpForURI(os.Getenv(testopts.URIEnvVar), testCase, dumpArgs...)
-}
-
 func (s *DumpRestoreSuite) withArchiveMongodumpForURI(
 	uri string,
 	testCase func(string),

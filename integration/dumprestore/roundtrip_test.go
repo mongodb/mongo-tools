@@ -160,85 +160,89 @@ var userDefinedConfigCollectionNames = []string{
 }
 
 func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
-	session, err := testutil.GetBareSession(s.T())
-	s.Require().NoError(err, "can connect to server")
+	s.withOrientations(func(cc crossCluster) {
+		configDB := cc.source.Database("config")
 
-	configDB := session.Database("config")
+		collections := s.createCollectionsWithTestDocuments(
+			configDB,
+			append(configCollectionNamesToKeep, userDefinedConfigCollectionNames...),
+		)
+		defer s.clearDB(configDB)
 
-	collections := s.createCollectionsWithTestDocuments(
-		configDB,
-		append(configCollectionNamesToKeep, userDefinedConfigCollectionNames...),
-	)
-	defer s.clearDB(configDB)
+		s.withBSONMongodumpForURI(
+			cc.sourceURI,
+			func(dir string) {
+				s.clearDB(configDB)
 
-	s.withBSONMongodump(
-		func(dir string) {
-			s.clearDB(configDB)
+				restore, err := getRestoreWithArgsForURI(cc.targetURI, dir)
+				s.Require().NoError(err)
+				defer restore.Close()
 
-			restore, err := getRestoreWithArgs(dir)
-			s.Require().NoError(err)
-			defer restore.Close()
+				result := restore.Restore()
+				s.Require().NoError(result.Err, "can run mongorestore")
+				s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-			result := restore.Restore()
-			s.Require().NoError(result.Err, "can run mongorestore")
-			s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
-
-			for _, collection := range collections {
-				r := collection.FindOne(s.Context(), testDocument)
-				s.Require().NoError(r.Err(), "expected document")
-			}
-		},
-		"--db", "config",
-		"--excludeCollection", "transactions",
-	)
+				for _, collection := range collections {
+					targetColl := cc.target.Database("config").Collection(collection.Name())
+					r := targetColl.FindOne(s.Context(), testDocument)
+					s.Require().NoError(r.Err(), "expected document")
+				}
+			},
+			"--db", "config",
+			"--excludeCollection", "transactions",
+		)
+	})
 }
 
 func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections() {
-	session, err := testutil.GetBareSession(s.T())
-	s.Require().NoError(err, "can connect to server")
+	s.withOrientations(func(cc crossCluster) {
+		// Drop any databases that other tests may have left behind with validators
+		// that would cause failures during the full dump+restore.
+		s.Require().NoError(cc.source.Database("mongodump_test_db").Drop(s.Context()))
 
-	// Drop any databases that other tests may have left behind with validators
-	// that would cause failures during the full dump+restore.
-	s.Require().NoError(session.Database("mongodump_test_db").Drop(s.Context()))
+		configDB := cc.source.Database("config")
 
-	configDB := session.Database("config")
+		userDefinedCollections := s.createCollectionsWithTestDocuments(
+			configDB,
+			userDefinedConfigCollectionNames,
+		)
+		collectionsToKeep := s.createCollectionsWithTestDocuments(
+			configDB,
+			configCollectionNamesToKeep,
+		)
+		defer s.clearDB(configDB)
 
-	userDefinedCollections := s.createCollectionsWithTestDocuments(
-		configDB,
-		userDefinedConfigCollectionNames,
-	)
-	collectionsToKeep := s.createCollectionsWithTestDocuments(
-		configDB,
-		configCollectionNamesToKeep,
-	)
-	defer s.clearDB(configDB)
+		s.withBSONMongodumpForURI(
+			cc.sourceURI,
+			func(dir string) {
+				s.clearDB(configDB)
 
-	s.withBSONMongodump(
-		func(dir string) {
-			s.clearDB(configDB)
+				restore, err := getRestoreWithArgsForURI(
+					cc.targetURI,
+					mongorestore.DropOption,
+					dir,
+				)
+				s.Require().NoError(err)
+				defer restore.Close()
 
-			restore, err := getRestoreWithArgs(
-				mongorestore.DropOption,
-				dir,
-			)
-			s.Require().NoError(err)
-			defer restore.Close()
+				result := restore.Restore()
+				s.Require().NoError(result.Err, "can run mongorestore")
+				s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-			result := restore.Restore()
-			s.Require().NoError(result.Err, "can run mongorestore")
-			s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
+				for _, collection := range collectionsToKeep {
+					targetColl := cc.target.Database("config").Collection(collection.Name())
+					r := targetColl.FindOne(s.Context(), testDocument)
+					s.Require().NoError(r.Err(), "expected document")
+				}
 
-			for _, collection := range collectionsToKeep {
-				r := collection.FindOne(s.Context(), testDocument)
-				s.Require().NoError(r.Err(), "expected document")
-			}
-
-			for _, collection := range userDefinedCollections {
-				r := collection.FindOne(s.Context(), testDocument)
-				s.Require().Error(r.Err(), "expected no document")
-			}
-		},
-	)
+				for _, collection := range userDefinedCollections {
+					targetColl := cc.target.Database("config").Collection(collection.Name())
+					r := targetColl.FindOne(s.Context(), testDocument)
+					s.Require().Error(r.Err(), "expected no document")
+				}
+			},
+		)
+	})
 }
 
 func getRestoreWithArgs(additionalArgs ...string) (*mongorestore.MongoRestore, error) {
@@ -958,92 +962,95 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 }
 
 func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
-	ctx := s.Context()
+	s.withOrientations(func(cc crossCluster) {
+		ctx := s.Context()
 
-	session, err := testutil.GetBareSession(s.T())
-	s.Require().NoError(err, "can connect to server")
+		allNames := []string{
+			"no-nl",
+			"\ninitial-nl",
+			"mid-\n-nl",
+			"final-nl\n",
+			"\ninitial-and-final-nl\n",
+			"\nnl-\n-everywhere\n",
+		}
 
-	allNames := []string{
-		"no-nl",
-		"\ninitial-nl",
-		"mid-\n-nl",
-		"final-nl\n",
-		"\ninitial-and-final-nl\n",
-		"\nnl-\n-everywhere\n",
-	}
+		nlVariants := []struct {
+			label string
+			nl    string
+		}{
+			{"LF", "\n"},
+			{"CR", "\r"},
+			{"CRLF", "\r\n"},
+		}
 
-	nlVariants := []struct {
-		label string
-		nl    string
-	}{
-		{"LF", "\n"},
-		{"CR", "\r"},
-		{"CRLF", "\r\n"},
-	}
+		for _, variant := range nlVariants {
+			myAllNames := lo.Map(
+				allNames,
+				func(name string, _ int) string {
+					return strings.ReplaceAll(name, "\n", variant.nl)
+				},
+			)
 
-	for _, variant := range nlVariants {
-		myAllNames := lo.Map(
-			allNames,
-			func(name string, _ int) string {
-				return strings.ReplaceAll(name, "\n", variant.nl)
-			},
-		)
+			s.Run(
+				variant.label,
+				func() {
+					for _, dbname := range myAllNames {
+						s.Run(
+							fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
+							func() {
+								s.Require().NoError(cc.source.Database(dbname).Drop(ctx))
+								s.createCollectionsWithTestDocuments(
+									cc.source.Database(dbname),
+									myAllNames,
+								)
 
-		s.Run(
-			variant.label,
-			func() {
-				for _, dbname := range myAllNames {
-					s.Run(
-						fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
-						func() {
-							s.Require().NoError(session.Database(dbname).Drop(ctx))
-							s.createCollectionsWithTestDocuments(
-								session.Database(dbname),
-								myAllNames,
-							)
+								s.withArchiveMongodumpForURI(
+									cc.sourceURI,
+									func(archivePath string) {
+										s.Require().NoError(cc.source.Database(dbname).Drop(ctx))
 
-							s.withArchiveMongodump(func(archivePath string) {
-								s.Require().NoError(session.Database(dbname).Drop(ctx))
+										colls, err := cc.source.Database(dbname).
+											ListCollectionNames(ctx, bson.D{})
+										s.Require().NoError(err)
+										s.Require().
+											Empty(colls, "sanity: db drop should drop all collections")
 
-								colls, err := session.Database(dbname).
+										restore, err := getRestoreWithArgsForURI(
+											cc.targetURI,
+											mongorestore.DBOption, dbname,
+											mongorestore.ArchiveOption+"="+archivePath,
+											"-vv",
+										)
+										s.Require().NoError(err)
+										defer restore.Close()
+
+										result := restore.Restore()
+										s.Require().NoError(result.Err, "can run mongorestore")
+										s.Require().EqualValues(
+											0,
+											result.Failures,
+											"mongorestore reports 0 failures (result=%+v)",
+											result,
+										)
+									},
+								)
+
+								colls, err := cc.target.Database(dbname).
 									ListCollectionNames(ctx, bson.D{})
 								s.Require().NoError(err)
-								s.Require().
-									Empty(colls, "sanity: db drop should drop all collections")
 
-								restore, err := getRestoreWithArgs(
-									mongorestore.DBOption, dbname,
-									mongorestore.ArchiveOption+"="+archivePath,
-									"-vv",
+								s.Assert().ElementsMatch(
+									myAllNames,
+									colls,
+									"all collections restored",
 								)
-								s.Require().NoError(err)
-								defer restore.Close()
-
-								result := restore.Restore()
-								s.Require().NoError(result.Err, "can run mongorestore")
-								s.Require().EqualValues(
-									0,
-									result.Failures,
-									"mongorestore reports 0 failures (result=%+v)",
-									result,
-								)
-							})
-
-							colls, err := session.Database(dbname).
-								ListCollectionNames(ctx, bson.D{})
-							s.Require().NoError(err)
-
-							s.Assert().ElementsMatch(
-								myAllNames,
-								colls,
-								"all collections restored",
-							)
-						},
-					)
-				}
-			},
-		)
-	}
+							},
+						)
+					}
+				},
+			)
+		}
+	})
 }
 
 func timeseriesCollName(version db.Version, base string) string {
