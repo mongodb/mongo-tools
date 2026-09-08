@@ -665,6 +665,16 @@ var invalidDumpOptionsCases = []invalidDumpOptionsCase{
 		wantErr: "either query or queryFile can be specified as a query option, not both",
 	},
 	{
+		name: "forceTableScan together with a query",
+		setUp: func(md *MongoDump) {
+			md.ToolOptions.DB = "foo"
+			md.ToolOptions.Collection = "bar"
+			md.InputOptions.Query = `{"x": 1}`
+			md.InputOptions.TableScan = true
+		},
+		wantErr: "cannot use --forceTableScan when specifying --query",
+	},
+	{
 		name: "excludeCollection without a db",
 		setUp: func(md *MongoDump) {
 			md.ToolOptions.DB = ""
