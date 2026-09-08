@@ -46,13 +46,15 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 
 	srcCollNames := []string{"alpha", "beta", "gamma", "delta", "epsilon"}
 
+	const docsPerColl = 10_000
+
 	db := sess.Database(uniqueDBName())
 
 	s.T().Logf("creating collections")
 
 	for _, collName := range srcCollNames {
 		docs := lo.RepeatBy(
-			10_000,
+			docsPerColl,
 			func(_ int) bson.D {
 				return bson.D{
 					{"someNum", rand.Float64()},
@@ -117,6 +119,22 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 	})
 
 	s.Require().NoError(eg.Wait())
+
+	// Without this the test only proves the pipe did not error: a namespace dropped or misrouted by
+	// the archive demultiplexer would go unnoticed.
+	for _, collName := range srcCollNames {
+		dstName := "dst-" + collName
+
+		count, err := db.Collection(dstName).CountDocuments(ctx, bson.D{})
+		s.Require().NoError(err, "should count docs in %#q", dstName)
+		s.Assert().EqualValues(
+			docsPerColl,
+			count,
+			"%#q should hold every document piped from %#q",
+			dstName,
+			collName,
+		)
+	}
 }
 
 func (s *DumpRestoreSuite) TestDumpAndRestoreConfigDB() {
