@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/db/dsc"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -52,6 +53,7 @@ type testContext struct {
 	dstClient   *mongo.Client
 	dumpDir     string
 	barrierFile string
+	dstIsDSC    bool
 }
 
 func main() {
@@ -106,20 +108,34 @@ func run(srcURI, dstURI string, keepDump bool) error {
 		defer tc.removeDumpDir()
 	}
 
-	if err := tc.runDumpWithConcurrentOps(ctx); err != nil {
-		return err
-	}
+	if tc.dstIsDSC {
+		if err := tc.runDump(); err != nil {
+			return err
+		}
 
-	if err := tc.removeSystemDBsFromDump(); err != nil {
-		return err
-	}
+		if err := tc.removeSystemDBsFromDump(); err != nil {
+			return err
+		}
 
-	if err := tc.verifyOplogHasEntries(); err != nil {
-		return err
-	}
+		if err := tc.runRestore(); err != nil {
+			return err
+		}
+	} else {
+		if err := tc.runDumpWithConcurrentOps(ctx); err != nil {
+			return err
+		}
 
-	if err := tc.runRestore(); err != nil {
-		return err
+		if err := tc.removeSystemDBsFromDump(); err != nil {
+			return err
+		}
+
+		if err := tc.verifyOplogHasEntries(); err != nil {
+			return err
+		}
+
+		if err := tc.runRestore(); err != nil {
+			return err
+		}
 	}
 
 	if err := tc.verifyClustersMatch(ctx); err != nil {
@@ -164,6 +180,14 @@ func (tc *testContext) connectToClusters(ctx context.Context) error {
 	}
 	tc.dstClient = dstClient
 	log.Println("✅ Connected to destination cluster")
+
+	tc.dstIsDSC, err = dsc.IsDisaggregatedStorage(ctx, dstClient)
+	if err != nil {
+		return fmt.Errorf("checking if the destination uses disaggregated storage: %w", err)
+	}
+	if tc.dstIsDSC {
+		log.Println("Destination cluster uses disaggregated storage (DSC)")
+	}
 
 	return nil
 }
@@ -337,6 +361,26 @@ func (tc *testContext) removeDumpDir() {
 	os.RemoveAll(tc.dumpDir)
 }
 
+func (tc *testContext) runDump() error {
+	log.Println("Starting mongodump without --oplog...")
+	dumpCmd := exec.Command(
+		"./bin/mongodump",
+		"-vvvv",
+		"--uri", tc.srcURI,
+		"--out", tc.dumpDir,
+	)
+	dumpCmd.Dir = repoRoot()
+	dumpCmd.Stdout = os.Stdout
+	dumpCmd.Stderr = os.Stderr
+
+	if err := dumpCmd.Run(); err != nil {
+		return fmt.Errorf("mongodump failed: %w", err)
+	}
+	log.Println("✅ mongodump completed")
+
+	return nil
+}
+
 func (tc *testContext) runDumpWithConcurrentOps(ctx context.Context) error {
 	log.Println("Starting mongodump with --oplog...")
 	dumpCmd := exec.Command(
@@ -428,15 +472,20 @@ func countOplogEntries(dumpDir string) (int, error) {
 }
 
 func (tc *testContext) runRestore() error {
-	log.Println("Running mongorestore with --oplogReplay --drop...")
-	restoreCmd := exec.Command(
-		"./bin/mongorestore",
+	args := []string{
 		"-vvvv",
 		"--uri", tc.dstURI,
-		"--oplogReplay",
 		"--drop",
-		tc.dumpDir,
-	)
+	}
+	if !tc.dstIsDSC {
+		args = append(args, "--oplogReplay", tc.dumpDir)
+		log.Println("Running mongorestore with --oplogReplay --drop...")
+	} else {
+		args = append(args, tc.dumpDir)
+		log.Println("Running mongorestore with --drop...")
+	}
+
+	restoreCmd := exec.Command("./bin/mongorestore", args...)
 	restoreCmd.Dir = repoRoot()
 	restoreCmd.Stdout = os.Stdout
 	restoreCmd.Stderr = os.Stderr
