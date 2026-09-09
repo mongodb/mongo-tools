@@ -322,6 +322,10 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 		return fmt.Errorf("cannot specify --preserveUUID without --drop")
 	}
 
+	if err := restore.checkApplyOpsGuardrail(); err != nil {
+		return err
+	}
+
 	// a single dash signals reading from stdin
 	if restore.TargetDirectory == "-" {
 		if restore.InputOptions.Archive != "" {
@@ -334,6 +338,27 @@ func (restore *MongoRestore) ParseAndValidateOptions() error {
 	}
 	if restore.InputReader == nil {
 		restore.InputReader = os.Stdin
+	}
+
+	return nil
+}
+
+// checkApplyOpsGuardrail fails the restore when --oplogReplay or --preserveUUID is used against
+// either a sharded cluster. mongorestore implements both of these features on top of the `applyOps`
+// command, which sharded clusters do not support.
+func (restore *MongoRestore) checkApplyOpsGuardrail() error {
+	isSharded, err := restore.SessionProvider.IsMongos()
+	if err != nil {
+		return fmt.Errorf("error determining if the cluster is sharded: %w", err)
+	}
+
+	if isSharded {
+		if restore.InputOptions.OplogReplay {
+			return errors.New("cannot use --oplogReplay when restoring to a sharded cluster")
+		}
+		if restore.OutputOptions.PreserveUUID {
+			return errors.New("cannot use --preserveUUID when restoring to a sharded cluster")
+		}
 	}
 
 	return nil

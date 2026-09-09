@@ -19,6 +19,29 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+// TestApplyOpsGuardrail checks that `--oplogReplay` and `--preserveUUID` fail fast against a
+// sharded cluster, before any data is restored, since mongorestore implements both on top of the
+// `applyOps` command that shardec clusters do not support.
+func TestApplyOpsGuardrail(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.ShardedIntegrationTestType)
+
+	t.Run("--oplogReplay is rejected", func(t *testing.T) {
+		result := runRestoreFromArgs(t, OplogReplayOption, t.TempDir())
+		require.ErrorContains(
+			t, result.Err, "cannot use --oplogReplay",
+			"--oplogReplay against a sharded or DSC cluster errors",
+		)
+	})
+
+	t.Run("--preserveUUID is rejected", func(t *testing.T) {
+		result := runRestoreFromArgs(t, PreserveUUIDOption, DropOption, t.TempDir())
+		require.ErrorContains(
+			t, result.Err, "cannot use --preserveUUID",
+			"--preserveUUID against a sharded or DSC cluster errors",
+		)
+	})
+}
+
 // TestRestoreInvalidInput covers how mongorestore rejects invalid options and
 // invalid dump input: bad option combinations and values, dump targets that are
 // missing or of the wrong kind, and bson and metadata files it cannot read. Each
@@ -316,6 +339,10 @@ func testRestoreObjcheckValidBSON(t *testing.T) {
 }
 
 func testRestoreOplogReplayNoOplogFile(t *testing.T) {
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
 	result := runRestoreFromArgs(t, OplogReplayOption, t.TempDir())
 	require.ErrorContains(
 		t, result.Err, "no oplog file to replay",

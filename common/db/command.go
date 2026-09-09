@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/mongodb/mongo-tools/common/db/dsc"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -131,6 +132,16 @@ func (sp *SessionProvider) IsAtlasProxy() bool {
 		&bson.M{"atlasVersion": 1},
 	)
 	return result.Err() == nil
+}
+
+// IsDisaggregatedStorage reports whether the connected server uses disaggregated storage (DSC).
+func (sp *SessionProvider) IsDisaggregatedStorage() (bool, error) {
+	session, err := sp.GetSession()
+	if err != nil {
+		return false, err
+	}
+
+	return dsc.IsDisaggregatedStorage(context.Background(), session)
 }
 
 // GetNodeType checks if the connected SessionProvider is a mongos, standalone, or replset,
