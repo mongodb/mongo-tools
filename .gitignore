@@ -18,6 +18,7 @@
 .gopath
 .idea
 .ignore
+/asc-dsc-interoperability
 bin/
 /data
 /deb_build
