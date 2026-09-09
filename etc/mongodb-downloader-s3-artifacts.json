@@ -2,14 +2,14 @@
     "serverBinaries": {
         "ubuntu2204-arm64": {
             "9.1-dsc": {
-                "tarball": "ubuntu2204-arm64-9.1-dsc-8161735c839119f6f21ccd4861df07e922f39335.tar.xz",
-                "commit": "8161735c839119f6f21ccd4861df07e922f39335"
+                "tarball": "ubuntu2204-arm64-9.1-dsc-131b45b92aa21a4aaf97c4251b50e013f33ccf90.tar.xz",
+                "commit": "131b45b92aa21a4aaf97c4251b50e013f33ccf90"
             }
         },
         "ubuntu2204-x86_64": {
             "9.1-dsc": {
-                "tarball": "ubuntu2204-x86_64-9.1-dsc-8161735c839119f6f21ccd4861df07e922f39335.tar.xz",
-                "commit": "8161735c839119f6f21ccd4861df07e922f39335"
+                "tarball": "ubuntu2204-x86_64-9.1-dsc-131b45b92aa21a4aaf97c4251b50e013f33ccf90.tar.xz",
+                "commit": "131b45b92aa21a4aaf97c4251b50e013f33ccf90"
             }
         }
     },

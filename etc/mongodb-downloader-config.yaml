@@ -6,7 +6,7 @@ s3:
 
 serverVersions:
   - version: "9.1-dsc"
-    commit: 8161735c839119f6f21ccd4861df07e922f39335
+    commit: 131b45b92aa21a4aaf97c4251b50e013f33ccf90 # 2026-09-09
     disagg: true
     resmoke: false
     platforms:
