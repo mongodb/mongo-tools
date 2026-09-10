@@ -305,11 +305,8 @@ functions:
         set -o pipefail
         set -o xtrace
 
-        rm -rf `find suite-config -name "suites"`
-        cd mongodump-suite-config
-        tar cvf ../suite-config/a.tar .
-        cd ../suite-config
-        tar xvf a.tar
+        rm -rf suite-config
+        cp -v -r ../../github.com/mongodb/mongo-tools/resmoke/suite-config .
 
   f_expansions_write:
     - *f_expansions_write
