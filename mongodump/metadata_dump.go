@@ -62,8 +62,7 @@ func (dump *MongoDump) dumpMetadata(
 		meta.Type = intent.Type
 	}
 
-	// Second, we read the collection's index information by either calling
-	// listIndexes (pre-2.7 systems) or querying system.indexes.
+	// Second, we read the collection's index information by calling listIndexes.
 	// We keep a running list of all the indexes
 	// for the current collection as we iterate over the cursor, and include
 	// that list as the "indexes" field of the metadata document.
