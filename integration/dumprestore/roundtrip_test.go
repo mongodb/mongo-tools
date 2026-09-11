@@ -255,8 +255,15 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 }
 
 func getRestoreWithArgs(additionalArgs ...string) (*mongorestore.MongoRestore, error) {
+	return getRestoreWithArgsForURI(os.Getenv(testopts.URIEnvVar), additionalArgs...)
+}
+
+func getRestoreWithArgsForURI(
+	uri string,
+	additionalArgs ...string,
+) (*mongorestore.MongoRestore, error) {
 	opts, err := mongorestore.ParseOptions(
-		append(testopts.GetBareArgs(), additionalArgs...),
+		append(testopts.GetBareArgsForURI(uri), additionalArgs...),
 		"",
 		"",
 	)
@@ -273,7 +280,15 @@ func getRestoreWithArgs(additionalArgs ...string) (*mongorestore.MongoRestore, e
 }
 
 func getArchiveMongoDump(t *testing.T, output io.WriteCloser) (*mongodump.MongoDump, error) {
-	provider, toolOpts, err := testutil.GetBareSessionProvider(t)
+	return getArchiveMongoDumpForURI(t, os.Getenv(testopts.URIEnvVar), output)
+}
+
+func getArchiveMongoDumpForURI(
+	t *testing.T,
+	uri string,
+	output io.WriteCloser,
+) (*mongodump.MongoDump, error) {
+	provider, toolOpts, err := testutil.GetBareSessionProviderForURI(t, uri)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider for dump")
 	}
@@ -298,7 +313,15 @@ func getArchiveMongoDump(t *testing.T, output io.WriteCloser) (*mongodump.MongoD
 }
 
 func getArchiveMongoRestore(t *testing.T, input io.ReadCloser) (*mongorestore.MongoRestore, error) {
-	_, toolOpts, err := testutil.GetBareSessionProvider(t)
+	return getArchiveMongoRestoreForURI(t, os.Getenv(testopts.URIEnvVar), input)
+}
+
+func getArchiveMongoRestoreForURI(
+	t *testing.T,
+	uri string,
+	input io.ReadCloser,
+) (*mongorestore.MongoRestore, error) {
+	_, toolOpts, err := testutil.GetBareSessionProviderForURI(t, uri)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider for restore")
 	}
