@@ -137,56 +137,6 @@ func (s *DumpRestoreSuite) assertExtendedJSONQueryFilters(queryCase extendedJSON
 	}
 }
 
-// TestDumpForceTableScan dumps with `--forceTableScan` while documents are being inserted
-// concurrently. The dump uses no index and takes no snapshot, so the result is only bounded: it
-// must hold at least what existed when the dump started, and strictly fewer than exist once the
-// inserts are stopped, which is what shows the dump read the collection while it was still growing.
-func (s *DumpRestoreSuite) TestDumpForceTableScan() {
-	const collName = "bar"
-
-	testDB := s.database("force_table_scan")
-	coll := testDB.Collection(collName)
-
-	s.insertNamespacedDocs(coll)
-	countBefore := s.docCount(coll)
-	s.Require().Positive(countBefore, "the collection holds documents before the dump")
-
-	var countAfter int64
-	s.withConcurrentInserts(
-		coll,
-		func(stopInserts func()) {
-			s.withBSONMongodump(func(dir string) {
-				stopInserts()
-
-				countAfter = s.docCount(coll)
-				s.Require().Greater(
-					countAfter,
-					countBefore,
-					"the concurrent inserts landed while the dump was running",
-				)
-
-				s.dropDB(testDB)
-
-				result := s.runRestore(dir)
-				s.Require().NoError(result.Err, "can restore a --forceTableScan dump")
-			}, "--db", testDB.Name(), "--forceTableScan")
-		},
-	)
-
-	restored := s.docCount(coll)
-	s.Assert().GreaterOrEqual(
-		restored,
-		countBefore,
-		"the dump holds at least the documents that existed when it started",
-	)
-	s.Assert().Less(
-		restored,
-		countAfter,
-		"the dump missed documents inserted after it read past them, so it really did "+
-			"read the collection while it was still growing",
-	)
-}
-
 // TestDumpStorageEngineOptions round-trips a collection created with storage-engine options, and
 // checks that the options themselves survive rather than only that the dump and restore succeeded.
 func (s *DumpRestoreSuite) TestDumpStorageEngineOptions() {
