@@ -1,6 +1,10 @@
 #!/bin/bash
 # Sets standard CI environment variables for build and test tasks.
-# Requires $EVG_WORKDIR to be set in the environment before sourcing.
+# If $EVG_WORKDIR is not set this script doesn't do anything.
+
+if [ -z "$EVG_WORKDIR" ]; then
+    return
+fi
 
 # cgo needs a mingw-w64 toolchain and some Windows-specific flags on Windows.
 # We also normalize the working directory through cygpath here, since
