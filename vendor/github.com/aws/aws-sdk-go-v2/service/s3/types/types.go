@@ -668,7 +668,7 @@ type ContinuationEvent struct {
 type CopyObjectResult struct {
 
 	// The Base64 encoded, 32-bit CRC32 checksum of the object. This checksum is only
-	// present if the object was uploaded with the object. For more information, see [Checking object integrity]
+	// present if the checksum was uploaded with the object. For more information, see [Checking object integrity]
 	// in the Amazon S3 User Guide.
 	//
 	// [Checking object integrity]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
@@ -1039,6 +1039,11 @@ type DefaultRetention struct {
 	// Must be used with Mode .
 	Days *int32
 
+	// The default event hold duration to be applied to new objects placed in the
+	// specified bucket. When configured, new objects will automatically have an event
+	// hold enabled with this duration.
+	DefaultEventHold *EventHoldDuration
+
 	// The default Object Lock retention mode you want to apply to new objects placed
 	// in the specified bucket. Must be used with either Days or Years .
 	Mode ObjectLockRetentionMode
@@ -1275,7 +1280,11 @@ type EndEvent struct {
 	noSmithyDocumentSerde
 }
 
+// For information about using the Amazon S3 API—including error handling—see the [Amazon S3 Developer Guide].
+//
 // Container for all error elements.
+//
+// [Amazon S3 Developer Guide]: https://docs.aws.amazon.com/AmazonS3/latest/developerguide/Welcome.html
 type Error struct {
 
 	// The error code is a string that uniquely identifies an error condition. It is
@@ -2263,6 +2272,21 @@ type ErrorDocument struct {
 
 // A container for specifying the configuration for Amazon EventBridge.
 type EventBridgeConfiguration struct {
+	noSmithyDocumentSerde
+}
+
+// Contains the event hold duration configuration, specified in either days or
+// years.
+type EventHoldDuration struct {
+
+	// The number of days for the event hold duration. The minimum value is 1 and the
+	// maximum value is 36,500.
+	Days *int32
+
+	// The number of years for the event hold duration. The minimum value is 1 and the
+	// maximum value is 100.
+	Years *int32
+
 	noSmithyDocumentSerde
 }
 
@@ -3658,6 +3682,14 @@ type ObjectLockLegalHold struct {
 // A Retention configuration for an object.
 type ObjectLockRetention struct {
 
+	// The event hold status for the object. Set to ON to enable an event hold or OFF
+	// to disable it.
+	EventHold ObjectLockEventHold
+
+	// The event hold duration for the object. Specifies how long the object remains
+	// protected after the event hold is released.
+	EventHoldDuration *EventHoldDuration
+
 	// Indicates the Retention mode for the specified object.
 	Mode ObjectLockRetentionMode
 
@@ -3670,10 +3702,15 @@ type ObjectLockRetention struct {
 // The container element for an Object Lock rule.
 type ObjectLockRule struct {
 
-	// The default Object Lock retention mode and period that you want to apply to new
-	// objects placed in the specified bucket. Bucket settings require both a mode and
-	// a period. The period can be either Days or Years but you must select one. You
-	// cannot specify Days and Years at the same time.
+	// The default Object Lock retention settings for new objects in this bucket. You
+	// can specify:
+	//
+	//   - A default retention period, by using Days or Years .
+	//
+	//   - A default event hold duration, by using DefaultEventHold . This setting also
+	//   uses days or years.
+	//
+	// You can set one or both. You cannot use days and years in the same setting.
 	DefaultRetention *DefaultRetention
 
 	noSmithyDocumentSerde
@@ -5249,13 +5286,10 @@ type Transition struct {
 	Date *time.Time
 
 	// Indicates the number of days after creation when objects are transitioned to
-	// the specified storage class. If the specified storage class is
-	// INTELLIGENT_TIERING , GLACIER_IR , GLACIER , or DEEP_ARCHIVE , valid values are
-	// 0 or positive integers. If the specified storage class is STANDARD_IA or
-	// ONEZONE_IA , valid values are positive integers greater than 30 . Be aware that
-	// some storage classes have a minimum storage duration and that you're charged for
-	// transitioning objects before their minimum storage duration. For more
-	// information, see [Constraints and considerations for transitions]in the Amazon S3 User Guide.
+	// the specified storage class. The value can be 0 or any positive integer. Be
+	// aware that some storage classes have a minimum storage duration and that you're
+	// charged for transitioning objects before their minimum storage duration. For
+	// more information, see [Constraints and considerations for transitions]in the Amazon S3 User Guide.
 	//
 	// [Constraints and considerations for transitions]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html#lifecycle-configuration-constraints
 	Days *int32

@@ -1,4 +1,6 @@
+//go:build !windows
 // +build !windows
+
 // This file contains a simple and incomplete implementation of the terminfo
 // database. Information was taken from the ncurses manpages term(5) and
 // terminfo(5). Currently, only the string capabilities for special keys and for
@@ -15,7 +17,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -85,14 +86,14 @@ func ti_try_path(path string) (data []byte, err error) {
 
 	// first try, the typical *nix path
 	terminfo := path + "/" + term[0:1] + "/" + term
-	data, err = ioutil.ReadFile(terminfo)
+	data, err = os.ReadFile(terminfo)
 	if err == nil {
 		return
 	}
 
 	// fallback to darwin specific dirs structure
 	terminfo = path + "/" + hex.EncodeToString([]byte(term[:1])) + "/" + term
-	data, err = ioutil.ReadFile(terminfo)
+	data, err = os.ReadFile(terminfo)
 	return
 }
 
