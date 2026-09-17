@@ -12,11 +12,12 @@ import (
 // After successful initialization, the library must be finalized using 'Close' function.
 //
 // Example usage:
-//      err := termbox.Init()
-//      if err != nil {
-//              panic(err)
-//      }
-//      defer termbox.Close()
+//
+//	err := termbox.Init()
+//	if err != nil {
+//	        panic(err)
+//	}
+//	defer termbox.Close()
 func Init() error {
 	var err error
 

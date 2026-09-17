@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package termbox
@@ -7,10 +8,10 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/mattn/go-runewidth"
+	"golang.org/x/sys/unix"
 )
 
 // public API
@@ -19,11 +20,12 @@ import (
 // After successful initialization, the library must be finalized using 'Close' function.
 //
 // Example usage:
-//      err := termbox.Init()
-//      if err != nil {
-//              panic(err)
-//      }
-//      defer termbox.Close()
+//
+//	err := termbox.Init()
+//	if err != nil {
+//	        panic(err)
+//	}
+//	defer termbox.Close()
 func Init() error {
 	if IsInit {
 		return nil
@@ -42,46 +44,67 @@ func Init() error {
 		if err != nil {
 			return err
 		}
-		in, err = syscall.Open("/dev/tty", syscall.O_RDONLY, 0)
+		in, err = unix.Open("/dev/tty", unix.O_RDONLY, 0)
 		if err != nil {
+			out.Close() // Clean up output file descriptor on error
 			return err
 		}
 	}
 
+	// Fd clears the O_NONBLOCK flag. On systems where in and out are the
+	// same file descriptor (see above), that would be a problem, because
+	// the in file descriptor needs to be nonblocking. Save the Fd return
+	// value here so that we won't need to call Fd later after the in file
+	// descriptor has been made nonblocking (see below).
+	outfd = out.Fd()
+
 	err = setup_term()
 	if err != nil {
+		out.Close()
+		if runtime.GOOS != "openbsd" && runtime.GOOS != "freebsd" {
+			unix.Close(in)
+		}
 		return fmt.Errorf("termbox: error while reading terminfo data: %v", err)
 	}
 
-	signal.Notify(sigwinch, syscall.SIGWINCH)
-	signal.Notify(sigio, syscall.SIGIO)
+	signal.Notify(sigwinch, unix.SIGWINCH)
+	signal.Notify(sigio, unix.SIGIO)
 
-	_, err = fcntl(in, syscall.F_SETFL, syscall.O_ASYNC|syscall.O_NONBLOCK)
+	err = setFdAsync(in)
 	if err != nil {
+		out.Close()
+		if runtime.GOOS != "openbsd" && runtime.GOOS != "freebsd" {
+			unix.Close(in)
+		}
 		return err
 	}
-	_, err = fcntl(in, syscall.F_SETOWN, syscall.Getpid())
-	if runtime.GOOS != "darwin" && err != nil {
-		return err
-	}
-	err = tcgetattr(out.Fd(), &orig_tios)
+
+	orig_tios, err = tcgetattr(outfd)
 	if err != nil {
+		out.Close()
+		if runtime.GOOS != "openbsd" && runtime.GOOS != "freebsd" {
+			unix.Close(in)
+		}
 		return err
 	}
 
 	tios := orig_tios
-	tios.Iflag &^= syscall_IGNBRK | syscall_BRKINT | syscall_PARMRK |
-		syscall_ISTRIP | syscall_INLCR | syscall_IGNCR |
-		syscall_ICRNL | syscall_IXON
-	tios.Lflag &^= syscall_ECHO | syscall_ECHONL | syscall_ICANON |
-		syscall_ISIG | syscall_IEXTEN
-	tios.Cflag &^= syscall_CSIZE | syscall_PARENB
-	tios.Cflag |= syscall_CS8
-	tios.Cc[syscall_VMIN] = 1
-	tios.Cc[syscall_VTIME] = 0
+	tios.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK |
+		unix.ISTRIP | unix.INLCR | unix.IGNCR |
+		unix.ICRNL | unix.IXON
+	tios.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON |
+		unix.ISIG | unix.IEXTEN
+	tios.Cflag &^= unix.CSIZE | unix.PARENB
+	tios.Cflag |= unix.CS8
+	tios.Cc[unix.VMIN] = 1
+	tios.Cc[unix.VTIME] = 0
 
-	err = tcsetattr(out.Fd(), &tios)
+	err = tcsetattr(outfd, tios)
 	if err != nil {
+		out.Close()
+		if runtime.GOOS != "openbsd" && runtime.GOOS != "freebsd" {
+			unix.Close(in)
+		}
 		return err
 	}
 
@@ -90,7 +113,7 @@ func Init() error {
 	out.WriteString(funcs[t_hide_cursor])
 	out.WriteString(funcs[t_clear_screen])
 
-	termw, termh = get_term_size(out.Fd())
+	termw, termh = get_term_size(outfd)
 	back_buffer.init(termw, termh)
 	front_buffer.init(termw, termh)
 	back_buffer.clear()
@@ -102,8 +125,8 @@ func Init() error {
 			select {
 			case <-sigio:
 				for {
-					n, err := syscall.Read(in, buf)
-					if err == syscall.EAGAIN || err == syscall.EWOULDBLOCK {
+					n, err := unix.Read(in, buf)
+					if err == unix.EAGAIN || err == unix.EWOULDBLOCK {
 						break
 					}
 					select {
@@ -145,10 +168,10 @@ func Close() {
 	out.WriteString(funcs[t_exit_ca])
 	out.WriteString(funcs[t_exit_keypad])
 	out.WriteString(funcs[t_exit_mouse])
-	tcsetattr(out.Fd(), &orig_tios)
+	tcsetattr(outfd, orig_tios)
 
 	out.Close()
-	syscall.Close(in)
+	unix.Close(in)
 
 	// reset the state, so that on next Init() it will work again
 	termw = 0
@@ -254,7 +277,11 @@ func SetCell(x, y int, ch rune, fg, bg Attribute) {
 }
 
 // Returns the specified cell from the internal back buffer.
+// Returns an empty cell if coordinates are out of bounds.
 func GetCell(x, y int) Cell {
+	if x < 0 || x >= back_buffer.width || y < 0 || y >= back_buffer.height {
+		return Cell{}
+	}
 	return back_buffer.cells[y*back_buffer.width+x]
 }
 
@@ -359,7 +386,7 @@ func PollRawEvent(data []byte) Event {
 
 		case <-sigwinch:
 			event.Type = EventResize
-			event.Width, event.Height = get_term_size(out.Fd())
+			event.Width, event.Height = get_term_size(outfd)
 			return event
 		}
 	}
@@ -383,9 +410,10 @@ func PollEvent() Event {
 		copy(inbuf, inbuf[event.N:])
 		inbuf = inbuf[:len(inbuf)-event.N]
 	}
-	if status == event_extracted {
+	switch status {
+	case event_extracted:
 		return event
-	} else if status == esc_wait {
+	case esc_wait:
 		esc_wait_timer = time.NewTimer(esc_wait_delay)
 		esc_timeout = esc_wait_timer.C
 	}
@@ -411,9 +439,10 @@ func PollEvent() Event {
 				copy(inbuf, inbuf[event.N:])
 				inbuf = inbuf[:len(inbuf)-event.N]
 			}
-			if status == event_extracted {
+			switch status {
+			case event_extracted:
 				return event
-			} else if status == esc_wait {
+			case esc_wait:
 				esc_wait_timer = time.NewTimer(esc_wait_delay)
 				esc_timeout = esc_wait_timer.C
 			}
@@ -434,7 +463,7 @@ func PollEvent() Event {
 
 		case <-sigwinch:
 			event.Type = EventResize
-			event.Width, event.Height = get_term_size(out.Fd())
+			event.Width, event.Height = get_term_size(outfd)
 			return event
 		}
 	}
@@ -491,34 +520,34 @@ func SetInputMode(mode InputMode) InputMode {
 
 // Sets the termbox output mode. Termbox has four output options:
 //
-// 1. OutputNormal => [1..8]
-//    This mode provides 8 different colors:
-//        black, red, green, yellow, blue, magenta, cyan, white
-//    Shortcut: ColorBlack, ColorRed, ...
-//    Attributes: AttrBold, AttrUnderline, AttrReverse
+//  1. OutputNormal => [1..8]
+//     This mode provides 8 different colors:
+//     black, red, green, yellow, blue, magenta, cyan, white
+//     Shortcut: ColorBlack, ColorRed, ...
+//     Attributes: AttrBold, AttrUnderline, AttrReverse
 //
-//    Example usage:
-//        SetCell(x, y, '@', ColorBlack | AttrBold, ColorRed);
+//     Example usage:
+//     SetCell(x, y, '@', ColorBlack | AttrBold, ColorRed);
 //
-// 2. Output256 => [1..256]
-//    In this mode you can leverage the 256 terminal mode:
-//    0x01 - 0x08: the 8 colors as in OutputNormal
-//    0x09 - 0x10: Color* | AttrBold
-//    0x11 - 0xe8: 216 different colors
-//    0xe9 - 0x1ff: 24 different shades of grey
+//  2. Output256 => [1..256]
+//     In this mode you can leverage the 256 terminal mode:
+//     0x01 - 0x08: the 8 colors as in OutputNormal
+//     0x09 - 0x10: Color* | AttrBold
+//     0x11 - 0xe8: 216 different colors
+//     0xe9 - 0x1ff: 24 different shades of grey
 //
-//    Example usage:
-//        SetCell(x, y, '@', 184, 240);
-//        SetCell(x, y, '@', 0xb8, 0xf0);
+//     Example usage:
+//     SetCell(x, y, '@', 184, 240);
+//     SetCell(x, y, '@', 0xb8, 0xf0);
 //
-// 3. Output216 => [1..216]
-//    This mode supports the 3rd range of the 256 mode only.
-//    But you don't need to provide an offset.
+//  3. Output216 => [1..216]
+//     This mode supports the 3rd range of the 256 mode only.
+//     But you don't need to provide an offset.
 //
-// 4. OutputGrayscale => [1..26]
-//    This mode supports the 4th range of the 256 mode
-//    and black and white colors from 3th range of the 256 mode
-//    But you don't need to provide an offset.
+//  4. OutputGrayscale => [1..26]
+//     This mode supports the 4th range of the 256 mode
+//     and black and white colors from 3th range of the 256 mode
+//     But you don't need to provide an offset.
 //
 // In all modes, 0x00 represents the default color.
 //
