@@ -35,10 +35,28 @@ This section describes the steps for releasing a new version of the Tools.
 
 Complete these tasks before tagging a new release.
 
+#### Make Sure the Jira "Release" Exists
+
+Jira has a concept of "releases" separate from tickets. These releases are what appear in the drop
+down for the "Fix Version/s" field for tickets. Tickets should be assigned to a release when they're
+closed.
+
+Before you start the release process, you need to
+[make sure a release exists in the project](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased).
+Typically, the DB Tools project has a release called "patch-next" which people assign closed tickets
+to. You can rename this to the version number of the next release and create a new "patch-next".
+
+It's also possible that a release for the version you're going to release already exists, in which
+case you can just use that.
+
 #### Start Release Ticket
 
-Move the JIRA ticket for the release to the "In Progress" state. Ensure that its fixVersion matches
-the version being released.
+Sometimes this ticket already exists. Sometimes you need to create it. The release ticket is a
+ticket in the TOOLS project with the "Issue Type" set to "Release". If it doesn't exist, create one
+and give it a title like "Release DB Tools 100.19.0".
+
+Now move the ticket for the release to the "In Progress" state. Ensure that its "Fix Version/s"
+field matches the version being released.
 
 #### Check for Outstanding Vulnerabilities in Dependencies
 
@@ -48,11 +66,12 @@ more details on how we handle third-party vulnerabilities, in particular
 
 We want to make sure that we have taken action on all reported vulnerabities in third-party
 dependencies before release. To find these, we should look for
-[TOOLS tickets linked to VULN tickets](<https://jira.mongodb.org/issues/?jql=project%20%3D%20TOOLS%20and%20issue%20in%20linkedTo(%22project%20%3D%20VULN%22)>).
+[TOOLS tickets linked to VULN tickets](https://jira.mongodb.org/issues/?filter=62497).
 
-Ideally, all of these tickets should have the "Remediation Pending Release" status. However, in some
-cases, there may not be a version of the dependency available that addresses the vulnerability. In
-that case, it's okay to do a release with the vulnerability still present in the dependency we use.
+Ideally, all of these tickets should have the "Remediation Pending Release" status. However,
+sometimes there may not be a version of the dependency available that addresses the vulnerability.
+In that case, it's okay to do a release with the vulnerability still present in the dependency we
+use.
 
 We have an informal SLA for releasing an updated version of the Database Tools to address
 _applicable_ vulnerabilities in dependencies, based on the issue's severity. It's possible that a
@@ -67,8 +86,8 @@ issue is discovered**. The timeline for each severity level is as follows:
 If possible, we do not want to make a release with any known, applicable issues at the High or
 Critical severity levels, even if this would not violate our SLA.
 
-If possible, we would like to avoid releasing with known, applicable issues at the Medium severity
-level, but these can be deferred at the team's discretion.
+We would also like to avoid releasing with known, applicable issues at the Medium severity level,
+but these can be deferred at the team's discretion.
 
 #### Create the Augmented SBOM File for the Upcoming Release
 
@@ -78,6 +97,9 @@ set:
 
 - `KONDUKTO_TOKEN` - available from 1Password.
 - `EVG_TRIGGERED_BY_TAG` - the _next_ version that you are preparing to release.
+
+You also need to log in to the `mms-scratch` AWS profile, which you probably have set up as your
+default profile, so you can just run `aws sso login`.
 
 ```
 KONDUKTO_TOKEN="$kondukto_token"\
@@ -110,6 +132,11 @@ You can do this by copying the `SARIF.json` file in the repo root to a filename 
 
 You must commit this file before you can do a release.
 
+#### Merge the SBOM and SARIF Files to `master`
+
+You will need to create a branch with these file updates and merge this to `master` before
+triggering the release. You can use the release ticket as the ticket for this branch.
+
 #### Ensure All Static Analysis Checks Pass
 
 The easiest way to do this is to run our linting, which includes `gosec`:
@@ -126,22 +153,22 @@ Ensure that the build you are releasing is passing the tests on the evergreen wa
 completely green build is not mandatory, since we do have flaky tests; however, failing tasks should
 be manually investigated to ensure they are not actual test failures.
 
-#### Check the Release in JIRA for Incomplete Tickets and Update Ticket `fixVersion` Fields
+#### Check the Release in Jira for Incomplete Tickets and Update Ticket `"Fix Version/s"` Fields
 
 Go to the
 [Tools releases page](https://jira.mongodb.org/projects/TOOLS?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=unreleased),
-and ensure that all the tickets in the fixVersion to be released are closed. Ensure that all the
-tickets have the correct type. Take this opportunity to edit ticket titles if they can be made more
-descriptive. The ticket titles will be published in the changelog.
+and ensure that all the tickets in the "Fix Version/s" to be released are closed. Ensure that all
+the tickets have the correct type. Take this opportunity to edit ticket titles if they can be made
+more descriptive. The ticket titles will be published in the changelog.
 
-If you are releasing a patch version but a ticket needs a minor bump, update the fixVersion to be a
-minor version bump. If you are releasing a patch or minor version but a ticket needs a major bump,
-stop the release process immediately.
+If you are releasing a patch version but a ticket needs a minor bump, update the "Fix Version/s" to
+be a minor version bump. If you are releasing a patch or minor version but a ticket needs a major
+bump, stop the release process immediately.
 
 The only uncompleted tickets in the release should be the release ticket and third-party
 vulnerability tickets in the "Remediation Pending Release" status. If there are any remaining
-tickets that will not be included in this release, remove the fixVersion and assign them a new one
-if appropriate.
+tickets that will not be included in this release, remove the "Fix Version/s" and assign them a new
+one if appropriate.
 
 #### Update the Release Ticket
 
@@ -252,7 +279,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 
 - Go to
   [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=12385)
-  on JIRA. Choose the version you are releasing and HTML as the style. This will show you the list
+  on Jira. Choose the version you are releasing and HTML as the style. This will show you the list
   of tickets tagged with the release version. (If the link doesn't work, you can access this through
   the release page for the version you are releasing.)
 - Go through the list of tickets and check that each ticket is categorized correctly (as a task,
@@ -261,7 +288,7 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
   vulnerabilities. These vulnerability tickets will be linked to a corresponding ticket in the
   internal-only "VULN" Jira project.
 - Make sure there is nothing in the list that might have been tagged with the wrong fix version.
-- Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of
+- Copy the HTML list of tickets from Jira and paste it in CHANGELOG.md in place of
   `<INSERT-LIST-OF-TICKETS>`.
 - Remove the top line of the list of tickets that says
   `Release Notes - MongoDB Database Tools - Version X.Y.Z`
@@ -283,10 +310,10 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
 - Submit a PR with your changes under the release ticket number, request reviews from the TAR Team
   Leads and the DB Tools Product Manager. Merge once approved.
 
-#### Mark the JIRA Release as "released" and Close Release Ticket
+#### Mark the Jira Release as "released" and Close Release Ticket
 
-Close the [release on JIRA](https://jira.mongodb.org/projects/TOOLS/versions), adding the current
-date (you may need to ask the TOOLS project manager to do this). Once this is done, move the JIRA
+Close the [release on Jira](https://jira.mongodb.org/projects/TOOLS/versions), adding the current
+date (you may need to ask the TOOLS project manager to do this). Once this is done, move the Jira
 ticket tracking this release to the "Closed" state.
 
 #### Ensure Downstream Tickets Created
