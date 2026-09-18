@@ -69,7 +69,7 @@ fi
 
 # Installed here rather than in a separate step because it comes from a private repo: it cannot be
 # part of the plain "mise install" that everything else in mise.toml goes through. The token comes
-# from GITHUB_TOKEN in Evergreen and from "gh auth token" locally (see mise.dsc.toml). We only retry
+# from GITHUB_TOKEN in Evergreen and from "gh auth token" locally (see CONTRIBUTING.md). We only retry
 # twice because the likely failure is a token that cannot read the repo, which is not transient.
 RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
     retry mise install github:10gen/mongodb-downloader

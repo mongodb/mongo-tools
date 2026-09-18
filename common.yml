@@ -59,7 +59,7 @@ variables:
       mongod_port: 33333
 
   # Used to determine load_libs_version for *-latest builds.
-  # Same as maxServerVersion supported in download_server.go
+  # Same as the "latest" entry's max_version in etc/mongodb-downloader-config.yaml.
   max_server_version: &max_server_version "9.0"
 
 parameters:
@@ -290,6 +290,22 @@ functions:
       display_name: Assume IAM role with permissions to read Server builds from S3
       params:
         role_arn: arn:aws:iam::557821124784:role/evergreen.aws-c2c-sync
+    # Share the mongodb-downloader cache with the "download mongod and shell" function.
+    - command: cache.restore
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mongodb_downloader_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+        name: mongodb-downloader
+        remote_path: mongo-tools/mise-cache
     - command: subprocess.exec
       params:
         # binary must be bash (with the script passed via args), not the script
@@ -308,6 +324,24 @@ functions:
           EVG_WORKDIR: ${workdir}
           # mise installs mongodb-downloader from a private repo, so it needs a token.
           GITHUB_TOKEN: ${generated_token_mongodb_downloader}
+    - command: cache.save
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mongodb_downloader_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+        name: mongodb-downloader
+        paths:
+          - .local/bin
+          - .local/share/mise
+        remote_path: mongo-tools/mise-cache
     # The cluster's connection string is only known at runtime, and each command runs in its own
     # shell, so the script passes this setting through a file rather than an exported variable. This
     # lets the "run make target" function see TOOLS_TESTING_MONGOD.
@@ -350,6 +384,37 @@ functions:
         expansion_name: generated_token_mongo_release
         permissions:
           contents: read
+    # mongodb-downloader is private, so mise needs a token to install it. The S3 cache it downloads
+    # from lives in a different account than the CDN, so we assume the c2c role for that too.
+    - command: github.generate_token
+      params:
+        owner: 10gen
+        repo: mongodb-downloader
+        expansion_name: generated_token_mongodb_downloader
+        permissions:
+          attestations: read
+          contents: read
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to read Server builds from S3
+      params:
+        role_arn: arn:aws:iam::557821124784:role/evergreen.aws-c2c-sync
+    # mongodb-downloader is a private-repo tool, so only these token-bearing functions can install
+    # it. Cache it here so each task does not download and verify the release every run.
+    - command: cache.restore
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mongodb_downloader_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+        name: mongodb-downloader
+        remote_path: mongo-tools/mise-cache
     - command: subprocess.exec
       params:
         # binary must be bash (with the script passed via args), not the script
@@ -359,8 +424,9 @@ functions:
         args:
           - "./scripts/download-mongod-and-shell.sh"
         env:
-          AWS_ACCESS_KEY_ID: ${cdn_aws_access_key_id}
-          AWS_SECRET_ACCESS_KEY: ${cdn_aws_secret}
+          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
           EVG_BUILD_ID: ${build_id}
           EVG_IS_PATCH: ${is_patch}
           EVG_KEY: ${evg_key}
@@ -370,9 +436,28 @@ functions:
           EVG_VERSION: ${version_id}
           EVG_WORKDIR: ${workdir}
           FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+          GITHUB_TOKEN: ${generated_token_mongodb_downloader}
           MONGO_VERSION: ${mongo_version}
           PLATFORM_OVERRIDE: ${_platform}
           generated_token_mongo_release: ${generated_token_mongo_release}
+    - command: cache.save
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mongodb_downloader_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+        name: mongodb-downloader
+        paths:
+          - .local/bin
+          - .local/share/mise
+        remote_path: mongo-tools/mise-cache
 
   "get buildnumber":
     command: keyval.inc
@@ -950,8 +1035,9 @@ pre:
           value: "resmoke-venv"
         - key: mongosync_binary_folder
           value: "mongosync-coverage-binary"
-  # Bump these to force-invalidate the mise Evergreen caches (see the "install mise and go" and
-  # "install mise-managed tools" functions).
+  # Bump these to force-invalidate the mise Evergreen caches (see the "install mise and go",
+  # "install mise-managed tools", and the mongodb-downloader caches in the "download mongod and
+  # shell" and "start dsc cluster" functions).
   - command: expansions.update
     params:
       updates:
@@ -959,6 +1045,8 @@ pre:
           value: v2
         - key: mise_all_tools_cache_version
           value: v3
+        - key: mongodb_downloader_cache_version
+          value: v1
 
 post:
   # attach.results works for jstests, gotest.parse_files for golang tests

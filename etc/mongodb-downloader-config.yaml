@@ -1,10 +1,12 @@
+version: 1
+
 s3:
   bucket: c2c-testing-server-artifacts
   region: us-east-1
-  serverBinariesPrefix: server-binaries
-  resmokePrefix: resmoke
+  server_binaries_prefix: server-binaries
+  resmoke_prefix: resmoke
 
-serverVersions:
+server_versions:
   - version: "9.1-dsc"
     commit: 67d46e783fb535d6747dab3b2eb54bbaed6dba13 # 2026-09-16
     disagg: true
@@ -14,3 +16,78 @@ serverVersions:
         arch: arm64
       - os: ubuntu2204
         arch: x86_64
+
+  # The released Server versions our integration tests run against (see the mongo_version expansions
+  # in common.yml). Most integration tests run on rhel88 and windows; the 9.1-dsc cross-cluster task
+  # also downloads a 9.0 ASC mongod on ubuntu2204-arm64. "latest" is capped at 9.0.x, mirroring
+  # `max_server_version` in common.yml.
+  #
+  # Adding or moving a version requires re-running `mongodb-downloader update` and committing the
+  # regenerated etc/mongodb-downloader-s3-artifacts.json. "latest" moves as new patch releases ship,
+  # so refresh it with `mongodb-downloader update --server-version latest`.
+  #
+  # `release_spec` is a series (e.g. "8.2") that resolves to the newest non-rc release in that
+  # series, so the patch component of a task's mongo_version is ignored. Use an exact version like
+  # "9.0.0-rc0" for a series that has not shipped yet.
+  - version: "4.2"
+    source: release
+    release_spec: "4.2"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "4.4"
+    source: release
+    release_spec: "4.4"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "5.0"
+    source: release
+    release_spec: "5.0"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "6.0"
+    source: release
+    release_spec: "6.0"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "7.0"
+    source: release
+    release_spec: "7.0"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "8.0"
+    source: release
+    release_spec: "8.0"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "8.2"
+    source: release
+    release_spec: "8.2"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "8.3"
+    source: release
+    release_spec: "8.3"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }
+  - version: "9.0"
+    source: release
+    release_spec: "9.0.0-rc0"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: ubuntu2204, arch: arm64 }
+      - { os: windows, arch: x86_64 }
+  - version: "latest"
+    source: release
+    release_spec: latest
+    max_version: "9.0.999"
+    platforms:
+      - { os: rhel8, arch: x86_64 }
+      - { os: windows, arch: x86_64 }

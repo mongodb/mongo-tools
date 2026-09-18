@@ -44,6 +44,8 @@ You'll want to make sure to update the version in:
 
 We need to release the tools before the relevant server version has actually happened, which means
 that the `mongo_version` will likely be a pre-release version like `8.3.0-alpha6` or `8.3.0-rc0`.
+The download script maps `mongo_version` to a `mongodb-downloader` config label by major.minor, so a
+pre-release still resolves to the series label.
 
 There are also a few other things to do in the evergreen config:
 
@@ -51,10 +53,13 @@ There are also a few other things to do in the evergreen config:
 - Add the new version tag to each of the build variants; for the `8.3` tag, each variant will need
   to be preceded with a dot, so you'll need `name: ".8.3"`
 
-To make the tests work, you also need to update the `maxServerVersion` variable in
-[release/download/download_server.go](./release/download/download_server.go), so that the tests can
-actually download the versions they need. This is needed so that the `latest` tests use the newest
-version we support.
+To make the tests work, you also need to add a release-sourced entry for the new series to
+[etc/mongodb-downloader-config.yaml](./etc/mongodb-downloader-config.yaml). For a series that has
+not shipped yet, set `release_spec` to the exact pre-release to test (for example, `9.0.0-rc0`).
+Then run `mongodb-downloader update` and commit the regenerated
+[etc/mongodb-downloader-s3-artifacts.json](./etc/mongodb-downloader-s3-artifacts.json). Finally,
+raise the `latest` entry's `max_version` (and the matching `max_server_version` above) so the
+`latest` tests use the newest version we support.
 
 ### Adjust load libs
 

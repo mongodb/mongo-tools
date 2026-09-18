@@ -36,7 +36,6 @@ import (
 	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/mongodb/mongo-tools/release/version"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/mod/semver"
 )
 
 // These are the binaries that are part of mongo-tools, relative
@@ -146,15 +145,10 @@ func main() {
 				},
 			},
 			{
-				Name: "download-mongod-and-shell",
+				Name: "download-shell",
 				Action: func(cCtx *cli.Context) error {
-					downloadMongodAndShell(cCtx.String("server-version"))
+					downloadShell()
 					return nil
-				},
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name: "server-version",
-					},
 				},
 			},
 			{
@@ -1466,89 +1460,100 @@ func canPerformStableRelease(v version.Version) bool {
 	return v.IsStable() && env.EvgIsTagTriggered() && !env.IsFakeTag()
 }
 
-func downloadMongodAndShell(v string) {
-	err := os.Mkdir("bin", 0700)
-	if err != nil && !os.IsExist(err) {
-		check(err, "create bin dir")
-	}
+// downloadShell downloads the jstestshell that matches the Server binaries already extracted into
+// bin/. Server release tarballs stopped shipping the legacy `mongo` shell at 6.0, so older servers
+// keep the shell that came with their tarball and need nothing here.
+func downloadShell() {
+	mongodPath, err := findMongod()
+	check(err, "find the downloaded mongod")
 
-	pf, err := platform.GetFromEnv()
-	check(err, "get platform")
+	serverVersion, versionString, err := mongodVersion(mongodPath)
+	check(err, "read the server version from %q", mongodPath)
 
-	feedURL := "http://downloads.mongodb.org/full.json"
-
-	var feed download.ServerJSONFeed
-
-	res, err := http.Get(feedURL)
-	check(err, "get the server JSON feed")
-
-	err = json.NewDecoder(res.Body).Decode(&feed)
-	check(err, "decode JSON feed")
-
-	url, githash, serverVersion, err := feed.FindURLHashAndVersion(
-		v,
-		pf,
-		"enterprise",
-	)
-	if err == download.ServerURLMissingError {
-		// If a server version is not found from JSON feed, handle this by downloading the artifacts from evergreen.
-		fmt.Printf("warning: download a version not found in JSON feed\n")
-		fmt.Printf("warning: using a guessed version (%s)\n", serverVersion)
-		downloadArtifacts(serverVersion, []string{"Jstestshell", "Dist Tarball"})
+	if serverVersion.Major < 6 {
+		fmt.Printf(
+			"the %s server ships the mongo shell in its tarball; skipping the jstestshell download\n",
+			versionString,
+		)
 		return
 	}
 
-	check(err, "get URL from JSON feed")
-
-	fmt.Printf("URL: %v\n", url)
-	fmt.Printf("GitHash: %v\n", githash)
-	fmt.Printf("Version: %v\n", serverVersion)
-
-	downloadBinaries(url)
-
-	if semver.Compare(fmt.Sprintf("v%s", serverVersion), "v6.0.0") >= 0 {
-		// serverVersion >= 6.0.0, download mongo shell.
-		downloadShell(serverVersion)
+	majorMinor := fmt.Sprintf("%d.%d", serverVersion.Major, serverVersion.Minor)
+	shellVersion, ok := jstestshellVersions[majorMinor]
+	if !ok {
+		// Keep the full version string, including any -rcN suffix, for the Evergreen lookup.
+		shellVersion = versionString
 	}
+
+	if shellVersion != versionString {
+		fmt.Printf(
+			"using the jstestshell from %s with the %s server\n",
+			shellVersion,
+			versionString,
+		)
+	}
+
+	downloadArtifacts(shellVersion, []string{"Jstestshell"})
+}
+
+// findMongod returns the path to the Server binary downloaded by mongodb-downloader. It looks for
+// both the Unix and Windows names so callers do not have to detect the platform themselves.
+//
+// The path is absolute because Go's os/exec on Windows refuses to run a relative executable whose
+// working directory it cannot prove is absolute (see the EVG_WORKDIR handling in ci-env.sh).
+func findMongod() (string, error) {
+	for _, name := range []string{"bin/mongod", "bin/mongod.exe"} {
+		if fileExists(name) {
+			return filepath.Abs(name)
+		}
+	}
+
+	return "", fmt.Errorf("no mongod found in bin/; run mongodb-downloader download first")
+}
+
+// mongodVersionRE pulls the version out of the first line of `mongod --version`, which looks like
+// "db version v8.0.5" or "db version v9.0.0-rc0".
+var mongodVersionRE = regexp.MustCompile(`db version v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)`)
+
+// mongodVersion parses the Server version reported by the given mongod binary. It returns both the
+// parsed version and the full version string, since the latter keeps a pre-release suffix that the
+// parsed version drops.
+func mongodVersion(mongodPath string) (version.Version, string, error) {
+	out, err := run(mongodPath, "--version")
+	if err != nil {
+		return version.Version{}, "", err
+	}
+
+	matches := mongodVersionRE.FindStringSubmatch(out)
+	if len(matches) < 2 {
+		return version.Version{}, "", fmt.Errorf(
+			"could not find a server version in the output of %q",
+			mongodPath,
+		)
+	}
+
+	sv, err := version.Parse(matches[1])
+	if err != nil {
+		return version.Version{}, "", err
+	}
+
+	return sv, matches[1], nil
 }
 
 // jstestshellVersions pins the jstestshell version to download for each server major.minor.
 //
-// The jstestshell comes from Evergreen rather than the downloads JSON feed, so it can be missing
-// for a patch release whose server tarball is published and healthy. The shell is only a client we
-// use to drive mongod and does not have to match the server it talks to, so instead of tracking
-// whatever patch release the feed hands us, we pin a version known to be downloadable. Update these
-// as needed, e.g. when adding support for a new server release.
+// The jstestshell comes from Evergreen rather than the releases we download from the feed, so it can
+// be missing for a patch release whose server tarball is published and healthy. The shell is only a
+// client we use to drive mongod and does not have to match the server it talks to, so instead of
+// tracking whatever patch release the feed hands us, we pin a version known to be downloadable.
+// Update these as needed, e.g. when adding support for a new server release.
 var jstestshellVersions = map[string]string{
 	"6.0": "6.0.29",
 	"7.0": "7.0.39",
 	"8.0": "8.0.28",
 	"8.2": "8.2.12",
 	"8.3": "8.3.7",
-	"9.0": "9.0.0-rc0",
-}
-
-// downloadShell downloads the pinned jstestshell for the major.minor of serverVersion, falling back
-// to serverVersion itself when that major.minor isn't pinned.
-func downloadShell(serverVersion string) {
-	sv, err := version.Parse(serverVersion)
-	check(err, "parse the server version %q", serverVersion)
-
-	majorMinor := fmt.Sprintf("%d.%d", sv.Major, sv.Minor)
-	shellVersion, ok := jstestshellVersions[majorMinor]
-	if !ok {
-		shellVersion = serverVersion
-	}
-
-	if shellVersion != serverVersion {
-		fmt.Printf(
-			"using the jstestshell from %s with the %s server\n",
-			shellVersion,
-			serverVersion,
-		)
-	}
-
-	downloadArtifacts(shellVersion, []string{"Jstestshell"})
+	"9.0": "9.0.0",
 }
 
 // s3ErrorResponse is the XML document S3 serves in place of the requested object when a
