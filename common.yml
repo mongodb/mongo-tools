@@ -1096,30 +1096,30 @@ tasks:
           filenames:
             - "./src/github.com/mongodb/mongo-tools/mongodb-database-tools*"
 
-  - name: check-augmented-sbom
-    tags: ["git_tag"]
-    commands:
-      - func: "fetch source"
-      - command: expansions.update
-      - func: "set silkbomb credentials"
-      - func: "authenticate with devprod platforms ecr"
-      - command: subprocess.exec
-        params:
-          # binary must be bash (with the script passed via args), not the script
-          # directly: Windows can't execute a shebang script as a native binary.
-          binary: bash
-          working_dir: src/github.com/mongodb/mongo-tools
-          args:
-            - "./scripts/regenerate-and-diff-augmented-sbom.sh"
-          include_expansions_in_env: [KONDUKTO_TOKEN]
-          env:
-            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-            AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-            EVG_TASK_ID: ${task_id}
-            EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
-            EVG_WORKDIR: ${workdir}
-            FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
+  # - name: check-augmented-sbom
+  #   tags: ["git_tag"]
+  #   commands:
+  #     - func: "fetch source"
+  #     - command: expansions.update
+  #     - func: "set silkbomb credentials"
+  #     - func: "authenticate with devprod platforms ecr"
+  #     - command: subprocess.exec
+  #       params:
+  #         # binary must be bash (with the script passed via args), not the script
+  #         # directly: Windows can't execute a shebang script as a native binary.
+  #         binary: bash
+  #         working_dir: src/github.com/mongodb/mongo-tools
+  #         args:
+  #           - "./scripts/regenerate-and-diff-augmented-sbom.sh"
+  #         include_expansions_in_env: [KONDUKTO_TOKEN]
+  #         env:
+  #           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  #           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+  #           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+  #           EVG_TASK_ID: ${task_id}
+  #           EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
+  #           EVG_WORKDIR: ${workdir}
+  #           FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
 
   - name: release-json
     tags: ["git_tag"]
@@ -2816,9 +2816,11 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
-      - name: check-augmented-sbom
-        # podman is not available on the amazon distro.
-        run_on: rhel87-small
+      # Temporarily disabled until Kondukto stops regressing the SBOM to an earlier version.
+      #
+      #      - name: check-augmented-sbom
+      #          podman is not available on the amazon distro.
+      #          run_on: rhel87-small
       - name: release-json
       - name: generate-full-json
 
