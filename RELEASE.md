@@ -248,8 +248,8 @@ new release is available there. Download the package for your OS and confirm tha
 In order to make the latest release available via our Homebrew tap, submit a pull request to
 [mongodb/homebrew-brew](https://github.com/mongodb/homebrew-brew/blob/bb5b57095a892daeb2700f1a9440550f8e87505b/Formula/mongodb-database-tools.rb#L7-L13)
 for both `x86` and `arm64`. You can get the sha256 sum locally using
-`shasum -a 256 <tools zip file>`. Tag mongodb/devprod-correctness in a comment on the PR asking them
-to review this.
+`shasum -a 256 <tools zip file>`. Tag `@mongodb/devprod-test-infrastructure` in a comment on the PR
+asking them to review this.
 
 #### Update the changelog
 
