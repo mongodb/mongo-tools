@@ -1,5 +1,46 @@
 # Database Tools Changelog
 
+## 100.19.0
+
+We are pleased to announce version 100.19.0 of the MongoDB Database Tools.
+
+The highlight for this release is dependency and Golang upgrades to address a variety of CVEs and a
+fix for mongorestore where it could be tricked into using an unbounded amount of memory with
+malicious input. Note that we strongly recommend against using mongorestore with untrusted input!
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+<h2>        Bug
+</h2>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4355'>TOOLS-4355</a>] -         mongorestore could use unbounded memory via unbounded archive concurrent_collections settings</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4330'>TOOLS-4330</a>] -         Some tests use the wrong context in `t.Cleanup`
+</li>
+</ul>
+
+<h2>        Task
+</h2>
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4336'>TOOLS-4336</a>] -         The options handling of some timeout values treats them as milliseconds but documents them as seconds
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4338'>TOOLS-4338</a>] -         Error checking in the `MongoDump.Dump` func is backwards
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4346'>TOOLS-4346</a>] -         Upgrade to Golang 1.26.7
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4372'>TOOLS-4372</a>] -         Bump Go toolchain past 1.26.5 to fix 10 stdlib CVEs (fixed in 1.25.13 / 1.26.6 / 1.27.0-rc.3)
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4354'>TOOLS-4354</a>] -         Upgrade Go driver to 2.8.2
+</li>
+</ul>
+
 ## 100.18.0
 
 _Released 2026-08-12_
