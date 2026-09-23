@@ -837,33 +837,6 @@ functions:
         args:
           - "./scripts/build-aws-auth-mongod-uri.sh"
 
-  "check sbom lite":
-    - command: subprocess.exec
-      type: test
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        args:
-          - "./scripts/regenerate-and-diff-sbom-lite.sh"
-        env:
-          EVG_TASK_ID: ${task_id}
-          EVG_WORKDIR: ${workdir}
-
-  "check sarif report":
-    - command: subprocess.exec
-      type: test
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        args:
-          - "./scripts/regenerate-and-diff-sarif-report.sh"
-        env:
-          EVG_WORKDIR: ${workdir}
-
   "create evergreen config file":
     - command: subprocess.exec
       type: test
@@ -877,34 +850,6 @@ functions:
         env:
           EVG_KEY: ${evg_key}
           EVG_USER: ${evg_user}
-
-  "set silkbomb credentials":
-    - command: ec2.assume_role
-      display_name: Assume IAM role with permissions to pull Kondukto API token
-      params:
-        role_arn: ${kondukto_role_arn}
-    - command: shell.exec
-      display_name: Pull Kondukto API token from AWS Secrets Manager and write it to file
-      params:
-        shell: bash
-        silent: true
-        env:
-          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
-          kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
-          # set the KONDUKTO_TOKEN environment variable
-          echo "KONDUKTO_TOKEN: $kondukto_token" > kondukto_token.yml
-    - command: expansions.update
-      params:
-        file: kondukto_token.yml
-        redact_file_expansions: true
 
   "authenticate with devprod platforms ecr":
     - command: ec2.assume_role
@@ -1095,31 +1040,6 @@ tasks:
           version: ${release_tag}
           filenames:
             - "./src/github.com/mongodb/mongo-tools/mongodb-database-tools*"
-
-  # - name: check-augmented-sbom
-  #   tags: ["git_tag"]
-  #   commands:
-  #     - func: "fetch source"
-  #     - command: expansions.update
-  #     - func: "set silkbomb credentials"
-  #     - func: "authenticate with devprod platforms ecr"
-  #     - command: subprocess.exec
-  #       params:
-  #         # binary must be bash (with the script passed via args), not the script
-  #         # directly: Windows can't execute a shebang script as a native binary.
-  #         binary: bash
-  #         working_dir: src/github.com/mongodb/mongo-tools
-  #         args:
-  #           - "./scripts/regenerate-and-diff-augmented-sbom.sh"
-  #         include_expansions_in_env: [KONDUKTO_TOKEN]
-  #         env:
-  #           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  #           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  #           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-  #           EVG_TASK_ID: ${task_id}
-  #           EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
-  #           EVG_WORKDIR: ${workdir}
-  #           FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
 
   - name: release-json
     tags: ["git_tag"]
@@ -2728,20 +2648,6 @@ tasks:
         vars:
           target: sa:checkVendoredCode
 
-  - name: check-sbom-lite
-    commands:
-      - func: "fetch source"
-      - func: "authenticate with devprod platforms ecr"
-      - func: "install mise and go"
-      - func: "check sbom lite"
-
-  - name: check-sarif-report
-    commands:
-      - func: "fetch source"
-      - func: "install mise and go"
-      - func: "install mise-managed tools"
-      - func: "check sarif report"
-
 buildvariants:
   #######################################
   #     Static Analysis Buildvariant    #
@@ -2758,8 +2664,6 @@ buildvariants:
       - name: mod-tidy
       - name: check-vendored-code
       - name: check-third-party-notices
-      - name: check-sbom-lite
-      - name: check-sarif-report
 
   #######################################
   #      Merge Queue Buildvariant       #
@@ -2816,11 +2720,6 @@ buildvariants:
     run_on:
       - amazon1-2018-test
     tasks:
-      # Temporarily disabled until Kondukto stops regressing the SBOM to an earlier version.
-      #
-      #      - name: check-augmented-sbom
-      #          podman is not available on the amazon distro.
-      #          run_on: rhel87-small
       - name: release-json
       - name: generate-full-json
 

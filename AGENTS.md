@@ -118,15 +118,16 @@ tests are co-located with the source. Shared connection and session management l
 ## Dependencies
 
 **Never use `go get` to add or update a dependency, and never hand-edit anything under `vendor/`.**
-Dependencies are vendored, and a dependency change must also update `go.{mod,sum}`, the SBOM Lite
-file (`cyclonedx.sbom.json`), and `THIRD-PARTY-NOTICES`. `go get` updates none of those. Use:
+Dependencies are vendored, and a dependency change must also update `go.{mod,sum}` and
+`THIRD-PARTY-NOTICES`. `go get` updates none of those. Use:
 
 ```bash
 go run build.go addDep -pkg=github.com/some/package@v1.2.3
 go run build.go updateDep -pkg=github.com/some/package
 ```
 
-These require Podman. See `CONTRIBUTING.md` for the full flow.
+See `CONTRIBUTING.md` for the full flow. There is no developer-maintained SBOM file — it's generated
+and published automatically; see `RELEASE.md`.
 
 ## Git and Pull Requests
 

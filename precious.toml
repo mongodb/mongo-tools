@@ -84,8 +84,9 @@ exclude = ["buildscript/**/*.go", "common/testutil/**/*.go", "release/**/*.go", 
 invoke.per-dir-or-once = 7
 working-dir = "root"
 path-args = "dir"
-# This wrapper lets us control the output with an env var so we can generate a
-# SARIF report in Evergreen but use the default format for linting.
+# This wrapper lets us control the output with an env var so we can generate a SARIF report for
+# release snapshots (see scripts/generate-release-sbom-snapshot.sh) but use the default format for
+# regular linting.
 cmd = [
     "$PRECIOUS_ROOT/etc/gosec-wrapper.sh",
     # This rule complains about reading or writing to paths based on user input,
