@@ -837,33 +837,6 @@ functions:
         args:
           - "./scripts/build-aws-auth-mongod-uri.sh"
 
-  "check sbom lite":
-    - command: subprocess.exec
-      type: test
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        args:
-          - "./scripts/regenerate-and-diff-sbom-lite.sh"
-        env:
-          EVG_TASK_ID: ${task_id}
-          EVG_WORKDIR: ${workdir}
-
-  "check sarif report":
-    - command: subprocess.exec
-      type: test
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        args:
-          - "./scripts/regenerate-and-diff-sarif-report.sh"
-        env:
-          EVG_WORKDIR: ${workdir}
-
   "create evergreen config file":
     - command: subprocess.exec
       type: test
@@ -877,34 +850,6 @@ functions:
         env:
           EVG_KEY: ${evg_key}
           EVG_USER: ${evg_user}
-
-  "set silkbomb credentials":
-    - command: ec2.assume_role
-      display_name: Assume IAM role with permissions to pull Kondukto API token
-      params:
-        role_arn: ${kondukto_role_arn}
-    - command: shell.exec
-      display_name: Pull Kondukto API token from AWS Secrets Manager and write it to file
-      params:
-        shell: bash
-        silent: true
-        env:
-          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-        script: |
-          set -o errexit
-          set -o pipefail
-          set -o verbose
-
-          # use AWS CLI to get the Kondukto API token from AWS Secrets Manager
-          kondukto_token=$(aws secretsmanager get-secret-value --secret-id "kondukto-token" --region "us-east-1" --query 'SecretString' --output text)
-          # set the KONDUKTO_TOKEN environment variable
-          echo "KONDUKTO_TOKEN: $kondukto_token" > kondukto_token.yml
-    - command: expansions.update
-      params:
-        file: kondukto_token.yml
-        redact_file_expansions: true
 
   "authenticate with devprod platforms ecr":
     - command: ec2.assume_role
@@ -925,6 +870,25 @@ functions:
           EVG_WORKDIR: ${workdir}
         args:
           - "./scripts/authenticate-devprod-platforms-ecr.sh"
+
+  "write silkbomb environment file":
+    - command: ec2.assume_role
+      display_name: Assume Silkbomb IAM role
+      params:
+        role_arn: ${silkbomb_role_arn}
+    - command: shell.exec
+      display_name: Write temporary AWS credentials to Silkbomb environment file
+      params:
+        silent: true
+        shell: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        script: |
+          cat << EOF > silkbomb.env
+          AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+          AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+          EOF
 
 pre:
   - command: shell.exec
@@ -1095,31 +1059,6 @@ tasks:
           version: ${release_tag}
           filenames:
             - "./src/github.com/mongodb/mongo-tools/mongodb-database-tools*"
-
-  # - name: check-augmented-sbom
-  #   tags: ["git_tag"]
-  #   commands:
-  #     - func: "fetch source"
-  #     - command: expansions.update
-  #     - func: "set silkbomb credentials"
-  #     - func: "authenticate with devprod platforms ecr"
-  #     - command: subprocess.exec
-  #       params:
-  #         # binary must be bash (with the script passed via args), not the script
-  #         # directly: Windows can't execute a shebang script as a native binary.
-  #         binary: bash
-  #         working_dir: src/github.com/mongodb/mongo-tools
-  #         args:
-  #           - "./scripts/regenerate-and-diff-augmented-sbom.sh"
-  #         include_expansions_in_env: [KONDUKTO_TOKEN]
-  #         env:
-  #           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  #           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  #           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-  #           EVG_TASK_ID: ${task_id}
-  #           EVG_TRIGGERED_BY_TAG: ${triggered_by_git_tag}
-  #           EVG_WORKDIR: ${workdir}
-  #           FAKE_TAG_FOR_RELEASE_TESTING: ${fake_tag_for_release_testing}
 
   - name: release-json
     tags: ["git_tag"]
@@ -2728,19 +2667,38 @@ tasks:
         vars:
           target: sa:checkVendoredCode
 
-  - name: check-sbom-lite
+  # Pushes the current SBOM to the Vulnerability Management Platform. Requires SBOM_BRANCH, set
+  # by the buildvariants that use this task -- ${branch_name} for mainline commits, or
+  # ${triggered_by_git_tag} for release builds, since a release must be attributed to its tag, not
+  # whatever branch the tag happened to point at.
+  - name: upload-sbom
     commands:
       - func: "fetch source"
+      - func: "install mise and go"
+      - func: "write silkbomb environment file"
       - func: "authenticate with devprod platforms ecr"
-      - func: "install mise and go"
-      - func: "check sbom lite"
-
-  - name: check-sarif-report
-    commands:
-      - func: "fetch source"
-      - func: "install mise and go"
-      - func: "install mise-managed tools"
-      - func: "check sarif report"
+      - command: subprocess.exec
+        type: test
+        params:
+          # binary must be bash (with the script passed via args), not the script
+          # directly: Windows can't execute a shebang script as a native binary.
+          binary: bash
+          working_dir: src/github.com/mongodb/mongo-tools
+          args:
+            - "./scripts/upload-sbom.sh"
+          env:
+            EVG_WORKDIR: ${workdir}
+            SBOM_BRANCH: ${SBOM_BRANCH}
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: src/github.com/mongodb/mongo-tools/sbom.json
+          remote_file: mongo-tools/sbom/${build_id}/sbom.json
+          content_type: application/json
+          bucket: mciuploads
+          permissions: public-read
+          display_name: SBOM
 
 buildvariants:
   #######################################
@@ -2758,8 +2716,32 @@ buildvariants:
       - name: mod-tidy
       - name: check-vendored-code
       - name: check-third-party-notices
-      - name: check-sbom-lite
-      - name: check-sarif-report
+
+  #######################################
+  #      SBOM Upload Buildvariant       #
+  #######################################
+
+  # Pushes the current SBOM to the Vulnerability Management Platform on every mainline commit
+  # that could actually change it -- not gated to release tags the way the old, disabled
+  # check-augmented-sbom task was (TOOLS-4325). `allowed_requesters: ["commit"]` means this never
+  # runs on PRs; `patch` is deliberately not included, unlike the merge-queue variant -- there's no
+  # need to exercise this manually as part of routine PR review, only via `evergreen patch -f` if
+  # someone specifically wants to test it.
+  - name: sbom-upload
+    display_name: "SBOM Upload"
+    allowed_requesters: ["commit"]
+    run_on:
+      - ubuntu2204-small
+    paths:
+      - "go.mod"
+      - "go.sum"
+      - "scripts/generate-sbom.sh"
+      - "scripts/upload-sbom.sh"
+      - "release/release.go"
+    expansions:
+      SBOM_BRANCH: ${branch_name}
+    tasks:
+      - name: upload-sbom
 
   #######################################
   #      Merge Queue Buildvariant       #
@@ -2815,14 +2797,17 @@ buildvariants:
     tags: ["git_tag"]
     run_on:
       - amazon1-2018-test
+    expansions:
+      # A release must be attributed to its tag in the Vulnerability Management Platform, not
+      # whatever branch the tag happened to point at.
+      SBOM_BRANCH: ${triggered_by_git_tag}
     tasks:
-      # Temporarily disabled until Kondukto stops regressing the SBOM to an earlier version.
-      #
-      #      - name: check-augmented-sbom
-      #          podman is not available on the amazon distro.
-      #          run_on: rhel87-small
       - name: release-json
       - name: generate-full-json
+      # ubuntu2204-small is the preferred distro for generic Linux tasks; this variant's own
+      # run_on (amazon1-2018-test) is only needed for the notary client used by sign/push.
+      - name: upload-sbom
+        run_on: ubuntu2204-small
 
   #######################################
   #     Amazon x86_64 Buildvariants     #

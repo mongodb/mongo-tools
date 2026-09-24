@@ -18,8 +18,10 @@
 .gopath
 .idea
 .ignore
+/SARIF.json
 /asc-dsc-interoperability
 bin/
+/cyclonedx.sbom.json
 /data
 /deb_build
 /dev-bin
@@ -36,10 +38,10 @@ dsc-cluster/
 /mongorestore/testdata/index_collation/test/*
 /mongorestore/testdata/txntest/oplog.bson
 node_modules
-/purls.txt
 /release.*
 /report.json
 /rpm_build
+/sbom.json
 /silkbomb.env
 tags
 /temp*

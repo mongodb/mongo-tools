@@ -161,37 +161,11 @@ go run build.go updateDep -pkg=github.com/some/package@v1.2.3
 go run build.go updateAllDeps
 ```
 
-Note that to run this command you will need to have
-[Podman installed](https://podman.io/docs/installation).
-
-This will update our `go.{mod,sum}` files, vendor the dependency, update the SBOM Lite file
-(`cyclonedx.sbom.json`), and update the `THIRD-PARTY-NOTICES` file.
+This will update our `go.{mod,sum}` files, vendor the dependency, and update the
+`THIRD-PARTY-NOTICES` file.
 
 Note that you _cannot_ just use `go get` to add or update dependencies, because it doesn't update
 all of these other files that need to be updated when dependencies change.
-
-### AWS Profile for SBOM Updates
-
-In order for the SBOM update script to work, you must have an AWS profile named
-"ECRScopedAccess-901841024863" configured. The config in your `~/.aws/config` file should look like
-this:
-
-```toml
-[profile ECRScopedAccess-901841024863]
-region = us-east-1
-sso_account_id = 901841024863
-sso_role_name = ECRScopedAccess
-sso_start_url = <same as other profiles or ask in Slack>
-sso_region = us-east-1
-```
-
-In order to actually log in to this profile, run this command:
-
-```
-aws sso login --profile ECRScopedAccess-901841024863
-```
-
-In order for this to succeed, you must be a member of the `devprod-platforms-ecr-users` Mana group.
 
 ## Testing
 
@@ -423,25 +397,24 @@ the `gosec` tool attempts to detect when code creates files with insecure permis
 
 See the "Static Analysis with `gosec`" section above for more details on how to run this tool.
 
-### SBOM Files
+### SBOM and SARIF Files
 
-We actually have _two_ SBOM files. The first, called the **SBOM Lite** file, lives permanently in
-this repo's root as the `cyclonedx.sbom.json` file. This file contains a manifest of all of our
-dependencies, including transitive dependencies. It includes information on those package's names,
-versions, licenses, and other metadata. However, it does _not_ contain information about
-vulnerabilities. It must be updated whenever our dependencies change, and we enforce this via CI.
-See the section on "Adding or Updating Dependencies" for more details on how to do this.
+There is no developer-maintained SBOM or SARIF report file in this repo. An SBOM (manifest of all
+our dependencies, including transitive ones, with names/versions/licenses) and a SARIF report
+(gosec's static-analysis findings, in a standard interchange format) are both generated only when
+actually needed, not checked in continuously, and not something you need to update when adding or
+changing code or dependencies. `gosec` itself still runs on every PR as part of normal linting (see
+"Static Analysis with `gosec`" above) — only the SARIF _export_ is generated on demand, not gosec's
+actual enforcement.
 
-Vulnerability information lives in our **Augmented SBOM** files. These files live in the `ssdlc`
-directory, and we create a new one for each release. These files act as a record of our
-dependencies, including known vulnerabilities, for each release. The releases include the tag name
-of the release, for example `ssdlc/100.9.5.bom.json`. This file must be created for each release,
-and we enforce this via CI.
+A snapshot of both is kept in the `ssdlc` directory for each release, named after the release's tag
+(for example `ssdlc/100.9.5.bom.json` and `ssdlc/100.9.5.sarif.json`). See our
+[release documentation](./RELEASE.md) for how these are produced.
 
-#### Generating the Augmented SBOM File
-
-Generating this file can only be done by MongoDB employees, as it requires access to
-[Kondukto](http://kondukto.io/). See our [release documentation](./RELEASE.md) for more details.
+Vulnerability and license data reaches the Vulnerability Management Platform automatically: an
+Evergreen task uploads a freshly-generated SBOM on every mainline commit that touches a
+dependency-relevant file, and again on every release tag. There's no manual upload step, and no
+committed file for that automation to read from — it generates the SBOM itself each time.
 
 ### Papertrail Integration
 

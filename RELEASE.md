@@ -89,48 +89,37 @@ Critical severity levels, even if this would not violate our SLA.
 We would also like to avoid releasing with known, applicable issues at the Medium severity level,
 but these can be deferred at the team's discretion.
 
-#### Create the Augmented SBOM File for the Upcoming Release
+#### Create the SBOM and SARIF Report Files for the Upcoming Release
 
-You can generate this by running `go run build.go writeAugmentedSBOM`. Make sure to pull the latest
-changes from master before running this command. This requires several environment variables to be
-set:
+Run `scripts/generate-release-sbom-snapshot.sh <tag>`, replacing `<tag>` with the tag for this
+release (e.g. `100.12.2`). This writes `ssdlc/<tag>.bom.json` (a fresh SBOM) and
+`ssdlc/<tag>.sarif.json` (a fresh gosec SARIF report). Neither the SBOM nor the SARIF report is
+checked into the repo outside of these per-release snapshots — both are generated from scratch by
+this script, not copied from some other checked-in file.
 
-- `KONDUKTO_TOKEN` - available from 1Password.
-- `EVG_TRIGGERED_BY_TAG` - the _next_ version that you are preparing to release.
+Generating the SBOM requires Podman and access to the DevProd Platforms ECR registry (which hosts
+the Silkbomb tool used to enrich the SBOM's license data). You must have an AWS profile named
+"ECRScopedAccess-901841024863" configured. The config in your `~/.aws/config` file should look like
+this:
 
-You also need to log in to the `mms-scratch` AWS profile, which you probably have set up as your
-default profile, so you can just run `aws sso login`.
-
-```
-KONDUKTO_TOKEN="$kondukto_token"\
-    EVG_TRIGGERED_BY_TAG=100.9.5 \
-    go run build.go writeAugmentedSBOM
-```
-
-The Kondukto credentials are shared with our team via 1Password.
-
-To test, the check-augmented-sbom Evergreen task can be run locally with
-
-```
-KONDUKTO_TOKEN="$kondukto_token"\
-    EVG_TRIGGERED_BY_TAG=100.9.5 \
-    scripts/regenerate-and-diff-augmented-sbom.sh
+```toml
+[profile ECRScopedAccess-901841024863]
+region = us-east-1
+sso_account_id = 901841024863
+sso_role_name = ECRScopedAccess
+sso_start_url = <same as other profiles or ask in Slack>
+sso_region = us-east-1
 ```
 
-If there are recently fixed third-party vulnerabilities, make sure that these are reflected in the
-Augmented SBOM before the release.
+In order to actually log in to this profile, run this command:
 
-See our [documentation on contributing](./CONTRIBUTING.md) for more details on how we handle
-dependency scanning and vulnerabilities.
+```
+aws sso login --profile ECRScopedAccess-901841024863
+```
 
-You must commit this file before you can do a release.
+In order for this to succeed, you must be a member of the `devprod-platforms-ecr-users` Mana group.
 
-#### Create the SARIF Report File for the Upcoming Release
-
-You can do this by copying the `SARIF.json` file in the repo root to a filename like
-`ssdlc/100.12.2.sarif.json`, replacing `100.12.2` with the tag for this release.
-
-You must commit this file before you can do a release.
+You must commit both resulting files before you can do a release.
 
 #### Merge the SBOM and SARIF Files to `master`
 
