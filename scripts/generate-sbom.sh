@@ -91,7 +91,8 @@ mkdir -p "$OUTPUT_DIR"
 
 # The arguments to the silkbomb program start at "update". We mount $WORKDIR and $OUTPUT_DIR
 # separately from each other, writing directly to the caller's requested output path.
-podman run \
+RUNTIME="$(./scripts/container-runtime.sh)"
+"$RUNTIME" run \
     --rm \
     --platform linux/amd64 \
     -v "${WORKDIR}":/workdir \

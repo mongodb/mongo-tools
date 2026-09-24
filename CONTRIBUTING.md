@@ -411,6 +411,11 @@ A snapshot of both is kept in the `ssdlc` directory for each release, named afte
 (for example `ssdlc/100.9.5.bom.json` and `ssdlc/100.9.5.sarif.json`). See our
 [release documentation](./RELEASE.md) for how these are produced.
 
+Vulnerability and license data reaches the Vulnerability Management Platform automatically: an
+Evergreen task uploads a freshly-generated SBOM on every mainline commit that touches a
+dependency-relevant file, and again on every release tag. There's no manual upload step, and no
+committed file for that automation to read from — it generates the SBOM itself each time.
+
 ### Papertrail Integration
 
 All releases are recorded using a MongoDB-internal application called Papertrail. This records

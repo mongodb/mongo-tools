@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Authenticates podman to the DevProd Platforms ECR registry (which hosts silkbomb and garasign).
+# Authenticates podman or docker (whichever is present, see scripts/container-runtime.sh) to the
+# DevProd Platforms ECR registry (which hosts silkbomb and garasign).
 #
 # Called two ways in Evergreen:
 #   - Directly, right after ec2.assume_role, by the "authenticate with devprod platforms ecr"
@@ -21,8 +22,8 @@ set -o pipefail
 
 UNAME="$(uname -s)"
 
-# We never need to run podman on macOS in CI, and it's not installed there, so we can't even if we
-# wanted to.
+# We never need to run a container runtime on macOS in CI, and none is installed there, so we
+# can't even if we wanted to.
 if [[ -n ${EVG_WORKDIR:-} && ${UNAME:?} =~ Darwin ]]; then
     exit 0
 fi
@@ -32,11 +33,13 @@ REGION="us-east-1"
 
 if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
     set -o xtrace
-    aws ecr get-login-password --region "${REGION:?}" | podman login --username AWS --password-stdin "${ECR:?}"
+    RUNTIME="$(./scripts/container-runtime.sh)"
+    aws ecr get-login-password --region "${REGION:?}" | "${RUNTIME:?}" login --username AWS --password-stdin "${ECR:?}"
 elif [ -n "${EVG_WORKDIR:-}" ]; then
     exit 0
 else
     set -o xtrace
+    RUNTIME="$(./scripts/container-runtime.sh)"
     PROFILE="ECRScopedAccess-901841024863"
-    aws ecr get-login-password --region "${REGION:?}" --profile "${PROFILE:?}" | podman login --username AWS --password-stdin "${ECR:?}"
+    aws ecr get-login-password --region "${REGION:?}" --profile "${PROFILE:?}" | "${RUNTIME:?}" login --username AWS --password-stdin "${ECR:?}"
 fi

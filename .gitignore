@@ -41,6 +41,7 @@ node_modules
 /release.*
 /report.json
 /rpm_build
+/sbom.json
 /silkbomb.env
 tags
 /temp*
