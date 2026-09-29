@@ -65,7 +65,7 @@ func init() {
 		OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology", "race").
 		Do(buildscript.TestIntegration)
 	taskRegistry.Declare("test:cross-cluster").
-		Description("runs the dump/restore round-trip tests across two clusters").
+		Description("runs the dump/restore and export/import round-trip tests across two clusters").
 		OptionalArgs("ssl", "topology", "race").
 		Do(buildscript.TestCrossCluster)
 	taskRegistry.Declare("test:sharded-integration").
