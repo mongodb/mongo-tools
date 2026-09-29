@@ -2015,9 +2015,9 @@ tasks:
         vars:
           target: test:integration -topology=replSet ${testArgs}
 
-  # Runs the dump/restore round-trip tests across a plain 9.0 ASC mongod and the 9.1 DSC cluster, in
-  # both directions. The ASC mongod owns the primary connection (localhost:33333); the DSC URI goes
-  # to TOOLS_TESTING_MONGOD2 so the routed tests exercise the boundary both ways.
+  # Runs the dump/restore and export/import round-trip tests across a plain 9.0 ASC mongod and the
+  # 9.1 DSC cluster, in both directions. The ASC mongod owns the primary connection (localhost:33333);
+  # the DSC URI goes to TOOLS_TESTING_MONGOD2 so the routed tests exercise the boundary both ways.
   - name: integration-9.1-dsc-cross-cluster
     tags: ["9.1", "dsc", "cross-cluster"]
     commands:
