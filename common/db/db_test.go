@@ -8,6 +8,7 @@ package db
 
 import (
 	"context"
+	"net"
 	"os"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 var (
@@ -190,6 +192,27 @@ func TestServerVersionArray(t *testing.T) {
 	assert.True(t, version.GT(Version{}))
 }
 
+// hostAndPortFromEnvVar returns the address of the server under test. The certificate tests below
+// build ToolOptions by hand instead of going through `GetToolOptions`, so they have to resolve the
+// runner-allocated address from `TOOLS_TESTING_MONGOD` themselves.
+func hostAndPortFromEnvVar(t *testing.T) (string, string) {
+	t.Helper()
+
+	uri := os.Getenv(testopts.URIEnvVar)
+	if uri == "" {
+		return "localhost", testopts.DefaultTestPort
+	}
+
+	cs, err := connstring.ParseAndValidate(uri)
+	require.NoError(t, err, "TOOLS_TESTING_MONGOD is a valid connection string")
+	require.NotEmpty(t, cs.Hosts, "TOOLS_TESTING_MONGOD names at least one host")
+
+	host, port, err := net.SplitHostPort(cs.Hosts[0])
+	require.NoError(t, err, "TOOLS_TESTING_MONGOD host names a port")
+
+	return host, port
+}
+
 func TestServerCertificateVerification(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
@@ -200,9 +223,11 @@ func TestServerCertificateVerification(t *testing.T) {
 	// intermediate certs only
 	ssl := sslOrigin
 	ssl.SSLCAFile = testopts.TestDataPath("ia.pem")
+	host, port := hostAndPortFromEnvVar(t)
 	opts := options.ToolOptions{
 		Connection: &options.Connection{
-			Port:    testopts.DefaultTestPort,
+			Host:    host,
+			Port:    port,
 			Timeout: 10,
 		},
 		URI:  testopts.URIWithCert("test-client.pem"),
@@ -230,9 +255,11 @@ func TestServerPKCS8Verification(t *testing.T) {
 
 	t.Run("with unencrypted password", func(t *testing.T) {
 		ssl.SSLPEMKeyFile = testopts.TestDataPath("test-client-pkcs8-unencrypted.pem")
+		host, port := hostAndPortFromEnvVar(t)
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
-				Port:    testopts.DefaultTestPort,
+				Host:    host,
+				Port:    port,
 				Timeout: 10,
 			},
 			URI:  testopts.URIWithCert("test-client.pem"),
@@ -249,9 +276,11 @@ func TestServerPKCS8Verification(t *testing.T) {
 	t.Run("with encrypted password", func(t *testing.T) {
 		ssl.SSLPEMKeyFile = testopts.TestDataPath("test-client-pkcs8-encrypted.pem")
 		ssl.SSLPEMKeyPassword = os.Getenv(PKCS8Password)
+		host, port := hostAndPortFromEnvVar(t)
 		opts := options.ToolOptions{
 			Connection: &options.Connection{
-				Port:    testopts.DefaultTestPort,
+				Host:    host,
+				Port:    port,
 				Timeout: 10,
 			},
 			URI:  testopts.URIWithCert("test-client.pem"),
