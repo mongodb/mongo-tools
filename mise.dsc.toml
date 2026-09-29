@@ -6,15 +6,12 @@
 #
 # When `MISE_ENV=dsc` is set, then this config file is included when `mise install` is run. This is
 # set by `scripts/start-dsc-cluster.sh`.
+#
+# Reading the private repo also needs a GitHub token. mise ignores `github.credential_command` in
+# project config for security reasons, so developers must set it in their global mise config. See
+# "Running DSC Clusters Locally" in CONTRIBUTING.md.
 
 [tools]
 # This opts out of mise.toml's minimum_release_age because these releases are ours and are cut as
 # they are needed.
-"github:10gen/mongodb-downloader" = { version = "0.0.4", minimum_release_age = "0d" }
-
-[settings]
-# Evergreen passes GITHUB_TOKEN, which takes precedence over this, so if the Evergreen hosts don't
-# have the `gh` command installed, this is not an issue. Locally, this saves everyone from having to
-# export a token by hand: mise does not pick up gh's token on its own for private release assets,
-# even though github.gh_cli_tokens defaults to true.
-github.credential_command = "gh auth token"
+"github:10gen/mongodb-downloader" = { version = "0.1.0-rc.2", minimum_release_age = "0d" }

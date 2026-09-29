@@ -1,15 +1,103 @@
 {
     "serverBinaries": {
+        "rhel8-x86_64": {
+            "4.2": {
+                "tarball": "rhel8-x86_64-4.2.25-41b59c2bfb5121e66f18cc3ef40055a1b5fb6c2e.tar.zst",
+                "commit": "41b59c2bfb5121e66f18cc3ef40055a1b5fb6c2e"
+            },
+            "4.4": {
+                "tarball": "rhel8-x86_64-4.4.31-0fdaf65411c54e22c8a3d708454d7450dac6b6bf.tar.zst",
+                "commit": "0fdaf65411c54e22c8a3d708454d7450dac6b6bf"
+            },
+            "5.0": {
+                "tarball": "rhel8-x86_64-5.0.34-3ed0d39e497e5876dab3a0b825f2e504806d0afd.tar.zst",
+                "commit": "3ed0d39e497e5876dab3a0b825f2e504806d0afd"
+            },
+            "6.0": {
+                "tarball": "rhel8-x86_64-6.0.29-84e761de17af58439056c9d0444b51bda6b38e4f.tar.zst",
+                "commit": "84e761de17af58439056c9d0444b51bda6b38e4f"
+            },
+            "7.0": {
+                "tarball": "rhel8-x86_64-7.0.43-ef5a7d3480b59feae13d564376129fc4ceee6177.tar.zst",
+                "commit": "ef5a7d3480b59feae13d564376129fc4ceee6177"
+            },
+            "8.0": {
+                "tarball": "rhel8-x86_64-8.0.32-f9eb55a7cc900f33a722a5b32a0fdbf54385c749.tar.zst",
+                "commit": "f9eb55a7cc900f33a722a5b32a0fdbf54385c749"
+            },
+            "8.2": {
+                "tarball": "rhel8-x86_64-8.2.12-0f912e80210b8fdfdcec618b14b6c0fced055cb8.tar.zst",
+                "commit": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+            },
+            "8.3": {
+                "tarball": "rhel8-x86_64-8.3.11-b8b83d6e6e1aed495578ad8c6f9234ad329c9955.tar.zst",
+                "commit": "b8b83d6e6e1aed495578ad8c6f9234ad329c9955"
+            },
+            "9.0": {
+                "tarball": "rhel8-x86_64-9.0.0-rc0-99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4.tar.zst",
+                "commit": "99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4"
+            },
+            "latest": {
+                "tarball": "rhel8-x86_64-9.0.2-c4d309807b94ac30edcca32e35e88a9598eadfc8.tar.zst",
+                "commit": "c4d309807b94ac30edcca32e35e88a9598eadfc8"
+            }
+        },
         "ubuntu2204-arm64": {
+            "9.0": {
+                "tarball": "ubuntu2204-arm64-9.0.0-rc0-99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4.tar.zst",
+                "commit": "99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4"
+            },
             "9.1-dsc": {
-                "tarball": "ubuntu2204-arm64-9.1-dsc-67d46e783fb535d6747dab3b2eb54bbaed6dba13.tar.xz",
+                "tarball": "ubuntu2204-arm64-9.1-dsc-67d46e783fb535d6747dab3b2eb54bbaed6dba13.tar.zst",
                 "commit": "67d46e783fb535d6747dab3b2eb54bbaed6dba13"
             }
         },
         "ubuntu2204-x86_64": {
             "9.1-dsc": {
-                "tarball": "ubuntu2204-x86_64-9.1-dsc-67d46e783fb535d6747dab3b2eb54bbaed6dba13.tar.xz",
+                "tarball": "ubuntu2204-x86_64-9.1-dsc-67d46e783fb535d6747dab3b2eb54bbaed6dba13.tar.zst",
                 "commit": "67d46e783fb535d6747dab3b2eb54bbaed6dba13"
+            }
+        },
+        "windows-x86_64": {
+            "4.2": {
+                "tarball": "windows-x86_64-4.2.25-41b59c2bfb5121e66f18cc3ef40055a1b5fb6c2e.tar.zst",
+                "commit": "41b59c2bfb5121e66f18cc3ef40055a1b5fb6c2e"
+            },
+            "4.4": {
+                "tarball": "windows-x86_64-4.4.31-0fdaf65411c54e22c8a3d708454d7450dac6b6bf.tar.zst",
+                "commit": "0fdaf65411c54e22c8a3d708454d7450dac6b6bf"
+            },
+            "5.0": {
+                "tarball": "windows-x86_64-5.0.34-3ed0d39e497e5876dab3a0b825f2e504806d0afd.tar.zst",
+                "commit": "3ed0d39e497e5876dab3a0b825f2e504806d0afd"
+            },
+            "6.0": {
+                "tarball": "windows-x86_64-6.0.29-84e761de17af58439056c9d0444b51bda6b38e4f.tar.zst",
+                "commit": "84e761de17af58439056c9d0444b51bda6b38e4f"
+            },
+            "7.0": {
+                "tarball": "windows-x86_64-7.0.43-ef5a7d3480b59feae13d564376129fc4ceee6177.tar.zst",
+                "commit": "ef5a7d3480b59feae13d564376129fc4ceee6177"
+            },
+            "8.0": {
+                "tarball": "windows-x86_64-8.0.32-f9eb55a7cc900f33a722a5b32a0fdbf54385c749.tar.zst",
+                "commit": "f9eb55a7cc900f33a722a5b32a0fdbf54385c749"
+            },
+            "8.2": {
+                "tarball": "windows-x86_64-8.2.12-0f912e80210b8fdfdcec618b14b6c0fced055cb8.tar.zst",
+                "commit": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
+            },
+            "8.3": {
+                "tarball": "windows-x86_64-8.3.11-b8b83d6e6e1aed495578ad8c6f9234ad329c9955.tar.zst",
+                "commit": "b8b83d6e6e1aed495578ad8c6f9234ad329c9955"
+            },
+            "9.0": {
+                "tarball": "windows-x86_64-9.0.0-rc0-99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4.tar.zst",
+                "commit": "99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4"
+            },
+            "latest": {
+                "tarball": "windows-x86_64-9.0.2-c4d309807b94ac30edcca32e35e88a9598eadfc8.tar.zst",
+                "commit": "c4d309807b94ac30edcca32e35e88a9598eadfc8"
             }
         }
     },

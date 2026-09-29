@@ -71,12 +71,23 @@ locally.
 
 ## Running DSC Clusters Locally
 
-In order to run these locally, you need access to the private `10gen/mongo-downloader` repo. This is
-only available for MongoDB employees.
+In order to run these locally, you need access to the private `10gen/mongodb-downloader` repo. This
+is only available for MongoDB employees. The `dsc` config environment adds `mongodb-downloader` to
+the tools that `mise install` resolves, and mise needs a GitHub token that can read that repo.
+`github.credential_command` is ignored in project config for security reasons, so set it in your
+global mise config (`~/.config/mise/config.toml`):
+
+```toml
+[settings]
+github.credential_command = "gh auth token"
+```
+
+That command requires the [GitHub CLI](https://cli.github.com/) installed and authenticated.
+Alternatively, export `GITHUB_TOKEN` before running mise (this is what CI does).
 
 First, you must authenticate with aws using a profile that has access to the SLS image repo. You
 also need to authenticate with a profile that can access the S3 bucket containing Server binaries
-used by `mongodb-downloader. This can be two different profiles or just one.
+used by `mongodb-downloader`. This can be two different profiles or just one.
 
 In order to start a DSC cluster, run this command:
 
@@ -90,7 +101,7 @@ the ECR repo.
 You can stop the cluster with:
 
 ```
-MISE_ENV=dsc mise exec -- ./scripts/start-dsc-cluster.sh
+MISE_ENV=dsc mise exec -- ./scripts/stop-dsc-cluster.sh
 ```
 
 ## Getting Started
@@ -229,11 +240,6 @@ To run the quality assurance tests, you need to have the latest stable version o
 cd test/qa-tests
 python buildscripts/smoke.py bson export files import oplog restore stat top
 ```
-
-_Some tests require older binaries that are named accordingly (e.g. `mongod-2.4`, `mongod-2.6`,
-etc). You can use
-[setup_multiversion_mongodb.py](test/qa-tests/buildscripts/setup_multiversion_mongodb.py) to
-download those binaries_
 
 ### Writing Tests
 
