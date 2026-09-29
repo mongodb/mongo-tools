@@ -37,7 +37,7 @@ func uniqueDBName() string {
 }
 
 func (s *DumpRestoreSuite) TestPipedDumpRestore() {
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		s.T().Logf("start %#q", s.T().Name())
 		ctx := s.Context()
 
@@ -45,7 +45,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 
 		const docsPerColl = 10_000
 
-		db := cc.source.Database(uniqueDBName())
+		db := cc.Source.Database(uniqueDBName())
 
 		s.T().Logf("creating collections")
 
@@ -75,7 +75,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 		eg.Go(func() error {
 			defer writer.Close()
 
-			dump, err := getArchiveMongoDumpForURI(s.T(), cc.sourceURI, writer)
+			dump, err := getArchiveMongoDumpForURI(s.T(), cc.SourceURI, writer)
 			if err != nil {
 				return errors.Wrap(err, "create mongodump")
 			}
@@ -90,7 +90,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 		eg.Go(func() error {
 			defer reader.Close()
 
-			restore, err := getArchiveMongoRestoreForURI(s.T(), cc.targetURI, reader)
+			restore, err := getArchiveMongoRestoreForURI(s.T(), cc.TargetURI, reader)
 			if err != nil {
 				return errors.Wrap(err, "create mongorestore")
 			}
@@ -122,7 +122,7 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 		for _, collName := range srcCollNames {
 			dstName := "dst-" + collName
 
-			count, err := cc.target.Database(db.Name()).Collection(dstName).
+			count, err := cc.Target.Database(db.Name()).Collection(dstName).
 				CountDocuments(ctx, bson.D{})
 			s.Require().NoError(err, "should count docs in %#q", dstName)
 			s.Assert().EqualValues(
@@ -170,8 +170,8 @@ var userDefinedConfigCollectionNames = []string{
 }
 
 func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
-	s.withCrossCluster(func(cc crossCluster) {
-		configDB := cc.source.Database("config")
+	s.WithCrossCluster(func(cc crossCluster) {
+		configDB := cc.Source.Database("config")
 
 		collections := s.createCollectionsWithTestDocuments(
 			configDB,
@@ -180,11 +180,11 @@ func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
 		defer s.clearDB(configDB)
 
 		s.withBSONMongodumpForURI(
-			cc.sourceURI,
+			cc.SourceURI,
 			func(dir string) {
 				s.clearDB(configDB)
 
-				restore, err := getRestoreWithArgsForURI(cc.targetURI, dir)
+				restore, err := getRestoreWithArgsForURI(cc.TargetURI, dir)
 				s.Require().NoError(err)
 				defer restore.Close()
 
@@ -193,7 +193,7 @@ func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
 				s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 				for _, collection := range collections {
-					targetColl := cc.target.Database("config").Collection(collection.Name())
+					targetColl := cc.Target.Database("config").Collection(collection.Name())
 					r := targetColl.FindOne(s.Context(), testDocument)
 					s.Require().NoError(r.Err(), "expected document")
 				}
@@ -205,12 +205,12 @@ func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
 }
 
 func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections() {
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		// Drop any databases that other tests may have left behind with validators
 		// that would cause failures during the full dump+restore.
-		s.Require().NoError(cc.source.Database("mongodump_test_db").Drop(s.Context()))
+		s.Require().NoError(cc.Source.Database("mongodump_test_db").Drop(s.Context()))
 
-		configDB := cc.source.Database("config")
+		configDB := cc.Source.Database("config")
 
 		userDefinedCollections := s.createCollectionsWithTestDocuments(
 			configDB,
@@ -223,12 +223,12 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 		defer s.clearDB(configDB)
 
 		s.withBSONMongodumpForURI(
-			cc.sourceURI,
+			cc.SourceURI,
 			func(dir string) {
 				s.clearDB(configDB)
 
 				restore, err := getRestoreWithArgsForURI(
-					cc.targetURI,
+					cc.TargetURI,
 					mongorestore.DropOption,
 					dir,
 				)
@@ -240,13 +240,13 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 				s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
 				for _, collection := range collectionsToKeep {
-					targetColl := cc.target.Database("config").Collection(collection.Name())
+					targetColl := cc.Target.Database("config").Collection(collection.Name())
 					r := targetColl.FindOne(s.Context(), testDocument)
 					s.Require().NoError(r.Err(), "expected document")
 				}
 
 				for _, collection := range userDefinedCollections {
-					targetColl := cc.target.Database("config").Collection(collection.Name())
+					targetColl := cc.Target.Database("config").Collection(collection.Name())
 					r := targetColl.FindOne(s.Context(), testDocument)
 					s.Require().Error(r.Err(), "expected no document")
 				}
@@ -355,11 +355,11 @@ func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) 
 }
 
 func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		ctx := s.Context()
 
 		dbName := uniqueDBName()
-		testDB := cc.source.Database(dbName)
+		testDB := cc.Source.Database(dbName)
 
 		coll := testDB.Collection("mycoll")
 
@@ -385,12 +385,12 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 		s.Require().NoError(err, "should insert (via update/upsert)")
 
 		s.withBSONMongodumpForCollectionForURI(
-			cc.sourceURI,
+			cc.SourceURI,
 			coll.Database().Name(),
 			coll.Name(),
 			func(dir string) {
 				restore, err := getRestoreWithArgsForURI(
-					cc.targetURI,
+					cc.TargetURI,
 					mongorestore.DropOption,
 					dir,
 				)
@@ -403,7 +403,7 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 			},
 		)
 
-		targetColl := cc.target.Database(dbName).Collection("mycoll")
+		targetColl := cc.Target.Database(dbName).Collection("mycoll")
 
 		cursor, err := targetColl.Find(ctx, bson.D{})
 		s.Require().NoError(err, "should find docs")
@@ -424,7 +424,7 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 }
 
 func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
-	s.skipForCrossCluster(
+	s.SkipForCrossCluster(
 		"restore is expected to conflict with pre-existing data on the same cluster, " +
 			"which a cross-cluster run (empty target) cannot produce",
 	)
@@ -532,7 +532,7 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 		},
 	}
 
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		for c := range cases {
 			curCase := cases[c]
 			indexesToCreate := curCase.Indexes
@@ -547,7 +547,7 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 								dbName := uniqueDBName()
 								ctx := s.Context()
 
-								testDB := cc.source.Database(dbName)
+								testDB := cc.Source.Database(dbName)
 
 								collName := strings.ReplaceAll(
 									fmt.Sprintf("%s %d", curCase.Label, attemptNum),
@@ -566,12 +566,12 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 								)
 
 								s.withBSONMongodumpForCollectionForURI(
-									cc.sourceURI,
+									cc.SourceURI,
 									testDB.Name(),
 									coll.Name(),
 									func(dir string) {
 										restore, err := getRestoreWithArgsForURI(
-											cc.targetURI,
+											cc.TargetURI,
 											mongorestore.DropOption,
 											dir,
 										)
@@ -593,7 +593,7 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 									},
 								)
 
-								targetColl := cc.target.Database(dbName).Collection(collName)
+								targetColl := cc.Target.Database(dbName).Collection(collName)
 								restoredIndexes := []bson.M{}
 								s.Require().NoError(
 									listIndexes(ctx, targetColl, &restoredIndexes),
@@ -616,17 +616,17 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 	})
 }
 func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		s.Run("drops tempusers and temproles", func() {
 			restore, err := getRestoreWithArgsForURI(
-				cc.targetURI,
+				cc.TargetURI,
 				mongorestore.NumParallelCollectionsOption, "1",
 				mongorestore.NumInsertionWorkersOption, "1",
 			)
 			s.Require().NoError(err)
 			defer restore.Close()
 
-			adminDB := cc.target.Database("admin")
+			adminDB := cc.Target.Database("admin")
 			restore.TargetDirectory = usersDumpDir
 			result := restore.Restore()
 			s.Require().NoError(result.Err, "can run mongorestore")
@@ -655,7 +655,7 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 		s.Run("without --dumpUsersAndRoles", func() {
 			s.Run("db directory restore fails", func() {
 				restore, err := getRestoreWithArgsForURI(
-					cc.targetURI,
+					cc.TargetURI,
 					mongorestore.NumParallelCollectionsOption, "1",
 					mongorestore.NumInsertionWorkersOption, "1",
 					mongorestore.RestoreDBUsersAndRolesOption,
@@ -673,7 +673,7 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 
 			s.Run("base dump directory restore fails", func() {
 				restore, err := getRestoreWithArgsForURI(
-					cc.targetURI,
+					cc.TargetURI,
 					mongorestore.NumParallelCollectionsOption, "1",
 					mongorestore.NumInsertionWorkersOption, "1",
 					mongorestore.RestoreDBUsersAndRolesOption,
@@ -690,9 +690,9 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 			})
 
 			s.Run("archive of entire dump restore fails", func() {
-				s.withArchiveMongodumpForURI(cc.sourceURI, func(archivePath string) {
+				s.withArchiveMongodumpForURI(cc.SourceURI, func(archivePath string) {
 					restore, err := getRestoreWithArgsForURI(
-						cc.targetURI,
+						cc.TargetURI,
 						mongorestore.NumParallelCollectionsOption, "1",
 						mongorestore.NumInsertionWorkersOption, "1",
 						mongorestore.RestoreDBUsersAndRolesOption,
@@ -732,7 +732,7 @@ const (
 // restoring. mongorestore stages users there before merging them, so leftovers from an interrupted
 // earlier run must not derail the restore or survive it.
 func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl(cc crossCluster) {
-	adminDB := cc.target.Database("admin")
+	adminDB := cc.Target.Database("admin")
 	s.dropDumpedUsersAndRoles(adminDB)
 
 	_, err := adminDB.Collection(defaultTempCollNames[0]).
@@ -749,7 +749,7 @@ func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl(cc crossCluster)
 // and roles in the named collections, which are cleaned up like the default ones. Nothing else
 // covers those two options.
 func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls(cc crossCluster) {
-	adminDB := cc.target.Database("admin")
+	adminDB := cc.Target.Database("admin")
 	s.dropDumpedUsersAndRoles(adminDB)
 
 	// The default temp collections are seeded so that naming different ones really does leave these
@@ -794,8 +794,8 @@ const roundTripRoleName = "roundTripRole"
 // its own rather than the admin database's.
 func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles(cc crossCluster) {
 	dbName := "dumprestore_db_users_and_roles"
-	sourceDB := cc.source.Database(dbName)
-	targetDB := cc.target.Database(dbName)
+	sourceDB := cc.Source.Database(dbName)
+	targetDB := cc.Target.Database(dbName)
 
 	s.dropRoundTripUsersAndRoles(sourceDB)
 	s.dropRoundTripUsersAndRoles(targetDB)
@@ -807,12 +807,12 @@ func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles(cc crossCluster) {
 	s.insertNamespacedDocs(sourceDB.Collection("coll"))
 	s.createRoundTripUsersAndRoles(sourceDB)
 
-	s.withBSONMongodumpForURI(cc.sourceURI, func(dir string) {
+	s.withBSONMongodumpForURI(cc.SourceURI, func(dir string) {
 		s.dropDB(targetDB)
 		s.dropRoundTripUsersAndRoles(targetDB)
 
 		restore, err := getRestoreWithArgsForURI(
-			cc.targetURI,
+			cc.TargetURI,
 			mongorestore.DBOption, dbName,
 			mongorestore.RestoreDBUsersAndRolesOption,
 			filepath.Join(dir, dbName),
@@ -906,7 +906,7 @@ func (s *DumpRestoreSuite) restoreUsersDump(cc crossCluster, extraArgs ...string
 		extraArgs...,
 	)
 
-	restore, err := getRestoreWithArgsForURI(cc.targetURI, args...)
+	restore, err := getRestoreWithArgsForURI(cc.TargetURI, args...)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
 
@@ -974,10 +974,10 @@ func (s *DumpRestoreSuite) dropDumpedUsersAndRoles(adminDB *mongo.Database) {
 }
 
 func (s *DumpRestoreSuite) TestUnversionedIndexes() {
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		ctx := s.Context()
 
-		sessionProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.sourceURI)
+		sessionProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.SourceURI)
 		s.Require().NoError(err, "no source cluster available")
 
 		serverVersion, err := sessionProvider.ServerVersionArray()
@@ -1031,11 +1031,11 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 		archiveBytes, err := simpleArchive.Marshal()
 		s.Require().NoError(err, "should marshal the archive")
 
-		s.withArchiveMongodumpForURI(cc.sourceURI, func(archivePath string) {
+		s.withArchiveMongodumpForURI(cc.SourceURI, func(archivePath string) {
 			s.Require().NoError(os.WriteFile(archivePath, archiveBytes, 0644))
 
 			restore, err := getRestoreWithArgsForURI(
-				cc.targetURI,
+				cc.TargetURI,
 				mongorestore.DropOption,
 				mongorestore.ArchiveOption+"="+archivePath,
 			)
@@ -1046,7 +1046,7 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 			s.Require().NoError(result.Err, "can run mongorestore")
 			s.Require().EqualValues(0, result.Failures, "mongorestore reports 0 failures")
 
-			targetColl := cc.target.Database(dbName).Collection(collName)
+			targetColl := cc.Target.Database(dbName).Collection(collName)
 			cursor, err := targetColl.Indexes().List(ctx)
 			s.Require().NoError(err, "should open index-list cursor")
 
@@ -1075,13 +1075,13 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 }
 
 func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		ctx := s.Context()
 
-		sessionProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.sourceURI)
+		sessionProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.SourceURI)
 		s.Require().NoError(err, "no source cluster available")
 
-		fcv := testutil.GetFCV(cc.source)
+		fcv := testutil.GetFCV(cc.Source)
 		// TODO: Enable tests for 6.0, 7.0 and 8.0 (TOOLS-3597).
 		// The server fix for SERVER-84531 was only backported to 7.3.
 		if cmp, err := testutil.CompareFCV(fcv, "7.3"); err != nil || cmp < 0 {
@@ -1100,26 +1100,26 @@ func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 		dbName := uniqueDBName()
 		collName := "timeseries_mixed_schema"
 
-		s.setupTimeseriesWithMixedSchema(cc.sourceURI, dbName, collName)
+		s.setupTimeseriesWithMixedSchema(cc.SourceURI, dbName, collName)
 
 		// The dump below reads from the source, so verify the setup actually
 		// landed there. Otherwise a setup aimed at the wrong cluster would only
 		// surface as an obscure failure after the restore.
-		sourceCount, err := cc.source.Database(dbName).
+		sourceCount, err := cc.Source.Database(dbName).
 			Collection(collName).
 			CountDocuments(ctx, bson.M{})
 		s.Require().NoError(err, "can count the source timeseries documents")
 		s.Require().EqualValues(2, sourceCount, "the source should hold the timeseries documents")
 
-		s.withArchiveMongodumpForURI(cc.sourceURI, func(file string) {
-			targetDB := cc.target.Database(dbName)
+		s.withArchiveMongodumpForURI(cc.SourceURI, func(file string) {
+			targetDB := cc.Target.Database(dbName)
 			targetBucketColl := targetDB.Collection(timeseriesCollName(serverVersion, collName))
 
 			s.Require().NoError(targetDB.Collection(collName).Drop(ctx))
 			s.Require().NoError(targetBucketColl.Drop(ctx))
 
 			restore, err := getRestoreWithArgsForURI(
-				cc.targetURI,
+				cc.TargetURI,
 				mongorestore.DropOption,
 				mongorestore.ArchiveOption+"="+file,
 			)
@@ -1148,11 +1148,11 @@ func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 }
 
 func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
-	s.withCrossCluster(func(cc crossCluster) {
-		sourceProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.sourceURI)
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.SourceURI)
 		s.Require().NoError(err, "no source cluster available")
 
-		targetProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.targetURI)
+		targetProvider, _, err := testutil.GetBareSessionProviderForURI(s.T(), cc.TargetURI)
 		s.Require().NoError(err, "no target cluster available")
 
 		if ok, _ := sourceProvider.IsReplicaSet(); !ok {
@@ -1166,7 +1166,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 		// skip keys off the restore target rather than the primary cluster.
 		dsctest.SkipForDisaggregatedStorage(
 			s.T(),
-			cc.target,
+			cc.Target,
 			"it replays an oplog, and DSC does not support the applyOps command",
 		)
 
@@ -1175,7 +1175,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 		testName := uniqueDBName()
 		dbName := util.MongoDBInternalDBPrefix + testName
 
-		client := cc.source
+		client := cc.Source
 
 		internalColl := client.Database(dbName).Collection(testName)
 
@@ -1210,16 +1210,16 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 		}()
 
 		s.withArchiveMongodumpForURI(
-			cc.sourceURI,
+			cc.SourceURI,
 			func(archivePath string) {
 				writesCancel(fmt.Errorf("archive is finished"))
 				<-updatesDone
 
-				s.Require().NoError(cc.target.Database(internalColl.Database().Name()).Drop(ctx))
-				s.Require().NoError(cc.target.Database(testName).Drop(ctx))
+				s.Require().NoError(cc.Target.Database(internalColl.Database().Name()).Drop(ctx))
+				s.Require().NoError(cc.Target.Database(testName).Drop(ctx))
 
 				restore, err := getRestoreWithArgsForURI(
-					cc.targetURI,
+					cc.TargetURI,
 					mongorestore.ArchiveOption+"="+archivePath,
 					"-vv",
 					"--oplogReplay",
@@ -1241,7 +1241,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 			"-vv",
 		)
 
-		dbNames, err := cc.target.ListDatabaseNames(ctx, bson.D{})
+		dbNames, err := cc.Target.ListDatabaseNames(ctx, bson.D{})
 		s.Require().NoError(err)
 
 		s.Assert().Contains(dbNames, testName, "user DB restored")
@@ -1250,7 +1250,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 }
 
 func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
-	s.withCrossCluster(func(cc crossCluster) {
+	s.WithCrossCluster(func(cc crossCluster) {
 		ctx := s.Context()
 
 		allNames := []string{
@@ -1286,18 +1286,18 @@ func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
 						s.Run(
 							fmt.Sprintf("dbname=%s", strconv.Quote(dbname)),
 							func() {
-								s.Require().NoError(cc.source.Database(dbname).Drop(ctx))
+								s.Require().NoError(cc.Source.Database(dbname).Drop(ctx))
 								s.createCollectionsWithTestDocuments(
-									cc.source.Database(dbname),
+									cc.Source.Database(dbname),
 									myAllNames,
 								)
 
 								s.withArchiveMongodumpForURI(
-									cc.sourceURI,
+									cc.SourceURI,
 									func(archivePath string) {
-										s.Require().NoError(cc.source.Database(dbname).Drop(ctx))
+										s.Require().NoError(cc.Source.Database(dbname).Drop(ctx))
 
-										colls, err := cc.source.Database(dbname).
+										colls, err := cc.Source.Database(dbname).
 											ListCollectionNames(ctx, bson.D{})
 										s.Require().NoError(err)
 										s.Require().
@@ -1306,10 +1306,10 @@ func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
 										// The target is a different cluster in cross-cluster mode,
 										// so it can still hold an earlier variant's collections
 										// under the same name ("no-nl" is shared across variants).
-										s.Require().NoError(cc.target.Database(dbname).Drop(ctx))
+										s.Require().NoError(cc.Target.Database(dbname).Drop(ctx))
 
 										restore, err := getRestoreWithArgsForURI(
-											cc.targetURI,
+											cc.TargetURI,
 											mongorestore.DBOption, dbname,
 											mongorestore.ArchiveOption+"="+archivePath,
 											"-vv",
@@ -1328,7 +1328,7 @@ func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
 									},
 								)
 
-								colls, err := cc.target.Database(dbname).
+								colls, err := cc.Target.Database(dbname).
 									ListCollectionNames(ctx, bson.D{})
 								s.Require().NoError(err)
 
