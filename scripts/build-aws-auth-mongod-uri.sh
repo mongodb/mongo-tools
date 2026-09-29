@@ -9,6 +9,15 @@ set -o verbose
 # and cd into that directory to preserve the body's relative-path behavior.
 cd common/testdata/lib
 
+# The AWS auth test reads this file rather than TOOLS_TESTING_MONGOD, so the set's address has to be
+# baked in here. The runner allocates a free port, so take the host and port from the connection
+# string "start test cluster" published. Fall back to the old fixed address for local runs.
+HOSTPORT="localhost:33333"
+if [ -n "${TOOLS_TESTING_MONGOD:-}" ]; then
+    HOSTPORT="${TOOLS_TESTING_MONGOD#mongodb://}"
+    HOSTPORT="${HOSTPORT%%/*}"
+fi
+
 PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
 python="python3"
 if [ "Windows_NT" = "$OS" ]; then
@@ -24,7 +33,7 @@ USER=$(urlencode "$USER")
 PASS=$(jsonkey SecretAccessKey)
 PASS=$(urlencode "$PASS")
 
-MONGOD_URI="mongodb://$USER:$PASS@localhost:33333/?authMechanism=MONGODB-AWS"
+MONGOD_URI="mongodb://$USER:$PASS@$HOSTPORT/?authMechanism=MONGODB-AWS"
 
 SESSION_TOKEN=$(jsonkey SessionToken)
 SESSION_TOKEN=$(urlencode "$SESSION_TOKEN")

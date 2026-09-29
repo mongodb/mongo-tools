@@ -24,7 +24,7 @@
 #   --evg-expansion-var=<name>              Write an Evergreen expansions file setting name to the URI
 #
 # Every option can also be set through the matching environment variable (TOPOLOGY, VERSION, BIN_DIR,
-# CLUSTER_ID, SHARDS, SECONDARIES, USE_TLS, CREATE_USER, AUTH_USERNAME, AUTH_PASSWORD,
+# CLUSTER_ID, SHARDS, SECONDARIES, USE_TLS, CREATE_USER, AWS_AUTH, AUTH_USERNAME, AUTH_PASSWORD,
 # EVG_EXPANSION_VAR, ADDITIONAL_ARGS). CI uses the environment form so that the auth password is not
 # passed on the command line.
 #
@@ -51,9 +51,19 @@ SHARDS="${SHARDS:-1}"
 SECONDARIES="${SECONDARIES:-0}"
 USE_TLS="${USE_TLS:-false}"
 CREATE_USER="${CREATE_USER:-false}"
+AWS_AUTH="${AWS_AUTH:-false}"
 AUTH_USERNAME="${AUTH_USERNAME:-}"
 AUTH_PASSWORD="${AUTH_PASSWORD:-}"
 EVG_EXPANSION_VAR="${EVG_EXPANSION_VAR:-}"
+
+# AWS auth has no static user, but the runner authenticates as an admin to verify the server came up,
+# so it needs one. Create a bootstrap SCRAM user; the AWS auth test ignores it and authenticates with
+# its own MONGODB-AWS URI. AWS auth also requires an Enterprise server, so this path only runs in CI.
+if [ "$AWS_AUTH" = "true" ]; then
+    CREATE_USER=true
+    AUTH_USERNAME="${AUTH_USERNAME:-toolsAwsBootstrap}"
+    AUTH_PASSWORD="${AUTH_PASSWORD:-toolsAwsBootstrap}"
+fi
 ADDITIONAL_ARGS="${ADDITIONAL_ARGS:-}"
 EXTRA_MONGOD_ARGS=()
 
@@ -216,6 +226,9 @@ if [ "$USE_TLS" = "true" ]; then
 fi
 if [ "$CREATE_USER" = "true" ]; then
     MONGOD_ARGS+=(--auth)
+fi
+if [ "$AWS_AUTH" = "true" ]; then
+    MONGOD_ARGS+=(--setParameter "authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256")
 fi
 
 if [ "${#MONGOD_ARGS[@]}" -gt 0 ]; then
