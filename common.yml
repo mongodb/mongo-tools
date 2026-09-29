@@ -576,6 +576,7 @@ functions:
         env:
           AUTH_PASSWORD: ${auth_password}
           AUTH_USERNAME: ${auth_username}
+          AWS_AUTH: ${AWS_AUTH}
           CREATE_USER: ${CREATE_USER}
           EVG_EXPANSION_VAR: TOOLS_TESTING_MONGOD
           EVG_WORKDIR: ${workdir}
@@ -586,43 +587,6 @@ functions:
     - command: expansions.update
       params:
         file: src/github.com/mongodb/mongo-tools/test-cluster/tools-test/expansions.yml
-
-  "start mongod":
-    command: subprocess.exec
-    params:
-      # binary must be bash (with the script passed via args), not the script
-      # directly: Windows can't execute a shebang script as a native binary.
-      binary: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      background: true
-      args:
-        - "./scripts/start-mongod.sh"
-      env:
-        ADDITIONAL_ARGS: ${additional_args}
-        AWS_AUTH: ${AWS_AUTH}
-        EXTENSION: ${extension}
-        LOGFILE: ${logfile|run.log}
-        MONGOD_ARGS: ${mongod_args}
-        MONGOD_ARGS_TLS: ${mongod_args_tls}
-        MONGOD_PORT: ${mongod_port}
-        STORAGE_ENGINE: ${STORAGE_ENGINE}
-        USE_TLS: ${USE_TLS}
-
-  "wait for mongod to be ready":
-    command: subprocess.exec
-    params:
-      # binary must be bash (with the script passed via args), not the script
-      # directly: Windows can't execute a shebang script as a native binary.
-      binary: bash
-      working_dir: src/github.com/mongodb/mongo-tools
-      args:
-        - "./scripts/wait-for-mongod.sh"
-      env:
-        AWS_AUTH: ${AWS_AUTH}
-        EXTENSION: ${extension}
-        MONGO_ARGS: ${mongo_args}
-        MONGO_ARGS_TLS: ${mongo_args_tls}
-        USE_TLS: ${USE_TLS}
 
   "create release artifacts":
     # build release artifacts
@@ -921,6 +885,8 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         args:
           - "./scripts/setup-aws-auth-assume-role.sh"
+        env:
+          TOOLS_TESTING_MONGOD: ${TOOLS_TESTING_MONGOD}
     - command: subprocess.exec
       type: test
       params:
@@ -931,6 +897,8 @@ functions:
         working_dir: src/github.com/mongodb/mongo-tools
         args:
           - "./scripts/build-aws-auth-mongod-uri.sh"
+        env:
+          TOOLS_TESTING_MONGOD: ${TOOLS_TESTING_MONGOD}
 
   "check sbom lite":
     - command: subprocess.exec
@@ -1419,10 +1387,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
@@ -1503,10 +1469,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
@@ -1587,10 +1551,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
@@ -1671,10 +1633,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
@@ -1755,10 +1715,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
@@ -1839,10 +1797,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
@@ -1948,10 +1904,8 @@ tasks:
         vars:
           edition: "enterprise"
           mongo_version: "9.0.0-rc0"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"
@@ -2173,10 +2127,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "start mongod"
-        vars:
-          AWS_AUTH: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           AWS_AUTH: "true"
       - func: "add-aws-auth-variables-to-file"

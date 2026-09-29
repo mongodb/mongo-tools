@@ -50,4 +50,11 @@ fi
 
 "$python" -m pip list
 
-../../../bin/mongo --nodb aws_e2e_assume_role.js
+# The AWS auth JS connects to the server itself, so it needs the address mongodb-runner allocated.
+: "${TOOLS_TESTING_MONGOD:?}"
+HOSTPORT="${TOOLS_TESTING_MONGOD#mongodb://}"
+# The URI carries the runner's bootstrap user as a user:password@ prefix, so drop it.
+HOSTPORT="${HOSTPORT##*@}"
+HOSTPORT="${HOSTPORT%%/*}"
+
+../../../bin/mongo --nodb --eval "var MONGOD_HOSTPORT = '${HOSTPORT}';" aws_e2e_assume_role.js
