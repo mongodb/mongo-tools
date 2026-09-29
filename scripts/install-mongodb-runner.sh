@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Installs the node runtime and mongodb-runner, the two mise tools the cluster tasks need, so they
+# can be cached separately from "install mise-managed tools" (which installs every tool).
+
 set -o errexit
 set -o pipefail
 set -o verbose
@@ -18,17 +21,20 @@ CYGWIN* | MINGW* | MSYS*)
 esac
 
 export PATH="${EVG_WORKDIR:?}/.local/bin:$PATH"
-
 export MISE_DATA_DIR="${EVG_WORKDIR:?}/.local/share/mise"
 
 recreate_npm_bin_symlinks
 
-# Cache hit: .local/bin and .local/share/mise were already restored from S3, so every tool is
-# present and there's nothing to install.
-if [ "${MISE_ALL_TOOLS_CACHE_HIT:-}" = "true" ]; then
+# Cache hit: node and mongodb-runner were already restored from S3, nothing to install.
+if [ "${MISE_MONGODB_RUNNER_CACHE_HIT:-}" = "true" ]; then
     exit 0
 fi
 
 # We only retry twice here because each attempt uses up some of the GitHub API's rate limit.
 RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
-    retry mise install
+    retry mise install node npm:@mongodb-js/mongodb-runner
+
+# Pin the runner's bundled mongodb driver to 7.5.0 so it can manage our 4.2 tasks. The mise
+# postinstall hook (see mise.toml) also runs this; calling it here too covers a cache miss where the
+# hook did not run. See scripts/pin-mongodb-runner.sh.
+"${SCRIPT_DIR:?}/pin-mongodb-runner.sh"

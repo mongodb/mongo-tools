@@ -23,7 +23,7 @@ node = "22.22.0"
 "npm:github-codeowners" = "0.2.1"
 # This opts out of the minimum_release_age below because this release is ours and is cut as it is
 # needed.
-"npm:@mongodb-js/mongodb-runner" = { version = "6.12.0", minimum_release_age = "0d" }
+"npm:@mongodb-js/mongodb-runner" = { version = "8.0.2", minimum_release_age = "0d" }
 "npm:oxfmt" = "0.52.0"
 
 [settings]
@@ -35,3 +35,10 @@ minimum_release_age = "7d"
 # We turn off GPG verification for node because it has been flaky in CI, and also requires a local
 # GPG public key.
 gpg_verify = false
+
+[hooks]
+# Pin the mongodb driver bundled with mongodb-runner to 7.5.0 so it can manage MongoDB 4.2 (see
+# scripts/pin-mongodb-runner.sh). This is a project-level hook rather than the runner's tool-level
+# postinstall because that option only accepts a string in this mise version, and because a
+# project-level hook also re-pins an already-installed runner.
+postinstall = "scripts/pin-mongodb-runner.sh"
