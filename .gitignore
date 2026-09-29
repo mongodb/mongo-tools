@@ -43,6 +43,7 @@ node_modules
 /silkbomb.env
 tags
 /temp*
+/test-cluster/
 test/**/*.json
 test/qa-tests/[0-9]*
 test/qa-tests/install_compass
