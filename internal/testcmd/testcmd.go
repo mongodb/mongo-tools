@@ -82,6 +82,27 @@ func ServerHostPort(t *testing.T) string {
 	return parsed.Host
 }
 
+// SingleHostURI returns the URI of the deployment the tests run against, narrowed to a single host.
+// A multi-host URI makes mongostat monitor asynchronously, and a print tick that beats the next
+// poll re-prints the previous sample as `{"error":"no data received"}` (TOOLS-1303), so a caller
+// that expects every printed row to hold data has to connect to one host. The query string is
+// preserved, so a replica set still reports its set and repl fields.
+func SingleHostURI(t *testing.T) string {
+	t.Helper()
+
+	uri := os.Getenv("TOOLS_TESTING_MONGOD")
+	if uri == "" {
+		return "mongodb://localhost:" + testopts.DefaultTestPort
+	}
+
+	parsed, err := url.Parse(uri)
+	require.NoError(t, err, "TOOLS_TESTING_MONGOD is a URI")
+	require.NotEmpty(t, parsed.Host, "TOOLS_TESTING_MONGOD names a host")
+	parsed.Host, _, _ = strings.Cut(parsed.Host, ",")
+
+	return parsed.String()
+}
+
 // UnreachablePort returns a port nothing is listening on, for the tests that need a connection to
 // fail rather than succeed against something unexpected.
 func UnreachablePort(t *testing.T) string {

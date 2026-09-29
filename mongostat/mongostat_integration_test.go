@@ -9,6 +9,7 @@ package mongostat
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -227,6 +228,30 @@ func TestMongostatCustomColumns(t *testing.T) {
 		})
 	}
 
+	t.Run("the selected columns carry values read from the server", func(t *testing.T) {
+		stdout, stderr, err := runMongostat(
+			t,
+			"-o",
+			"host,conn,time",
+			"--humanReadable=false",
+			"-n",
+			"1",
+		)
+		require.NoError(t, err, "mongostat exits successfully: %s", stderr)
+
+		rows := testcmd.Rows(stdout)
+		require.Len(t, rows, 2, "the output is a header and one data row")
+		fields := strings.Fields(rows[1])
+		require.Len(t, fields, 3, "the data row has one field per column")
+		host, conn, sampledAt := fields[0], fields[1], fields[2]
+
+		assert.Contains(t, host, ":", "the host column names the host and its port")
+		_, err = strconv.Atoi(conn)
+		assert.NoError(t, err, "the connection count is a number, got %#q", conn)
+		_, err = time.Parse(time.RFC3339, sampledAt)
+		assert.NoError(t, err, "the sample time is an RFC 3339 timestamp, got %#q", sampledAt)
+	})
+
 	t.Run("o and O together are rejected", func(t *testing.T) {
 		_, stderr, err := runMongostat(t, "-o", "host", "-O", "conn", "-n", "1")
 		testcmd.RequireExitFailure(t, err, "mongostat")
@@ -264,6 +289,48 @@ func TestMongostatCustomColumns(t *testing.T) {
 		header := strings.Fields(rows[0])
 		assert.Equal(t, "host", header[len(header)-1], "the added column comes last")
 	})
+}
+
+// TestMongostatJSON checks that `--json` prints one JSON object per sample, keyed by the host it
+// reports on, and that the object carries the default columns as fields with values read from the
+// server. It connects to a single host: with a multi-host deployment mongostat monitors
+// asynchronously and can re-print a sample it already printed as `{"error":"no data received"}`,
+// which would make the per-sample value checks flaky.
+func TestMongostatJSON(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	const rowCount = 2
+	stdout, stderr, err := runMongostatAgainstServer(
+		t,
+		testcmd.SingleHostURI(t),
+		"--json",
+		"--rowcount",
+		strconv.Itoa(rowCount),
+	)
+	require.NoError(t, err, "mongostat exits successfully: %s", stderr)
+
+	rows := testcmd.Rows(stdout)
+	require.Len(t, rows, rowCount, "--rowcount is the number of samples printed")
+
+	for i, row := range rows {
+		var sample map[string]map[string]string
+		require.NoError(t, json.Unmarshal([]byte(row), &sample), "sample %d is JSON: %s", i, row)
+		require.NotEmpty(t, sample, "sample %d reports on at least one host", i)
+
+		for host, fields := range sample {
+			assert.NotEmpty(t, host, "sample %d keys its report by host", i)
+			require.NotContains(t, fields, "error", "sample %d reports stats for %s", i, host)
+
+			sampledAt, ok := fields["time"]
+			require.True(t, ok, "the sample for %s has a time", host)
+			assert.NotEmpty(t, sampledAt, "the sample time for %s is set", host)
+
+			conn, ok := fields["conn"]
+			require.True(t, ok, "the sample for %s has a connection count", host)
+			_, err := strconv.Atoi(conn)
+			assert.NoError(t, err, "the connection count for %s is a number, got %#q", host, conn)
+		}
+	}
 }
 
 // defaultHeaderColumns returns the columns mongostat prints in its default header. A replica set
@@ -471,6 +538,18 @@ func shardHostsFromConfig(t *testing.T) []string {
 func runMongostat(t *testing.T, args ...string) (string, string, error) {
 	t.Helper()
 	return testcmd.RunAgainstTestServer(t, mongostatBinary(t), args...)
+}
+
+// runMongostatAgainstServer runs mongostat against one server URI rather than the whole test
+// deployment. runMongostat points at every host the deployment advertises, which on a replica set
+// is more than one.
+func runMongostatAgainstServer(
+	t *testing.T,
+	uri string,
+	args ...string,
+) (string, string, error) {
+	t.Helper()
+	return testcmd.Run(t, mongostatBinary(t), append(testopts.GetBareArgsForURI(uri), args...)...)
 }
 
 // buildMongostat builds the tool once for the whole package. Building rather than `go run` keeps
