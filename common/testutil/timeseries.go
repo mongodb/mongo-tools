@@ -1,9 +1,11 @@
 package testutil
 
 import (
+	"os"
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -12,7 +14,13 @@ import (
 // This sets up a timeseries collection and inserts 1000 logical documents into 10 bucket documents.
 // The timeField is 'ts', the metaField  is 'my_meta', and there's an index on 'my_meta.device'.
 func SetUpTimeseries(t *testing.T, dbName string, colName string) {
-	sessionProvider, _, err := GetBareSessionProvider(t)
+	SetUpTimeseriesForURI(t, os.Getenv(testopts.URIEnvVar), dbName, colName)
+}
+
+// SetUpTimeseriesForURI is SetUpTimeseries against a specific cluster, or against the default
+// localhost:DefaultTestPort when uri is empty.
+func SetUpTimeseriesForURI(t *testing.T, uri, dbName string, colName string) {
+	sessionProvider, _, err := GetBareSessionProviderForURI(t, uri)
 	require.NoError(t, err, "get session provider")
 
 	timeseriesOptions := bson.D{
