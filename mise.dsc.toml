@@ -14,4 +14,4 @@
 [tools]
 # This opts out of mise.toml's minimum_release_age because these releases are ours and are cut as
 # they are needed.
-"github:10gen/mongodb-downloader" = { version = "0.1.0-rc.2", minimum_release_age = "0d" }
+"github:10gen/mongodb-downloader" = { version = "0.1.0", minimum_release_age = "0d" }

@@ -49,7 +49,6 @@ pre-release still resolves to the series label.
 
 There are also a few other things to do in the evergreen config:
 
-- Update the `max_server_version` variable in the global variables section
 - Add the new version tag to each of the build variants; for the `8.3` tag, each variant will need
   to be preceded with a dot, so you'll need `name: ".8.3"`
 
@@ -57,9 +56,7 @@ To make the tests work, you also need to add a release-sourced entry for the new
 [etc/mongodb-downloader-config.yaml](./etc/mongodb-downloader-config.yaml). For a series that has
 not shipped yet, set `release_spec` to the exact pre-release to test (for example, `9.0.0-rc0`).
 Then run `mongodb-downloader update` and commit the regenerated
-[etc/mongodb-downloader-s3-artifacts.json](./etc/mongodb-downloader-s3-artifacts.json). Finally,
-raise the `latest` entry's `max_version` (and the matching `max_server_version` above) so the
-`latest` tests use the newest version we support.
+[etc/mongodb-downloader-s3-artifacts.json](./etc/mongodb-downloader-s3-artifacts.json).
 
 ### Adjust load libs
 

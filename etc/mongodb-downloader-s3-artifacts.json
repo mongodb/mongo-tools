@@ -34,18 +34,14 @@
                 "commit": "b8b83d6e6e1aed495578ad8c6f9234ad329c9955"
             },
             "9.0": {
-                "tarball": "rhel8-x86_64-9.0.0-rc0-99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4.tar.zst",
-                "commit": "99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4"
-            },
-            "latest": {
                 "tarball": "rhel8-x86_64-9.0.2-c4d309807b94ac30edcca32e35e88a9598eadfc8.tar.zst",
                 "commit": "c4d309807b94ac30edcca32e35e88a9598eadfc8"
             }
         },
         "ubuntu2204-arm64": {
             "9.0": {
-                "tarball": "ubuntu2204-arm64-9.0.0-rc0-99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4.tar.zst",
-                "commit": "99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4"
+                "tarball": "ubuntu2204-arm64-9.0.2-c4d309807b94ac30edcca32e35e88a9598eadfc8.tar.zst",
+                "commit": "c4d309807b94ac30edcca32e35e88a9598eadfc8"
             },
             "9.1-dsc": {
                 "tarball": "ubuntu2204-arm64-9.1-dsc-67d46e783fb535d6747dab3b2eb54bbaed6dba13.tar.zst",
@@ -92,10 +88,6 @@
                 "commit": "b8b83d6e6e1aed495578ad8c6f9234ad329c9955"
             },
             "9.0": {
-                "tarball": "windows-x86_64-9.0.0-rc0-99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4.tar.zst",
-                "commit": "99f9fbcb5b1a8e3684a4d25fcf9a762fbeef01e4"
-            },
-            "latest": {
                 "tarball": "windows-x86_64-9.0.2-c4d309807b94ac30edcca32e35e88a9598eadfc8.tar.zst",
                 "commit": "c4d309807b94ac30edcca32e35e88a9598eadfc8"
             }
