@@ -20,44 +20,6 @@ exec_timeout_secs: 10800
 # run the same task in the previous revision if the current task fails
 stepback: true
 
-variables:
-  # Common mongodb arguments
-  mongod_arguments:
-    default: &mongod_default_startup_args
-      mongod_args: ""
-      mongod_port: 33333
-    ssl: &mongod_ssl_startup_args
-      mongod_args:
-        "--sslMode requireSSL --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile
-        common/db/testdata/test-server.pem"
-      replsettest_ssl_config:
-        'sslMode: "requireSSL",sslPEMKeyFile: "common/db/testdata/test-server.pem", sslCAFile:
-        "common/db/testdata/ca-ia.pem", sslAllowInvalidHostnames: ""'
-      mongod_port: 33333
-    tls: &mongod_tls_startup_args
-      mongod_args_tls:
-        "--tlsMode requireTLS --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile
-        common/db/testdata/test-server.pem"
-      replsettest_tls_config:
-        'tlsMode: "requireTLS",tlsCertificateKeyFile: "common/db/testdata/test-server.pem",
-        tlsCAFile: "common/db/testdata/ca-ia.pem", tlsAllowInvalidHostnames: ""'
-      mongod_port: 33333
-
-  mongo_arguments:
-    default: &mongo_default_startup_args
-      mongo_args: &mongo_default_startup_args_string "--port 33333"
-      mongod_port: 33333
-    ssl: &mongo_ssl_startup_args
-      mongo_args:
-        "--port 33333 --ssl --sslCAFile common/db/testdata/ca-ia.pem --sslPEMKeyFile
-        common/db/testdata/test-server.pem --sslAllowInvalidCertificates"
-      mongod_port: 33333
-    tls: &mongo_tls_startup_args
-      mongo_args_tls:
-        "--port 33333 --tls --tlsCAFile common/db/testdata/ca-ia.pem --tlsCertificateKeyFile
-        common/db/testdata/test-server.pem --tlsAllowInvalidCertificates"
-      mongod_port: 33333
-
 parameters:
   - key: fake_tag_for_release_testing
     description: |
@@ -2822,13 +2784,6 @@ buildvariants:
     run_on:
       - rhel8.8-large
     expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
       resmoke_use_tls: _tls
       run_kinit: true
       resmoke_args: --jobs 4
@@ -2856,13 +2811,6 @@ buildvariants:
     run_on:
       - rhel8.8-large
     expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
       testArgs: "-race=true"
       resmoke_use_tls: _tls
       run_kinit: true
@@ -3034,21 +2982,12 @@ buildvariants:
     run_on:
       - windows-2022-latest-large
     expansions:
-      <<:
-        [
-          *mongod_ssl_startup_args,
-          *mongo_ssl_startup_args,
-          *mongod_tls_startup_args,
-          *mongo_tls_startup_args,
-        ]
       mongo_target: "windows"
       python_binary: "/cygdrive/c/python/Python311/python"
       resmoke_args: --jobs 4
       resmoke_use_tls: _tls
       excludes: requires_large_ram,requires_mongo_24
-      extension: .exe
       preproc_gpm: "perl -pi -e 's/\\r\\n/\\n/g' "
-      USE_SSL: "true"
     tasks:
       - name: "unit"
       - name: ".4.2"
