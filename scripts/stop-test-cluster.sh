@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Stops a cluster started by scripts/start-test-cluster.sh.
+# Stops a cluster started by scripts/start-test-cluster.sh. This is a no-op when the cluster was not
+# started, so it is safe to run unconditionally.
 
 set -o errexit
 set -o nounset
@@ -9,7 +10,7 @@ set -o pipefail
 SCRIPT_DIR=$(dirname "$0")
 REPO_ROOT="$(cd "${SCRIPT_DIR:?}/.." && pwd)"
 
-CLUSTER_ID=tools-test
+CLUSTER_ID="${CLUSTER_ID:-tools-test}"
 
 usage() {
     cat <<'EOF'
@@ -57,8 +58,24 @@ case "$CLUSTER_ID" in
     ;;
 esac
 
+CLUSTER_DIR="${REPO_ROOT:?}/test-cluster/${CLUSTER_ID:?}"
+
+# This runs in the Evergreen project-wide post block, so it has to be a no-op for the tasks that
+# never started a cluster. We check for logs as well as the connection string because a start that
+# failed partway through leaves logs but no connection string.
+if [ ! -f "${CLUSTER_DIR:?}/connection-string" ] && [ ! -d "${CLUSTER_DIR:?}/logs" ]; then
+    echo "no ${CLUSTER_DIR} to stop" >&2
+    exit 0
+fi
+
+# In Evergreen, mise itself is under ${workdir}, which is what ci-env.sh puts on PATH.
+if [ -n "${EVG_WORKDIR:-}" ]; then
+    # shellcheck source=scripts/ci-env.sh
+    source "${SCRIPT_DIR:?}/ci-env.sh"
+fi
+
 RUNNER=(mise exec node npm:@mongodb-js/mongodb-runner -- mongodb-runner)
 
 "${RUNNER[@]}" stop --id="${CLUSTER_ID:?}"
 
-rm -f "${REPO_ROOT:?}/test-cluster/${CLUSTER_ID:?}/connection-string"
+rm -f "${CLUSTER_DIR:?}/connection-string" "${CLUSTER_DIR:?}/expansions.yml"
