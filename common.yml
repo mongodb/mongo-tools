@@ -193,6 +193,60 @@ functions:
         # which still work, and nothing in CI invokes tools through them regardless.
         remote_path: mongo-tools/mise-cache
 
+  # node and mongodb-runner are the only mise tools the cluster tasks need, so cache them separately
+  # from "install mise-managed tools" (which installs every tool and is only used by the DSC and
+  # static tasks). The key includes mise.toml, so it is invalidated when either pinned version
+  # changes.
+  "install node and mongodb-runner":
+    - command: cache.restore
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mise_mongodb_runner_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/scripts/functions.sh
+          - src/github.com/mongodb/mongo-tools/scripts/install-mongodb-runner.sh
+          - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
+        name: mise-mongodb-runner
+        remote_path: mongo-tools/mise-cache
+    - command: subprocess.exec
+      params:
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/install-mongodb-runner.sh"
+        env:
+          EVG_WORKDIR: ${workdir}
+          MISE_MONGODB_RUNNER_CACHE_HIT: ${mise_mongodb_runner_cache_hit}
+    - command: cache.save
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        bucket: mciuploads
+        key_expansions:
+          - ${distro_arch}
+          - ${mise_and_go_cache_version}
+          - ${mise_mongodb_runner_cache_version}
+        key_files:
+          - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/scripts/functions.sh
+          - src/github.com/mongodb/mongo-tools/scripts/install-mongodb-runner.sh
+          - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
+        name: mise-mongodb-runner
+        paths:
+          - .local/bin
+          - .local/share/mise
+        remote_path: mongo-tools/mise-cache
+
   "run legacy tests":
     command: subprocess.exec
     type: test
@@ -347,6 +401,20 @@ functions:
 
   # These two tasks run in the project-wide "post" block, so they have to be safe for every
   # task. Both are no-ops when the task never started a DSC cluster.
+  # Runs in the project-wide "post" block, so it has to be safe for every task. It is a no-op when
+  # the task never started a runner-managed cluster.
+  "stop test cluster":
+    - command: subprocess.exec
+      params:
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/stop-test-cluster.sh"
+        env:
+          EVG_WORKDIR: ${workdir}
+
   "stop dsc cluster":
     - command: subprocess.exec
       params:
@@ -494,6 +562,31 @@ functions:
         SLAVE: ${slave}
         TASK_NAME: ${task_name}
 
+  # Starts a standalone cluster with mongodb-runner for the integration tasks. The runner allocates
+  # free ports, so the connection string is published as TOOLS_TESTING_MONGOD through the
+  # expansions.update below rather than assumed to be localhost:33333. CREATE_USER starts an
+  # auth-enabled server and creates the admin user the tests authenticate as.
+  "start test cluster":
+    - command: subprocess.exec
+      params:
+        # binary must be bash (with the script passed via args), not the script
+        # directly: Windows can't execute a shebang script as a native binary.
+        binary: bash
+        working_dir: src/github.com/mongodb/mongo-tools
+        args:
+          - "./scripts/start-test-cluster.sh"
+        env:
+          AUTH_PASSWORD: ${auth_password}
+          AUTH_USERNAME: ${auth_username}
+          CREATE_USER: ${CREATE_USER}
+          EVG_EXPANSION_VAR: TOOLS_TESTING_MONGOD
+          EVG_WORKDIR: ${workdir}
+          TOPOLOGY: standalone
+          USE_TLS: ${USE_TLS}
+    - command: expansions.update
+      params:
+        file: src/github.com/mongodb/mongo-tools/test-cluster/tools-test/expansions.yml
+
   "start mongod":
     command: subprocess.exec
     params:
@@ -530,23 +623,6 @@ functions:
         MONGO_ARGS: ${mongo_args}
         MONGO_ARGS_TLS: ${mongo_args_tls}
         USE_TLS: ${USE_TLS}
-
-  "create mongod users":
-    - command: subprocess.exec
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        args:
-          - "./scripts/create-mongod-users.sh"
-        env:
-          AUTH_PASSWORD: ${auth_password}
-          AUTH_USERNAME: ${auth_username}
-          EXTENSION: ${extension}
-          MONGO_ARGS: ${mongo_args}
-          MONGO_ARGS_TLS: ${mongo_args_tls}
-          USE_TLS: ${USE_TLS}
 
   "create release artifacts":
     # build release artifacts
@@ -1032,8 +1108,8 @@ pre:
         - key: mongosync_binary_folder
           value: "mongosync-coverage-binary"
   # Bump these to force-invalidate the mise Evergreen caches (see the "install mise and go",
-  # "install mise-managed tools", and the mongodb-downloader caches in the "download mongod and
-  # shell" and "start dsc cluster" functions).
+  # "install node and mongodb-runner", "install mise-managed tools", and the mongodb-downloader
+  # caches in the "download mongod and shell" and "start dsc cluster" functions).
   - command: expansions.update
     params:
       updates:
@@ -1041,6 +1117,8 @@ pre:
           value: v2
         - key: mise_all_tools_cache_version
           value: v3
+        - key: mise_mongodb_runner_cache_version
+          value: v1
         - key: mongodb_downloader_cache_version
           value: v1
 
@@ -1052,6 +1130,9 @@ post:
   - command: gotest.parse_files
     params:
       files: ["src/github.com/mongodb/mongo-tools/testing_output/*.suite"]
+  # Stop the runner-managed cluster before the killall below, so the runner can shut its servers
+  # down cleanly. It is a no-op for tasks that never started one.
+  - func: "stop test cluster"
   - command: shell.exec
     params:
       shell: bash
@@ -1232,10 +1313,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1249,25 +1328,15 @@ tasks:
     tags: ["4.2", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.2"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1284,10 +1353,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1301,25 +1368,15 @@ tasks:
     tags: ["4.4", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1355,10 +1412,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1372,25 +1427,15 @@ tasks:
     tags: ["5.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1447,10 +1492,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1464,25 +1507,15 @@ tasks:
     tags: ["6.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1539,10 +1572,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1556,25 +1587,15 @@ tasks:
     tags: ["7.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1631,10 +1652,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1648,25 +1667,15 @@ tasks:
     tags: ["8.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1723,10 +1732,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1740,25 +1747,15 @@ tasks:
     tags: ["8.2", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1816,10 +1813,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1833,25 +1828,15 @@ tasks:
     tags: ["8.3", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1908,25 +1893,12 @@ tasks:
     tags: ["no-ssl", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Variants that run integration tasks set mongod_args/mongo_args to their SSL values, and the
-      # startup scripts only look at the _tls variables when USE_TLS is true. Without these
-      # overrides, USE_TLS: "" would still start a requireSSL mongod and every test would fail to
-      # connect.
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args"
-              value: ""
-            - key: "mongo_args"
-              value: *mongo_default_startup_args_string
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: ""
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: ""
       - func: "run make target"
@@ -1945,10 +1917,8 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-rc0"
-      - func: "start mongod"
-        vars:
-          USE_TLS: "true"
-      - func: "wait for mongod to be ready"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
       - func: "run make target"
@@ -1962,25 +1932,15 @@ tasks:
     tags: ["9.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
-      # Concat auth args
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args_tls"
-              concat: " --auth"
       - func: "install mise and go"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-rc0"
-      - func: "start mongod"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
           USE_TLS: "true"
-      - func: "wait for mongod to be ready"
-        vars:
-          USE_TLS: "true"
-      - func: "create mongod users"
-        vars:
-          USE_TLS: "true"
+          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
