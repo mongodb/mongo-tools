@@ -16,7 +16,6 @@ import (
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // TestRoundTripLimit verifies that mongoexport --limit restricts the number of
@@ -25,104 +24,112 @@ func (s *ExportImportSuite) TestRoundTripLimit() {
 	const dbName = "mongoimport_roundtrip_limit_test"
 	const collName = "data"
 
-	client := s.Client()
-
-	coll := client.Database(dbName).Collection(collName)
-	docs := make([]any, 50)
-	for i := range 50 {
-		docs[i] = bson.D{{"a", i}}
-	}
-	_, err := coll.InsertMany(s.Context(), docs)
-	s.Require().NoError(err)
-
-	exportToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "json",
-			JSONFormat: "canonical",
-		},
-		InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Limit: 20},
-	})
-	s.Require().NoError(err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
-	s.Require().NoError(err)
-	n, err := me.Export(tmpFile)
-	s.Require().NoError(err)
-	s.Require().NoError(tmpFile.Close())
-	s.Assert().EqualValues(20, n, "should export exactly 20 documents")
-
-	s.Require().NoError(coll.Drop(s.Context()))
-
-	importToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := mongoimport.New(mongoimport.Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
-		IngestOptions: &mongoimport.IngestOptions{},
-	})
-	s.Require().NoError(err)
-	imported, _, err := mi.ImportDocuments()
-	s.Require().NoError(err)
-	s.Assert().EqualValues(20, imported, "should import all 20 exported documents")
-
-	count, err := coll.CountDocuments(s.Context(), bson.D{})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(20, count, "collection should have exactly 20 documents")
-	for i := range 20 {
-		c, err := coll.CountDocuments(s.Context(), bson.D{{"a", i}})
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceColl := cc.Source.Database(dbName).Collection(collName)
+		docs := make([]any, 50)
+		for i := range 50 {
+			docs[i] = bson.D{{"a", i}}
+		}
+		_, err := sourceColl.InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
-		s.Assert().EqualValues(1, c, "document with a=%d should exist (first 20 by sort)", i)
-	}
+
+		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		s.Require().NoError(err)
+		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+		me, err := mongoexport.New(mongoexport.Options{
+			ToolOptions: exportToolOptions,
+			OutputFormatOptions: &mongoexport.OutputFormatOptions{
+				Type:       "json",
+				JSONFormat: "canonical",
+			},
+			InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Limit: 20},
+		})
+		s.Require().NoError(err)
+		defer me.Close()
+		tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+		s.Require().NoError(err)
+		n, err := me.Export(tmpFile)
+		s.Require().NoError(err)
+		s.Require().NoError(tmpFile.Close())
+		s.Assert().EqualValues(20, n, "should export exactly 20 documents")
+
+		s.Require().NoError(sourceColl.Drop(s.Context()))
+
+		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		s.Require().NoError(err)
+		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+		mi, err := mongoimport.New(mongoimport.Options{
+			ToolOptions:   importToolOptions,
+			InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+			IngestOptions: &mongoimport.IngestOptions{},
+		})
+		s.Require().NoError(err)
+		imported, _, err := mi.ImportDocuments()
+		s.Require().NoError(err)
+		s.Assert().EqualValues(20, imported, "should import all 20 exported documents")
+
+		targetColl := cc.Target.Database(dbName).Collection(collName)
+		count, err := targetColl.CountDocuments(s.Context(), bson.D{})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(20, count, "collection should have exactly 20 documents")
+		for i := range 20 {
+			c, err := targetColl.CountDocuments(s.Context(), bson.D{{"a", i}})
+			s.Require().NoError(err)
+			s.Assert().EqualValues(1, c, "document with a=%d should exist (first 20 by sort)", i)
+		}
+	})
 }
 
 // TestRoundTripQuery verifies that mongoexport --query and --queryFile filter
 // export output correctly across multiple query types.
 func (s *ExportImportSuite) TestRoundTripQuery() {
-	const dbName = "mongoimport_roundtrip_query_test"
+	s.WithCrossCluster(func(cc crossCluster) {
+		basicDocs := []any{
+			bson.D{{"a", 1}, {"x", bson.D{{"b", "1"}}}},
+			bson.D{{"a", 2}, {"x", bson.D{{"b", "1"}, {"c", "2"}}}},
+			bson.D{{"a", 1}, {"c", "1"}},
+			bson.D{{"a", 2}, {"c", "2"}},
+		}
 
-	client := s.Client()
+		n := s.exportAndImportWithQuery(cc, basicDocs, `{"a":3}`, "")
+		s.Assert().EqualValues(0, n, "query matching nothing should export 0 docs")
 
-	db := client.Database(dbName)
+		n = s.exportAndImportWithQuery(cc, basicDocs, `{"a":1,"c":"1"}`, "")
+		s.Assert().EqualValues(1, n, "query matching one doc should export 1 doc")
 
-	basicDocs := []any{
-		bson.D{{"a", 1}, {"x", bson.D{{"b", "1"}}}},
-		bson.D{{"a", 2}, {"x", bson.D{{"b", "1"}, {"c", "2"}}}},
-		bson.D{{"a", 1}, {"c", "1"}},
-		bson.D{{"a", 2}, {"c", "2"}},
-	}
+		queryFile, err := os.CreateTemp(s.T().TempDir(), "query-*.json")
+		s.Require().NoError(err)
+		_, err = queryFile.WriteString(`{"a":1,"c":"1"}`)
+		s.Require().NoError(err)
+		s.Require().NoError(queryFile.Close())
+		n = s.exportAndImportWithQuery(cc, basicDocs, "", queryFile.Name())
+		s.Assert().EqualValues(1, n, "queryFile matching one doc should export 1 doc")
 
-	n := s.exportAndImportWithQuery(db, basicDocs, `{"a":3}`, "")
-	s.Assert().EqualValues(0, n, "query matching nothing should export 0 docs")
+		n = s.exportAndImportWithQuery(cc, basicDocs, `{"a":2,"x.c":"2"}`, "")
+		s.Assert().EqualValues(1, n, "query on embedded doc field should export 1 doc")
 
-	n = s.exportAndImportWithQuery(db, basicDocs, `{"a":1,"c":"1"}`, "")
-	s.Assert().EqualValues(1, n, "query matching one doc should export 1 doc")
+		n = s.exportAndImportWithQuery(cc, basicDocs, `{}`, "")
+		s.Assert().EqualValues(4, n, "empty query should export all 4 docs")
 
-	queryFile, err := os.CreateTemp(s.T().TempDir(), "query-*.json")
-	s.Require().NoError(err)
-	_, err = queryFile.WriteString(`{"a":1,"c":"1"}`)
-	s.Require().NoError(err)
-	s.Require().NoError(queryFile.Close())
-	n = s.exportAndImportWithQuery(db, basicDocs, "", queryFile.Name())
-	s.Assert().EqualValues(1, n, "queryFile matching one doc should export 1 doc")
-
-	n = s.exportAndImportWithQuery(db, basicDocs, `{"a":2,"x.c":"2"}`, "")
-	s.Assert().EqualValues(1, n, "query on embedded doc field should export 1 doc")
-
-	n = s.exportAndImportWithQuery(db, basicDocs, `{}`, "")
-	s.Assert().EqualValues(4, n, "empty query should export all 4 docs")
-
-	// TOOLS-469: extended JSON date query with $numberLong
-	dateDocs := []any{bson.D{
-		{"a", 1},
-		{"x", bson.NewDateTimeFromTime(time.Date(2014, 12, 11, 13, 52, 39, 498000000, time.UTC))},
-		{"y", bson.NewDateTimeFromTime(time.Date(2014, 12, 13, 13, 52, 39, 498000000, time.UTC))},
-	}}
-	dateQueryNumberLong := `{
+		// TOOLS-469: extended JSON date query with $numberLong
+		dateDocs := []any{
+			bson.D{
+				{"a", 1},
+				{
+					"x",
+					bson.NewDateTimeFromTime(
+						time.Date(2014, 12, 11, 13, 52, 39, 498000000, time.UTC),
+					),
+				},
+				{
+					"y",
+					bson.NewDateTimeFromTime(
+						time.Date(2014, 12, 13, 13, 52, 39, 498000000, time.UTC),
+					),
+				},
+			},
+		}
+		dateQueryNumberLong := `{
 		"x": {
 			"$gt": {"$date": {"$numberLong": "1418305949498"}},
 			"$lt": {"$date": {"$numberLong": "1418305979498"}}
@@ -132,17 +139,18 @@ func (s *ExportImportSuite) TestRoundTripQuery() {
 			"$lt": {"$date": {"$numberLong": "1418478769498"}}
 		}
 	}`
-	n = s.exportAndImportWithQuery(db, dateDocs, dateQueryNumberLong, "")
-	s.Assert().EqualValues(1, n, "extended JSON date query should export 1 doc")
+		n = s.exportAndImportWithQuery(cc, dateDocs, dateQueryNumberLong, "")
+		s.Assert().EqualValues(1, n, "extended JSON date query should export 1 doc")
 
-	// TOOLS-530: date query with ISO string format
-	n = s.exportAndImportWithQuery(
-		db,
-		dateDocs,
-		`{"x":{"$gt":{"$date":"2014-12-11T13:52:39.3Z"},"$lt":{"$date":"2014-12-11T13:52:39.5Z"}}}`,
-		"",
-	)
-	s.Assert().EqualValues(1, n, "ISO date string query should export 1 doc")
+		// TOOLS-530: date query with ISO string format
+		n = s.exportAndImportWithQuery(
+			cc,
+			dateDocs,
+			`{"x":{"$gt":{"$date":"2014-12-11T13:52:39.3Z"},"$lt":{"$date":"2014-12-11T13:52:39.5Z"}}}`,
+			"",
+		)
+		s.Assert().EqualValues(1, n, "ISO date string query should export 1 doc")
+	})
 }
 
 // TestRoundTripSortAndSkip verifies that mongoexport --sort and --skip
@@ -151,77 +159,81 @@ func (s *ExportImportSuite) TestRoundTripSortAndSkip() {
 	const dbName = "mongoimport_roundtrip_sortskip_test"
 	const collName = "data"
 
-	client := s.Client()
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceColl := cc.Source.Database(dbName).Collection(collName)
+		docs := make([]any, 50)
+		for i := range 50 {
+			docs[i] = bson.D{{"a", i}}
+		}
+		rand.Shuffle(len(docs), func(i, j int) {
+			docs[i], docs[j] = docs[j], docs[i]
+		})
 
-	coll := client.Database(dbName).Collection(collName)
-	docs := make([]any, 50)
-	for i := range 50 {
-		docs[i] = bson.D{{"a", i}}
-	}
-	rand.Shuffle(len(docs), func(i, j int) {
-		docs[i], docs[j] = docs[j], docs[i]
-	})
-
-	_, err := coll.InsertMany(s.Context(), docs)
-	s.Require().NoError(err)
-
-	exportToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type: "json", JSONFormat: "relaxed",
-		},
-		InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Skip: 20},
-	})
-	s.Require().NoError(err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
-	s.Require().NoError(err)
-	n, err := me.Export(tmpFile)
-	s.Require().NoError(err)
-	s.Require().NoError(tmpFile.Close())
-	s.Assert().EqualValues(30, n, "should export 30 documents after skipping 20")
-
-	s.Require().NoError(coll.Drop(s.Context()))
-
-	importToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
-	mi, err := mongoimport.New(mongoimport.Options{
-		ToolOptions:   importToolOptions,
-		InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
-		IngestOptions: &mongoimport.IngestOptions{},
-	})
-	s.Require().NoError(err)
-	imported, _, err := mi.ImportDocuments()
-	s.Require().NoError(err)
-	s.Assert().EqualValues(30, imported, "should import all 30 exported documents")
-
-	count, err := coll.CountDocuments(s.Context(), bson.D{})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(30, count, "collection should have 30 documents")
-	for i := range 30 {
-		c, err := coll.CountDocuments(s.Context(), bson.D{{"a", i + 20}})
+		_, err := sourceColl.InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
-		s.Assert().EqualValues(1, c, "document with a=%d should exist", i+20)
-	}
+
+		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		s.Require().NoError(err)
+		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+		me, err := mongoexport.New(mongoexport.Options{
+			ToolOptions: exportToolOptions,
+			OutputFormatOptions: &mongoexport.OutputFormatOptions{
+				Type: "json", JSONFormat: "relaxed",
+			},
+			InputOptions: &mongoexport.InputOptions{Sort: "{a:1}", Skip: 20},
+		})
+		s.Require().NoError(err)
+		defer me.Close()
+		tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
+		s.Require().NoError(err)
+		n, err := me.Export(tmpFile)
+		s.Require().NoError(err)
+		s.Require().NoError(tmpFile.Close())
+		s.Assert().EqualValues(30, n, "should export 30 documents after skipping 20")
+
+		s.Require().NoError(sourceColl.Drop(s.Context()))
+
+		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		s.Require().NoError(err)
+		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
+		mi, err := mongoimport.New(mongoimport.Options{
+			ToolOptions:   importToolOptions,
+			InputOptions:  &mongoimport.InputOptions{File: tmpFile.Name(), ParseGrace: "stop"},
+			IngestOptions: &mongoimport.IngestOptions{},
+		})
+		s.Require().NoError(err)
+		imported, _, err := mi.ImportDocuments()
+		s.Require().NoError(err)
+		s.Assert().EqualValues(30, imported, "should import all 30 exported documents")
+
+		targetColl := cc.Target.Database(dbName).Collection(collName)
+		count, err := targetColl.CountDocuments(s.Context(), bson.D{})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(30, count, "collection should have 30 documents")
+		for i := range 30 {
+			c, err := targetColl.CountDocuments(s.Context(), bson.D{{"a", i + 20}})
+			s.Require().NoError(err)
+			s.Assert().EqualValues(1, c, "document with a=%d should exist", i+20)
+		}
+	})
 }
 
 func (s *ExportImportSuite) exportAndImportWithQuery(
-	db *mongo.Database,
+	cc crossCluster,
 	sourceDocs []any,
 	query, queryFile string,
 ) int64 {
-	dbName := db.Name()
-	s.Require().NoError(db.Collection("source").Drop(s.Context()))
-	s.Require().NoError(db.Collection("dest").Drop(s.Context()))
+	const dbName = "mongoimport_roundtrip_query_test"
+
+	sourceDB := cc.Source.Database(dbName)
+	targetDB := cc.Target.Database(dbName)
+	s.Require().NoError(sourceDB.Collection("source").Drop(s.Context()))
+	s.Require().NoError(targetDB.Collection("dest").Drop(s.Context()))
 	if len(sourceDocs) > 0 {
-		_, err := db.Collection("source").InsertMany(s.Context(), sourceDocs)
+		_, err := sourceDB.Collection("source").InsertMany(s.Context(), sourceDocs)
 		s.Require().NoError(err)
 	}
-	exportToolOptions, err := testopts.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -239,7 +251,7 @@ func (s *ExportImportSuite) exportAndImportWithQuery(
 	s.Require().NoError(err)
 	s.Require().NoError(tmpFile.Close())
 
-	importToolOptions, err := testopts.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -251,7 +263,7 @@ func (s *ExportImportSuite) exportAndImportWithQuery(
 	_, _, err = mi.ImportDocuments()
 	s.Require().NoError(err)
 
-	n, err := db.Collection("dest").CountDocuments(s.Context(), bson.D{})
+	n, err := targetDB.Collection("dest").CountDocuments(s.Context(), bson.D{})
 	s.Require().NoError(err)
 	return n
 }
