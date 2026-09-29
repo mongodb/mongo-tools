@@ -515,7 +515,7 @@ var platforms = []Platform{
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,
 		Pkg:                   PkgDeb,
-		Repos:                 []Repo{RepoEnterprise},
+		Repos:                 []Repo{RepoEnterprise, RepoOrg},
 		BuildTags:             defaultBuildTags,
 		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},

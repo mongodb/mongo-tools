@@ -237,6 +237,17 @@ repos:
     repos:
       - apt/debian/dists/bookworm/mongodb-org
 
+  - name: debian13
+    type: deb
+    code_name: "trixie"
+    bucket: repo.mongodb.org
+    edition: org
+    component: main
+    architectures:
+      - amd64
+    repos:
+      - apt/debian/dists/trixie/mongodb-org
+
   - name: ubuntu1204
     type: deb
     code_name: "precise"
