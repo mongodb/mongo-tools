@@ -580,6 +580,7 @@ functions:
           EVG_EXPANSION_VAR: TOOLS_TESTING_MONGOD
           EVG_WORKDIR: ${workdir}
           SECONDARIES: ${SECONDARIES}
+          SHARDS: ${SHARDS}
           TOPOLOGY: ${TOPOLOGY|standalone}
           USE_TLS: ${USE_TLS}
     - command: expansions.update
@@ -892,34 +893,6 @@ functions:
           set -o verbose
 
           mkdir -p bin
-
-  "create sharded cluster":
-    - command: subprocess.exec
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        background: true
-        args:
-          - "./scripts/create-sharded-cluster.sh"
-        env:
-          LOAD_LIBS_VERSION: ${load_libs_version}
-          MONGOD_PORT: ${mongod_port}
-
-    - command: subprocess.exec
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        args:
-          - "./scripts/wait-for-cluster.sh"
-        env:
-          MONGOD_PORT: ${mongod_port}
-          MONGO_ARGS: ""
-          MONGO_ARGS_TLS: ""
-          USE_TLS: ""
 
   "add-aws-auth-variables-to-file":
     - command: subprocess.exec
@@ -2041,7 +2014,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
+        vars:
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
@@ -2058,7 +2034,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
+        vars:
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
@@ -2075,7 +2054,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
+        vars:
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
@@ -2092,7 +2074,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
+        vars:
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
@@ -2109,7 +2094,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
+        vars:
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
@@ -2126,9 +2114,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
-          load_libs_version: "8.2"
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
@@ -2145,9 +2134,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
-          load_libs_version: "8.3"
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
@@ -2164,9 +2154,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0"
-      - func: "create sharded cluster"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
-          load_libs_version: "9.0"
+          TOPOLOGY: sharded
       - func: "run make target"
         vars:
           target: build
