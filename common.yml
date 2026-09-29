@@ -562,10 +562,11 @@ functions:
         SLAVE: ${slave}
         TASK_NAME: ${task_name}
 
-  # Starts a standalone cluster with mongodb-runner for the integration tasks. The runner allocates
-  # free ports, so the connection string is published as TOOLS_TESTING_MONGOD through the
-  # expansions.update below rather than assumed to be localhost:33333. CREATE_USER starts an
-  # auth-enabled server and creates the admin user the tests authenticate as.
+  # Starts a cluster with mongodb-runner for the integration tasks: standalone by default, or the
+  # topology named in TOPOLOGY. The runner allocates free ports, so the connection string is
+  # published as TOOLS_TESTING_MONGOD through the expansions.update below rather than assumed to be
+  # localhost:33333. CREATE_USER starts an auth-enabled server and creates the admin user the tests
+  # authenticate as.
   "start test cluster":
     - command: subprocess.exec
       params:
@@ -581,7 +582,8 @@ functions:
           CREATE_USER: ${CREATE_USER}
           EVG_EXPANSION_VAR: TOOLS_TESTING_MONGOD
           EVG_WORKDIR: ${workdir}
-          TOPOLOGY: standalone
+          SECONDARIES: ${SECONDARIES}
+          TOPOLOGY: ${TOPOLOGY|standalone}
           USE_TLS: ${USE_TLS}
     - command: expansions.update
       params:
@@ -893,40 +895,6 @@ functions:
           set -o verbose
 
           mkdir -p bin
-
-  "create repl_set":
-    - command: subprocess.exec
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        background: true
-        args:
-          - "./scripts/create-repl-set.sh"
-        env:
-          LOAD_LIBS_VERSION: ${load_libs_version}
-          MONGOD_PORT: ${mongod_port}
-          MONGO_ARGS: ${mongo_args}
-          MONGO_ARGS_TLS: ${mongo_args_tls}
-          REPLSETTEST_SSL_CONFIG: ${replsettest_ssl_config}
-          REPLSETTEST_TLS_CONFIG: ${replsettest_tls_config}
-          USE_SSL: ${USE_SSL}
-          USE_TLS: ${USE_TLS}
-
-    - command: subprocess.exec
-      params:
-        # binary must be bash (with the script passed via args), not the script
-        # directly: Windows can't execute a shebang script as a native binary.
-        binary: bash
-        working_dir: src/github.com/mongodb/mongo-tools
-        args:
-          - "./scripts/wait-for-cluster.sh"
-        env:
-          MONGOD_PORT: ${mongod_port}
-          MONGO_ARGS: ${mongo_args}
-          MONGO_ARGS_TLS: ${mongo_args_tls}
-          USE_TLS: ${USE_TLS}
 
   "create sharded cluster":
     - command: subprocess.exec
@@ -1393,8 +1361,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "4.4"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1452,8 +1422,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "5.0"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1532,8 +1504,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "6.0"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1612,8 +1586,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "7.0"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1692,8 +1668,10 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.0"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1772,10 +1750,11 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.2.0"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
-          load_libs_version: "8.2"
       - func: "run make target"
         vars:
           target: build
@@ -1853,10 +1832,11 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "8.3.0-rc4"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
-          load_libs_version: "8.3"
       - func: "run make target"
         vars:
           target: build
@@ -1957,10 +1937,11 @@ tasks:
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-rc0"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: "true"
-          load_libs_version: "9.0"
       - func: "run make target"
         vars:
           target: build
@@ -2008,33 +1989,22 @@ tasks:
           target: test:integration -topology=replSet ${testArgs}
 
   # Runs the dump/restore round-trip tests across a plain 9.0 ASC mongod and the 9.1 DSC cluster, in
-  # both directions. The ASC mongod owns the primary connection (localhost:33333); the DSC URI goes
-  # to TOOLS_TESTING_MONGOD2 so the routed tests exercise the boundary both ways.
+  # both directions. The ASC mongod owns the primary connection (TOOLS_TESTING_MONGOD); the DSC URI
+  # goes to TOOLS_TESTING_MONGOD2 so the routed tests exercise the boundary both ways.
   - name: integration-9.1-dsc-cross-cluster
     tags: ["9.1", "dsc", "cross-cluster"]
     commands:
       - func: "fetch source"
-      # The DSC cluster runs without TLS, so the ASC mongod it backs up against must too. The DSC
-      # variant does not carry the mongod startup args the plain integration variants do, so set the
-      # no-TLS defaults here.
-      - command: expansions.update
-        params:
-          updates:
-            - key: "mongod_args"
-              value: ""
-            - key: "mongod_port"
-              value: "33333"
-            - key: "mongo_args"
-              value: "--port 33333"
       - func: "install mise and go"
       - func: "install mise-managed tools"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-rc0"
-      - func: "create repl_set"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
         vars:
+          TOPOLOGY: replset
           USE_TLS: ""
-          load_libs_version: "9.0"
       - func: "run make target"
         vars:
           target: build

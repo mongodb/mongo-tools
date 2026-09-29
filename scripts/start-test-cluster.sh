@@ -17,15 +17,16 @@
 #   --bin-dir=<dir>                         Use existing mongod/mongos binaries instead of downloading
 #   --id=<id>                               Cluster id, also used by stop (default tools-test)
 #   --shards=<n>                            Number of shards for the sharded topology (default 1)
+#   --secondaries=<n>                       Number of secondaries per replica set (default 0)
 #   --tls                                   Require TLS using the certificates under common/db/testdata
 #   --create-user                           Create an admin user for auth runs (needs AUTH_USERNAME and
 #                                           AUTH_PASSWORD)
 #   --evg-expansion-var=<name>              Write an Evergreen expansions file setting name to the URI
 #
 # Every option can also be set through the matching environment variable (TOPOLOGY, VERSION, BIN_DIR,
-# CLUSTER_ID, SHARDS, USE_TLS, CREATE_USER, AUTH_USERNAME, AUTH_PASSWORD, EVG_EXPANSION_VAR,
-# ADDITIONAL_ARGS). CI uses the environment form so that the auth password is not passed on the
-# command line.
+# CLUSTER_ID, SHARDS, SECONDARIES, USE_TLS, CREATE_USER, AUTH_USERNAME, AUTH_PASSWORD,
+# EVG_EXPANSION_VAR, ADDITIONAL_ARGS). CI uses the environment form so that the auth password is not
+# passed on the command line.
 #
 # Stop the cluster with scripts/stop-test-cluster.sh.
 
@@ -47,6 +48,7 @@ VERSION="${VERSION:-8.0}"
 BIN_DIR="${BIN_DIR:-}"
 CLUSTER_ID="${CLUSTER_ID:-tools-test}"
 SHARDS="${SHARDS:-1}"
+SECONDARIES="${SECONDARIES:-0}"
 USE_TLS="${USE_TLS:-false}"
 CREATE_USER="${CREATE_USER:-false}"
 AUTH_USERNAME="${AUTH_USERNAME:-}"
@@ -56,7 +58,7 @@ ADDITIONAL_ARGS="${ADDITIONAL_ARGS:-}"
 EXTRA_MONGOD_ARGS=()
 
 usage() {
-    sed -n '3,30p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '3,31p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [ $# -gt 0 ]; do
@@ -64,7 +66,7 @@ while [ $# -gt 0 ]; do
     # options, and GNU getopt (which does handle long options) is not available on macOS, so rewrite
     # the separated form to the --opt=value form the parser below expects.
     case "$1" in
-    --topology | --version | --bin-dir | --id | --shards | --evg-expansion-var)
+    --topology | --version | --bin-dir | --id | --shards | --secondaries | --evg-expansion-var)
         if [ $# -lt 2 ]; then
             echo "option $1 requires a value" >&2
             exit 1
@@ -79,6 +81,7 @@ while [ $# -gt 0 ]; do
     --bin-dir=*) BIN_DIR="${1#*=}" ;;
     --id=*) CLUSTER_ID="${1#*=}" ;;
     --shards=*) SHARDS="${1#*=}" ;;
+    --secondaries=*) SECONDARIES="${1#*=}" ;;
     --tls) USE_TLS=true ;;
     --create-user) CREATE_USER=true ;;
     --evg-expansion-var=*) EVG_EXPANSION_VAR="${1#*=}" ;;
@@ -159,6 +162,9 @@ fi
 
 if [ "$TOPOLOGY" = "sharded" ]; then
     RUNNER_ARGS+=("--shards=${SHARDS:?}")
+fi
+if [ "$TOPOLOGY" = "replset" ]; then
+    RUNNER_ARGS+=("--secondaries=${SECONDARIES:?}")
 fi
 
 json_escape() {
