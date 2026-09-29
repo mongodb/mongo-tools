@@ -206,13 +206,26 @@ In order for this to succeed, you must be a member of the `devprod-platforms-ecr
 
 ## Testing
 
-You will need a MongoDB server listening on `localhost:33333` to run the integration tests locally.
-You can use the [`mlaunch` tool](http://blog.rueckstiess.com/mtools/mlaunch.html) to make this
-simple:
+You will need a MongoDB server to run the integration tests locally. We have scripts in `scripts/`
+to start clusters with various topologies:
 
 ```
-$> mlaunch init --replicaset --port 33333
+# standalone mongod (the default)
+$> ./scripts/start-test-cluster.sh
+# single-node replica set
+$> ./scripts/start-test-cluster.sh --topology=replset
+# one-shard cluster with a mongos
+$> ./scripts/start-test-cluster.sh --topology=sharded
 ```
+
+The runner will pick random free ports for the cluster and print out a connection string when it's
+done.
+
+```
+$> export TOOLS_TESTING_MONGOD='mongodb://...'
+```
+
+Stop the cluster with `./scripts/stop-test-cluster.sh`.
 
 To run unit and integration tests:
 
@@ -225,7 +238,7 @@ If `TOOLS_TESTING_UNIT` is set to a true value in the shell environment, unit te
 If `TOOLS_TESTING_INTEGRATION` is set to a true value in the shell environment, integration tests
 will run.
 
-Integration tests require a `mongod` (running on port 33333) while unit tests do not.
+Integration tests require a `mongod` while unit tests do not.
 
 Example of how to run a specific integration test:
 
