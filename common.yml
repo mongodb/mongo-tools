@@ -824,6 +824,7 @@ functions:
           MONGOD_PORT: ${mongod_port}
           MONGO_ARGS: ${mongo_args}
           MONGO_ARGS_TLS: ${mongo_args_tls}
+          REPLSET_NODES: ${replset_nodes|1}
           REPLSETTEST_SSL_CONFIG: ${replsettest_ssl_config}
           REPLSETTEST_TLS_CONFIG: ${replsettest_tls_config}
           USE_SSL: ${USE_SSL}
@@ -841,6 +842,7 @@ functions:
           MONGOD_PORT: ${mongod_port}
           MONGO_ARGS: ${mongo_args}
           MONGO_ARGS_TLS: ${mongo_args_tls}
+          REPLSET_NODES: ${replset_nodes|1}
           USE_TLS: ${USE_TLS}
 
   "create sharded cluster":
@@ -2930,6 +2932,7 @@ buildvariants:
       - name: ".8.3"
       - name: ".9.0"
       - name: ".no-ssl"
+      - name: ".multinode"
       - name: ".kerberos"
       - name: "dist"
       - name: "sign"
