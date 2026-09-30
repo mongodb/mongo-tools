@@ -38,16 +38,11 @@ dsc-cluster/
 node_modules
 /purls.txt
 /release.*
-/report.json
 /rpm_build
 /silkbomb.env
 tags
 /temp*
 test/**/*.json
-test/qa-tests/[0-9]*
-test/qa-tests/install_compass
-test/qa-tests/mongo*
-test/qa-tests/venv
 testing_output/
 vendor/pkg
 !**/testdata/**

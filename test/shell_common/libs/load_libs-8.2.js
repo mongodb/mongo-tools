@@ -1,5 +1,6 @@
-// All changes required to run JS tests in legacy / qa-tests directories should go in this file.
-// Assume that the shell is running from either test/legacy42/ or test/qa-tests directories for load paths.
+// All changes required to stand up a cluster for the integration tests should go in this file.
+// Load paths are written relative to a sibling of shell_common, and resolve through the baseUrl in
+// jsconfig.json, which the cluster-setup scripts copy to the repo root before starting the shell.
 
 // This file intentionally loads the libs for 8.1, since the changes for 8.1 are the same as what we
 // need for 8.2.
