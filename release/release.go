@@ -34,6 +34,7 @@ import (
 	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/evergreen"
 	"github.com/mongodb/mongo-tools/release/platform"
+	"github.com/mongodb/mongo-tools/release/sbom"
 	"github.com/mongodb/mongo-tools/release/version"
 	"github.com/urfave/cli/v2"
 )
@@ -152,10 +153,10 @@ func main() {
 				},
 			},
 			{
-				Name: "print-binary-paths",
+				Name: "print-binary-names",
 				Action: func(cCtx *cli.Context) error {
 					for _, b := range binaries {
-						fmt.Printf("./%s\n", b)
+						fmt.Println(b)
 					}
 					return nil
 				},
@@ -165,6 +166,33 @@ func main() {
 				Action: func(cCtx *cli.Context) error {
 					printOsArchCombos()
 					return nil
+				},
+			},
+			{
+				Name: "merge-sbom-components",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "dir",
+						Required: true,
+						Usage:    "directory of per-combo CycloneDX JSON files to merge",
+					},
+					&cli.StringFlag{
+						Name:     "module-prefix",
+						Required: true,
+						Usage:    "purl prefix identifying the module's own self-referencing component",
+					},
+					&cli.StringFlag{
+						Name:     "output",
+						Required: true,
+						Usage:    "path to write the merged CycloneDX JSON file",
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+					return sbom.MergeComponents(
+						cCtx.String("dir"),
+						cCtx.String("module-prefix"),
+						cCtx.String("output"),
+					)
 				},
 			},
 		},
