@@ -22,12 +22,6 @@ func init() {
 		Do(buildscript.CheckMinimumGoVersion)
 
 	// Deps & SSDL
-	taskRegistry.Declare("writeSBOMLite").
-		Description("create an SBOM Lite file using the Silkbomb tool").
-		Do(buildscript.WriteSBOMLite)
-	taskRegistry.Declare("writeAugmentedSBOM").
-		Description("create an Augmented SBOM file using the Silkbomb tool").
-		Do(buildscript.WriteAugmentedSBOM)
 	taskRegistry.Declare("addDep").
 		Description("Add a dependency").
 		RequiredArg("pkg").
