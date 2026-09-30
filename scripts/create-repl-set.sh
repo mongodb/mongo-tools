@@ -17,13 +17,16 @@ if [ "$REPLSET_NODES" -gt 1 ]; then
 fi
 
 echo "starting repl set"
-NODE_OPTIONS=""
+# ReplSetTest passes enableTestCommands to the nodes only when the shell itself was
+# started with it, and that default lives in the shell binary rather than in this
+# repo. Tests that drive a server failpoint need it, so set it explicitly.
+NODE_OPTIONS='setParameter: {enableTestCommands: 1}'
 mkdir -p /data/db/
 if [ "$USE_TLS" = "true" ]; then
-    NODE_OPTIONS="$REPLSETTEST_TLS_CONFIG"
+    NODE_OPTIONS="$NODE_OPTIONS, $REPLSETTEST_TLS_CONFIG"
     MONGO_ARGS="$MONGO_ARGS_TLS"
 elif [ "$USE_SSL" = "true" ]; then
-    NODE_OPTIONS="$REPLSETTEST_SSL_CONFIG"
+    NODE_OPTIONS="$NODE_OPTIONS, $REPLSETTEST_SSL_CONFIG"
 fi
 # use jsconfig.json to set baseUrl to find libs
 mv test/shell_common/jsconfig.json ./
