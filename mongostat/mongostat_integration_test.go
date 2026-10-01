@@ -243,11 +243,12 @@ func TestMongostatCustomColumns(t *testing.T) {
 }
 
 // defaultHeaderColumns returns the columns mongostat prints in its default header. A replica set
-// adds the host, set, and repl columns that a standalone does not have.
+// adds the set and repl columns that a standalone does not have. The host column is not part of the
+// default header: it only appears with --discover or when monitoring more than one host.
 func defaultHeaderColumns() []string {
 	cols := []string{"insert", "conn", "time"}
 	if testtype.HasTestType(testtype.ReplSetTestType) {
-		cols = append(cols, "host", "set", "repl")
+		cols = append(cols, "set", "repl")
 	}
 	return cols
 }
