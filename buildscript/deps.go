@@ -1,14 +1,12 @@
 package buildscript
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"sort"
 	"strings"
 	"syscall"
@@ -19,90 +17,6 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/mod/modfile"
 )
-
-func WriteSBOMLite(ctx *task.Context) error {
-	if err := requirePodman(ctx); err != nil {
-		return err
-	}
-	if err := startPodmanMachine(ctx); err != nil {
-		return err
-	}
-	//nolint:errcheck
-	defer stopPodmanMachine(ctx)
-
-	return sh.Run(ctx, "scripts/regenerate-sbom-lite.sh")
-}
-
-// WriteAugmentedSBOM creates the SBOM Lite file for this project. This requires the following env
-// vars to be set:
-//
-//   - KONDUKTO_TOKEN
-//   - EVG_TRIGGERED_BY_TAG
-func WriteAugmentedSBOM(ctx *task.Context) error {
-	if err := requirePodman(ctx); err != nil {
-		return err
-	}
-
-	return sh.Run(ctx, "scripts/regenerate-augmented-sbom.sh")
-}
-
-func requirePodman(ctx *task.Context) error {
-	err := sh.Run(ctx, "which", "podman")
-	if err == nil {
-		return nil
-	}
-
-	fmt.Println(`This command requires the "podman" CLI tool, which you will need to install.`)
-	fmt.Println("See https://podman.io/ for more information and installation instructions.")
-	return err
-}
-
-func startPodmanMachine(ctx *task.Context) error {
-	if runtime.GOOS == "linux" {
-		// Linux doesn't need a podman machine to be up.
-		return nil
-	}
-
-	out, err := sh.RunOutput(ctx, "podman", "machine", "info", "--format", "json")
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("podman machine info: %s\n", out)
-
-	info := struct {
-		Host struct {
-			CurrentMachine string `json:"CurrentMachine"`
-			MachineState   string `json:"MachineState"`
-		} `json:"Host"`
-	}{}
-	err = json.Unmarshal([]byte(out), &info)
-	if err != nil {
-		return err
-	}
-
-	// Run podman machine init if there's no current machine.
-	if info.Host.CurrentMachine == "" {
-		err = sh.RunCmd(ctx, exec.CommandContext(ctx, "podman", "machine", "init"))
-		if err != nil {
-			return err
-		}
-	}
-
-	if info.Host.MachineState == "Running" {
-		return nil
-	}
-
-	return sh.Run(ctx, "podman", "machine", "start")
-}
-
-func stopPodmanMachine(ctx *task.Context) error {
-	if runtime.GOOS == "linux" {
-		// Linux doesn't need a podman machine.
-		return nil
-	}
-	return sh.Run(ctx, "podman", "machine", "stop")
-}
 
 //nolint:misspell // "licence" is intentional here
 var (
@@ -332,9 +246,6 @@ func updateGoPackageMetadata(ctx *task.Context) error {
 		return err
 	}
 	if err := sh.Run(ctx, "go", "mod", "vendor"); err != nil {
-		return err
-	}
-	if err := WriteSBOMLite(ctx); err != nil {
 		return err
 	}
 
