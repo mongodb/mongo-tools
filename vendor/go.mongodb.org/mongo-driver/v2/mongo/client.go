@@ -11,13 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/credutil"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
@@ -35,7 +35,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
@@ -506,11 +505,17 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 
 func (c *Client) endSessions(ctx context.Context) {
 	sessionIDs := c.sessionPool.IDSlice()
-	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
-		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
-		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI).
-		MaxAdaptiveRetries(c.effectiveAdaptiveRetries(true)).
-		EnableOverloadRetargeting(c.enableOverloadRetargeting)
+	op := endSessionsOp{
+		clock:                     c.clock,
+		deployment:                c.deployment,
+		selector:                  &serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()},
+		monitor:                   c.monitor,
+		database:                  "admin",
+		crypt:                     c.cryptFLE,
+		serverAPI:                 c.serverAPI,
+		maxAdaptiveRetries:        c.effectiveAdaptiveRetries(true),
+		enableOverloadRetargeting: c.enableOverloadRetargeting,
+	}
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -522,7 +527,8 @@ func (c *Client) endSessions(ctx context.Context) {
 			// Ignore all errors when ending sessions.
 			_, marshalVal, err := bson.MarshalValue(currentBatch)
 			if err == nil {
-				_ = op.SessionIDs(marshalVal).Execute(ctx)
+				op.sessionIDs = marshalVal
+				_ = op.execute(ctx)
 			}
 
 			currentBatch = currentBatch[:0]
@@ -664,7 +670,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
 	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
 
-	mc, err := mongocrypt.NewMongoCrypt(&mcopts.MongoCryptOptions{
+	cryptOpts := &mcopts.MongoCryptOptions{
 		KmsProviders:               kmsProviders,
 		LocalSchemaMap:             cryptSchemaMap,
 		BypassQueryAnalysis:        bypassQueryAnalysis,
@@ -673,7 +679,11 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		CryptSharedLibOverridePath: cryptSharedLibPath,
 		HTTPClient:                 opts.HTTPClient,
 		KeyExpiration:              opts.KeyExpiration,
-	})
+	}
+	if opts.AWSCredentialsProvider != nil {
+		cryptOpts.AWSCredentialsProvider = credutil.AWSOptionsProvider{Provider: opts.AWSCredentialsProvider}
+	}
+	mc, err := mongocrypt.NewMongoCrypt(cryptOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -791,26 +801,37 @@ func (c *Client) ListDatabases(ctx context.Context, filter any, opts ...options.
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
-	op := operation.NewListDatabases(filterDoc).
-		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
-		Retry(retry).MaxAdaptiveRetries(maxAdaptiveRetries).
-		EnableOverloadRetargeting(c.enableOverloadRetargeting).
-		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
-		ServerAPI(c.serverAPI).Timeout(c.timeout).Authenticator(c.authenticator)
+	op := listDatabasesOp{
+		filter:                    filterDoc,
+		session:                   sess,
+		readPreference:            c.readPreference,
+		monitor:                   c.monitor,
+		retry:                     &retry,
+		maxAdaptiveRetries:        maxAdaptiveRetries,
+		enableOverloadRetargeting: c.enableOverloadRetargeting,
+		selector:                  selector,
+		clock:                     c.clock,
+		database:                  "admin",
+		deployment:                c.deployment,
+		crypt:                     c.cryptFLE,
+		serverAPI:                 c.serverAPI,
+		timeout:                   c.timeout,
+		authenticator:             c.authenticator,
+	}
 
 	if lda.NameOnly != nil {
-		op = op.NameOnly(*lda.NameOnly)
+		op.nameOnly = lda.NameOnly
 	}
 	if lda.AuthorizedDatabases != nil {
-		op = op.AuthorizedDatabases(*lda.AuthorizedDatabases)
+		op.authorizedDatabases = lda.AuthorizedDatabases
 	}
 
-	err = op.Execute(ctx)
+	err = op.execute(ctx)
 	if err != nil {
 		return ListDatabasesResult{}, wrapErrors(err)
 	}
 
-	return newListDatabasesResultFromOperation(op.Result()), nil
+	return newListDatabasesResultFromOperation(op.result()), nil
 }
 
 // ListDatabaseNames executes a listDatabases command and returns a slice containing the names of all of the databases
@@ -952,40 +973,14 @@ func (c *Client) effectiveAdaptiveRetries(retryOverload bool) uint {
 	return defaultAdaptiveRetries
 }
 
-// ClientBulkWrite is a single write operation for [Client.BulkWrite]. It pairs a
-// single write operation with the database and collection it targets.
+// ClientBulkWrite is a struct that can be used in a client-level BulkWrite operation.
 type ClientBulkWrite struct {
-	// Database is the name of the database to write to. It cannot contain any
-	// periods ('.').
-	Database string
-
-	// Collection is the name of the collection to write to.
+	Database   string
 	Collection string
-
-	// Model is the write operation to perform. It cannot be nil. See the
-	// ClientWriteModel documentation for a list of valid model types.
-	Model ClientWriteModel
+	Model      ClientWriteModel
 }
 
-// BulkWrite performs a client-level bulk write operation, which can write to
-// multiple collections and databases in a single operation. It requires MongoDB
-// 8.0 or greater.
-//
-// The writes parameter is the slice of operations to be executed in this bulk
-// write. It cannot be nil or empty and all of the models must be non-nil. Each
-// element specifies its own target database and collection, so a single call
-// can write to any combination of databases and collections. See the
-// [ClientWriteModel] documentation for a list of valid model types and examples
-// of how to build them.
-//
-// BulkWrite returns an error if any write specifies a database name containing
-// a period ('.').
-//
-// This method does not currently support automatic encryption. Calling it on a
-// Client configured with automatic encryption returns an error.
-//
-// For more details, see
-// https://www.mongodb.com/docs/manual/core/bulk-write-operations/
+// BulkWrite performs a client-level bulk write operation.
 func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	opts ...options.Lister[options.ClientBulkWriteOptions],
 ) (*ClientBulkWriteResult, error) {
@@ -997,21 +992,6 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 	if len(writes) == 0 {
 		return nil, fmt.Errorf("invalid writes: %w", ErrEmptySlice)
 	}
-
-	// Validate the namespace components before they are joined into a single
-	// namespace string below. A period in the database name would silently
-	// retarget the write to another database because the server splits the
-	// namespace on its first period.
-	for i, w := range writes {
-		if strings.ContainsRune(w.Database, '.') {
-			return nil, fmt.Errorf(
-				"invalid database name %q in write %d: database names cannot contain '.'",
-				w.Database,
-				i,
-			)
-		}
-	}
-
 	bwo, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
