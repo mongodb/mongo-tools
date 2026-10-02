@@ -17,44 +17,70 @@ func (s *ExportImportSuite) TestImportModeUpsertIDSubdoc() {
 		collName = "c"
 	)
 
-	client := s.Client()
+	s.WithCrossCluster(func(cc crossCluster) {
+		ns := &options.Namespace{DB: dbName, Collection: collName}
 
-	coll := client.Database(dbName).Collection(collName)
-	ns := &options.Namespace{DB: dbName, Collection: collName}
+		origDocs := subdocIDDocs("string")
+		insertDocs := make([]any, len(origDocs))
+		for i, d := range origDocs {
+			insertDocs[i] = d
+		}
+		_, err := cc.Source.Database(dbName).
+			Collection(collName).
+			InsertMany(s.Context(), insertDocs)
+		s.Require().NoError(err)
 
-	origDocs := subdocIDDocs("string")
-	insertDocs := make([]any, len(origDocs))
-	for i, d := range origDocs {
-		insertDocs[i] = d
-	}
-	_, err := coll.InsertMany(s.Context(), insertDocs)
-	s.Require().NoError(err)
+		exportedFile := s.exportCollectionToFileForURI(cc.SourceURI, ns)
+		str2File := s.writeSubdocIDFile("str2")
 
-	exportedFile := s.exportCollectionToFile(ns)
-	str2File := s.writeSubdocIDFile("str2")
+		targetColl := cc.Target.Database(dbName).Collection(collName)
 
-	s.Run("upsert with replacement data updates all docs in place", func() {
+		// Seed the target from the export so both orientations start with the original documents
+		// in place. In cross-cluster mode the target is otherwise empty, and the first upsert below
+		// would insert rather than update, so the update-in-place path the test is about would go
+		// unexercised even though its assertions still pass.
 		s.Require().NoError(
-			s.importCollection(ns, str2File, mongoimport.IngestOptions{Mode: "upsert"}),
+			s.importCollectionForURI(
+				cc.TargetURI,
+				ns,
+				exportedFile,
+				mongoimport.IngestOptions{Mode: "upsert"},
+			),
 		)
-		n, err := coll.CountDocuments(s.Context(), bson.D{})
-		s.Require().NoError(err)
-		s.Assert().EqualValues(20, n, "count should be unchanged after upsert")
-		n, err = coll.CountDocuments(s.Context(), bson.D{{"x", "str2"}})
-		s.Require().NoError(err)
-		s.Assert().EqualValues(20, n, "all docs should have x=str2 after upsert")
-	})
 
-	s.Run("re-import original export reverts all docs", func() {
-		s.Require().NoError(
-			s.importCollection(ns, exportedFile, mongoimport.IngestOptions{Mode: "upsert"}),
-		)
-		n, err := coll.CountDocuments(s.Context(), bson.D{})
-		s.Require().NoError(err)
-		s.Assert().EqualValues(20, n, "count should be unchanged after re-import")
-		n, err = coll.CountDocuments(s.Context(), bson.D{{"x", "string"}})
-		s.Require().NoError(err)
-		s.Assert().EqualValues(20, n, "all docs should have x=string after re-import")
+		s.Run("upsert with replacement data updates all docs in place", func() {
+			s.Require().NoError(
+				s.importCollectionForURI(
+					cc.TargetURI,
+					ns,
+					str2File,
+					mongoimport.IngestOptions{Mode: "upsert"},
+				),
+			)
+			n, err := targetColl.CountDocuments(s.Context(), bson.D{})
+			s.Require().NoError(err)
+			s.Assert().EqualValues(20, n, "count should be unchanged after upsert")
+			n, err = targetColl.CountDocuments(s.Context(), bson.D{{"x", "str2"}})
+			s.Require().NoError(err)
+			s.Assert().EqualValues(20, n, "all docs should have x=str2 after upsert")
+		})
+
+		s.Run("re-import original export reverts all docs", func() {
+			s.Require().NoError(
+				s.importCollectionForURI(
+					cc.TargetURI,
+					ns,
+					exportedFile,
+					mongoimport.IngestOptions{Mode: "upsert"},
+				),
+			)
+			n, err := targetColl.CountDocuments(s.Context(), bson.D{})
+			s.Require().NoError(err)
+			s.Assert().EqualValues(20, n, "count should be unchanged after re-import")
+			n, err = targetColl.CountDocuments(s.Context(), bson.D{{"x", "string"}})
+			s.Require().NoError(err)
+			s.Assert().EqualValues(20, n, "all docs should have x=string after re-import")
+		})
 	})
 }
 

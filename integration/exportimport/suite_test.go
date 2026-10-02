@@ -21,6 +21,10 @@ type ExportImportSuite struct {
 	sharedsuite.IntegrationSuite
 }
 
+// crossCluster is the source/target pair a round-trip test runs between. The wrapper that produces
+// it lives in sharedsuite so the same orientation logic serves dump/restore and export/import.
+type crossCluster = sharedsuite.CrossCluster
+
 func TestImportExport(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
 
@@ -28,8 +32,10 @@ func TestImportExport(t *testing.T) {
 	suite.Run(t, ts)
 }
 
-func (s *ExportImportSuite) ExportOptions() mongoexport.Options {
-	toolOptions, err := testopts.GetToolOptions()
+// ExportOptionsForURI builds mongoexport options pointing at the given cluster, or at the default
+// localhost:DefaultTestPort when uri is empty.
+func (s *ExportImportSuite) ExportOptionsForURI(uri string) mongoexport.Options {
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 
 	opts := mongoexport.Options{
@@ -46,8 +52,12 @@ func (s *ExportImportSuite) ExportOptions() mongoexport.Options {
 	return opts
 }
 
-func (s *ExportImportSuite) ImportOptions(dbName, collName string) mongoimport.Options {
-	toolOptions, err := testopts.GetToolOptions()
+// ImportOptionsForURI builds mongoimport options pointing at the given cluster, or at the default
+// localhost:DefaultTestPort when uri is empty.
+func (s *ExportImportSuite) ImportOptionsForURI(
+	uri, dbName, collName string,
+) mongoimport.Options {
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 	toolOptions.Namespace.DB = dbName
 	toolOptions.Namespace.Collection = collName
@@ -63,12 +73,15 @@ func (s *ExportImportSuite) ImportOptions(dbName, collName string) mongoimport.O
 	}
 }
 
-func (s *ExportImportSuite) importCollection(
+// importCollectionForURI imports filePath into ns against a specific cluster, or against the
+// default localhost:DefaultTestPort when uri is empty.
+func (s *ExportImportSuite) importCollectionForURI(
+	uri string,
 	ns *options.Namespace,
 	filePath string,
 	ingestOpts mongoimport.IngestOptions,
 ) error {
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -84,10 +97,15 @@ func (s *ExportImportSuite) importCollection(
 	return err
 }
 
-func (s *ExportImportSuite) exportCollectionToFile(ns *options.Namespace) string {
+// exportCollectionToFileForURI exports ns to a temp file against a specific cluster, or against the
+// default localhost:DefaultTestPort when uri is empty.
+func (s *ExportImportSuite) exportCollectionToFileForURI(
+	uri string,
+	ns *options.Namespace,
+) string {
 	exportFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
 	s.Require().NoError(err)
-	exportToolOptions, err := testopts.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = ns
 	me, err := mongoexport.New(mongoexport.Options{
@@ -106,10 +124,15 @@ func (s *ExportImportSuite) exportCollectionToFile(ns *options.Namespace) string
 	return exportFile.Name()
 }
 
-// exportJSONFile exports ns as canonical extended JSON to a temp file and returns its path. Unlike
-// exportCollectionToFile it can produce a single JSON array rather than a document per line.
-func (s *ExportImportSuite) exportJSONFile(ns *options.Namespace, jsonArray bool) string {
-	toolOptions, err := testopts.GetToolOptions()
+// exportJSONFileForURI exports ns as canonical extended JSON to a temp file against the given
+// cluster, or against the default localhost:DefaultTestPort when uri is empty. It can produce a
+// single JSON array rather than a document per line.
+func (s *ExportImportSuite) exportJSONFileForURI(
+	uri string,
+	ns *options.Namespace,
+	jsonArray bool,
+) string {
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 	me, err := mongoexport.New(mongoexport.Options{
@@ -137,14 +160,25 @@ type importFlags struct {
 	legacy    bool
 }
 
-// importJSONFile imports path into ns and returns the number of documents inserted, failing the
-// test if the import errors or the server rejects a document.
+// importJSONFile imports path into ns against the primary cluster and returns the number of
+// documents inserted, failing the test if the import errors or the server rejects a document.
 func (s *ExportImportSuite) importJSONFile(
 	ns *options.Namespace,
 	path string,
 	flags importFlags,
 ) uint64 {
-	toolOptions, err := testopts.GetToolOptions()
+	return s.importJSONFileForURI(os.Getenv(testopts.URIEnvVar), ns, path, flags)
+}
+
+// importJSONFileForURI is importJSONFile against a specific cluster, or against the default
+// localhost:DefaultTestPort when uri is empty.
+func (s *ExportImportSuite) importJSONFileForURI(
+	uri string,
+	ns *options.Namespace,
+	path string,
+	flags importFlags,
+) uint64 {
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 	mi, err := mongoimport.New(mongoimport.Options{

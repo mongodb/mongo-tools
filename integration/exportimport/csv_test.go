@@ -32,78 +32,78 @@ import (
 func (s *ExportImportSuite) TestRoundTripFieldFile() {
 	const dbName = "mongoimport_roundtrip_fieldfile_test"
 
-	client := s.Client()
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceDB := cc.Source.Database(dbName)
+		_, err := sourceDB.Collection("source").InsertMany(s.Context(), []any{
+			bson.D{{"a", 1}},
+			bson.D{{"a", 1}, {"b", 1}},
+			bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
+		})
+		s.Require().NoError(err)
 
-	db := client.Database(dbName)
-	_, err := db.Collection("source").InsertMany(s.Context(), []any{
-		bson.D{{"a", 1}},
-		bson.D{{"a", 1}, {"b", 1}},
-		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
+		fieldFile, err := os.CreateTemp(s.T().TempDir(), "fields-*.txt")
+		s.Require().NoError(err)
+		_, err = fieldFile.WriteString("a\nb\n")
+		s.Require().NoError(err)
+		s.Require().NoError(fieldFile.Close())
+
+		exportTarget, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
+		s.Require().NoError(err)
+		s.Require().NoError(exportTarget.Close())
+
+		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		s.Require().NoError(err)
+		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
+		me, err := mongoexport.New(mongoexport.Options{
+			ToolOptions: exportToolOptions,
+			OutputFormatOptions: &mongoexport.OutputFormatOptions{
+				Type:       "csv",
+				JSONFormat: "canonical",
+				FieldFile:  fieldFile.Name(),
+			},
+			InputOptions: &mongoexport.InputOptions{},
+		})
+		s.Require().NoError(err)
+		defer me.Close()
+
+		f, err := os.OpenFile(exportTarget.Name(), os.O_WRONLY, 0o644)
+		s.Require().NoError(err)
+		_, err = me.Export(f)
+		s.Require().NoError(err)
+		s.Require().NoError(f.Close())
+
+		fields := "a,b,c"
+		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		s.Require().NoError(err)
+		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
+		mi, err := mongoimport.New(mongoimport.Options{
+			ToolOptions: importToolOptions,
+			InputOptions: &mongoimport.InputOptions{
+				File:       exportTarget.Name(),
+				Type:       "csv",
+				Fields:     &fields,
+				ParseGrace: "stop",
+			},
+			IngestOptions: &mongoimport.IngestOptions{},
+		})
+		s.Require().NoError(err)
+		_, _, err = mi.ImportDocuments()
+		s.Require().NoError(err)
+
+		dest := cc.Target.Database(dbName).Collection("dest")
+		n, err := dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(3, n, "3 documents should have a=1")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(1, n, "1 document should have b=1")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(1, n, "1 document should have b=2")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(0, n, "c=3 should not have been exported (not in fieldFile)")
 	})
-	s.Require().NoError(err)
-
-	fieldFile, err := os.CreateTemp(s.T().TempDir(), "fields-*.txt")
-	s.Require().NoError(err)
-	_, err = fieldFile.WriteString("a\nb\n")
-	s.Require().NoError(err)
-	s.Require().NoError(fieldFile.Close())
-
-	exportTarget, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
-	s.Require().NoError(err)
-	s.Require().NoError(exportTarget.Close())
-
-	exportToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "csv",
-			JSONFormat: "canonical",
-			FieldFile:  fieldFile.Name(),
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	s.Require().NoError(err)
-	defer me.Close()
-
-	f, err := os.OpenFile(exportTarget.Name(), os.O_WRONLY, 0o644)
-	s.Require().NoError(err)
-	_, err = me.Export(f)
-	s.Require().NoError(err)
-	s.Require().NoError(f.Close())
-
-	fields := "a,b,c"
-	importToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
-	mi, err := mongoimport.New(mongoimport.Options{
-		ToolOptions: importToolOptions,
-		InputOptions: &mongoimport.InputOptions{
-			File:       exportTarget.Name(),
-			Type:       "csv",
-			Fields:     &fields,
-			ParseGrace: "stop",
-		},
-		IngestOptions: &mongoimport.IngestOptions{},
-	})
-	s.Require().NoError(err)
-	_, _, err = mi.ImportDocuments()
-	s.Require().NoError(err)
-
-	dest := db.Collection("dest")
-	n, err := dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(1, n, "1 document should have b=1")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(1, n, "1 document should have b=2")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(0, n, "c=3 should not have been exported (not in fieldFile)")
 }
 
 // TestRoundTripFieldsCSV verifies that mongoexport --csv --fields limits which
@@ -111,52 +111,52 @@ func (s *ExportImportSuite) TestRoundTripFieldFile() {
 func (s *ExportImportSuite) TestRoundTripFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_fieldscsv_test"
 
-	client := s.Client()
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceDB := cc.Source.Database(dbName)
+		_, err := sourceDB.Collection("source").InsertMany(s.Context(), []any{
+			bson.D{{"a", 1}},
+			bson.D{{"a", 1}, {"b", 1}},
+			bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
+		})
+		s.Require().NoError(err)
 
-	db := client.Database(dbName)
-	_, err := db.Collection("source").InsertMany(s.Context(), []any{
-		bson.D{{"a", 1}},
-		bson.D{{"a", 1}, {"b", 1}},
-		bson.D{{"a", 1}, {"b", 2}, {"c", 3}},
+		s.exportCSVAndImport(cc, dbName, "a")
+		dest := cc.Target.Database(dbName).Collection("dest")
+		n, err := dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(3, n, "3 documents should have a=1")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(0, n, "b=1 should not have been exported")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(0, n, "b=2 should not have been exported")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(0, n, "c=3 should not have been exported")
+
+		s.exportCSVAndImport(cc, dbName, "a,b,c")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(3, n, "3 documents should have a=1")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(1, n, "1 document should have b=1")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(1, n, "1 document should have b=2")
+		n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
+		s.Require().NoError(err)
+		s.Assert().EqualValues(1, n, "1 document should have c=3")
+
+		var fromSource, fromDest bson.M
+		q := bson.D{{"a", 1}, {"b", 1}}
+		err = sourceDB.Collection("source").FindOne(s.Context(), q).Decode(&fromSource)
+		s.Require().NoError(err)
+		err = dest.FindOne(s.Context(), q).Decode(&fromDest)
+		s.Require().NoError(err)
+		s.Assert().NotEqual(fromSource["_id"], fromDest["_id"], "_id should not have been exported")
 	})
-	s.Require().NoError(err)
-
-	s.exportCSVAndImport(dbName, "a", db)
-	dest := db.Collection("dest")
-	n, err := dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(0, n, "b=1 should not have been exported")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(0, n, "b=2 should not have been exported")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(0, n, "c=3 should not have been exported")
-
-	s.exportCSVAndImport(dbName, "a,b,c", db)
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"a", 1}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(3, n, "3 documents should have a=1")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 1}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(1, n, "1 document should have b=1")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"b", 2}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(1, n, "1 document should have b=2")
-	n, err = dest.CountDocuments(s.Context(), bson.D{{"c", 3}})
-	s.Require().NoError(err)
-	s.Assert().EqualValues(1, n, "1 document should have c=3")
-
-	var fromSource, fromDest bson.M
-	q := bson.D{{"a", 1}, {"b", 1}}
-	err = db.Collection("source").FindOne(s.Context(), q).Decode(&fromSource)
-	s.Require().NoError(err)
-	err = dest.FindOne(s.Context(), q).Decode(&fromDest)
-	s.Require().NoError(err)
-	s.Assert().NotEqual(fromSource["_id"], fromDest["_id"], "_id should not have been exported")
 }
 
 // TestRoundTripNestedFieldsCSV verifies that mongoexport correctly exports
@@ -164,73 +164,73 @@ func (s *ExportImportSuite) TestRoundTripFieldsCSV() {
 func (s *ExportImportSuite) TestRoundTripNestedFieldsCSV() {
 	const dbName = "mongoimport_roundtrip_nestedcsv_test"
 
-	client := s.Client()
-
-	db := client.Database(dbName)
-	_, err := db.Collection("source").InsertMany(s.Context(), []any{
-		bson.D{{"a", 1}},
-		bson.D{{"a", 2}, {"b", bson.D{{"c", 2}}}},
-		bson.D{{"a", 3}, {"b", bson.D{{"c", 3}, {"d", bson.D{{"e", 3}}}}}},
-		bson.D{{"a", 4}, {"x", nil}},
-	})
-	s.Require().NoError(err)
-
-	exportToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
-	me, err := mongoexport.New(mongoexport.Options{
-		ToolOptions: exportToolOptions,
-		OutputFormatOptions: &mongoexport.OutputFormatOptions{
-			Type:       "csv",
-			JSONFormat: "canonical",
-			Fields:     "a,b.d.e,x.y",
-		},
-		InputOptions: &mongoexport.InputOptions{},
-	})
-	s.Require().NoError(err)
-	defer me.Close()
-	tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
-	s.Require().NoError(err)
-	_, err = me.Export(tmpFile)
-	s.Require().NoError(err)
-	s.Require().NoError(tmpFile.Close())
-
-	importToolOptions, err := testopts.GetToolOptions()
-	s.Require().NoError(err)
-	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
-	mi, err := mongoimport.New(mongoimport.Options{
-		ToolOptions: importToolOptions,
-		InputOptions: &mongoimport.InputOptions{
-			File:       tmpFile.Name(),
-			Type:       "csv",
-			HeaderLine: true,
-			ParseGrace: "stop",
-		},
-		IngestOptions: &mongoimport.IngestOptions{},
-	})
-	s.Require().NoError(err)
-	_, _, err = mi.ImportDocuments()
-	s.Require().NoError(err)
-
-	dest := db.Collection("dest")
-	for _, tc := range []struct {
-		filter bson.D
-		count  int64
-		msg    string
-	}{
-		{bson.D{{"b.c", 2}}, 0, "b.c should not have been exported"},
-		{bson.D{{"b.c", 3}}, 0, "b.c should not have been exported"},
-		{bson.D{{"b.d.e", 3}}, 1, "b.d.e=3 should be present"},
-		{bson.D{{"b.d.e", ""}}, 3, "b.d.e should be empty string for 3 docs"},
-		{bson.D{{"a", 1}}, 1, "a=1 should be present"},
-		{bson.D{{"a", 2}}, 1, "a=2 should be present"},
-		{bson.D{{"a", 3}}, 1, "a=3 should be present"},
-		{bson.D{{"x.y", ""}}, 4, "x.y should be empty string for all 4 docs"},
-	} {
-		n, err := dest.CountDocuments(s.Context(), tc.filter)
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceDB := cc.Source.Database(dbName)
+		_, err := sourceDB.Collection("source").InsertMany(s.Context(), []any{
+			bson.D{{"a", 1}},
+			bson.D{{"a", 2}, {"b", bson.D{{"c", 2}}}},
+			bson.D{{"a", 3}, {"b", bson.D{{"c", 3}, {"d", bson.D{{"e", 3}}}}}},
+			bson.D{{"a", 4}, {"x", nil}},
+		})
 		s.Require().NoError(err)
-		s.Assert().EqualValues(tc.count, n, tc.msg)
-	}
+
+		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		s.Require().NoError(err)
+		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
+		me, err := mongoexport.New(mongoexport.Options{
+			ToolOptions: exportToolOptions,
+			OutputFormatOptions: &mongoexport.OutputFormatOptions{
+				Type:       "csv",
+				JSONFormat: "canonical",
+				Fields:     "a,b.d.e,x.y",
+			},
+			InputOptions: &mongoexport.InputOptions{},
+		})
+		s.Require().NoError(err)
+		defer me.Close()
+		tmpFile, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
+		s.Require().NoError(err)
+		_, err = me.Export(tmpFile)
+		s.Require().NoError(err)
+		s.Require().NoError(tmpFile.Close())
+
+		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		s.Require().NoError(err)
+		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
+		mi, err := mongoimport.New(mongoimport.Options{
+			ToolOptions: importToolOptions,
+			InputOptions: &mongoimport.InputOptions{
+				File:       tmpFile.Name(),
+				Type:       "csv",
+				HeaderLine: true,
+				ParseGrace: "stop",
+			},
+			IngestOptions: &mongoimport.IngestOptions{},
+		})
+		s.Require().NoError(err)
+		_, _, err = mi.ImportDocuments()
+		s.Require().NoError(err)
+
+		dest := cc.Target.Database(dbName).Collection("dest")
+		for _, tc := range []struct {
+			filter bson.D
+			count  int64
+			msg    string
+		}{
+			{bson.D{{"b.c", 2}}, 0, "b.c should not have been exported"},
+			{bson.D{{"b.c", 3}}, 0, "b.c should not have been exported"},
+			{bson.D{{"b.d.e", 3}}, 1, "b.d.e=3 should be present"},
+			{bson.D{{"b.d.e", ""}}, 3, "b.d.e should be empty string for 3 docs"},
+			{bson.D{{"a", 1}}, 1, "a=1 should be present"},
+			{bson.D{{"a", 2}}, 1, "a=2 should be present"},
+			{bson.D{{"a", 3}}, 1, "a=3 should be present"},
+			{bson.D{{"x.y", ""}}, 4, "x.y should be empty string for all 4 docs"},
+		} {
+			n, err := dest.CountDocuments(s.Context(), tc.filter)
+			s.Require().NoError(err)
+			s.Assert().EqualValues(tc.count, n, tc.msg)
+		}
+	})
 }
 
 // csvPunctuationDoc holds values that CSV has to quote or escape: a value with both commas and
@@ -262,37 +262,42 @@ var csvPunctuationDocFieldNames = strings.Join(
 func (s *ExportImportSuite) TestCSVRoundTripPunctuation() {
 	const dbName = "exportimport_csv_punctuation"
 
-	testDB := s.Client().Database(dbName)
-	_, err := testDB.Collection("source").InsertOne(s.Context(), csvPunctuationDoc)
-	s.Require().NoError(err, "can insert the document to export")
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceDB := cc.Source.Database(dbName)
+		_, err := sourceDB.Collection("source").InsertOne(s.Context(), csvPunctuationDoc)
+		s.Require().NoError(err, "can insert the document to export")
 
-	csvPath := s.exportCSV(
-		&options.Namespace{DB: dbName, Collection: "source"},
-		csvPunctuationDocFieldNames,
-		"",
-	)
-
-	s.Run("fields option treats the header row as data", func() {
-		ns := &options.Namespace{DB: dbName, Collection: "with_fields"}
-		s.importDelimited(ns, csvPath, "csv", csvPunctuationDocFieldNames)
-
-		docs := s.docsSortedByFieldA(testDB.Collection("with_fields"))
-		s.Require().Len(docs, 2, "the data row and the header row are both imported")
-		s.Assert().Equal(csvPunctuationDoc, docs[0], "the data row round trips unchanged")
-		s.Assert().Equal(
-			bson.D{{"a", "a"}, {"b", "b"}, {"c", "c"}, {"d d", "d d"}, {"e", "e"}, {"f", "f"}},
-			docs[1],
-			"without --headerline the header row is imported as an ordinary document",
+		csvPath := s.exportCSVForURI(
+			cc.SourceURI,
+			&options.Namespace{DB: dbName, Collection: "source"},
+			csvPunctuationDocFieldNames,
+			"",
 		)
-	})
 
-	s.Run("headerline option consumes the header row", func() {
-		ns := &options.Namespace{DB: dbName, Collection: "with_headerline"}
-		s.importDelimited(ns, csvPath, "csv", "")
+		targetDB := cc.Target.Database(dbName)
 
-		docs := s.docsSortedByFieldA(testDB.Collection("with_headerline"))
-		s.Require().Len(docs, 1, "only the data row is imported")
-		s.Assert().Equal(csvPunctuationDoc, docs[0], "the data row round trips unchanged")
+		s.Run("fields option treats the header row as data", func() {
+			ns := &options.Namespace{DB: dbName, Collection: "with_fields"}
+			s.importDelimitedForURI(cc.TargetURI, ns, csvPath, "csv", csvPunctuationDocFieldNames)
+
+			docs := s.docsSortedByFieldA(targetDB.Collection("with_fields"))
+			s.Require().Len(docs, 2, "the data row and the header row are both imported")
+			s.Assert().Equal(csvPunctuationDoc, docs[0], "the data row round trips unchanged")
+			s.Assert().Equal(
+				bson.D{{"a", "a"}, {"b", "b"}, {"c", "c"}, {"d d", "d d"}, {"e", "e"}, {"f", "f"}},
+				docs[1],
+				"without --headerline the header row is imported as an ordinary document",
+			)
+		})
+
+		s.Run("headerline option consumes the header row", func() {
+			ns := &options.Namespace{DB: dbName, Collection: "with_headerline"}
+			s.importDelimitedForURI(cc.TargetURI, ns, csvPath, "csv", "")
+
+			docs := s.docsSortedByFieldA(targetDB.Collection("with_headerline"))
+			s.Require().Len(docs, 1, "only the data row is imported")
+			s.Assert().Equal(csvPunctuationDoc, docs[0], "the data row round trips unchanged")
+		})
 	})
 }
 
@@ -436,124 +441,133 @@ func (s *ExportImportSuite) TestCSVExportFormatsBSONTypes() {
 	when, err := time.Parse(time.RFC3339Nano, "2009-08-27T12:34:56.789Z")
 	s.Require().NoError(err, "can parse the date")
 
-	testDB := s.Client().Database(dbName)
-	_, err = testDB.Collection("source").InsertMany(s.Context(), []any{
-		bson.D{
-			{"_id", 1},
-			{"a", int32(1)},
-			{"b", objID},
-			{"c", bson.A{1, 2, 3}},
-			{"d", bson.D{{"a", "hello"}, {"b", "world"}}},
-			{"e", "-"},
-		},
-		bson.D{
-			{"_id", 2},
-			{"a", -2.0},
-			{"c", bson.MinKey{}},
-			{"d", `Then he said, "Hello World!"`},
-			{"e", int64(3)},
-		},
-		bson.D{
-			{"_id", 3},
-			{"a", bson.Binary{Subtype: 0, Data: binary}},
-			{"b", when},
-			{"c", bson.Timestamp{T: 1234, I: 9876}},
-			{"d", bson.Regex{Pattern: `foo*\"bar\"`, Options: "i"}},
-			{"e", bson.JavaScript(`function foo() { print("Hello World!"); }`)},
-		},
-	})
-	s.Require().NoError(err, "can insert the documents to export")
-
-	// The expected text below is row by row, so the export has to be ordered rather than left in
-	// the server's natural order.
-	csvPath := s.exportCSV(
-		&options.Namespace{DB: dbName, Collection: "source"},
-		"a,b,c,d,e",
-		`{"_id": 1}`,
-	)
-	exported, err := os.ReadFile(csvPath)
-	s.Require().NoError(err, "can read the exported CSV")
-
-	// Arrays and subdocuments become JSON in a single cell. An ObjectId keeps its constructor
-	// syntax, MinKey becomes $MinKey, binary data becomes hex, a date becomes ISO 8601, and a
-	// timestamp becomes extended JSON. A regex keeps its delimiters and flags, and JavaScript keeps
-	// its source text. csvText applies CSV's own escaping of the quotes and commas inside a cell.
-	expected := s.csvText(
-		[]string{
-			"a",
-			"b",
-			"c",
-			"d",
-			"e",
-		},
-		[]string{
-			"1",
-			fmt.Sprintf("ObjectId(%s)", objID.Hex()),
-			"[1,2,3]",
-			`{"a":"hello","b":"world"}`,
-			"-",
-		},
-		[]string{
-			"-2",
-			"",
-			"$MinKey",
-			`Then he said, "Hello World!"`,
-			"3",
-		},
-		[]string{
-			"D76DF8",
-			"2009-08-27T12:34:56.789Z",
-			`{ "$timestamp": { "t": 1234, "i": 9876 } }`,
-			`/foo*\"bar\"/i`,
-			`function foo() { print("Hello World!"); }`,
-		},
-	)
-
-	s.Assert().Equal(expected, string(exported), "each BSON type is rendered as expected")
-
-	// Importing the export back checks the other direction: mongoexport writes cells that
-	// mongoimport has to be able to parse, awkward ones included. None of the original types
-	// survive, because the CSV holds only their rendered text, so every cell that is not a bare
-	// number comes back as a string.
-	s.importDelimited(&options.Namespace{DB: dbName, Collection: "dest"}, csvPath, "csv", "")
-
-	s.Assert().Equal(
-		[]bson.D{
-			{
-				{"a", int32(-2)},
-				{"b", ""},
-				{"c", "$MinKey"},
-				{"d", `Then he said, "Hello World!"`},
-				{"e", int32(3)},
-			},
-			{
+	s.WithCrossCluster(func(cc crossCluster) {
+		sourceDB := cc.Source.Database(dbName)
+		_, err := sourceDB.Collection("source").InsertMany(s.Context(), []any{
+			bson.D{
+				{"_id", 1},
 				{"a", int32(1)},
-				{"b", "ObjectId(" + objID.Hex() + ")"},
-				{"c", "[1,2,3]"},
-				{"d", `{"a":"hello","b":"world"}`},
+				{"b", objID},
+				{"c", bson.A{1, 2, 3}},
+				{"d", bson.D{{"a", "hello"}, {"b", "world"}}},
 				{"e", "-"},
 			},
-			{
-				{"a", "D76DF8"},
-				{"b", "2009-08-27T12:34:56.789Z"},
-				{"c", `{ "$timestamp": { "t": 1234, "i": 9876 } }`},
-				{"d", `/foo*\"bar\"/i`},
-				{"e", `function foo() { print("Hello World!"); }`},
+			bson.D{
+				{"_id", 2},
+				{"a", -2.0},
+				{"c", bson.MinKey{}},
+				{"d", `Then he said, "Hello World!"`},
+				{"e", int64(3)},
 			},
-		},
-		s.docsSortedByFieldA(testDB.Collection("dest")),
-		"mongoimport parses every cell mongoexport wrote",
-	)
+			bson.D{
+				{"_id", 3},
+				{"a", bson.Binary{Subtype: 0, Data: binary}},
+				{"b", when},
+				{"c", bson.Timestamp{T: 1234, I: 9876}},
+				{"d", bson.Regex{Pattern: `foo*\"bar\"`, Options: "i"}},
+				{"e", bson.JavaScript(`function foo() { print("Hello World!"); }`)},
+			},
+		})
+		s.Require().NoError(err, "can insert the documents to export")
+
+		// The expected text below is row by row, so the export has to be ordered rather than left in
+		// the server's natural order.
+		csvPath := s.exportCSVForURI(
+			cc.SourceURI,
+			&options.Namespace{DB: dbName, Collection: "source"},
+			"a,b,c,d,e",
+			`{"_id": 1}`,
+		)
+		exported, err := os.ReadFile(csvPath)
+		s.Require().NoError(err, "can read the exported CSV")
+
+		// Arrays and subdocuments become JSON in a single cell. An ObjectId keeps its constructor
+		// syntax, MinKey becomes $MinKey, binary data becomes hex, a date becomes ISO 8601, and a
+		// timestamp becomes extended JSON. A regex keeps its delimiters and flags, and JavaScript keeps
+		// its source text. csvText applies CSV's own escaping of the quotes and commas inside a cell.
+		expected := s.csvText(
+			[]string{
+				"a",
+				"b",
+				"c",
+				"d",
+				"e",
+			},
+			[]string{
+				"1",
+				fmt.Sprintf("ObjectId(%s)", objID.Hex()),
+				"[1,2,3]",
+				`{"a":"hello","b":"world"}`,
+				"-",
+			},
+			[]string{
+				"-2",
+				"",
+				"$MinKey",
+				`Then he said, "Hello World!"`,
+				"3",
+			},
+			[]string{
+				"D76DF8",
+				"2009-08-27T12:34:56.789Z",
+				`{ "$timestamp": { "t": 1234, "i": 9876 } }`,
+				`/foo*\"bar\"/i`,
+				`function foo() { print("Hello World!"); }`,
+			},
+		)
+
+		s.Assert().Equal(expected, string(exported), "each BSON type is rendered as expected")
+
+		// Importing the export back checks the other direction: mongoexport writes cells that
+		// mongoimport has to be able to parse, awkward ones included. None of the original types
+		// survive, because the CSV holds only their rendered text, so every cell that is not a bare
+		// number comes back as a string.
+		s.importDelimitedForURI(
+			cc.TargetURI,
+			&options.Namespace{DB: dbName, Collection: "dest"},
+			csvPath,
+			"csv",
+			"",
+		)
+
+		s.Assert().Equal(
+			[]bson.D{
+				{
+					{"a", int32(-2)},
+					{"b", ""},
+					{"c", "$MinKey"},
+					{"d", `Then he said, "Hello World!"`},
+					{"e", int32(3)},
+				},
+				{
+					{"a", int32(1)},
+					{"b", "ObjectId(" + objID.Hex() + ")"},
+					{"c", "[1,2,3]"},
+					{"d", `{"a":"hello","b":"world"}`},
+					{"e", "-"},
+				},
+				{
+					{"a", "D76DF8"},
+					{"b", "2009-08-27T12:34:56.789Z"},
+					{"c", `{ "$timestamp": { "t": 1234, "i": 9876 } }`},
+					{"d", `/foo*\"bar\"/i`},
+					{"e", `function foo() { print("Hello World!"); }`},
+				},
+			},
+			s.docsSortedByFieldA(cc.Target.Database(dbName).Collection("dest")),
+			"mongoimport parses every cell mongoexport wrote",
+		)
+	})
 }
 
-func (s *ExportImportSuite) exportCSVAndImport(dbName, exportFields string, db *mongo.Database) {
-	s.Require().NoError(db.Collection("dest").Drop(s.Context()))
+func (s *ExportImportSuite) exportCSVAndImport(cc crossCluster, dbName, exportFields string) {
+	s.Require().NoError(cc.Target.Database(dbName).Collection("dest").Drop(s.Context()))
 
 	exportTarget, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
 	s.Require().NoError(err)
 	s.Require().NoError(exportTarget.Close())
 
-	exportToolOptions, err := testopts.GetToolOptions()
+	exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -574,7 +588,7 @@ func (s *ExportImportSuite) exportCSVAndImport(dbName, exportFields string, db *
 	s.Require().NoError(f.Close())
 
 	importFields := "a,b,c"
-	importToolOptions, err := testopts.GetToolOptions()
+	importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -592,14 +606,19 @@ func (s *ExportImportSuite) exportCSVAndImport(dbName, exportFields string, db *
 	s.Require().NoError(err)
 }
 
-// exportCSV exports ns to a temp CSV file holding the named fields and returns the file's
-// path. sort is a mongoexport --sort argument, needed when a test depends on the order of the
-// exported rows; passing an empty sort leaves the server's natural order alone.
-func (s *ExportImportSuite) exportCSV(ns *options.Namespace, fields, sort string) string {
+// exportCSVForURI exports ns to a temp CSV file holding the named fields and returns the file's
+// path, against a specific cluster (or the default localhost:DefaultTestPort when uri is empty).
+// sort is a mongoexport --sort argument, needed when a test depends on the order of the exported
+// rows; passing an empty sort leaves the server's natural order alone.
+func (s *ExportImportSuite) exportCSVForURI(
+	uri string,
+	ns *options.Namespace,
+	fields, sort string,
+) string {
 	exportFile, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
 	s.Require().NoError(err, "can create the file to export into")
 
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 
@@ -628,7 +647,17 @@ func (s *ExportImportSuite) importDelimited(
 	ns *options.Namespace,
 	path, fileType, fields string,
 ) {
-	toolOptions, err := testopts.GetToolOptions()
+	s.importDelimitedForURI(os.Getenv(testopts.URIEnvVar), ns, path, fileType, fields)
+}
+
+// importDelimitedForURI is importDelimited against a specific cluster, or against the default
+// localhost:DefaultTestPort when uri is empty.
+func (s *ExportImportSuite) importDelimitedForURI(
+	uri string,
+	ns *options.Namespace,
+	path, fileType, fields string,
+) {
+	toolOptions, err := testopts.GetToolOptionsForURI(uri)
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 
