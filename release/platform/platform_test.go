@@ -45,9 +45,12 @@ func TestPlatformsMatchCI(t *testing.T) {
 		//
 		// Variant "ubuntu2204-arm64-dsc" only runs the integration suite against a
 		// disaggregated-storage cluster. It never builds anything we release.
+		//
+		// Variant "update-server-versions" runs a weekly cron that refreshes the
+		// Server versions we test with. It never builds anything we release.
 		if v.Name == "release" || v.Name == "static" || v.Name == "rhel88-race" ||
 			v.Name == "mongodump_passthru_v" || v.Name == "merge-queue" ||
-			v.Name == "ubuntu2204-arm64-dsc" {
+			v.Name == "ubuntu2204-arm64-dsc" || v.Name == "update-server-versions" {
 			continue
 		}
 

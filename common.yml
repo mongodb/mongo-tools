@@ -2716,6 +2716,54 @@ tasks:
       - func: "install mise-managed tools"
       - func: "check sarif report"
 
+  # Refreshes the Server binaries our tests download and opens a PR if any version changed. It is
+  # scheduled weekly by the "update-server-versions" buildvariant; see server-version-support.md.
+  - name: update-server-versions
+    commands:
+      - func: "fetch source"
+      - func: "install mise and go"
+      - command: github.generate_token
+        params:
+          owner: 10gen
+          repo: mongodb-downloader
+          expansion_name: generated_token_mongodb_downloader
+          permissions:
+            attestations: read
+            contents: read
+      # The app behind this token must have contents:write and pull_requests:write on this repo, and
+      # the project's dynamic token settings must not restrict the requester below that.
+      - command: github.generate_token
+        params:
+          owner: mongodb
+          repo: mongo-tools
+          expansion_name: generated_token_mongo_tools
+          permissions:
+            contents: write
+            pull_requests: write
+      # TODO(TOOLS-4392): this role is read-only today, so `mongodb-downloader update` cannot upload
+      # new tarballs and the task will fail here until a write-capable role is available.
+      - command: ec2.assume_role
+        display_name: Assume IAM role with permissions to write Server builds to S3
+        params:
+          role_arn: arn:aws:iam::557821124784:role/evergreen.aws-c2c-sync
+      - command: subprocess.exec
+        params:
+          binary: ./scripts/update-server-versions.sh
+          working_dir: src/github.com/mongodb/mongo-tools
+          env:
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+            # A full `update` processes the commit-pinned entries too, so it builds an Evergreen
+            # client and needs the project's service account credentials. Without them
+            # mongodb-downloader tries an interactive OAuth flow and fails.
+            EVERGREEN_API_KEY: ${evg_key}
+            EVERGREEN_API_USER: ${evg_user}
+            EVG_TASK_ID: ${task_id}
+            EVG_WORKDIR: ${workdir}
+            GITHUB_TOKEN: ${generated_token_mongodb_downloader}
+            TOOLS_GITHUB_TOKEN: ${generated_token_mongo_tools}
+
 buildvariants:
   #######################################
   #     Static Analysis Buildvariant    #
@@ -2734,6 +2782,24 @@ buildvariants:
       - name: check-third-party-notices
       - name: check-sbom-lite
       - name: check-sarif-report
+
+  #########################################
+  #   Server Version Update Buildvariant  #
+  #########################################
+
+  # Refreshes the Server binaries our tests download and opens a PR when a version changes. Runs
+  # weekly on the current tip of master. We don't run this for each PR, so don't include it in
+  # github_pr_aliases.
+  - name: update-server-versions
+    display_name: "* Update Server Versions"
+    cron: 0 3 * * 1
+    stepback: false
+    run_on:
+      - rhel80-small
+    expansions:
+      _platform: rhel80
+    tasks:
+      - name: "update-server-versions"
 
   #######################################
   #      Merge Queue Buildvariant       #
