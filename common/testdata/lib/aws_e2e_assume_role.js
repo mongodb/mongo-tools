@@ -36,15 +36,12 @@ load("aws_e2e_lib.js");
 
   const credentials = getAssumeCredentials();
 
-  // Connect to the mongod that's currently running on port 33333
-  const mongo = Mongo("localhost:33333");
+  // The server is started by mongodb-runner on a runner-allocated port and already has the "bob"
+  // admin user (created by the runner), so the localhost exception is no longer available and we
+  // authenticate as bob to create the $external user below. The setup script passes the address.
+  const mongo = Mongo(MONGOD_HOSTPORT);
   const adminDB = mongo.getDB("admin");
 
-  adminDB.createUser({
-    user: "bob",
-    pwd: "pwd123",
-    roles: ['__system'],
-  });
   assert(adminDB.auth("bob", "pwd123"));
 
   const externalDB = mongo.getDB("$external");
@@ -56,7 +53,7 @@ load("aws_e2e_lib.js");
     ]
   }));
 
-  const testConn = new Mongo("localhost:33333");
+  const testConn = new Mongo(MONGOD_HOSTPORT);
   const testExternal = testConn.getDB('$external');
   assert(testExternal.auth({
     user: credentials["AccessKeyId"],

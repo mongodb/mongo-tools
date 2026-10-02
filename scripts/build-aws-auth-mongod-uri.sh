@@ -9,6 +9,14 @@ set -o verbose
 # and cd into that directory to preserve the body's relative-path behavior.
 cd common/testdata/lib
 
+# The AWS auth test reads this file rather than `TOOLS_TESTING_MONGOD`, so the replset's address has
+# to be included here.
+: "${TOOLS_TESTING_MONGOD:?}"
+HOSTPORT="${TOOLS_TESTING_MONGOD#mongodb://}"
+# The URI carries the runner's bootstrap user as a user:password@ prefix, so drop it.
+HOSTPORT="${HOSTPORT##*@}"
+HOSTPORT="${HOSTPORT%%/*}"
+
 PATH=/opt/mongodbtoolchain/v3/bin/:$PATH
 python="python3"
 if [ "Windows_NT" = "$OS" ]; then
@@ -24,7 +32,7 @@ USER=$(urlencode "$USER")
 PASS=$(jsonkey SecretAccessKey)
 PASS=$(urlencode "$PASS")
 
-MONGOD_URI="mongodb://$USER:$PASS@localhost:33333/?authMechanism=MONGODB-AWS"
+MONGOD_URI="mongodb://$USER:$PASS@$HOSTPORT/?authMechanism=MONGODB-AWS"
 
 SESSION_TOKEN=$(jsonkey SessionToken)
 SESSION_TOKEN=$(urlencode "$SESSION_TOKEN")
