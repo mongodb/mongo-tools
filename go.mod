@@ -23,7 +23,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
-	go.mongodb.org/mongo-driver/v2 v2.8.2
+	go.mongodb.org/mongo-driver/v2 v2.9.1
 	golang.org/x/mod v0.41.0
 	golang.org/x/sync v0.23.0
 	golang.org/x/term v0.46.0
