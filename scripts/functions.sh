@@ -50,3 +50,27 @@ retry() {
         "$@"
     fi
 }
+
+# cache.save dereferences symlinks (see the comment in common.yml for why we can't turn that off), so
+# the bin/<tool> -> ../lib/node_modules/<pkg>/... links that npm creates come back as plain copies
+# sitting in bin/. Node then resolves a tool's relative requires against bin/ instead of the package
+# directory, and every npm-backed tool dies with MODULE_NOT_FOUND. Recreating the links makes a
+# cache-hit tree behave like a fresh install.
+recreate_npm_bin_symlinks() {
+    local script_dir mise_data_dir
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    mise_data_dir="${EVG_WORKDIR:?}/.local/share/mise"
+
+    for install_dir in "${mise_data_dir}/installs"/npm-*/*/; do
+        local lib_modules="${install_dir}lib/node_modules"
+        [ -d "${lib_modules}" ] || continue
+        # A plain glob over node_modules/* misses scoped packages, which live one level deeper at
+        # node_modules/@scope/pkg, so find the package.json files instead.
+        while IFS= read -r pkg_json; do
+            local pkg_name
+            pkg_name="${pkg_json#"${lib_modules}"/}"
+            pkg_name="${pkg_name%/package.json}"
+            python3 "$script_dir/recreate-npm-bin-symlinks.py" "${install_dir%/}" "${pkg_name}" "${pkg_json}"
+        done < <(find "${lib_modules}" -mindepth 2 -maxdepth 3 -name package.json -type f)
+    done
+}
