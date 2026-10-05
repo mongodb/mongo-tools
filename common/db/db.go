@@ -34,6 +34,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/tag"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
@@ -71,6 +72,12 @@ var ignorableWriteErrorCodes = mapset.NewSet(
 const (
 	continueThroughErrorFormat = "continuing through error: %v"
 )
+
+func init() {
+	// This allows us to connect to 4.2 clusters with the latest Go driver.
+	topology.SupportedWireVersions.Min = 8
+	topology.MinSupportedMongoDBVersion = "4.2"
+}
 
 // Used to manage database sessions.
 type SessionProvider struct {
