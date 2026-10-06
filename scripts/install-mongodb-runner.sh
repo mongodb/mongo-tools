@@ -33,8 +33,3 @@ fi
 # We only retry twice here because each attempt uses up some of the GitHub API's rate limit.
 RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
     retry mise install node npm:@mongodb-js/mongodb-runner
-
-# Pin the runner's bundled mongodb driver to 7.5.0 so it can manage our 4.2 tasks. The mise
-# postinstall hook (see mise.toml) also runs this; calling it here too covers a cache miss where the
-# hook did not run. See scripts/pin-mongodb-runner.sh.
-"${SCRIPT_DIR:?}/pin-mongodb-runner.sh"
