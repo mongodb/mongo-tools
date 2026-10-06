@@ -24,9 +24,22 @@ SHARDS="${SHARDS:-2}"
 SECONDARIES="${SECONDARIES:-2}"
 USE_TLS="${USE_TLS:-false}"
 CREATE_USER="${CREATE_USER:-false}"
+AWS_AUTH="${AWS_AUTH:-false}"
 AUTH_USERNAME="${AUTH_USERNAME:-}"
 AUTH_PASSWORD="${AUTH_PASSWORD:-}"
 EVG_EXPANSION_VAR="${EVG_EXPANSION_VAR:-}"
+
+# AWS auth has no static user, but the runner authenticates as an admin to verify the server came up,
+# so it needs one. Create a bootstrap SCRAM user; the AWS auth test ignores it and authenticates with
+# its own MONGODB-AWS URI. AWS auth also requires an Enterprise server, so this path only runs in CI.
+if [ "$AWS_AUTH" = "true" ]; then
+    # aws_e2e_assume_role.js authenticates as this user to create the $external AWS user, and the
+    # runner needs an admin user to verify the server came up, so use the credentials that script
+    # expects. AWS auth also requires an Enterprise server, so this path only runs in CI.
+    CREATE_USER=true
+    AUTH_USERNAME=bob
+    AUTH_PASSWORD=pwd123
+fi
 ADDITIONAL_ARGS="${ADDITIONAL_ARGS:-}"
 EXTRA_MONGOD_ARGS=()
 
@@ -228,6 +241,9 @@ if [ "$USE_TLS" = "true" ]; then
 fi
 if [ "$CREATE_USER" = "true" ]; then
     MONGOD_ARGS+=(--auth)
+fi
+if [ "$AWS_AUTH" = "true" ]; then
+    MONGOD_ARGS+=(--setParameter "authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256")
 fi
 
 if [ "${#MONGOD_ARGS[@]}" -gt 0 ]; then
