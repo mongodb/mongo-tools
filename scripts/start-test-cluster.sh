@@ -173,6 +173,7 @@ mkdir -p "${LOG_DIR:?}"
 
 RUNNER_ARGS=(
     start
+    --json
     "--topology=${TOPOLOGY:?}"
     "--id=${CLUSTER_ID:?}"
     "--logDir=$(native_path "${LOG_DIR:?}")"
@@ -251,30 +252,21 @@ if [ "${#MONGOD_ARGS[@]}" -gt 0 ]; then
     RUNNER_ARGS+=("${MONGOD_ARGS[@]}")
 fi
 
-# Temporary workaround for mongodb-runner hanging against MongoDB 4.2, which logs in the legacy text
-# format; see scripts/mongodb-runner-legacy-log-shim.js. The patch is a no-op for 4.4+. Remove this
-# and the shim once the upstream fix lands.
-SHIM="${REPO_ROOT:?}/scripts/mongodb-runner-legacy-log-shim.js"
-if command -v cygpath >/dev/null 2>&1; then
-    SHIM="$(cygpath -w "$SHIM")"
-fi
-export NODE_OPTIONS="--require=${SHIM}${NODE_OPTIONS:+ $NODE_OPTIONS}"
-
-# The runner prints the connection string once the cluster is up, but on Windows it does not exit:
-# the detached mongod keeps its Node event loop alive. Capturing stdout with `$(...)` would then wait
-# forever for the pipe to close (and `tee /dev/stderr` is worse, as that path doesn't exist under
-# Cygwin). So run the runner in the background with its output in a file and poll for the URI.
+# The runner prints a single-line JSON object once the cluster is up, but on Windows it does not
+# exit: the detached mongod keeps its Node event loop alive. Capturing stdout with `$(...)` would
+# then wait forever for the pipe to close (and `tee /dev/stderr` is worse, as that path doesn't
+# exist under Cygwin). So run the runner in the background with its output in a file and poll for
+# the JSON line.
 RUNNER_OUTPUT="${CLUSTER_DIR:?}/runner-start.log"
 : >"${RUNNER_OUTPUT:?}"
 "${RUNNER[@]}" "${RUNNER_ARGS[@]}" </dev/null >>"${RUNNER_OUTPUT:?}" 2>&1 &
 RUNNER_PID=$!
 
-# The runner writes its state file before printing the URI, so once we see the URI the cluster is
-# registered and it's safe to stop waiting for the process.
-CONNECTION_STRING=
+# The runner writes its state file before printing the JSON, so once the JSON appears the cluster is
+# registered and it's safe to stop waiting for the process. Diagnostics share the file, so wait for
+# the JSON marker and then parse it once; the parse reports to stderr if it finds nothing.
 for ((attempt = 0; attempt < 900; attempt++)); do
-    CONNECTION_STRING="$(grep -oE 'mongodb://[^[:space:]]+' "${RUNNER_OUTPUT:?}" 2>/dev/null | tail -1 || true)"
-    if [ -n "$CONNECTION_STRING" ]; then
+    if grep -q '"connectionString"' "${RUNNER_OUTPUT:?}" 2>/dev/null; then
         break
     fi
     if ! kill -0 "$RUNNER_PID" 2>/dev/null; then
@@ -282,6 +274,8 @@ for ((attempt = 0; attempt < 900; attempt++)); do
     fi
     sleep 1
 done
+
+CONNECTION_STRING="$(python3 "$(native_path "${SCRIPT_DIR:?}/parse-connection-string.py")" <"${RUNNER_OUTPUT:?}" || true)"
 
 # Best-effort. The runner never stops the cluster on a signal, so this can't take the cluster down,
 # and we don't `wait` because on Windows the kill may not land.

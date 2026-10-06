@@ -3,16 +3,16 @@
 # Starts a 2-node disaggregated-storage (DSC) replica set for running the tools integration suite
 # against, and prints the connection string to export as TOOLS_TESTING_MONGOD.
 #
-# Everything except mongodb-runner itself comes out of one tarball: the DSC-capable binaries, the
-# SLS compose file, and the pinned SLS image tag. The compose file and the image tag are read from
-# the tarball rather than from a mongo repo checkout so they can never drift from the Server
-# binaries they were built alongside.
+# Everything except mongodb-runner itself comes out of one tarball: the DSC-capable binaries and the
+# SLS files (compose file, manifest, and helpers). The runner reads them from the tarball rather than
+# from a mongo repo checkout so they can never drift from the Server binaries they were built
+# alongside.
 #
 # This script starts a cluster and then exits, leaving it running. Cluster startup requires starting
 # a docker compose project and, on a first run, several minutes of SLS image pulls.
 #
-# Prerequisites: docker compose v2, `mise install` for mongodb-runner, and read access to the
-# private 10gen/mongodb-downloader repo, either through gh or through GITHUB_TOKEN.
+# Prerequisites: docker compose v2, python3, `mise install` for mongodb-runner, and read access to
+# the private 10gen/mongodb-downloader repo, either through gh or through GITHUB_TOKEN.
 #
 # Use scripts/stop-dsc-cluster.sh to stop the cluster.
 
@@ -46,16 +46,9 @@ CLUSTER_DIR="${REPO_ROOT:?}/dsc-cluster"
 INSTALL_DIR="${CLUSTER_DIR:?}/server"
 LOG_DIR="${CLUSTER_DIR:?}/logs"
 CLUSTER_ID="tools-dsc"
-ATLAS_DIR="${INSTALL_DIR:?}/buildscripts/modules/atlas"
 
 if ! docker compose version >/dev/null 2>&1; then
     echo "docker compose v2 is required; see the DSC prerequisites in mongodb-runner's docs" >&2
-    exit 1
-fi
-
-# We use Python to read the SLS image tag from the `manifest.json` file in the Server tarball.
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "python3 is required to read pinned_sls_commit from the manifest JSON file in the Server tarball" >&2
     exit 1
 fi
 
@@ -94,21 +87,12 @@ fi
     --server-version "${VERSION_LABEL:?}" \
     --to "${INSTALL_DIR:?}"
 
-COMPOSE_FILE="${ATLAS_DIR:?}/sls-multicell-docker-compose.yml"
-MANIFEST="${ATLAS_DIR:?}/manifest.json"
+# The runner locates and validates the SLS files under the build's buildscripts/modules/atlas
+# directory and reads the SLS image tag from the manifest there, so we do not parse the tarball
+# ourselves. This ensures that we test using the same Server binary/SLS tag combo that the Server
+# tests with.
 
-for f in "${COMPOSE_FILE:?}" "${MANIFEST:?}" "${ATLAS_DIR:?}/slsbackup.proto" "${ATLAS_DIR:?}/flags-state.json"; do
-    if [ ! -f "$f" ]; then
-        echo "missing ${f}: the downloaded tarball is not a disagg build" >&2
-        exit 1
-    fi
-done
-
-# We read the SLS image tag from the manifest bundled with the Server binaries. This ensures that we
-# test using the same Server binary/SLS tag combo that the Server tests with.
-SLS_IMAGE_TAG="$(python3 -c "import json; print(json.load(open('${MANIFEST:?}'))['pinned_sls_commit'])")"
-
-echo "Starting a DSC replica set (SLS image tag ${SLS_IMAGE_TAG:?}). The first run pulls all SLS images and can take several minutes." >&2
+echo "Starting a DSC replica set (SLS image tag from the build's manifest). The first run pulls all SLS images and can take several minutes." >&2
 
 cleanup_started_cluster() {
     echo "start failed after the cluster came up; tearing it down" >&2
@@ -122,33 +106,33 @@ touch "${CLUSTER_DIR:?}/connection-string"
 trap cleanup_started_cluster EXIT
 
 # Without --debug a DSC startup failure is very hard to diagnose: details are in the compose output
-# and the per-mongod logs. The runner writes its diagnostics to stderr and only the connection
-# string to stdout, so capturing stdout keeps it parseable; the tee is there to keep those
-# diagnostics visible on the terminal as they happen.
+# and the per-mongod logs. The runner writes its diagnostics to stderr and only the JSON result to
+# stdout, so capturing stdout keeps it parseable while the debug output stays visible on the
+# terminal.
 #
 # The trailing `--` arguments are passed straight to mongod. They enable the metrics-filtering
 # feature flags that a DSC cluster runs with in production, so the integration suite exercises the
 # same filtered metrics a real customer would see. The mongosync tool enables the same four flags.
 OUTPUT="$("${RUNNER[@]}" start \
     --topology=replset \
-    --slsCompose="${COMPOSE_FILE:?}" \
-    --slsImageTag="${SLS_IMAGE_TAG:?}" \
+    --slsDir="${INSTALL_DIR:?}" \
     --binDir="${INSTALL_DIR:?}/bin" \
     --logDir="${LOG_DIR:?}" \
     --id="${CLUSTER_ID:?}" \
+    --json \
     --debug \
     -- \
     --setParameter featureFlagCollStatsMetricsFiltering=true \
     --setParameter featureFlagMetricsFiltering=true \
     --setParameter featureFlagReplSetGetStatusMetricsFiltering=true \
-    --setParameter featureFlagServerStatusMetricsFiltering=true |
-    tee /dev/stderr)"
+    --setParameter featureFlagServerStatusMetricsFiltering=true)"
 
-# The runner prints the cluster URI last, after the per-node startup output. The grep can legitimately
-# fail when the cluster comes up but the URI is missing from the output, so the `if !` here is what
-# keeps errexit from swallowing the diagnostic below.
-if ! CONNECTION_STRING="$(echo "${OUTPUT:?}" | grep -oE 'mongodb://[^ ]+' | tail -1)"; then
-    echo "the cluster started but printed no mongodb:// connection string; check ${LOG_DIR}" >&2
+# The runner prints a single-line JSON object with the connection string last. The extraction can
+# legitimately find nothing when the cluster comes up but the output is malformed, so the `if` here
+# is what keeps errexit from swallowing the diagnostic below.
+CONNECTION_STRING="$(printf '%s\n' "${OUTPUT:?}" | python3 "${SCRIPT_DIR:?}/parse-connection-string.py" || true)"
+if [ -z "$CONNECTION_STRING" ]; then
+    echo "the cluster started but printed no connection string; check ${LOG_DIR}" >&2
     exit 1
 fi
 
