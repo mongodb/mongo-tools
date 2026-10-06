@@ -63,19 +63,18 @@ relevant env var. When writing new tests, match the existing pattern.
 Integration tests default to connecting to `localhost:33333`. Override with
 `TOOLS_TESTING_MONGOD=<uri>`.
 
-Before running integration or sharded integration tests, you must have a MongoDB server or cluster
-running and accessible. For basic integration tests, start a standalone `mongod` on port 33333. For
-sharded integration tests, start a `mongos` fronting a sharded cluster. These servers are not
-started automatically by the test runner.
-
-Use `mlaunch` (from the `mtools` Python package) to manage clusters during development:
+Before running integration or sharded integration tests, start a server with `mongodb-runner`
+through the scripts in `scripts/`. These servers are not started automatically by the test runner.
 
 ```bash
-mlaunch init --single --port 33333          # standalone mongod for integration tests
-mlaunch init --sharded 1 --port 33333       # sharded cluster for sharded integration tests
-mlaunch stop                                 # stop all launched processes
-mlaunch start                                # restart previously initialized cluster
+./scripts/start-test-cluster.sh                    # standalone mongod
+./scripts/start-test-cluster.sh --topology=replset # three-node replica set
+./scripts/start-test-cluster.sh --topology=sharded # two-shard cluster with a mongos
 ```
+
+The runner allocates free ports, so it prints a connection string instead of using a fixed
+`localhost:33333`. Export it (the script prints the exact `export TOOLS_TESTING_MONGOD='...'` line)
+before running the tests. Stop the cluster with `./scripts/stop-test-cluster.sh`.
 
 A test that writes directly to `local.oplog.rs` needs a **standalone** `mongod` — those writes are
 rejected on a replica set member. Note that Evergreen's `integration-*-cluster` variants are replica
