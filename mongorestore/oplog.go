@@ -464,11 +464,21 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 	ctx, cancel := restore.writeContext()
 	defer cancel()
 
+	// A timeseries bucket append is replicated as a compressed-column diff whose byte offsets
+	// are only meaningful against the exact pre-image it was computed from. Replaying a window
+	// that overlaps the dumped data re-applies some diffs against a newer bucket, which the
+	// per-op bucket validation rejects even though later diffs repair it. These diffs are
+	// applied without that validation during replication, so bypass it for them on the servers
+	// that write compressed diffs. Later diffs overwrite the repaired region, so the restored
+	// bucket matches the source.
+	bypassValidation := restore.OutputOptions.BypassDocumentValidation ||
+		(restore.serverVersion.GTE(db.Version{8, 0, 0}) && isCompressedBucketDiff(op))
+
 	singleRes := session.Database("admin").RunCommand(
 		ctx,
 		bson.D{
 			{"applyOps", []db.Oplog{op}},
-			{"bypassDocumentValidation", restore.OutputOptions.BypassDocumentValidation},
+			{"bypassDocumentValidation", bypassValidation},
 		},
 	)
 	if err := singleRes.Err(); err != nil {
@@ -486,6 +496,47 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 	}
 
 	return nil
+}
+
+// isCompressedBucketDiff reports whether op is a timeseries bucket append: a $v:2 update whose
+// object carries a byte-offset diff into the bucket's compressed columns. An ordinary $v:2 update
+// diff is not a bucket append, so the diff must also carry the bucket control and data sections
+// ("scontrol" and "sdata"); an ordinary diff only has "u"/"d"/"i"/"a"/"s<field>" sections.
+// Detecting the sections, rather than the namespace, keeps this working for both viewful buckets
+// (db.system.buckets.<coll>) and viewless ones (the logical collection name).
+func isCompressedBucketDiff(op db.Oplog) bool {
+	if op.Operation != "u" {
+		return false
+	}
+
+	version, err := bsonutil.FindValueByKey("$v", &op.Object)
+	if err != nil {
+		return false
+	}
+
+	var diffVersion int64
+	switch v := version.(type) {
+	case int32:
+		diffVersion = int64(v)
+	case int64:
+		diffVersion = v
+	default:
+		return false
+	}
+
+	if diffVersion != 2 {
+		return false
+	}
+
+	diff, err := bsonutil.FindSubdocumentByKey("diff", &op.Object)
+	if err != nil {
+		return false
+	}
+
+	_, controlErr := bsonutil.FindValueByKey("scontrol", &diff)
+	_, dataErr := bsonutil.FindValueByKey("sdata", &diff)
+
+	return controlErr == nil && dataErr == nil
 }
 
 // TimestampBeforeLimit returns true if the given timestamp is allowed to be
