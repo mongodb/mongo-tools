@@ -2080,6 +2080,29 @@ tasks:
         vars:
           target: test:sharded-integration ${testArgs}
 
+  # Like integration-9.0-sharded, but with TLS, so the sharded suite also covers the TLS path. The
+  # other sharded tasks run without TLS; this is the only sharded task that turns it on.
+  - name: integration-9.0-sharded-tls
+    tags: ["9.0", "sharded", "tls", "required-for-merge-queue"]
+    commands:
+      - func: "fetch source"
+      - command: expansions.update
+      - func: "install mise and go"
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "9.0.0"
+      - func: "install node and mongodb-runner"
+      - func: "start test cluster"
+        vars:
+          TOPOLOGY: sharded
+          USE_TLS: "true"
+      - func: "run make target"
+        vars:
+          target: build
+      - func: "run make target"
+        vars:
+          target: test:sharded-integration -ssl=true ${testArgs}
+
   - name: aws-auth-4.4
     tags: ["4.4", "aws-auth", "required-for-merge-queue"]
     commands:
@@ -2629,6 +2652,8 @@ buildvariants:
       - name: integration-9.0-cluster
         variant: windows
       - name: integration-9.0-sharded
+        variant: windows
+      - name: integration-9.0-sharded-tls
         variant: windows
 
   #######################################
