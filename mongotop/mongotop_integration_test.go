@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"sync"
@@ -59,6 +60,26 @@ func TestMongotopJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMongotopGrid checks the default table output, which the JSON coverage does not: a header
+// naming the ns, total, read, and write columns, and a data row carrying those three times. What
+// the numbers mean is checked by TestMongotopReportsActivity, through JSON.
+func TestMongotopGrid(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+
+	stdout, stderr, err := runMongotop(t, "--rowcount", "1")
+	require.NoError(t, err, "mongotop exits successfully: %s", stderr)
+
+	rows := testcmd.Rows(stdout)
+	require.NotEmpty(t, rows, "the grid prints output")
+
+	header := regexp.MustCompile(`^ns\s+total\s+read\s+write\b`)
+	assert.Regexp(t, header, rows[0], "the grid header names ns, total, read, and write")
+
+	activityRow := regexp.MustCompile(`^\S+\s+-?\d+ms\s+-?\d+ms\s+-?\d+ms$`)
+	require.Greater(t, len(rows), 1, "the grid prints a row for a namespace")
+	assert.Regexp(t, activityRow, rows[1], "a data row carries the three time columns")
 }
 
 // TestMongotopReportsActivity checks that the reported per-namespace counts follow the activity on
