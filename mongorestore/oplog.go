@@ -455,6 +455,36 @@ Loop:
 	return nil
 }
 
+// isCompressedBucketDiff reports whether op is a timeseries bucket append: a $v:2 update whose
+// object carries a byte-offset diff into the bucket's compressed columns. Detecting the diff
+// itself, rather than the namespace, keeps this working for both viewful buckets
+// (db.system.buckets.<coll>) and viewless ones (the logical collection name).
+func isCompressedBucketDiff(op db.Oplog) bool {
+	if op.Operation != "u" {
+		return false
+	}
+
+	if _, err := bsonutil.FindValueByKey("diff", &op.Object); err != nil {
+		return false
+	}
+
+	version, err := bsonutil.FindValueByKey("$v", &op.Object)
+	if err != nil {
+		return false
+	}
+
+	switch v := version.(type) {
+	case int32:
+		return v == 2
+	case int64:
+		return v == 2
+	case int:
+		return v == 2
+	default:
+		return false
+	}
+}
+
 // ApplyOp is a wrapper for the applyOps database command, we pass in
 // a session to avoid opening a new connection for each op applied.
 func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
@@ -477,11 +507,21 @@ func (restore *MongoRestore) ApplyOp(session *mongo.Client, op db.Oplog) error {
 	ctx, cancel := restore.writeContext()
 	defer cancel()
 
+	// A timeseries bucket append is replicated as a compressed-column diff whose byte offsets
+	// are only meaningful against the exact pre-image it was computed from. Replaying a window
+	// that overlaps the dumped data re-applies some diffs against a newer bucket, which the
+	// per-op bucket validation rejects even though later diffs repair it. These diffs are
+	// applied without that validation during replication, so bypass it for them on the servers
+	// that write compressed diffs. Later diffs overwrite the repaired region, so the restored
+	// bucket matches the source.
+	bypassValidation := restore.OutputOptions.BypassDocumentValidation ||
+		(restore.serverVersion.GTE(db.Version{8, 0, 0}) && isCompressedBucketDiff(op))
+
 	singleRes := session.Database("admin").RunCommand(
 		ctx,
 		bson.D{
 			{"applyOps", []db.Oplog{op}},
-			{"bypassDocumentValidation", restore.OutputOptions.BypassDocumentValidation},
+			{"bypassDocumentValidation", bypassValidation},
 		},
 	)
 	if err := singleRes.Err(); err != nil {

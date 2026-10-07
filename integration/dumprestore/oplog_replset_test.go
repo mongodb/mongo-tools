@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
@@ -307,4 +309,326 @@ func (s *DumpRestoreSuite) insertedIDsFromServerOplog(
 	}, _ int) string {
 		return op.Object.ID
 	})
+}
+
+// TestOplogReplayTimeseriesBucketDiffsBeforeWindow reproduces TOOLS-4373: replaying a `mongodump
+// --oplog` window onto a timeseries bucket that predates the window aborts the whole restore with a
+// bucket-validation error (Location7667503, "Invalid BSON Column encoding").
+//
+// The failure does not need a live writer to trigger. `mongodump --oplog` records the oplog start
+// and only then scans the collections, so a bucket created before that start can be captured in the
+// dump after it has already absorbed some of the writes that the captured window also holds.
+// Replaying those writes truncates the compressed column at an offset computed from the earlier
+// state, which lands inside a repacked Simple8b block and leaves a malformed column for the per-op
+// validation in applyOps to reject. This test builds that same overlap deterministically: it
+// checkpoints the oplog, mutates a pre-existing bucket, dumps the bucket's final state, then replays
+// only the window onto that dump. Each case is a different mutation, because the fix relies on later
+// diffs repairing the intermediate state and that has to hold for deletes, updates, out-of-order
+// inserts, and combinations, not just in-order appends.
+func (s *DumpRestoreSuite) TestOplogReplayTimeseriesBucketDiffsBeforeWindow() {
+	// local.oplog.rs only exists on a replica set. The suite as a whole gates on the
+	// integration test type, so this case needs a gate of its own.
+	testtype.SkipUnlessTestType(s.T(), testtype.ReplSetTestType)
+	testutil.SkipForDisaggregatedStorage(
+		s.T(),
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
+	// The compressed bucket diffs this exercises are written by 8.0 and later.
+	testutil.SkipIfFCVLessThan(s.T(), "8.0", "compressed bucket diffs require FCV 8.0")
+
+	const seedCount = 100
+
+	// Anchor the measurements inside one bucket time range (a single hour for seconds
+	// granularity) so the cases work against one bucket unless they deliberately span more.
+	base := time.Now().Truncate(time.Hour)
+	at := func(i int) time.Time { return base.Add(time.Duration(i) * time.Second) }
+
+	oneMeta := func(int) string { return "same" }
+	alternatingMeta := func(i int) string { return fmt.Sprintf("m%d", i%2) }
+
+	seed := func(meta func(int) string) func(*mongo.Collection) {
+		return func(coll *mongo.Collection) {
+			s.insertMeasurements(coll, rangeDocs(0, seedCount, at, meta))
+		}
+	}
+
+	testCases := []struct {
+		name   string
+		seed   func(*mongo.Collection)
+		mutate func(*mongo.Collection)
+	}{
+		{
+			name: "in-order appends",
+			seed: seed(oneMeta),
+			mutate: func(coll *mongo.Collection) {
+				s.insertMeasurements(coll, rangeDocs(seedCount, 800, at, oneMeta))
+			},
+		},
+		{
+			name: "out-of-order inserts",
+			seed: seed(oneMeta),
+			mutate: func(coll *mongo.Collection) {
+				// Half-second timestamps land between every seeded measurement, so the bucket
+				// is reopened and re-compressed rather than appended to at the end.
+				odd := func(i int) time.Time {
+					return base.Add(time.Duration(i-seedCount)*time.Second + 500*time.Millisecond)
+				}
+				s.insertMeasurements(
+					coll,
+					rangeDocs(seedCount, seedCount+100, odd, oneMeta),
+				)
+			},
+		},
+		{
+			name: "deletes",
+			seed: seed(oneMeta),
+			mutate: func(coll *mongo.Collection) {
+				s.deleteEvenMeasurements(coll)
+			},
+		},
+		{
+			name: "metaField update",
+			seed: seed(oneMeta),
+			mutate: func(coll *mongo.Collection) {
+				// Time-series updates may only filter and set the metaField.
+				_, err := coll.UpdateMany(
+					s.Context(),
+					bson.D{{"m", "same"}},
+					bson.D{{"$set", bson.D{{"m", "other"}}}},
+				)
+				s.Require().NoError(err, "can update the metaField")
+			},
+		},
+		{
+			name: "delete and reinsert",
+			seed: seed(oneMeta),
+			mutate: func(coll *mongo.Collection) {
+				s.deleteEvenMeasurements(coll)
+				s.insertMeasurements(coll, rangeDocs(seedCount, seedCount+50, at, oneMeta))
+			},
+		},
+		{
+			name: "multiple meta values",
+			seed: seed(alternatingMeta),
+			mutate: func(coll *mongo.Collection) {
+				s.insertMeasurements(coll, rangeDocs(seedCount, 800, at, alternatingMeta))
+			},
+		},
+		{
+			name: "mixed",
+			seed: seed(oneMeta),
+			mutate: func(coll *mongo.Collection) {
+				s.insertMeasurements(coll, rangeDocs(seedCount, 300, at, oneMeta))
+				s.deleteEvenMeasurements(coll)
+				_, err := coll.UpdateMany(
+					s.Context(),
+					bson.D{{"m", "same"}},
+					bson.D{{"$set", bson.D{{"m", "other"}}}},
+				)
+				s.Require().NoError(err, "can update the metaField")
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.assertOplogReplayTimeseriesBucketDiffs(tc.seed, tc.mutate)
+		})
+	}
+}
+
+// assertOplogReplayTimeseriesBucketDiffs runs one mutation through the dump/capture/replay cycle.
+// seed creates the bucket(s), the oplog is checkpointed, mutate changes the collection, the
+// resulting diffs are captured, and the dump's final state is replayed with only those diffs. It
+// asserts the restore succeeds, the measurements match the source, and the bucket is valid.
+func (s *DumpRestoreSuite) assertOplogReplayTimeseriesBucketDiffs(
+	seed, mutate func(*mongo.Collection),
+) {
+	ctx := s.Context()
+	const collName = "metrics"
+
+	testDB := s.database("oplog_ts_bucket")
+	dbName := testDB.Name()
+	// Viewful servers store buckets under system.buckets.<coll>; viewless ones (8.3+) use the
+	// logical collection name, which is also where the oplog records their writes.
+	bucketColl := timeseriesCollName(s.ServerVersion(), collName)
+	bucketNS := dbName + "." + bucketColl
+
+	s.Require().NoError(testDB.Drop(ctx), "start from a clean database")
+
+	createOpts := mopt.CreateCollection().SetTimeSeriesOptions(
+		mopt.TimeSeries().SetTimeField("ts").SetMetaField("m").SetGranularity("seconds"),
+	)
+	s.Require().NoError(
+		testDB.CreateCollection(ctx, collName, createOpts),
+		"can create the timeseries collection",
+	)
+
+	coll := testDB.Collection(collName)
+	seed(coll)
+
+	// Everything the mutation writes after this checkpoint is replayed as a compressed-column
+	// diff, with no bucket insert in the window to reset the pre-existing bucket first.
+	checkpoint := s.latestOplogTimestamp()
+
+	mutate(coll)
+
+	// Snapshot the expected measurements before the source is dropped.
+	want := s.readMeasurements(coll)
+	s.Require().NotEmpty(want, "the mutation left measurements to restore")
+
+	// Capture just the mutation's diffs, the way mongodump --oplog would have captured them.
+	oplogDir, cleanupOplog := testutil.MakeTempDir(s.T())
+	defer cleanupOplog()
+	s.runMongodumpWithArgs(
+		"--out", oplogDir,
+		"--db", "local",
+		"--collection", "oplog.rs",
+		"--query", fmt.Sprintf(
+			`{"ts": {"$gt": {"$timestamp": {"t": %d, "i": %d}}}, "ns": %q}`,
+			checkpoint.T,
+			checkpoint.I,
+			bucketNS,
+		),
+	)
+
+	// Without this the restore below would pass on an empty window, proving nothing.
+	oplogPath := filepath.Join(oplogDir, "local", "oplog.rs.bson")
+	s.Require().Positive(
+		s.capturedOplogOpCount(oplogPath),
+		"the captured oplog window holds ops to replay",
+	)
+
+	// Dump the bucket's final state, drop it, and replay the diffs onto that state. The dump is
+	// ahead of the first diff, which is what `mongodump --oplog` produces for a bucket that
+	// existed before its oplog window.
+	s.withBSONMongodump(func(dir string) {
+		s.dropDB(testDB)
+
+		result := s.runRestore(
+			mongorestore.OplogReplayOption,
+			mongorestore.OplogFileOption, oplogPath,
+			mongorestore.DirectoryOption, dir,
+		)
+		s.Require().NoError(
+			result.Err,
+			"replaying bucket diffs onto a dump that already contains them succeeds",
+		)
+
+		s.Assert().Equal(
+			want,
+			s.readMeasurements(coll),
+			"the restored measurements match the source",
+		)
+
+		s.assertBucketIsValid(testDB, bucketColl)
+	}, "--db", dbName)
+}
+
+// tsMeasurement is the projection of a timeseries measurement compared between source and target.
+// `_id` is left out because the server assigns it.
+type tsMeasurement struct {
+	TS bson.DateTime `bson:"ts"`
+	M  string        `bson:"m"`
+	A  int32         `bson:"a"`
+	C  int32         `bson:"c"`
+	E  int32         `bson:"e"`
+}
+
+// readMeasurements reads a timeseries collection's measurements in a stable order, so source and
+// target can be compared directly.
+func (s *DumpRestoreSuite) readMeasurements(coll *mongo.Collection) []tsMeasurement {
+	cursor, err := coll.Find(
+		s.Context(),
+		bson.D{},
+		mopt.Find().SetProjection(bson.D{{"_id", 0}}),
+	)
+	s.Require().NoError(err, "can read measurements from %#q", coll.Name())
+
+	var measurements []tsMeasurement
+	s.Require().
+		NoError(cursor.All(s.Context(), &measurements), "can decode measurements from %#q", coll.Name())
+
+	sort.Slice(measurements, func(i, j int) bool { return measurements[i].C < measurements[j].C })
+
+	return measurements
+}
+
+// capturedOplogOpCount returns the number of entries in a captured oplog file.
+func (s *DumpRestoreSuite) capturedOplogOpCount(path string) int {
+	file, err := os.Open(path)
+	s.Require().NoError(err, "the captured oplog exists at %#q", path)
+	defer file.Close()
+
+	source := db.NewDecodedBSONSource(db.NewBSONSource(file))
+	defer source.Close()
+
+	var total int
+	op := db.Oplog{}
+	for source.Next(&op) {
+		total++
+	}
+	s.Require().NoError(source.Err(), "can read the captured oplog")
+
+	return total
+}
+
+// assertBucketIsValid runs the full BSON-conformance validation on the restored bucket collection.
+// It catches a replay that converged on the right measurement count but left a malformed column.
+func (s *DumpRestoreSuite) assertBucketIsValid(testDB *mongo.Database, bucketColl string) {
+	var result bson.M
+	err := testDB.RunCommand(s.Context(), bson.D{
+		{"validate", bucketColl},
+		{"full", true},
+		{"checkBSONConformance", true},
+	}).Decode(&result)
+	s.Require().NoError(err, "can validate the restored bucket collection %#q", bucketColl)
+	s.Assert().EqualValues(
+		true,
+		result["valid"],
+		"the restored bucket is valid: %v",
+		result["errors"],
+	)
+}
+
+func (s *DumpRestoreSuite) deleteEvenMeasurements(coll *mongo.Collection) {
+	_, err := coll.DeleteMany(s.Context(), bson.D{{"c", bson.D{{"$mod", bson.A{2, 0}}}}})
+	s.Require().NoError(err, "can delete every other measurement")
+}
+
+// rangeDocs builds measurements for the ids in [from, to), with timestamps from ts and meta values
+// from meta. The ids are stored in the `c` field so the tests can compare and sort by them.
+func rangeDocs(from, to int, ts func(int) time.Time, meta func(int) string) []bson.D {
+	docs := make([]bson.D, 0, to-from)
+	for i := from; i < to; i++ {
+		docs = append(docs, bson.D{
+			{"ts", bson.NewDateTimeFromTime(ts(i))},
+			{"m", meta(i)},
+			{"a", int32(i % 97)},
+			{"c", int32(i)},
+			{"e", int32(i % 7)},
+		})
+	}
+
+	return docs
+}
+
+// measurementBatchSize is deliberately small: each batch is recorded as its own compressed-column
+// diff in the oplog, so a bucket accumulates many of the diffs the replay has to apply.
+const measurementBatchSize = 5
+
+// insertMeasurements inserts measurements in small batches.
+func (s *DumpRestoreSuite) insertMeasurements(coll *mongo.Collection, docs []bson.D) {
+	ctx := s.Context()
+	for start := 0; start < len(docs); start += measurementBatchSize {
+		end := min(start+measurementBatchSize, len(docs))
+
+		batch := make([]any, 0, end-start)
+		for _, doc := range docs[start:end] {
+			batch = append(batch, doc)
+		}
+
+		_, err := coll.InsertMany(ctx, batch)
+		s.Require().NoError(err, "can insert measurements [%d, %d)", start, end)
+	}
 }
