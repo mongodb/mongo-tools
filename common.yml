@@ -1084,10 +1084,9 @@ tasks:
           target: build
       - func: "create release artifacts"
 
-  # Regardless of the buildvariant, the sign task must be run on a
-  # distro that has the notary client available. We will use
-  # amazon1-2018-test for this purpose. The notary client is not
-  # available on all distros, which is why sign must be a separate task.
+  # Regardless of the buildvariant, the sign task must be run on a distro that has the notary client
+  # available. We will use rhel87-small for this purpose. The notary client is not available on all
+  # distros, which is why sign must be a separate task.
   - name: sign
     tags: ["git_tag"]
     depends_on:
@@ -2640,7 +2639,7 @@ buildvariants:
     display_name: "! Release Manager"
     tags: ["git_tag"]
     run_on:
-      - amazon1-2018-test
+      - amazon2023-arm64-latest-small
     tasks:
       # Temporarily disabled until Kondukto stops regressing the SBOM to an earlier version.
       #
@@ -2654,10 +2653,10 @@ buildvariants:
   #     Amazon x86_64 Buildvariants     #
   #######################################
 
-  - name: amazon
-    display_name: Amazon Linux 64
+  - name: amazon2
+    display_name: Amazon Linux 64 v2
     run_on:
-      - amazon1-2018-test
+      - amazon2-test
     tasks:
       - name: "dist"
       - name: "sign"
@@ -2665,10 +2664,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: amazon2
-    display_name: Amazon Linux 64 v2
+  - name: amazon2023
+    display_name: Amazon Linux 2023
     run_on:
-      - amazon2-test
+      - amazon2023-small
     tasks:
       - name: "dist"
       - name: "sign"
@@ -2846,17 +2845,6 @@ buildvariants:
     display_name: RHEL 10
     run_on:
       - rhel10.0-small
-    tasks:
-      - name: "dist"
-      - name: "sign"
-        run_on: rhel87-small
-      - name: "push"
-        run_on: rhel80-small
-
-  - name: amazon2023
-    display_name: Amazon Linux 2023
-    run_on:
-      - amazon2023-small
     tasks:
       - name: "dist"
       - name: "sign"
