@@ -441,15 +441,6 @@ var defaultBuildTags = []string{"gssapi", "failpoints"}
 // whether a given platform exists in the list.
 var platforms = []Platform{
 	{
-		Name:                  "amazon",
-		Arch:                  ArchX86_64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise, RepoOrg},
-		BuildTags:             defaultBuildTags,
-		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
-	{
 		Name:                  "amazon2",
 		Arch:                  ArchAarch64,
 		OS:                    OSLinux,
