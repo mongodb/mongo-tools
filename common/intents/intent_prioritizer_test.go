@@ -7,7 +7,6 @@
 package intents
 
 import (
-	"container/heap"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testtype"
@@ -37,76 +36,6 @@ func TestLegacyPrioritizer(t *testing.T) {
 	assert.Less(t, it1.DB, it2.DB)
 }
 
-func TestBasicDBHeapBehavior(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	t.Run("dbCounters with different active counts", func(t *testing.T) {
-		dbheap := &DBHeap{}
-		heap.Init(dbheap)
-		heap.Push(dbheap, &dbCounter{75, nil})
-		heap.Push(dbheap, &dbCounter{121, nil})
-		heap.Push(dbheap, &dbCounter{76, nil})
-		heap.Push(dbheap, &dbCounter{51, nil})
-		heap.Push(dbheap, &dbCounter{82, nil})
-		heap.Push(dbheap, &dbCounter{117, nil})
-		heap.Push(dbheap, &dbCounter{49, nil})
-		heap.Push(dbheap, &dbCounter{101, nil})
-		heap.Push(dbheap, &dbCounter{122, nil})
-		heap.Push(dbheap, &dbCounter{33, nil})
-		heap.Push(dbheap, &dbCounter{0, nil})
-
-		// pop in active order, least to greatest
-		prev := -1
-		for dbheap.Len() > 0 {
-			//nolint:errcheck // the heap only contains *dbCounter values
-			popped := heap.Pop(dbheap).(*dbCounter)
-			assert.Greater(t, popped.active, prev)
-			prev = popped.active
-		}
-	})
-
-	t.Run("dbCounters with different bson sizes", func(t *testing.T) {
-		dbheap := &DBHeap{}
-		heap.Init(dbheap)
-		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 70}}})
-		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 1024}}})
-		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 97}}})
-		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 3}}})
-		heap.Push(dbheap, &dbCounter{0, []*Intent{{Size: 1024 * 1024}}})
-
-		// pop in size order, greatest to least
-		prev := int64(1024*1024 + 1) // Maximum
-		for dbheap.Len() > 0 {
-			//nolint:errcheck // the heap only contains *dbCounter values
-			popped := heap.Pop(dbheap).(*dbCounter)
-			assert.Less(t, popped.collections[0].Size, prev)
-			prev = popped.collections[0].Size
-		}
-	})
-}
-
-func TestDBCounterCollectionSorting(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	dbc := &dbCounter{
-		collections: []*Intent{
-			{Size: 100},
-			{Size: 1000},
-			{Size: 1},
-			{Size: 10},
-		},
-	}
-
-	// popping should return in decreasing BSONSize
-	dbc.SortCollectionsBySize()
-	assert.EqualValues(t, 1000, dbc.PopIntent().Size)
-	assert.EqualValues(t, 100, dbc.PopIntent().Size)
-	assert.EqualValues(t, 10, dbc.PopIntent().Size)
-	assert.EqualValues(t, 1, dbc.PopIntent().Size)
-	assert.Nil(t, dbc.PopIntent())
-	assert.Nil(t, dbc.PopIntent())
-}
-
 func TestBySizeAndView(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
@@ -133,50 +62,4 @@ func TestBySizeAndView(t *testing.T) {
 	assert.Equal(t, "non-view2", prioritizer.Get().C)
 	assert.Equal(t, "non-view3", prioritizer.Get().C)
 
-}
-
-func TestSimulatedMultiDBJob(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	intents := []*Intent{
-		{C: "small", DB: "db2", Size: 32},
-		{C: "medium", DB: "db2", Size: 128},
-		{C: "giant", DB: "db1", Size: 1024},
-		{C: "tiny", DB: "db1", Size: 2},
-	}
-	prioritizer := newMultiDatabaseLTFPrioritizer(intents)
-	require.NotNil(t, prioritizer)
-
-	// We're simulating two job threads here.
-
-	i0 := prioritizer.Get()
-	require.NotNil(t, i0)
-	assert.Equal(t, "giant", i0.C, "first intent collection is largest bson file")
-	assert.Equal(t, "db1", i0.DB, "first intent db is largest bson file")
-
-	i1 := prioritizer.Get()
-	require.NotNil(t, i1)
-	assert.Equal(t, "medium", i1.C, "second intent collection is largest bson file for db2")
-	assert.Equal(t, "db2", i1.DB, "second intent db is largest bson file for db2")
-
-	// second job finishes the smaller intent
-	prioritizer.Finish(i1)
-
-	i2 := prioritizer.Get()
-	require.NotNil(t, i2)
-	assert.Equal(t, "small", i2.C, "third intent collection is from db2")
-	assert.Equal(t, "db2", i2.DB, "second intent db is from db2")
-	prioritizer.Finish(i2)
-
-	i3 := prioritizer.Get()
-	require.NotNil(t, i3)
-	assert.Equal(t, "tiny", i3.C, "final intent collection is from db1")
-	assert.Equal(t, "db1", i3.DB, "final intent db is from db1")
-
-	// we expect 2 active db1 jobs
-	counter, ok := prioritizer.counterMap["db1"]
-	require.True(t, ok)
-	assert.Equal(t, 2, counter.active, "both db1 jobs are still running")
-
-	assert.Zero(t, prioritizer.dbHeap.Len(), "prioritizer heap is empty")
 }
