@@ -107,7 +107,7 @@ func TestBasicMux(t *testing.T) {
 	t.Run("document demultiplexing", func(t *testing.T) {
 		demux := &Demultiplexer{
 			In:              buf,
-			NamespaceStatus: make(map[string]int),
+			NamespaceStatus: declaredNamespaces(testIntents...),
 		}
 		demuxOuts := map[string]*RegularCollectionReceiver{}
 
@@ -143,7 +143,7 @@ func TestParallelMuxOverPipe(t *testing.T) {
 
 	demux := &Demultiplexer{
 		In:              readPipe,
-		NamespaceStatus: make(map[string]int),
+		NamespaceStatus: declaredNamespaces(testIntents...),
 	}
 	demuxOuts := map[string]*RegularCollectionReceiver{}
 
@@ -317,7 +317,7 @@ func TestTOOLS1826(t *testing.T) {
 
 	demux := &Demultiplexer{
 		In:              buildSingleIntentArchive(t, singleIntent),
-		NamespaceStatus: make(map[string]int),
+		NamespaceStatus: declaredNamespaces(singleIntent),
 	}
 
 	muxOut := &RegularCollectionReceiver{
@@ -348,7 +348,7 @@ func TestTOOLS2403(t *testing.T) {
 
 	demux := &Demultiplexer{
 		In:              buildSingleIntentArchive(t, singleIntent),
-		NamespaceStatus: make(map[string]int),
+		NamespaceStatus: declaredNamespaces(singleIntent),
 	}
 
 	muxOut := &RegularCollectionReceiver{
@@ -380,4 +380,53 @@ func TestTOOLS2403(t *testing.T) {
 	require.NoError(demuxErr)
 
 	return
+}
+
+func TestEOFHeaderForUnregisteredNamespace(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	demux := &Demultiplexer{NamespaceStatus: map[string]int{"declared.coll": NamespaceUnopened}}
+	header, err := bson.Marshal(NamespaceHeader{
+		Database:   "declared",
+		Collection: "coll",
+		EOF:        true,
+	})
+	require.NoError(t, err)
+
+	require.NotPanics(t, func() {
+		err = demux.HeaderBSON(header)
+	}, "EOF header for an unregistered namespace should not panic")
+	require.ErrorContains(
+		t,
+		err,
+		"no demux consumer",
+		"EOF header for an unregistered namespace should return an error",
+	)
+}
+
+func TestHeaderForNamespaceNotInPrelude(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
+
+	demux := &Demultiplexer{NamespaceStatus: map[string]int{"declared.coll": NamespaceUnopened}}
+	header, err := bson.Marshal(NamespaceHeader{
+		Database:   "injected",
+		Collection: "coll",
+		EOF:        true,
+	})
+	require.NoError(t, err)
+
+	require.ErrorContains(
+		t,
+		demux.HeaderBSON(header),
+		"namespace not declared in archive prelude: injected.coll",
+		"header for a namespace missing from the prelude should be rejected",
+	)
+}
+
+func declaredNamespaces(ins ...*intents.Intent) map[string]int {
+	status := make(map[string]int, len(ins))
+	for _, intent := range ins {
+		status[intent.Namespace()] = NamespaceUnopened
+	}
+	return status
 }
