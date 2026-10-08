@@ -4,37 +4,9 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
-
-// validIndexOptions are taken from https://github.com/mongodb/mongo/blob/master/src/mongo/db/index/index_descriptor.h
-var validIndexOptions = map[string]bool{
-	"2dsphereIndexVersion":    true,
-	"background":              true,
-	"bits":                    true,
-	"bucketSize":              true,
-	"coarsestIndexedLevel":    true,
-	"collation":               true,
-	"default_language":        true,
-	"expireAfterSeconds":      true,
-	"finestIndexedLevel":      true,
-	"key":                     true,
-	"language_override":       true,
-	"max":                     true,
-	"min":                     true,
-	"name":                    true,
-	"ns":                      true,
-	"partialFilterExpression": true,
-	"sparse":                  true,
-	"storageEngine":           true,
-	"textIndexVersion":        true,
-	"unique":                  true,
-	"v":                       true,
-	"weights":                 true,
-	"wildcardProjection":      true,
-}
 
 const epsilon = 1e-9
 
@@ -72,42 +44,8 @@ func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
 	return true
 }
 
-// ConvertLegacyIndexKeys transforms the values of index definitions pre 3.4 into
-// the stricter index definitions of 3.4+. Prior to 3.4, any value in an index key
-// that isn't a negative number or that isn't a string is treated as int32(1).
-// The one exception is an empty string is treated as int32(1).
-// All other strings that aren't one of ["2d", "geoHaystack", "2dsphere", "hashed", "text", ""]
-// will cause the index build to fail. See TOOLS-2412 for more information.
-//
-// This function logs the keys that are converted.
-//
-// For a “quiet” variant of this function, see ConvertLegacyIndexKeyValue.
-func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
-	var converted bool
-	originalJSONString := CreateExtJSONString(indexKey)
-	for j, elem := range indexKey {
-		newValue, convertedThis := ConvertLegacyIndexKeyValue(elem.Value)
-
-		if convertedThis {
-			indexKey[j].Value = newValue
-			converted = true
-		}
-	}
-	if converted {
-		newJSONString := CreateExtJSONString(indexKey)
-		log.Logvf(
-			log.Always,
-			"convertLegacyIndexes: converted index values %#q to %#q on collection %#q",
-			originalJSONString,
-			newJSONString,
-			ns,
-		)
-	}
-}
-
-// ConvertLegacyIndexKeyValue provides ConvertLegacyIndexKeys’s implementation
-// without logging or mutating inputs. It just returns the normalized value
-// and a boolean that indicates whether the value was normalized/converted.
+// ConvertLegacyIndexKeyValue returns the normalized value and a boolean that indicates whether the
+// value was normalized/converted.
 func ConvertLegacyIndexKeyValue(value any) (any, bool) {
 	switch v := value.(type) {
 	case int:
@@ -143,27 +81,6 @@ func ConvertLegacyIndexKeyValue(value any) (any, bool) {
 	}
 
 	return value, false
-}
-
-// ConvertLegacyIndexOptions removes options that don't match a known list of index options.
-// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
-// force the server to do this task. But that option was only added in 4.1.9. So for
-// pre 3.4 indexes being added to servers 3.4 - 4.2, we must strip the options in the client.
-// This function processes the indexes Options inside collection dump.
-func ConvertLegacyIndexOptions(indexOptions bson.M) {
-	var converted bool
-	originalJSONString := CreateExtJSONString(indexOptions)
-	for key := range indexOptions {
-		if _, ok := validIndexOptions[key]; !ok {
-			delete(indexOptions, key)
-			converted = true
-		}
-	}
-	if converted {
-		newJSONString := CreateExtJSONString(indexOptions)
-		log.Logvf(log.Always, "convertLegacyIndexes: converted index options %#q to %#q",
-			originalJSONString, newJSONString)
-	}
 }
 
 // CreateExtJSONString stringifies doc as Extended JSON. It does not error
