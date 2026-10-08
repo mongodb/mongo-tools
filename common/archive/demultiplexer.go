@@ -154,6 +154,10 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		return nil
 	}
 
+	if _, exists := demux.NamespaceStatus[demux.currentNamespace]; !exists {
+		return newError("namespace not declared in archive prelude: " + demux.currentNamespace)
+	}
+
 	if _, ok := demux.outs[demux.currentNamespace]; !ok {
 		if demux.NamespaceStatus[demux.currentNamespace] != NamespaceUnopened {
 			return newError("namespace header for already opened namespace")
@@ -175,13 +179,19 @@ func (demux *Demultiplexer) HeaderBSON(buf []byte) error {
 		}
 	}
 	if colHeader.EOF {
-		if rcr, ok := demux.outs[demux.currentNamespace].(*RegularCollectionReceiver); ok {
+		out, ok := demux.outs[demux.currentNamespace]
+		if !ok {
+			return newError(
+				"EOF header for namespace with no demux consumer " + demux.currentNamespace,
+			)
+		}
+		if rcr, ok := out.(*RegularCollectionReceiver); ok {
 			rcr.err = io.EOF
 		}
-		demux.outs[demux.currentNamespace].End()
+		out.End()
 		demux.NamespaceStatus[demux.currentNamespace] = NamespaceClosed
 		length := demux.lengths[demux.currentNamespace]
-		crc, ok := demux.outs[demux.currentNamespace].Sum64()
+		crc, ok := out.Sum64()
 		if ok {
 			if crc != colHeader.CRC {
 				return fmt.Errorf("CRC mismatch for namespace %#q, %v!=%v",
