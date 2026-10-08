@@ -251,15 +251,6 @@ if [ "${#MONGOD_ARGS[@]}" -gt 0 ]; then
     RUNNER_ARGS+=("${MONGOD_ARGS[@]}")
 fi
 
-# Temporary workaround for mongodb-runner hanging against MongoDB 4.2, which logs in the legacy text
-# format; see scripts/mongodb-runner-legacy-log-shim.js. The patch is a no-op for 4.4+. Remove this
-# and the shim once the upstream fix lands.
-SHIM="${REPO_ROOT:?}/scripts/mongodb-runner-legacy-log-shim.js"
-if command -v cygpath >/dev/null 2>&1; then
-    SHIM="$(cygpath -w "$SHIM")"
-fi
-export NODE_OPTIONS="--require=${SHIM}${NODE_OPTIONS:+ $NODE_OPTIONS}"
-
 # The runner prints the connection string once the cluster is up, but on Windows it does not exit:
 # the detached mongod keeps its Node event loop alive. Capturing stdout with `$(...)` would then wait
 # forever for the pipe to close (and `tee /dev/stderr` is worse, as that path doesn't exist under
