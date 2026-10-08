@@ -9,8 +9,6 @@ import (
 
 // OpTime represents the values to uniquely identify an oplog entry.
 // An OpTime must always have a timestamp, but may or may not have a term.
-// The hash is set uniquely up until (and including) version 4.0, but is set
-// to zero in version 4.2+ with plans to remove it soon (see SERVER-36334).
 type OpTime struct {
 	Timestamp bson.Timestamp `json:"timestamp"`
 	Term      *int64         `json:"term"`

@@ -740,7 +740,7 @@ func (opts *ToolOptions) handleUnknownOption(
 	args []string,
 ) ([]string, error) {
 	if option == "dbpath" || option == "directoryperdb" || option == "journal" {
-		return args, fmt.Errorf("--dbpath and related flags are not supported in 3.0 tools.\n" +
+		return args, fmt.Errorf("--dbpath and related flags are not supported.\n" +
 			"See http://dochub.mongodb.org/core/tools-dbpath-deprecated for more information")
 	}
 
