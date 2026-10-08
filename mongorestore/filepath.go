@@ -437,7 +437,6 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 	if err != nil {
 		return fmt.Errorf("error reading db folder %v: %v", db, err)
 	}
-	usesMetadataFiles := hasMetadataFiles(entries)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			log.Logvf(log.Always, `don't know what to do with subdirectory %#q, skipping...`,
@@ -478,12 +477,13 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					)
 					skip = true
 				}
-				// skip restoring the indexes collection if we are using metadata
-				// files to store index information, to eliminate redundancy
-				if collection == "system.indexes" && usesMetadataFiles {
-					log.Logvf(log.DebugLow,
-						"not restoring system.indexes collection because database %#q "+
-							"has .metadata.json files", db)
+				// system.indexes was only written by dumps from servers older than
+				// 3.0, which are no longer supported. Index information now comes
+				// from .metadata.json files.
+				if collection == "system.indexes" {
+					log.Logvf(log.Always,
+						"not restoring system.indexes collection in database %#q; "+
+							"restoring dumps from servers older than 4.2 is not supported", db)
 					skip = true
 				}
 
@@ -590,7 +590,6 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					continue
 				}
 
-				usesMetadataFiles = true
 				destNS := restore.renamer.Get(sourceNS)
 				rnDB, rnC := util.SplitNamespace(destNS)
 				intent := &intents.Intent{
@@ -763,16 +762,6 @@ func (restore *MongoRestore) CreateIntentForCollection(
 	restore.manager.Put(intent)
 
 	return nil
-}
-
-// helper for searching a list of FileInfo for metadata files.
-func hasMetadataFiles(files []archive.DirLike) bool {
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".metadata.json") {
-			return true
-		}
-	}
-	return false
 }
 
 // handleBSONInsteadOfDirectory updates -d and -c settings based on

@@ -62,47 +62,6 @@ func (restore *MongoRestore) MetadataFromJSON(jsonBytes []byte) (*Metadata, erro
 	return meta, nil
 }
 
-// LoadIndexesFromBSON reads indexes from the index BSON files and
-// caches them in the MongoRestore object.
-func (restore *MongoRestore) LoadIndexesFromBSON() error {
-
-	dbCollectionIndexes := make(map[string]collectionIndexes)
-
-	for _, dbname := range restore.manager.SystemIndexDBs() {
-		dbCollectionIndexes[dbname] = make(collectionIndexes)
-		intent := restore.manager.SystemIndexes(dbname)
-		err := intent.BSONFile.Open()
-		if err != nil {
-			return err
-		}
-		defer intent.BSONFile.Close()
-		bsonSource := db.NewDecodedBSONSource(db.NewBSONSource(intent.BSONFile))
-		defer bsonSource.Close()
-
-		// iterate over stored indexes, saving all that match the collection
-		for {
-			indexDocument := &idx.IndexDocument{}
-			if !bsonSource.Next(&indexDocument) {
-				break
-			}
-			//nolint:errcheck
-			namespace := indexDocument.Options["ns"].(string)
-			dbCollectionIndexes[dbname][stripDBFromNS(namespace)] =
-				append(dbCollectionIndexes[dbname][stripDBFromNS(namespace)], indexDocument)
-		}
-		if err := bsonSource.Err(); err != nil {
-			return fmt.Errorf("error scanning system.indexes: %v", err)
-		}
-	}
-	restore.dbCollectionIndexes = dbCollectionIndexes
-	return nil
-}
-
-func stripDBFromNS(ns string) string {
-	_, c := util.SplitNamespace(ns)
-	return c
-}
-
 // CollectionExists returns true if the given intent's collection exists.
 func (restore *MongoRestore) CollectionExists(dbName, coll string) (bool, error) {
 	restore.knownCollectionsMutex.Lock()
@@ -204,40 +163,8 @@ func (restore *MongoRestore) CreateIndexes(
 	defer cancel()
 
 	err = session.Database(dbName).RunCommand(ctx, rawCommand).Err()
-	if err == nil {
-		return nil
-	}
-	if err.Error() != "no such cmd: createIndexes" {
+	if err != nil {
 		return fmt.Errorf("createIndex error: %v", err)
-	}
-
-	// if we're here, the connected server does not support the command, so we fall back
-	log.Logv(log.Info, "\tcreateIndexes command not supported, attempting legacy index insertion")
-	for _, idx := range indexes {
-		log.Logvf(log.Info, "\tmanually creating index %#q", idx.Options["name"])
-		err = restore.LegacyInsertIndex(dbName, idx)
-		if err != nil {
-			return fmt.Errorf("error creating index %#q: %v", idx.Options["name"], err)
-		}
-	}
-	return nil
-}
-
-// LegacyInsertIndex takes in an intent and an index document and attempts to
-// create the index on the "system.indexes" collection.
-func (restore *MongoRestore) LegacyInsertIndex(dbName string, index *idx.IndexDocument) error {
-	session, err := restore.SessionProvider.GetSession()
-	if err != nil {
-		return fmt.Errorf("error establishing connection: %v", err)
-	}
-
-	ctx, cancel := restore.writeContext()
-	defer cancel()
-
-	indexCollection := session.Database(dbName).Collection("system.indexes")
-	_, err = indexCollection.InsertOne(ctx, index)
-	if err != nil {
-		return fmt.Errorf("insert error: %v", err)
 	}
 
 	return nil
