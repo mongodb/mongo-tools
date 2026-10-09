@@ -69,12 +69,6 @@ server_versions:
     platforms:
       - { os: rhel8, arch: x86_64 }
       - { os: windows, arch: x86_64 }
-  - version: "8.3"
-    source: release
-    release_spec: "8.3"
-    platforms:
-      - { os: rhel8, arch: x86_64 }
-      - { os: windows, arch: x86_64 }
   - version: "9.0"
     source: release
     release_spec: "9.0"

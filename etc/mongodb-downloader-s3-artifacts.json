@@ -29,10 +29,6 @@
                 "tarball": "rhel8-x86_64-8.2.12-0f912e80210b8fdfdcec618b14b6c0fced055cb8.tar.zst",
                 "commit": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
             },
-            "8.3": {
-                "tarball": "rhel8-x86_64-8.3.11-b8b83d6e6e1aed495578ad8c6f9234ad329c9955.tar.zst",
-                "commit": "b8b83d6e6e1aed495578ad8c6f9234ad329c9955"
-            },
             "9.0": {
                 "tarball": "rhel8-x86_64-9.0.2-c4d309807b94ac30edcca32e35e88a9598eadfc8.tar.zst",
                 "commit": "c4d309807b94ac30edcca32e35e88a9598eadfc8"
@@ -82,10 +78,6 @@
             "8.2": {
                 "tarball": "windows-x86_64-8.2.12-0f912e80210b8fdfdcec618b14b6c0fced055cb8.tar.zst",
                 "commit": "0f912e80210b8fdfdcec618b14b6c0fced055cb8"
-            },
-            "8.3": {
-                "tarball": "windows-x86_64-8.3.11-b8b83d6e6e1aed495578ad8c6f9234ad329c9955.tar.zst",
-                "commit": "b8b83d6e6e1aed495578ad8c6f9234ad329c9955"
             },
             "9.0": {
                 "tarball": "windows-x86_64-9.0.2-c4d309807b94ac30edcca32e35e88a9598eadfc8.tar.zst",

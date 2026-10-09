@@ -1,0 +1,10 @@
+# The GitHub CLI (gh) is only needed by scripts/update-server-versions.sh, which pushes a branch and
+# opens a pull request. It lives in its own config environment rather than in mise.toml so that
+# developers and the other CI tasks do not install it. It is visible when MISE_ENV includes "gh"
+# (the update script sets MISE_ENV=dsc,gh).
+#
+# This is the same pattern as mise.dsc.toml, which keeps the private mongodb-downloader tool out of
+# the main config.
+
+[tools]
+"github:cli/cli" = "2.102.0"
