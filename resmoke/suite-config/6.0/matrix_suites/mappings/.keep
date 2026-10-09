@@ -1,0 +1,2 @@
+This directory has to exist or resmoke blows up, but we don't have any matrix
+suites.
