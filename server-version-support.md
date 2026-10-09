@@ -58,6 +58,16 @@ not shipped yet, set `release_spec` to the exact pre-release to test (for exampl
 Then run `mongodb-downloader update` and commit the regenerated
 [etc/mongodb-downloader-s3-artifacts.json](./etc/mongodb-downloader-s3-artifacts.json).
 
+### Routine updates
+
+Adding a new series is manual, but keeping existing ones current is not. A weekly Evergreen task
+(`update-server-versions`) runs `mongodb-downloader update` and opens a PR if
+[etc/mongodb-downloader-s3-artifacts.json](./etc/mongodb-downloader-s3-artifacts.json) changes. The
+release-sourced entries re-resolve against the live downloads feed, so this picks up new patch
+releases automatically; the commit-pinned entries (such as `9.1-dsc`) only change when someone bumps
+the pin by hand. The task always uses the `update-server-versions` branch, so a run while the
+previous PR is still open updates that PR instead of opening another one.
+
 ### Adjust load libs
 
 For the legacy JS tests running on server versions 8.1+, we need to shim some code that was removed
