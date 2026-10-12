@@ -15,7 +15,7 @@ import (
 
 	"github.com/craiggwilson/goke/pkg/sh"
 	"github.com/craiggwilson/goke/task"
-	mapset "github.com/deckarep/golang-set/v2"
+	mapset "github.com/deckarep/golang-set/v3"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/modfile"
 )

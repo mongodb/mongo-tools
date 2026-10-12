@@ -207,29 +207,43 @@
       "version": "v2.7.0"
     },
     {
-      "bom-ref": "pkg:golang/github.com/deckarep/golang-set/v2@v2.9.0",
+      "bom-ref": "pkg:golang/github.com/deckarep/golang-set/v3@v3.0.0",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
       "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/deckarep/golang-set/v3?licenses=true&version=v3.0.0"
+        },
         {
           "type": "vcs",
           "url": "https://github.com/deckarep/golang-set"
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/deckarep/golang-set/v2@v2.9.0"
+          "url": "https://pkg.go.dev/github.com/deckarep/golang-set/v3@v3.0.0"
         }
       ],
       "group": "github.com/deckarep/golang-set",
       "licenses": [
         {
           "license": {
-            "name": "MIT"
+            "id": "MIT"
           }
         }
       ],
-      "name": "v2",
-      "purl": "pkg:golang/github.com/deckarep/golang-set/v2@v2.9.0",
+      "name": "v3",
+      "purl": "pkg:golang/github.com/deckarep/golang-set/v3@v3.0.0",
       "type": "library",
-      "version": "v2.9.0"
+      "version": "v3.0.0"
     },
     {
       "bom-ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1",
@@ -619,45 +633,6 @@
       "version": "v0.0.0-20240726163527-a2c0da244d78"
     },
     {
-      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.10",
-      "evidence": {
-        "licenses": [
-          {
-            "license": {
-              "name": "Apache-2.0"
-            }
-          }
-        ]
-      },
-      "externalReferences": [
-        {
-          "comment": "License metadata retrieved via deps.dev lookup.",
-          "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/go.mongodb.org%2Fmongo-driver/versions/v1.17.10"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/mongodb/mongo-go-driver.git"
-        },
-        {
-          "type": "website",
-          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.17.10"
-        }
-      ],
-      "group": "go.mongodb.org",
-      "licenses": [
-        {
-          "license": {
-            "name": "Apache-2.0"
-          }
-        }
-      ],
-      "name": "mongo-driver",
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.10",
-      "type": "library",
-      "version": "v1.17.10"
-    },
-    {
       "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2",
       "evidence": {
         "licenses": [
@@ -978,7 +953,7 @@
       "ref": "pkg:golang/github.com/clipperhouse/uax29/v2@v2.7.0"
     },
     {
-      "ref": "pkg:golang/github.com/deckarep/golang-set/v2@v2.9.0"
+      "ref": "pkg:golang/github.com/deckarep/golang-set/v3@v3.0.0"
     },
     {
       "ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1"
@@ -1023,9 +998,6 @@
       "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2"
     },
     {
-      "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.10"
-    },
-    {
       "ref": "pkg:golang/golang.org/x/crypto@v0.58.0"
     },
     {
@@ -1051,7 +1023,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-10-12T16:49:07.046426+00:00",
+    "timestamp": "2026-10-12T18:42:43.611499+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1095,7 +1067,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 53,
+  "version": 54,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",

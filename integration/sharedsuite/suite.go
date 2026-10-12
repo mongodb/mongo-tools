@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set/v2"
+	mapset "github.com/deckarep/golang-set/v3"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	testifySuite "github.com/stretchr/testify/suite"
