@@ -1,21 +1,21 @@
 {
   "components": [
     {
-      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.1",
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "MIT"
+              "id": "MIT"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/github.com%2FAzure%2Fazure-sdk-for-go%2Fsdk%2Fazcore/versions/v1.23.1"
+          "url": "https://pkg.go.dev/v1/package/github.com/Azure/azure-sdk-for-go/sdk/azcore?licenses=true&version=v1.23.3"
         },
         {
           "type": "vcs",
@@ -23,21 +23,21 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.1"
+          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3"
         }
       ],
       "group": "github.com/Azure/azure-sdk-for-go/sdk",
       "licenses": [
         {
           "license": {
-            "name": "MIT"
+            "id": "MIT"
           }
         }
       ],
       "name": "azcore",
-      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.1",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3",
       "type": "library",
-      "version": "v1.23.1"
+      "version": "v1.23.3"
     },
     {
       "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.14.1",
@@ -79,46 +79,60 @@
       "version": "v1.14.1"
     },
     {
-      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.12.0",
-      "externalReferences": [
-        {
-          "type": "vcs",
-          "url": "https://github.com/Azure/azure-sdk-for-go"
-        },
-        {
-          "type": "website",
-          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.12.0"
-        }
-      ],
-      "group": "github.com/Azure/azure-sdk-for-go/sdk",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        }
-      ],
-      "name": "internal",
-      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.12.0",
-      "type": "library",
-      "version": "v1.12.0"
-    },
-    {
-      "bom-ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.9.0",
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "MIT"
+              "id": "MIT"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/github.com%2FAzureAD%2Fmicrosoft-authentication-library-for-go/versions/v1.9.0"
+          "url": "https://pkg.go.dev/v1/package/github.com/Azure/azure-sdk-for-go/sdk/internal?licenses=true&version=v1.13.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Azure/azure-sdk-for-go"
+        },
+        {
+          "type": "website",
+          "url": "https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0"
+        }
+      ],
+      "group": "github.com/Azure/azure-sdk-for-go/sdk",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "internal",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0",
+      "type": "library",
+      "version": "v1.13.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/AzureAD/microsoft-authentication-library-for-go?licenses=true&version=v1.10.1"
         },
         {
           "type": "vcs",
@@ -126,21 +140,21 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/AzureAD/microsoft-authentication-library-for-go@v1.9.0"
+          "url": "https://pkg.go.dev/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1"
         }
       ],
       "group": "github.com/AzureAD",
       "licenses": [
         {
           "license": {
-            "name": "MIT"
+            "id": "MIT"
           }
         }
       ],
       "name": "microsoft-authentication-library-for-go",
-      "purl": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.9.0",
+      "purl": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1",
       "type": "library",
-      "version": "v1.9.0"
+      "version": "v1.10.1"
     },
     {
       "bom-ref": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.1",
@@ -293,31 +307,31 @@
       "version": "v1.6.1"
     },
     {
-      "bom-ref": "pkg:golang/github.com/klauspost/compress@v1.20.0",
+      "bom-ref": "pkg:golang/github.com/klauspost/compress@v1.20.3",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "Apache-2.0"
+              "id": "Apache-2.0"
             }
           },
           {
             "license": {
-              "name": "BSD-3-Clause"
+              "id": "BSD-3-Clause"
             }
           },
           {
             "license": {
-              "name": "MIT"
+              "id": "MIT"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/github.com%2Fklauspost%2Fcompress/versions/v1.20.0"
+          "url": "https://pkg.go.dev/v1/package/github.com/klauspost/compress?licenses=true&version=v1.20.3"
         },
         {
           "type": "vcs",
@@ -325,31 +339,31 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/klauspost/compress@v1.20.0"
+          "url": "https://pkg.go.dev/github.com/klauspost/compress@v1.20.3"
         }
       ],
       "group": "github.com/klauspost",
       "licenses": [
         {
           "license": {
-            "name": "Apache-2.0"
+            "id": "Apache-2.0"
           }
         },
         {
           "license": {
-            "name": "BSD-3-Clause"
+            "id": "BSD-3-Clause"
           }
         },
         {
           "license": {
-            "name": "MIT"
+            "id": "MIT"
           }
         }
       ],
       "name": "compress",
-      "purl": "pkg:golang/github.com/klauspost/compress@v1.20.0",
+      "purl": "pkg:golang/github.com/klauspost/compress@v1.20.3",
       "type": "library",
-      "version": "v1.20.0"
+      "version": "v1.20.3"
     },
     {
       "bom-ref": "pkg:golang/github.com/kylelemons/godebug@v1.1.0",
@@ -377,21 +391,21 @@
       "version": "v1.1.0"
     },
     {
-      "bom-ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.30",
+      "bom-ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.31",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "MIT"
+              "id": "MIT"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/github.com%2Fmattn%2Fgo-runewidth/versions/v0.0.30"
+          "url": "https://pkg.go.dev/v1/package/github.com/mattn/go-runewidth?licenses=true&version=v0.0.31"
         },
         {
           "type": "vcs",
@@ -399,21 +413,21 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/github.com/mattn/go-runewidth@v0.0.30"
+          "url": "https://pkg.go.dev/github.com/mattn/go-runewidth@v0.0.31"
         }
       ],
       "group": "github.com/mattn",
       "licenses": [
         {
           "license": {
-            "name": "MIT"
+            "id": "MIT"
           }
         }
       ],
       "name": "go-runewidth",
-      "purl": "pkg:golang/github.com/mattn/go-runewidth@v0.0.30",
+      "purl": "pkg:golang/github.com/mattn/go-runewidth@v0.0.31",
       "type": "library",
-      "version": "v0.0.30"
+      "version": "v0.0.31"
     },
     {
       "bom-ref": "pkg:golang/github.com/nsf/termbox-go@v1.1.2",
@@ -644,21 +658,21 @@
       "version": "v1.17.10"
     },
     {
-      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.1",
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "Apache-2.0"
+              "id": "Apache-2.0"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/go.mongodb.org%2Fmongo-driver%2Fv2/versions/v2.9.1"
+          "url": "https://pkg.go.dev/v1/package/go.mongodb.org/mongo-driver/v2?licenses=true&version=v2.9.2"
         },
         {
           "type": "vcs",
@@ -666,38 +680,38 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver/v2@v2.9.1"
+          "url": "https://pkg.go.dev/go.mongodb.org/mongo-driver/v2@v2.9.2"
         }
       ],
       "group": "go.mongodb.org/mongo-driver",
       "licenses": [
         {
           "license": {
-            "name": "Apache-2.0"
+            "id": "Apache-2.0"
           }
         }
       ],
       "name": "v2",
-      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.1",
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2",
       "type": "library",
-      "version": "v2.9.1"
+      "version": "v2.9.2"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.57.0",
+      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.58.0",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "BSD-3-Clause"
+              "id": "BSD-3-Clause"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/golang.org%2Fx%2Fcrypto/versions/v0.57.0"
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/crypto?licenses=true&version=v0.58.0"
         },
         {
           "type": "vcs",
@@ -705,38 +719,38 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/crypto@v0.57.0"
+          "url": "https://pkg.go.dev/golang.org/x/crypto@v0.58.0"
         }
       ],
       "group": "golang.org/x",
       "licenses": [
         {
           "license": {
-            "name": "BSD-3-Clause"
+            "id": "BSD-3-Clause"
           }
         }
       ],
       "name": "crypto",
-      "purl": "pkg:golang/golang.org/x/crypto@v0.57.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.58.0",
       "type": "library",
-      "version": "v0.57.0"
+      "version": "v0.58.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/net@v0.59.0",
+      "bom-ref": "pkg:golang/golang.org/x/net@v0.61.0",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "BSD-3-Clause"
+              "id": "BSD-3-Clause"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/golang.org%2Fx%2Fnet/versions/v0.59.0"
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/net?licenses=true&version=v0.61.0"
         },
         {
           "type": "vcs",
@@ -744,38 +758,38 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/net@v0.59.0"
+          "url": "https://pkg.go.dev/golang.org/x/net@v0.61.0"
         }
       ],
       "group": "golang.org/x",
       "licenses": [
         {
           "license": {
-            "name": "BSD-3-Clause"
+            "id": "BSD-3-Clause"
           }
         }
       ],
       "name": "net",
-      "purl": "pkg:golang/golang.org/x/net@v0.59.0",
+      "purl": "pkg:golang/golang.org/x/net@v0.61.0",
       "type": "library",
-      "version": "v0.59.0"
+      "version": "v0.61.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/sync@v0.23.0",
+      "bom-ref": "pkg:golang/golang.org/x/sync@v0.24.0",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "BSD-3-Clause"
+              "id": "BSD-3-Clause"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/golang.org%2Fx%2Fsync/versions/v0.23.0"
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/sync?licenses=true&version=v0.24.0"
         },
         {
           "type": "vcs",
@@ -783,38 +797,38 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/sync@v0.23.0"
+          "url": "https://pkg.go.dev/golang.org/x/sync@v0.24.0"
         }
       ],
       "group": "golang.org/x",
       "licenses": [
         {
           "license": {
-            "name": "BSD-3-Clause"
+            "id": "BSD-3-Clause"
           }
         }
       ],
       "name": "sync",
-      "purl": "pkg:golang/golang.org/x/sync@v0.23.0",
+      "purl": "pkg:golang/golang.org/x/sync@v0.24.0",
       "type": "library",
-      "version": "v0.23.0"
+      "version": "v0.24.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/sys@v0.48.0",
+      "bom-ref": "pkg:golang/golang.org/x/sys@v0.49.0",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "BSD-3-Clause"
+              "id": "BSD-3-Clause"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/golang.org%2Fx%2Fsys/versions/v0.48.0"
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/sys?licenses=true&version=v0.49.0"
         },
         {
           "type": "vcs",
@@ -822,38 +836,38 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/sys@v0.48.0"
+          "url": "https://pkg.go.dev/golang.org/x/sys@v0.49.0"
         }
       ],
       "group": "golang.org/x",
       "licenses": [
         {
           "license": {
-            "name": "BSD-3-Clause"
+            "id": "BSD-3-Clause"
           }
         }
       ],
       "name": "sys",
-      "purl": "pkg:golang/golang.org/x/sys@v0.48.0",
+      "purl": "pkg:golang/golang.org/x/sys@v0.49.0",
       "type": "library",
-      "version": "v0.48.0"
+      "version": "v0.49.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/term@v0.46.0",
+      "bom-ref": "pkg:golang/golang.org/x/term@v0.47.0",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "BSD-3-Clause"
+              "id": "BSD-3-Clause"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/golang.org%2Fx%2Fterm/versions/v0.46.0"
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/term?licenses=true&version=v0.47.0"
         },
         {
           "type": "vcs",
@@ -861,38 +875,38 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/term@v0.46.0"
+          "url": "https://pkg.go.dev/golang.org/x/term@v0.47.0"
         }
       ],
       "group": "golang.org/x",
       "licenses": [
         {
           "license": {
-            "name": "BSD-3-Clause"
+            "id": "BSD-3-Clause"
           }
         }
       ],
       "name": "term",
-      "purl": "pkg:golang/golang.org/x/term@v0.46.0",
+      "purl": "pkg:golang/golang.org/x/term@v0.47.0",
       "type": "library",
-      "version": "v0.46.0"
+      "version": "v0.47.0"
     },
     {
-      "bom-ref": "pkg:golang/golang.org/x/text@v0.42.0",
+      "bom-ref": "pkg:golang/golang.org/x/text@v0.43.0",
       "evidence": {
         "licenses": [
           {
             "license": {
-              "name": "BSD-3-Clause"
+              "id": "BSD-3-Clause"
             }
           }
         ]
       },
       "externalReferences": [
         {
-          "comment": "License metadata retrieved via deps.dev lookup.",
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
           "type": "evidence",
-          "url": "https://api.deps.dev/v3/systems/go/packages/golang.org%2Fx%2Ftext/versions/v0.42.0"
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/text?licenses=true&version=v0.43.0"
         },
         {
           "type": "vcs",
@@ -900,21 +914,21 @@
         },
         {
           "type": "website",
-          "url": "https://pkg.go.dev/golang.org/x/text@v0.42.0"
+          "url": "https://pkg.go.dev/golang.org/x/text@v0.43.0"
         }
       ],
       "group": "golang.org/x",
       "licenses": [
         {
           "license": {
-            "name": "BSD-3-Clause"
+            "id": "BSD-3-Clause"
           }
         }
       ],
       "name": "text",
-      "purl": "pkg:golang/golang.org/x/text@v0.42.0",
+      "purl": "pkg:golang/golang.org/x/text@v0.43.0",
       "type": "library",
-      "version": "v0.42.0"
+      "version": "v0.43.0"
     },
     {
       "bom-ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
@@ -946,16 +960,16 @@
   ],
   "dependencies": [
     {
-      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.1"
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3"
     },
     {
       "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.14.1"
     },
     {
-      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.12.0"
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0"
     },
     {
-      "ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.9.0"
+      "ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1"
     },
     {
       "ref": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.1"
@@ -976,13 +990,13 @@
       "ref": "pkg:golang/github.com/jessevdk/go-flags@v1.6.1"
     },
     {
-      "ref": "pkg:golang/github.com/klauspost/compress@v1.20.0"
+      "ref": "pkg:golang/github.com/klauspost/compress@v1.20.3"
     },
     {
       "ref": "pkg:golang/github.com/kylelemons/godebug@v1.1.0"
     },
     {
-      "ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.30"
+      "ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.31"
     },
     {
       "ref": "pkg:golang/github.com/nsf/termbox-go@v1.1.2"
@@ -1006,28 +1020,28 @@
       "ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78"
     },
     {
-      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.1"
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2"
     },
     {
       "ref": "pkg:golang/go.mongodb.org/mongo-driver@v1.17.10"
     },
     {
-      "ref": "pkg:golang/golang.org/x/crypto@v0.57.0"
+      "ref": "pkg:golang/golang.org/x/crypto@v0.58.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/net@v0.59.0"
+      "ref": "pkg:golang/golang.org/x/net@v0.61.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/sync@v0.23.0"
+      "ref": "pkg:golang/golang.org/x/sync@v0.24.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/sys@v0.48.0"
+      "ref": "pkg:golang/golang.org/x/sys@v0.49.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/term@v0.46.0"
+      "ref": "pkg:golang/golang.org/x/term@v0.47.0"
     },
     {
-      "ref": "pkg:golang/golang.org/x/text@v0.42.0"
+      "ref": "pkg:golang/golang.org/x/text@v0.43.0"
     },
     {
       "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
@@ -1037,7 +1051,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-10-02T19:27:24.872954+00:00",
+    "timestamp": "2026-10-12T16:49:07.046426+00:00",
     "tools": [
       {
         "externalReferences": [
@@ -1081,7 +1095,7 @@
     ]
   },
   "serialNumber": "urn:uuid:ecf433fd-8f8f-476e-bb32-15507acd4361",
-  "version": 52,
+  "version": 53,
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
