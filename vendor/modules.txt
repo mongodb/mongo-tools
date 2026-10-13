@@ -265,9 +265,9 @@ github.com/craiggwilson/goke/pkg/git
 github.com/craiggwilson/goke/pkg/sh
 github.com/craiggwilson/goke/task
 github.com/craiggwilson/goke/task/internal
-# github.com/deckarep/golang-set/v2 v2.9.0
-## explicit; go 1.18
-github.com/deckarep/golang-set/v2
+# github.com/deckarep/golang-set/v3 v3.0.0
+## explicit; go 1.25
+github.com/deckarep/golang-set/v3
 # github.com/golang-jwt/jwt/v5 v5.3.1
 ## explicit; go 1.21
 github.com/golang-jwt/jwt/v5
@@ -384,15 +384,6 @@ github.com/xrash/smetrics
 # github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 ## explicit; go 1.17
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver v1.17.10
-## explicit; go 1.18
-go.mongodb.org/mongo-driver/bson
-go.mongodb.org/mongo-driver/bson/bsoncodec
-go.mongodb.org/mongo-driver/bson/bsonoptions
-go.mongodb.org/mongo-driver/bson/bsonrw
-go.mongodb.org/mongo-driver/bson/bsontype
-go.mongodb.org/mongo-driver/bson/primitive
-go.mongodb.org/mongo-driver/x/bsonx/bsoncore
 # go.mongodb.org/mongo-driver/v2 v2.9.2
 ## explicit; go 1.25.0
 go.mongodb.org/mongo-driver/v2/bson

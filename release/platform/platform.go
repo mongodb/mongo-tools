@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set/v2"
+	mapset "github.com/deckarep/golang-set/v3"
 	"github.com/mongodb/mongo-tools/release/env"
 	"github.com/mongodb/mongo-tools/release/version"
 	"github.com/samber/lo"
