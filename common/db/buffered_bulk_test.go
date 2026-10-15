@@ -18,7 +18,7 @@ import (
 )
 
 func TestBufferedBulkInserterInserts(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)

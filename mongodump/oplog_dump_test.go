@@ -67,7 +67,7 @@ func TestErrorOnViewlessTimeseriesConversion(t *testing.T) {
 // TestOplogDumpVectoredInsertsOplog tests dumping oplogs that are from vectored inserts.
 // They have a special oplog format.
 func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -183,7 +183,7 @@ func vectoredInsert(t *testing.T, ctx context.Context) error {
 }
 
 func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -358,7 +358,7 @@ func createIndexesAndCollModIndexUniqueness(t *testing.T, ctx context.Context) e
 // This test is here so that we can regenerate the oplog.bson file for the mongorestore test
 // `TestOplogRestoreBypassDocumentValidation`.
 func TestOplogDumpBypassDocumentValidation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -497,7 +497,7 @@ func createCollectionWithValidatorAndInsertBypassValidation(ctx context.Context,
 // This test is here so that we can regenerate the oplog.bson file for the mongorestore test
 // `TestOplogRestoreCollModTTLIndex`.
 func TestOplogDumpCollModTTL(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 	testutil.SkipIfFCVLessThan(t, "6.0", "collMod TTL is not supported")
@@ -636,7 +636,7 @@ func convertIndexToTTL(ctx context.Context, t *testing.T) {
 // (checkOplogTimestampExists, in oplog_dump.go) it would in production,
 // deterministically and without needing to write any data at all.
 func TestOplogRollover(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -683,7 +683,7 @@ func TestOplogRollover(t *testing.T) {
 // injects that error once so the retry can be tested without having to race
 // real truncation.
 func TestOplogCheckSurvivesCappedPositionLost(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -737,7 +737,7 @@ func TestOplogCheckSurvivesCappedPositionLost(t *testing.T) {
 // entries, which is a very different thing from the check itself being unable to
 // read (TOOLS-4338).
 func TestOplogCheckReportsPersistentReadError(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -786,7 +786,7 @@ func cappedPositionLostError() error {
 // it runs. A rename is not replayable against a dump taken around it, so the resulting oplog would
 // not restore.
 func TestOplogDumpRejectsRename(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -826,7 +826,7 @@ func TestOplogDumpRejectsRename(t *testing.T) {
 // change to it mid-dump means the dump spans two different server feature sets and the oplog cannot
 // be replayed as one unit.
 func TestOplogDumpRejectsAdminSystemVersionChange(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	// Oplog is not available in a standalone topology.
 	testtype.SkipUnlessTestType(t, testtype.ReplSetTestType)
 
@@ -861,7 +861,7 @@ func TestOplogDumpRejectsAdminSystemVersionChange(t *testing.T) {
 // anything. A standalone keeps no oplog, so there is nothing for mongodump to capture and no
 // point-in-time dump it can produce.
 func TestOplogDumpFailsOnStandalone(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	testutil.SkipUnlessStandalone(t)
 
 	md, err := simpleMongoDumpInstance()

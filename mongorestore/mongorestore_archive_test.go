@@ -46,7 +46,7 @@ var (
 )
 
 func TestMongorestoreShortArchive(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -101,7 +101,8 @@ func TestMongorestoreShortArchive(t *testing.T) {
 }
 
 func TestMongorestoreArchiveWithOplog(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -129,7 +130,7 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 }
 
 func TestMongorestoreBadFormatArchive(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -165,7 +166,7 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 func TestReadDumpServerVersionFromArchive(t *testing.T) {
 	require := require.New(t)
 
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	withArchiveMongodump(t, func(archivePath string) {
 		sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -223,7 +224,11 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 func TestMongorestoreArchiveAdminNamespaces(t *testing.T) {
 	require := require.New(t)
 
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(
+		t,
+		"it restores admin namespaces and drops admin collections, which mongos does not allow",
+	)
 
 	session, err := testutil.GetBareSession(t)
 	require.NoError(err, "can connect to server")
