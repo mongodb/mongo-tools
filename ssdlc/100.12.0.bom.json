@@ -1510,9 +1510,7 @@
         "state": "false_positive"
       },
       "bom-ref": "679943c11241b228cf6f5d95",
-      "cwes": [
-        295
-      ],
+      "cwes": [295],
       "description": "Improper Certificate Validation - Please see 'source' and 'references' for additional information",
       "id": "mongo-tools___CVE-2020-7924",
       "ratings": [

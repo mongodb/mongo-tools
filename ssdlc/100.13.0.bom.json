@@ -984,9 +984,7 @@
         }
       ],
       "analysis": {
-        "response": [
-          "can_not_fix"
-        ],
+        "response": ["can_not_fix"],
         "state": "in_triage"
       },
       "bom-ref": "682e1569bc29860e93402db3",
@@ -1023,9 +1021,7 @@
         }
       ],
       "analysis": {
-        "response": [
-          "can_not_fix"
-        ],
+        "response": ["can_not_fix"],
         "state": "in_triage"
       },
       "bom-ref": "682e1567f934887da5d2849a",

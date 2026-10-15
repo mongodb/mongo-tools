@@ -22,3 +22,5 @@ TAG="$1"
 # root as usual, then move it into place -- SARIF.json itself is gitignored and never committed.
 GOSEC_SARIF_REPORT=1 mise exec 'github:houseabsolute/precious' -- precious --quiet lint --all --command gosec
 mv SARIF.json "ssdlc/${TAG}.sarif.json"
+
+mise exec -- precious tidy "ssdlc/${TAG}.bom.json" "ssdlc/${TAG}.sarif.json"

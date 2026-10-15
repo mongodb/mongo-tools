@@ -106,7 +106,8 @@ type = "both"
 invoke = "once"
 working-dir = "root"
 path-args = "file"
-include = ["*.md", "*.toml", "*.yaml", "*.yml"]
+include = ["*.json", "*.md", "*.toml", "*.yml", "*.yaml"]
+exclude = "**/testdata/**"
 cmd = ["mise", "exec", "npm:oxfmt", "--", "oxfmt"]
 lint-flags = "--check"
 tidy-flags = "--write"
@@ -143,6 +144,7 @@ exclude = [
     "*.journal",
     "**/bsondump/testdata/sample.json",
     "**/mongofiles/testdata/lorem_ipsum_*.txt",
+    "ssdlc/**/*",
 ]
 cmd = ["mise", "exec", "github:crate-ci/typos", "--", "typos", "--sort"]
 tidy-flags = "--write-changes"

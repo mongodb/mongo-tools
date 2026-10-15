@@ -1208,9 +1208,7 @@
       },
       "bom-ref": "BomRef.9461325443989455.6530665188109336",
       "created": "2024-07-04T04:40:05.262000+00:00",
-      "cwes": [
-        22
-      ],
+      "cwes": [22],
       "description": "Update package `crypto`",
       "id": "CVE-2022-30636",
       "ratings": [

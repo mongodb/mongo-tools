@@ -1497,9 +1497,7 @@
         "state": "in_triage"
       },
       "bom-ref": "BomRef.1401203316933416.3615743914836227",
-      "cwes": [
-        327
-      ],
+      "cwes": [327],
       "description": "There is no immediate fix available for vulnerability on package `aws-sdk-go`.  Research is required to fix this vulnerability.",
       "id": "aws-sdk-go___CVE-2020-8911",
       "ratings": [
