@@ -622,7 +622,7 @@ func TestGetInputReader(t *testing.T) {
 }
 
 func TestImportDocuments(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	Convey("With a mongoimport instance", t, func() {
 		Reset(func() {
 			sessionProvider, err := db.NewSessionProvider(*getBasicToolOptions())
@@ -1521,7 +1521,7 @@ func generateTestData() error {
 
 // test --maintainInsertionOrder and --stopOnError behavior.
 func TestImportMIOSOE(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	if err := generateTestData(); err != nil {
 		t.Fatalf("Could not generate test data: %v", err)
@@ -1601,7 +1601,7 @@ func TestImportMIOSOE(t *testing.T) {
 // TestImportBooleanType verifies that mongoimport correctly imports legacy
 // JSON with Boolean() constructor syntax using --legacy.
 func TestImportBooleanType(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_booleantype_test"
 	const collName = "testcollbool"
@@ -1666,7 +1666,7 @@ func TestImportBooleanType(t *testing.T) {
 // TestImportCollectionNameDerivation verifies that mongoimport correctly
 // derives the collection name from the input filename.
 func TestImportCollectionNameDerivation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_collections_test"
 
@@ -1705,7 +1705,7 @@ func TestImportCollectionNameDerivation(t *testing.T) {
 // TestImportFields verifies --headerline, --fields, --fieldFile, --ignoreBlanks,
 // nested dotted field names, and extra-fields-beyond-header behavior.
 func TestImportFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_fields_test"
 
@@ -1727,7 +1727,7 @@ func TestImportFields(t *testing.T) {
 // TestImportExtraFields verifies that CSV columns beyond the fieldFile mapping
 // are imported as field4, field5, etc.
 func TestImportExtraFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_extrafields_test"
 	const collName = "extrafields"
@@ -1850,7 +1850,7 @@ func (r row) toStrings() []string {
 // --fieldFile in turn. Omitting all three has to fail, since there is nothing left to name the
 // types.
 func TestImportColumnsHaveTypes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_columnshavetypes_test"
 	const collName = "typed"
@@ -1995,7 +1995,7 @@ func TestImportColumnsHaveTypes(t *testing.T) {
 // not match the layout its spec names. The modes differ only in what happens to that one row, so
 // all four are run over the same file.
 func TestImportParseGraceModes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_parsegrace_test"
 	const collName = "parsegrace"
@@ -2170,7 +2170,7 @@ func docsWithoutIDs(t *testing.T, coll *mongo.Collection) []bson.D {
 // while validating settings and some only once the file is read, which is why every case goes
 // through the whole New-then-import path.
 func TestImportRejectsInvalidOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_invalid_options_test"
 
@@ -2388,7 +2388,7 @@ func TestImportRejectsInvalidOptions(t *testing.T) {
 // TestImportTypeIsCaseInsensitive checks that --type accepts any casing, since validateSettings
 // lowercases it before comparing.
 func TestImportTypeIsCaseInsensitive(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_type_case_test"
 	const collName = "c"
@@ -2439,7 +2439,7 @@ func TestImportTypeIsCaseInsensitive(t *testing.T) {
 // TestImportDropReplacesCollection checks that --drop empties the collection first, and that it is
 // not an error when there is no collection to drop.
 func TestImportDropReplacesCollection(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const dbName = "mongoimport_drop_test"
 	const collName = "c"
@@ -2500,7 +2500,7 @@ func importCSVWithDrop(t *testing.T, dbName, collName, csvFile string) {
 
 // TestImportModeUpsertFields tests --mode with --upsertFields a,c (compound key matching).
 func TestImportModeUpsertFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const (
 		dbName   = "mongoimport_modes_upsertfields_test"
@@ -2597,7 +2597,7 @@ func TestImportModeUpsertFields(t *testing.T) {
 
 // TestImportModeByID tests --mode without --upsertFields (matches on _id).
 func TestImportModeByID(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const (
 		dbName   = "mongoimport_modes_byid_test"

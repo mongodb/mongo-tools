@@ -24,7 +24,8 @@ import (
 // oplog.bson and --oplogFile points at another oplog, mongorestore fails and
 // applies no data rather than silently choosing one of the two.
 func TestOplogReplayConflict(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -56,7 +57,7 @@ func TestOplogReplayConflict(t *testing.T) {
 // local/oplog.rs.bson and --oplogFile points at a higher-priority oplog, only
 // the priority oplog's entries are applied.
 func TestOplogReplayPriorityOplog(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	// This test restores the dump_local_oplog fixture, which contains a
 	// local/oplog.rs.bson. Writing local.oplog.rs as a collection is only
@@ -118,7 +119,8 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 // TestOplogReplayNoop checks that noop ("n") entries interleaved with inserts
 // are skipped while the inserts around them are still applied.
 func TestOplogReplayNoop(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -160,7 +162,8 @@ func TestOplogReplayNoop(t *testing.T) {
 // orders as there are fields, so a single attempt could land on the right one by
 // chance.
 func TestOplogReplayPreservesComplexIDOrder(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -267,7 +270,8 @@ func writeOplogUpdate(t *testing.T, path, ns string, id bson.D) {
 // batch of roughly 1MB ops, guarding the batching that keeps oplog replay
 // within the server's message size limit (TOOLS-939).
 func TestOplogReplaySizeSafety(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",

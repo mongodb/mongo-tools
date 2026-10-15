@@ -26,7 +26,7 @@ type ExportImportSuite struct {
 type crossCluster = sharedsuite.CrossCluster
 
 func TestImportExport(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	ts := new(ExportImportSuite)
 	suite.Run(t, ts)

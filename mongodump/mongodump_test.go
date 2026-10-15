@@ -720,7 +720,11 @@ func TestMongoDumpQueryFileMissing(t *testing.T) {
 }
 
 func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(
+		t,
+		"it creates and drops a collection in the admin database, which mongos does not allow",
+	)
 
 	log.SetWriter(io.Discard)
 
@@ -760,7 +764,7 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 }
 
 func TestMongoDumpBSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -952,7 +956,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	// Disabled: see TOOLS-2658
 	t.Skip()
 
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
@@ -1057,7 +1061,7 @@ func testPreludeMetadata(md *MongoDump, dir string, serverVersion string) {
 }
 
 func TestDumpPreludeMetadataJson(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1164,7 +1168,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1267,7 +1271,7 @@ func TestMongoDumpOplog(t *testing.T) {
 	// Disabled: see TOOLS-2657
 	t.Skip()
 
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
@@ -1361,7 +1365,8 @@ func TestMongoDumpOplog(t *testing.T) {
 // Test dumping a collection with autoIndexId:false.  As of MongoDB 4.0,
 // this is only allowed on the 'local' database.
 func TestMongoDumpTOOLS2174(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it writes to the local database, which mongos does not allow")
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -1418,7 +1423,11 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 
 // Test dumping a collection while respecting no index scan for wired tiger.
 func TestMongoDumpTOOLS1952(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(
+		t,
+		"it enables profiling and reads system.profile, which mongos does not support",
+	)
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it reads system.profile, and DSC does not support profile level 2",
@@ -1489,7 +1498,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 
 // Test the fix for nil pointer bug when getCollectionInfo failed.
 func TestMongoDumpTOOLS2498(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -1550,7 +1559,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 }
 
 func TestMongoDumpOrderedQuery(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1609,7 +1618,11 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 }
 
 func TestMongoDumpViewsAsCollections(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(
+		t,
+		"it enables profiling and reads system.profile, which mongos does not support",
+	)
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it reads system.profile, and DSC does not support profile level 2",
@@ -1688,7 +1701,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 }
 
 func TestMongoDumpViews(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1841,7 +1854,7 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	Convey("test count collection", t, func() {
 		err := setUpMongoDumpTestData(t)
@@ -1889,7 +1902,7 @@ func TestCount(t *testing.T) {
 }
 
 func TestTimeseriesCollections(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
@@ -2282,7 +2295,7 @@ func TestTimeseriesCollections(t *testing.T) {
 }
 
 func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
@@ -2366,7 +2379,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 }
 
 func TestFailDuringResharding(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	testutil.SkipForAtlasCluster(
 		t,
 		"this test requires permissions that may not be available for an Atlas cluster",
@@ -2541,7 +2554,7 @@ func TestFailDuringResharding(t *testing.T) {
 }
 
 func TestOptionsOrderIsPreserved(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -2637,7 +2650,7 @@ func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
 // TestBrokenPipe verifies that mongodump handles a broken pipe gracefully
 // (exits with a write error rather than being killed by SIGPIPE).
 func TestBrokenPipe(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const (
 		dbName   = "mongodump_broken_pipe_test"
@@ -2674,7 +2687,7 @@ func TestBrokenPipe(t *testing.T) {
 // carries a $natural hint. The view case additionally covers the count that mongodump issues
 // before dumping, which goes through CountDocuments rather than the find.
 func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -2798,7 +2811,7 @@ func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
 // point of this test is to pin down that the dump either completes with every measurement
 // or fails outright — it must never silently produce a truncated dump.
 func TestTimeseriesDumpConcurrentWithSetFCV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	ctx := t.Context()
 

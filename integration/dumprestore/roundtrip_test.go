@@ -137,6 +137,10 @@ func (s *DumpRestoreSuite) TestPipedDumpRestore() {
 }
 
 func (s *DumpRestoreSuite) TestDumpAndRestoreConfigDB() {
+	testutil.SkipIfSharded(
+		s.T(),
+		"it manipulates the config database, which is live on a sharded cluster",
+	)
 	_, err := testutil.GetBareSession(s.T())
 	s.Require().NoError(err, "can connect to server")
 
@@ -616,6 +620,10 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 	})
 }
 func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
+	testutil.SkipIfSharded(
+		s.T(),
+		"it drops temporary users and roles collections in the admin database, which mongos does not allow",
+	)
 	s.WithCrossCluster(func(cc crossCluster) {
 		s.Run("drops tempusers and temproles", func() {
 			restore, err := getRestoreWithArgsForURI(

@@ -393,11 +393,7 @@ func TestValidArguments(t *testing.T) {
 
 // Test that the output from mongofiles is actually correct.
 func TestMongoFilesCommands(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
 		"with a MongoDump instance", t, func() {
@@ -1194,11 +1190,7 @@ func TestMongoFilesCommands(t *testing.T) {
 
 // Test that when no write concern is specified, a majority write concern is set.
 func TestDefaultWriteConcern(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 	if ssl.UseSSL {
 		t.Skip("Skipping non-SSL test with SSL configuration")
 	}

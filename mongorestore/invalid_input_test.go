@@ -52,7 +52,7 @@ func TestApplyOpsGuardrail(t *testing.T) {
 // common/options package rather than in mongorestore, so it belongs with the
 // tests for that package.
 func TestRestoreInvalidInput(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	t.Run("--objcheck with --noobjcheck is rejected", testRestoreObjcheckWithNoobjcheck)
 	t.Run("negative write concern is rejected", testRestoreNegativeWriteConcern)
@@ -339,6 +339,7 @@ func testRestoreObjcheckValidBSON(t *testing.T) {
 }
 
 func testRestoreOplogReplayNoOplogFile(t *testing.T) {
+	testutil.SkipIfSharded(t, "it uses --oplogReplay, which mongos does not support")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",

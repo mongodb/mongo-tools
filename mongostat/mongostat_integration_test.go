@@ -42,7 +42,7 @@ import (
 // TestMongostatRowCount checks that `--rowcount` prints exactly that many data rows and exits
 // successfully, and covers the ways of naming a server that mongostat has to reject.
 func TestMongostatRowCount(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	t.Run("prints the requested number of rows", func(t *testing.T) {
 		const rowCount = 5
@@ -98,7 +98,7 @@ func TestMongostatRowCount(t *testing.T) {
 // take (n+1) sleeps: the assertion allows for one fewer than that, which still fails if the
 // argument were ignored and the default one-second interval used instead.
 func TestMongostatSleepTime(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const (
 		rowCount     = 2
@@ -125,7 +125,7 @@ func TestMongostatSleepTime(t *testing.T) {
 // TestMongostatHeaders checks that the column header is printed by default and suppressed by
 // `--noheaders`.
 func TestMongostatHeaders(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	for _, c := range []struct {
 		name         string
@@ -154,7 +154,7 @@ func TestMongostatHeaders(t *testing.T) {
 // a column can be renamed with `name=alias`, and that a `serverStatus` field that is not one of the
 // built-in columns is read from the server.
 func TestMongostatCustomColumns(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	// The default time format contains spaces, so a row whose last column is the time splits into
 	// more fields than there are columns. `--humanReadable=false` prints an RFC 3339 timestamp
@@ -297,7 +297,7 @@ func TestMongostatCustomColumns(t *testing.T) {
 // asynchronously and can re-print a sample it already printed as `{"error":"no data received"}`,
 // which would make the per-sample value checks flaky.
 func TestMongostatJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const rowCount = 2
 	stdout, stderr, err := runMongostatAgainstServer(
@@ -361,7 +361,7 @@ func testHeaderColumnsArePresent(t *testing.T, header string, cols ...string) {
 // failure exit status. main passes a nil finalizer to signals.Handle, so the first signal reaches
 // the os.Exit(ExitFailure) in handleSignals.
 func TestMongostatExitsOnSignal(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping test because Windows does not support sending SIGTERM to a process")

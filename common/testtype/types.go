@@ -69,6 +69,14 @@ func RequireMatchingTestType(t *testing.T, testTypes ...string) {
 	t.SkipNow()
 }
 
+// SkipUnlessIntegration skips the test unless an integration test run is active.
+// Integration tests run against every supported topology (standalone, replica
+// set, and sharded) unless the test skips a topology explicitly with a helper
+// from common/testutil.
+func SkipUnlessIntegration(t *testing.T) {
+	RequireMatchingTestType(t, IntegrationTestType, ShardedIntegrationTestType)
+}
+
 func SkipUnlessBenchmarkType(b *testing.B, testType string) {
 	if !HasTestType(testType) {
 		doSkip(b, testType)
