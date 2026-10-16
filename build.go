@@ -48,9 +48,9 @@ func init() {
 	taskRegistry.Declare("sa:checkVendoredCode").
 		Description("checks that vendored code has no unexpected local changes").
 		Do(buildscript.SACheckVendoredCode)
-	taskRegistry.Declare("sa:checkTestTags").
-		Description("checks that all test files have a build tag").
-		Do(buildscript.SACheckTestBuildTags)
+	taskRegistry.Declare("sa:checkTestFiles").
+		Description("checks that test files have a build tag and a matching filename suffix").
+		Do(buildscript.SACheckTestFiles)
 
 	// Testing
 	taskRegistry.Declare("test:unit").

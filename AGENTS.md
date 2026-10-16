@@ -59,13 +59,17 @@ go run build.go test:awsauth                  # -tags awsauth; requires AWS auth
 
 Optional flags for `test:integration`: `ssl=true`, `auth=true`, `race=true`.
 
-A test file must start with a `//go:build` line naming its tags: `unit`, `integration`, `sharded`,
-`kerberos`, or `awsauth` (`integration || sharded` for the integration suites that run under both).
-Server _configuration_ that cannot be inferred from the connection — TLS and auth — comes from env
-vars and is checked with `testtype.SkipUnlessTestType`. Topology is detected from the server
-instead: use `testutil.SkipIfSharded`, `testutil.SkipUnlessStandalone`, or
-`testutil.SkipUnlessReplicaSet`. `sa:checkTestTags` (part of lint) fails if a test file is missing
-its tag.
+A test file that contains tests must start with a `//go:build` line naming its tags: `unit`,
+`integration`, `sharded`, `kerberos`, or `awsauth` (`integration || sharded` for the integration
+suites that run under both). Its filename must end with a suffix matching that tag: `_unit_test.go`,
+`_integration_test.go`, `_sharded_test.go`, `_integration_sharded_test.go`, `_kerberos_test.go`, or
+`_awsauth_test.go`. A shared helper file with no tag is named `_helpers_test.go`. Server
+_configuration_ that cannot be inferred from the connection — TLS and auth — comes from env vars and
+is checked with `testtype.SkipUnlessTestType`. Topology is detected from the server instead: use
+`testutil.SkipIfSharded`, `testutil.SkipUnlessStandalone`, or `testutil.SkipUnlessReplicaSet`.
+`sa:checkTestFiles` (part of lint) fails if a test file is missing its tag or its name does not
+match its tag. Files under `common/json/` (copied from the standard library) and `integration/` are
+exempt from the naming rule.
 
 Integration tests default to connecting to `localhost:33333`. Override with
 `TOOLS_TESTING_MONGOD=<uri>`.
