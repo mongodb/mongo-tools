@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package bsondump
 
 import (
@@ -17,7 +19,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,8 +26,6 @@ import (
 )
 
 func TestBsondump(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("bsondump reading from stdin and writing to stdout", testFromStdinToStdout)
 	t.Run("bsondump reading from stdin and writing to a file", testFromStdinToFile)
 	t.Run(
@@ -266,8 +265,6 @@ func testFromFileWithPositionalArgumentToFile(t *testing.T) {
 // TestBsondumpAllTypesDebug verifies that bsondump --type=debug outputs the correct BSON type
 // numbers for all non-deprecated BSON types.
 func TestBsondumpAllTypesDebug(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	out, err := runBsondump("--type=debug", "testdata/all_types.bson")
 	require.NoError(t, err, "bsondump should exit successfully with --type=debug")
 
@@ -287,8 +284,6 @@ func TestBsondumpAllTypesDebug(t *testing.T) {
 // TestBsondumpAllTypesJSON verifies that bsondump --type=json correctly serializes all
 // non-deprecated BSON types to Extended JSON.
 func TestBsondumpAllTypesJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	oid, err := bson.ObjectIDFromHex("507f1f77bcf86cd799439011")
 	require.NoError(t, err)
 	dec, err := bson.ParseDecimal128("1.2E+10")
@@ -352,8 +347,6 @@ func TestBsondumpAllTypesJSON(t *testing.T) {
 // TestBsondumpDeepNested verifies bsondump handles deeply nested BSON
 // documents without error in both JSON and debug modes.
 func TestBsondumpDeepNested(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_, err := runBsondump("--type=json", "testdata/deep_nested.bson")
 	assert.NoError(t, err, "bsondump should handle deeply nested documents in JSON mode")
 
@@ -364,8 +357,6 @@ func TestBsondumpDeepNested(t *testing.T) {
 // TestBsondumpBadFiles verifies bsondump error handling for malformed BSON
 // input with and without --objcheck.
 func TestBsondumpBadFiles(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	badFiles := []string{
 		"testdata/bad_cstring.bson",
 		"testdata/bad_type.bson",
@@ -400,8 +391,6 @@ func TestBsondumpBadFiles(t *testing.T) {
 // TestBsondumpOptionValidation verifies bsondump accepts valid options and
 // rejects invalid ones.
 func TestBsondumpOptionValidation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("invalid --type fails", func(t *testing.T) {
 		_, err := runBsondump("--type=fake", "testdata/sample.bson")
 		assert.Error(t, err)
@@ -463,8 +452,6 @@ func bsondumpCommand(args ...string) *exec.Cmd {
 const sixteenKB = 16 * 1024
 
 func TestBsondumpMaxBSONSize(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// 16mb + 16kb
 	maxSize := (16 * 1024 * 1024) + sixteenKB
 
@@ -545,8 +532,6 @@ func runBsondumpWithLargeFile(t *testing.T, size int) (string, error) {
 // TestBrokenPipe verifies that bsondump handles a broken pipe gracefully
 // (exits with a write error rather than being killed by SIGPIPE).
 func TestBrokenPipe(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// Write 1000 docs (~1 KB each) so the JSON output exceeds the pipe buffer.
 	dir := t.TempDir()
 	bsonPath := filepath.Join(dir, "large.bson")

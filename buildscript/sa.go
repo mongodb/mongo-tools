@@ -11,7 +11,11 @@ import (
 	"github.com/craiggwilson/goke/task"
 )
 
-func SAPreciousLint(ctx *task.Context) error {
+func SALint(ctx *task.Context) error {
+	if err := SACheckTestBuildTags(ctx); err != nil {
+		return err
+	}
+
 	return runPrecious(ctx, "lint", "--all")
 }
 

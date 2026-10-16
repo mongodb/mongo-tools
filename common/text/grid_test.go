@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package text
 
 import (
@@ -11,13 +13,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUpdateWidths(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	gw := GridWriter{}
 	defaultWidths := []int{1, 2, 3, 4}
 
@@ -52,8 +51,6 @@ func writeData(gw *GridWriter) {
 }
 
 func TestWriteGrid(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("no min width", func(t *testing.T) {
 		gw := new(GridWriter)
 		writeData(gw)

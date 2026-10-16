@@ -4,20 +4,19 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package util
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSplitHostArg(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("empty host", func(t *testing.T) {
 		hosts, setName := SplitHostArg("")
 		assert.Equal(t, []string{""}, hosts, "empty host slice")
@@ -56,8 +55,6 @@ func TestSplitHostArg(t *testing.T) {
 }
 
 func TestCreateConnectionAddrs(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("with no port", func(t *testing.T) {
 		addrs := CreateConnectionAddrs("host1,host2", "")
 		assert.Equal(t, []string{"host1", "host2"}, addrs, "no port in hosts")
@@ -71,8 +68,6 @@ func TestCreateConnectionAddrs(t *testing.T) {
 }
 
 func TestBuildURI(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	cases := []struct{ h, p, u string }{
 		{h: "", p: "", u: "mongodb://localhost/"},
 		{h: "host1", p: "", u: "mongodb://host1/"},
@@ -99,8 +94,6 @@ func TestBuildURI(t *testing.T) {
 }
 
 func TestInvalidNames(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("test.col$ is invalid", func(t *testing.T) {
 		require.NoError(t, ValidateDBName("test"))
 		require.Error(t, ValidateCollectionName("col$"))

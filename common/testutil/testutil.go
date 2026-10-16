@@ -168,6 +168,22 @@ func SkipUnlessStandalone(t *testing.T) {
 	}
 }
 
+// SkipUnlessReplicaSet skips the test unless it is connected to a replica set.
+// Some operations (e.g. reading or writing local.oplog.rs) only exist on a
+// replica set member, and mongos and standalone servers reject them.
+func SkipUnlessReplicaSet(t *testing.T) {
+	t.Helper()
+
+	sessionProvider, _, err := GetBareSessionProvider(t)
+	require.NoError(t, err)
+
+	isReplicaSet, err := sessionProvider.IsReplicaSet()
+	require.NoError(t, err)
+	if !isReplicaSet {
+		t.Skip("Skipping test because it requires a replica set")
+	}
+}
+
 // SkipIfSharded skips the test when it is connected to a sharded cluster (via
 // mongos). Integration tests run against sharded clusters by default, so use
 // this for the ones that depend on behavior a sharded cluster does not support,

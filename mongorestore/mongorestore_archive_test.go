@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongorestore
 
 import (
@@ -17,7 +19,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongodump"
 	"github.com/pkg/errors"
@@ -46,7 +47,6 @@ var (
 )
 
 func TestMongorestoreShortArchive(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -101,7 +101,6 @@ func TestMongorestoreShortArchive(t *testing.T) {
 }
 
 func TestMongorestoreArchiveWithOplog(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
@@ -130,7 +129,6 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 }
 
 func TestMongorestoreBadFormatArchive(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -165,8 +163,6 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 
 func TestReadDumpServerVersionFromArchive(t *testing.T) {
 	require := require.New(t)
-
-	testtype.SkipUnlessIntegration(t)
 
 	withArchiveMongodump(t, func(archivePath string) {
 		sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -224,7 +220,6 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 func TestMongorestoreArchiveAdminNamespaces(t *testing.T) {
 	require := require.New(t)
 
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(
 		t,
 		"it restores admin namespaces and drops admin collections, which mongos does not allow",
@@ -284,7 +279,6 @@ func testRestoreAdminNamespaces(t *testing.T) {
 	}
 
 	withArchiveMongodump(t, func(file string) {
-
 		testCases.init()
 
 		restore, err := getRestoreWithArgs(
@@ -337,7 +331,6 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 	}
 
 	withArchiveMongodump(t, func(file string) {
-
 		testCases.init()
 
 		restore, err := getAtlasProxyRestoreWithArgs(

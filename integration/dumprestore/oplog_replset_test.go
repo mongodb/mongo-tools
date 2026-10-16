@@ -1,3 +1,5 @@
+//go:build integration
+
 package dumprestore
 
 import (
@@ -7,13 +9,11 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -24,7 +24,7 @@ import (
 func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 	// local.oplog.rs only exists on a replica set. The suite as a whole gates on
 	// the integration test type, so this case needs a gate of its own.
-	testtype.SkipUnlessTestType(s.T(), testtype.ReplSetTestType)
+	testutil.SkipUnlessReplicaSet(s.T())
 	testutil.SkipForDisaggregatedStorage(
 		s.T(),
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -129,7 +129,7 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 func (s *DumpRestoreSuite) TestDumpOplogSnapshotDuringWrites() {
 	// The oplog only exists on a replica set. The suite as a whole gates on the
 	// integration test type, so this case needs a gate of its own.
-	testtype.SkipUnlessTestType(s.T(), testtype.ReplSetTestType)
+	testutil.SkipUnlessReplicaSet(s.T())
 
 	const collName = "bar"
 
@@ -215,26 +215,6 @@ func (s *DumpRestoreSuite) latestOplogTimestamp() bson.Timestamp {
 	s.Require().NoError(err, "reading the newest oplog entry")
 
 	return entry.TS
-}
-
-// stringIDDoc decodes just the `_id` of a document. Every document these tests insert has a string
-// `_id`, so the ids can be compared as sets.
-type stringIDDoc struct {
-	ID string `bson:"_id"`
-}
-
-// documentIDs returns the `_id` values in the given collection.
-func (s *DumpRestoreSuite) documentIDs(coll *mongo.Collection) []string {
-	cursor, err := coll.Find(s.Context(), bson.D{})
-	s.Require().NoError(err, "can read %#q", coll.Name())
-
-	var docs []stringIDDoc
-	s.Require().
-		NoError(cursor.All(s.Context(), &docs), "can decode the documents in %#q", coll.Name())
-
-	return lo.Map(docs, func(doc stringIDDoc, _ int) string {
-		return doc.ID
-	})
 }
 
 // idsAndLastTimestampFromOplogFile reads an oplog file. It returns all the `_id` values in the

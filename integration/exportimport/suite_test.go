@@ -1,3 +1,5 @@
+//go:build integration || sharded
+
 package exportimport
 
 import (
@@ -7,7 +9,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
 	"github.com/mongodb/mongo-tools/mongoexport"
 	"github.com/mongodb/mongo-tools/mongoimport"
@@ -26,8 +27,6 @@ type ExportImportSuite struct {
 type crossCluster = sharedsuite.CrossCluster
 
 func TestImportExport(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	ts := new(ExportImportSuite)
 	suite.Run(t, ts)
 }

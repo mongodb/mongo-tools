@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoimport
 
 import (
@@ -15,7 +17,6 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -27,7 +28,6 @@ func init() {
 }
 
 func TestCSVStreamDocument(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a CSV input reader", t, func() {
 		Convey("badly encoded CSV should result in a parsing error", func() {
 			contents := `1, 2, foo"bar`
@@ -275,7 +275,6 @@ func TestCSVStreamDocument(t *testing.T) {
 }
 
 func TestCSVReadAndValidateHeader(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	var err error
 	Convey("With a CSV input reader", t, func() {
 		Convey("setting the header should read the first line of the CSV", func() {
@@ -513,7 +512,6 @@ func TestCSVReadAndValidateHeader(t *testing.T) {
 }
 
 func TestCSVConvert(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a CSV input reader", t, func() {
 		Convey(
 			"calling convert on a CSVConverter should return the expected BSON document",

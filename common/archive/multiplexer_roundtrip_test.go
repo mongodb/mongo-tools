@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package archive
 
 import (
@@ -17,7 +19,6 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/intents"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -71,8 +72,6 @@ type testNotifier struct{}
 func (n *testNotifier) Notify() {}
 
 func TestBasicMux(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	var err error
 
 	buf := &closingBuffer{bytes.Buffer{}}
@@ -133,8 +132,6 @@ func TestBasicMux(t *testing.T) {
 }
 
 func TestParallelMuxOverPipe(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	readPipe, writePipe, err := os.Pipe()
 	require.NoError(t, err)
 
@@ -310,7 +307,6 @@ func buildSingleIntentArchive(t *testing.T, singleIntent *intents.Intent) *closi
 }
 
 func TestTOOLS1826(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	require := require.New(t)
 
 	singleIntent := testIntents[0]
@@ -341,7 +337,6 @@ func TestTOOLS1826(t *testing.T) {
 }
 
 func TestTOOLS2403(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	require := require.New(t)
 
 	singleIntent := testIntents[0]
@@ -383,8 +378,6 @@ func TestTOOLS2403(t *testing.T) {
 }
 
 func TestEOFHeaderForUnregisteredNamespace(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	demux := &Demultiplexer{NamespaceStatus: map[string]int{"declared.coll": NamespaceUnopened}}
 	header, err := bson.Marshal(NamespaceHeader{
 		Database:   "declared",
@@ -405,8 +398,6 @@ func TestEOFHeaderForUnregisteredNamespace(t *testing.T) {
 }
 
 func TestHeaderForNamespaceNotInPrelude(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	demux := &Demultiplexer{NamespaceStatus: map[string]int{"declared.coll": NamespaceUnopened}}
 	header, err := bson.Marshal(NamespaceHeader{
 		Database:   "injected",

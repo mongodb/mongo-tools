@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongorestore
 
 import (
@@ -24,7 +26,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
@@ -35,24 +36,6 @@ import (
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
-
-const (
-	mioSoeFile     = "testdata/10k1dup10k.bson"
-	longFilePrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
-		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
-		"VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery"
-	longCollectionName = longFilePrefix +
-		"LongCollectionNameConsistingOfExactlyTwoHundredAndFortySevenCharacters"
-	longBsonName = longFilePrefix +
-		"LongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.bson"
-	longMetadataName = longFilePrefix +
-		"LongCollectionNameConsistingOfE%24xFO0VquRn7cg3QooSZD5sglTddU.metadata.json"
-	longInvalidBson = longFilePrefix +
-		"LongCollectionNameConsistingOfE%24someMadeUpInvalidHashString.bson"
-	specialCharactersCollectionName = "cafés"
-)
-
-var testDocument = bson.M{"key": "value"}
 
 func init() {
 	// bump up the verbosity to make checking debug log output possible
@@ -76,8 +59,6 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 }
 
 func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	// As specified in TOOLS-2363, the --db and --collection options
 	// are well-defined only for restoration of a single BSON file
 	Convey("The proper warning message is issued if --db and --collection "+
@@ -140,8 +121,6 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 }
 
 func TestMongorestore(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -279,8 +258,6 @@ func TestMongorestore(t *testing.T) {
 }
 
 func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -386,8 +363,6 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 func TestMongorestoreLongCollectionName(t *testing.T) {
 	// Disabled: see TOOLS-2658
 	t.Skip()
-
-	testtype.SkipUnlessIntegration(t)
 
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
@@ -504,7 +479,6 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 }
 
 func TestMongorestorePreserveUUID(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it uses --preserveUUID, which mongos does not support")
 	testutil.SkipForDisaggregatedStorage(
 		t,
@@ -663,8 +637,6 @@ func generateTestData() error {
 
 // test --maintainInsertionOrder and --stopOnError behavior.
 func TestMongorestoreMIOSOE(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	if err := generateTestData(); err != nil {
 		t.Fatalf("Couldn't generate test data %v", err)
 	}
@@ -744,7 +716,6 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptions(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -789,8 +760,6 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -838,8 +807,6 @@ func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 }
 
 func TestLongIndexName(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	Convey("With a test MongoRestore", t, func() {
 		args := []string{
 			NumParallelCollectionsOption, "1",
@@ -899,7 +866,6 @@ func TestLongIndexName(t *testing.T) {
 }
 
 func TestKnownCollections(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -944,7 +910,6 @@ func TestKnownCollections(t *testing.T) {
 }
 
 func TestReadPreludeMetadata(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -1043,7 +1008,6 @@ func TestReadPreludeMetadata(t *testing.T) {
 }
 
 func TestHashedIndexes(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -1097,7 +1061,6 @@ func TestHashedIndexes(t *testing.T) {
 }
 
 func TestAutoIndexIdLocalDB(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it writes to the local database, which mongos does not allow")
 	ctx := t.Context()
 
@@ -1169,7 +1132,6 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 }
 
 func TestAutoIndexIdNonLocalDB(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	ctx := t.Context()
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -1303,7 +1265,6 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 // TestSkipSystemCollections asserts that certain system collections like "config.systems.sessions" and the transaction
 // related tables aren't applied via applyops when replaying the oplog.
 func TestSkipSystemCollections(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -1388,7 +1349,6 @@ func TestSkipSystemCollections(t *testing.T) {
 // TestSkipStartAndAbortIndexBuild asserts that all "startIndexBuild" and "abortIndexBuild" oplog
 // entries are skipped when restoring the oplog.
 func TestSkipStartAndAbortIndexBuild(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -1459,7 +1419,6 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 
 // TestcommitIndexBuild asserts that all "commitIndexBuild" are converted to creatIndexes commands.
 func TestCommitIndexBuild(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
@@ -1554,7 +1513,6 @@ func TestCommitIndexBuild(t *testing.T) {
 
 // CreateIndexes oplog will be applied directly for versions < 4.4 and converted to createIndex cmd > 4.4.
 func TestCreateIndexes(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
@@ -1644,7 +1602,6 @@ func TestCreateIndexes(t *testing.T) {
 }
 
 func TestGeoHaystackIndexes(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	ctx := t.Context()
 	dbName := "geohaystack_test"
 
@@ -1709,7 +1666,6 @@ func createTimeseries(t *testing.T, dbName, coll string, client *mongo.Client) {
 }
 
 func TestRestoreTimeseriesCollections(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	dbName := "timeseries_test"
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -2226,7 +2182,6 @@ type indexInfo struct {
 func TestRestoreClusteredIndex(t *testing.T) {
 	require := require.New(t)
 
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",

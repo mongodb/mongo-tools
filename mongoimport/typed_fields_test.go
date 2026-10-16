@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoimport
 
 import (
@@ -12,7 +14,6 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -24,8 +25,6 @@ func init() {
 }
 
 func TestTypedHeaderParser(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey(
 		"Using 'zip.string(),number.double(),foo.auto(),bar.date(January 2, (2006))'",
 		t,
@@ -98,7 +97,6 @@ func TestTypedHeaderParser(t *testing.T) {
 }
 
 func TestAutoHeaderParser(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("Using 'zip,number'", t, func() {
 		var headers = []string{"zip", "number", "foo"}
 		var colSpecs = ParseAutoHeaders(headers)
@@ -118,8 +116,6 @@ func cast[T any](val any) T {
 }
 
 func TestFieldParsers(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Using FieldAutoParser", t, func() {
 		var p, _ = NewFieldParser(ctAuto, "")
 		var value any

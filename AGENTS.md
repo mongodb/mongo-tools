@@ -45,20 +45,27 @@ Binaries are written to `./bin/`.
 
 ## Tests
 
-Tests use environment variables to control which test types run.
+Which tests run is selected with Go build tags, injected by the `test:*` targets. Every test file
+that contains tests carries a tag, so a unit run does not compile the integration tests, and an
+integration run does not compile the unit tests.
 
 ```bash
-go run build.go test:unit                     # unit tests (no mongod required)
-go run build.go test:integration              # requires mongod on localhost:33333
-go run build.go test:sharded-integration      # requires mongos (sharded cluster)
-go run build.go test:kerberos                 # requires Kerberos-enabled server
-go run build.go test:awsauth                  # requires AWS auth setup
+go run build.go test:unit                     # -tags unit; unit tests only (no mongod required)
+go run build.go test:integration              # -tags integration; requires mongod on localhost:33333
+go run build.go test:sharded-integration      # -tags sharded; requires mongos (sharded cluster)
+go run build.go test:kerberos                 # -tags kerberos; requires Kerberos-enabled server
+go run build.go test:awsauth                  # -tags awsauth; requires AWS auth setup
 ```
 
-Optional flags for `test:integration`: `ssl=true`, `auth=true`, `topology=replset`, `race=true`.
+Optional flags for `test:integration`: `ssl=true`, `auth=true`, `race=true`.
 
-All tests use `testtype.SkipUnlessTestType(t, testtype.XxxTestType)` at the top to gate on the
-relevant env var. When writing new tests, match the existing pattern.
+A test file must start with a `//go:build` line naming its tags: `unit`, `integration`, `sharded`,
+`kerberos`, or `awsauth` (`integration || sharded` for the integration suites that run under both).
+Server _configuration_ that cannot be inferred from the connection — TLS and auth — comes from env
+vars and is checked with `testtype.SkipUnlessTestType`. Topology is detected from the server
+instead: use `testutil.SkipIfSharded`, `testutil.SkipUnlessStandalone`, or
+`testutil.SkipUnlessReplicaSet`. `sa:checkTestTags` (part of lint) fails if a test file is missing
+its tag.
 
 Integration tests default to connecting to `localhost:33333`. Override with
 `TOOLS_TESTING_MONGOD=<uri>`.

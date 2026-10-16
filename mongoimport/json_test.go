@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoimport
 
 import (
@@ -13,7 +15,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -22,7 +23,6 @@ import (
 // extended JSON instead of extended JSON v2.
 
 func TestJSONArrayStreamDocument(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a JSON array input reader", t, func() {
 		var jsonFile, fileHandle *os.File
 		Convey("an error should be thrown if a plain JSON document is supplied", func() {
@@ -82,7 +82,6 @@ func TestJSONArrayStreamDocument(t *testing.T) {
 }
 
 func TestJSONPlainStreamDocument(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a plain JSON input reader", t, func() {
 		var jsonFile, fileHandle *os.File
 		Convey("string valued JSON documents should be imported properly", func() {
@@ -185,7 +184,6 @@ func TestJSONPlainStreamDocument(t *testing.T) {
 }
 
 func TestReadJSONArraySeparator(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With an array JSON input reader", t, func() {
 		Convey("reading a JSON array separator should consume [",
 			func() {
@@ -257,8 +255,6 @@ func TestReadJSONArraySeparator(t *testing.T) {
 }
 
 func TestJSONConvert(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	data := []byte(`{"a": {"$binary": {"base64": "Zm9v", "subType": "03"}}}`)
 
 	// $binary will be parsed as binary data in extended JSON v2 but not in legacy extended JSON

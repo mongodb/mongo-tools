@@ -4,20 +4,19 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package util
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNumberConverter(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	floatConverter := newNumberConverter(reflect.TypeFor[float32]())
 
 	t.Run("numeric values", func(t *testing.T) {
@@ -47,8 +46,6 @@ func TestNumberConverter(t *testing.T) {
 }
 
 func TestUInt32Converter(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("numeric values", func(t *testing.T) {
 		out, err := ToUInt32(int64(99))
 		require.NoError(t, err)

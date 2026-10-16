@@ -4,18 +4,17 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package text
 
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFormatByteCount(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	tests := []struct {
 		size   int64
 		expect string
@@ -35,8 +34,6 @@ func TestFormatByteCount(t *testing.T) {
 }
 
 func TestOtherByteFormats(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	val := int64(10)
 	assert.Equal(t, "10.0M", FormatMegabyteAmount(val))
 	assert.Equal(t, "10B", FormatByteAmount(val))
@@ -49,8 +46,6 @@ func TestOtherByteFormats(t *testing.T) {
 }
 
 func TestBitFormatPrecision(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	tests := []struct {
 		size   int64
 		expect string
@@ -73,7 +68,6 @@ func TestBitFormatPrecision(t *testing.T) {
 
 	/*
 				t.Run("values less than 1k", func(t *testing.T) {
-
 					Convey("with '999'", func() {
 						Convey("FormatBits -> 999b", func() {
 							So(FormatBits(999), ShouldEqual, "999b")

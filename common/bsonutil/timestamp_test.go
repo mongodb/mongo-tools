@@ -4,21 +4,20 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package bsonutil
 
 import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestTimestampValue(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	testTS := bson.Timestamp{T: 123456, I: 55}
 
 	t.Run("Timestamp literal", func(t *testing.T) {

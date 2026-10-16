@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoimport
 
 import (
@@ -11,13 +13,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestTSVStreamDocument(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a TSV input reader", t, func() {
 		Convey("integer valued strings should be converted tsv1", func() {
 			contents := "1\t2\t3e\n"
@@ -242,7 +242,6 @@ func TestTSVStreamDocument(t *testing.T) {
 }
 
 func TestTSVReadAndValidateHeader(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a TSV input reader", t, func() {
 		Convey("setting the header should read the first line of the TSV", func() {
 			contents := "extraHeader1\textraHeader2\textraHeader3\n"
@@ -262,7 +261,6 @@ func TestTSVReadAndValidateHeader(t *testing.T) {
 }
 
 func TestTSVConvert(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a TSV input reader", t, func() {
 		Convey(
 			"calling convert on a TSVConverter should return the expected BSON document",

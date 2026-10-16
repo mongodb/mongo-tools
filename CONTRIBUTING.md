@@ -198,23 +198,21 @@ this cluster.
 
 Stop the cluster with `./scripts/stop-test-cluster.sh`.
 
-To run unit and integration tests:
+Each test file has a build tag, so a plain `go test` compiles no tests. The `test:*` targets in
+`build.go` pass the right tag, so prefer them over invoking `go test` directly:
 
 ```
-go test -v ./...
+go run build.go test:unit                     # -tags unit; unit tests only
+go run build.go test:integration              # -tags integration
+go run build.go test:sharded-integration      # -tags sharded
+go run build.go test:kerberos                 # -tags kerberos
+go run build.go test:awsauth                  # -tags awsauth
 ```
 
-If `TOOLS_TESTING_UNIT` is set to a true value in the shell environment, unit tests will run.
-
-If `TOOLS_TESTING_INTEGRATION` is set to a true value in the shell environment, integration tests
-will run.
-
-Integration tests require a `mongod` while unit tests do not.
-
-Example of how to run a specific integration test:
+Example of how to run a specific integration test directly:
 
 ```
-TOOLS_TESTING_MONGOD='mongodb://...' TOOLS_TESTING_INTEGRATION=true go test -v ./... -run TestImportDocuments
+TOOLS_TESTING_MONGOD='mongodb://...' go test -tags integration -v ./... -run TestImportDocuments
 ```
 
 ### Writing Tests
