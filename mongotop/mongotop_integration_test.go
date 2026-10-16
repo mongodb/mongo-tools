@@ -40,7 +40,8 @@ import (
 // mongotop needs two polls of the top command before it can report a diff, so `--rowcount n` prints
 // n rows after n+1 polls.
 func TestMongotopJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "mongotop cannot run against a mongos")
 
 	for _, rowCount := range []int{1, 5} {
 		t.Run(fmt.Sprintf("rowcount=%d", rowCount), func(t *testing.T) {
@@ -66,7 +67,8 @@ func TestMongotopJSON(t *testing.T) {
 // naming the ns, total, read, and write columns, and a data row carrying those three times. What
 // the numbers mean is checked by TestMongotopReportsActivity, through JSON.
 func TestMongotopGrid(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "mongotop cannot run against a mongos")
 
 	stdout, stderr, err := runMongotop(t, "--rowcount", "1")
 	require.NoError(t, err, "mongotop exits successfully: %s", stderr)
@@ -93,7 +95,8 @@ func TestMongotopGrid(t *testing.T) {
 // something a Go test can produce. Counts are only ever compared against zero, for the same reason
 // - the exact values are not reproducible.
 func TestMongotopReportsActivity(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "mongotop cannot run against a mongos")
 
 	const (
 		dbName       = "mongotop_reports_test"
@@ -230,7 +233,7 @@ func TestMongotopReportsActivity(t *testing.T) {
 // whether it fails is dependent on the test cluster's port. We can't test this in any reasonable
 // way here.
 func TestMongotopRejectsInvalidOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	// Each case carries the whole argument list, including the `--rowcount` that keeps a case which
 	// does get as far as running from running forever: a `--rowcount` appended afterwards would

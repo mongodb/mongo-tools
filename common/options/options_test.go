@@ -31,7 +31,7 @@ const (
 )
 
 func TestLogUnsupportedOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	var buffer bytes.Buffer
 

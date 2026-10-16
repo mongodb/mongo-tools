@@ -37,7 +37,8 @@ type txnTestDataCase struct {
 }
 
 func TestMongorestoreTxns(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
