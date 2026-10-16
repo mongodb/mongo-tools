@@ -1097,11 +1097,6 @@ func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 			s.T().Skip("Requires server with FCV 7.3 or later")
 		}
 
-		if cmp, err := testutil.CompareFCV(fcv, "8.0"); cmp >= 0 {
-			s.Require().NoError(err, "get fcv")
-			s.T().Skip("The test currently fails on v8.0 because of SERVER-92222")
-		}
-
 		serverVersion, err := sessionProvider.ServerVersionArray()
 		s.Require().NoError(err, "parse server version")
 
