@@ -7,12 +7,12 @@
 // Based on github.com/golang/go by The Go Authors
 // See THIRD-PARTY-NOTICES for original license terms.
 
+//go:build unit
+
 package json
 
 import (
 	"testing"
-
-	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 type basicLatin2xTag struct {
@@ -93,8 +93,6 @@ var structTagObjectKeyTests = []struct {
 }
 
 func TestStructTagObjectKey(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	for _, tt := range structTagObjectKeyTests {
 		b, err := Marshal(tt.raw)
 		if err != nil {

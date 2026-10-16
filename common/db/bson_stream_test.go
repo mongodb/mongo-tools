@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package db
 
 import (
@@ -11,15 +13,12 @@ import (
 	"io"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestBufferlessBSONSource(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	var testValues = []bson.M{
 		{"_": bson.Binary{Subtype: 0x80, Data: []byte("apples")}},
 		{"_": bson.Binary{Subtype: 0x80, Data: []byte("bananas")}},

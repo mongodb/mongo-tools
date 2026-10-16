@@ -4,20 +4,20 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package json
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestDBPointerValue(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	oid, _ := bson.ObjectIDFromHex("552ffe9f5739878e73d116a9")
 	oid2, _ := bson.ObjectIDFromHex("552ffed95739878e73d116aa")
 	oid3, _ := bson.ObjectIDFromHex("552fff215739878e73d116ab")

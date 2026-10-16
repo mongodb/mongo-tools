@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongorestore
 
 import (
@@ -16,7 +18,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -63,8 +64,6 @@ func TestCreateAllIntents(t *testing.T) {
 
 	var mr *MongoRestore
 	var buff bytes.Buffer
-
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
@@ -132,8 +131,6 @@ func TestCreateAllIntentsLongCollectionName(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
 
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
 		log.SetWriter(&buff)
@@ -173,8 +170,6 @@ func TestCreateIntentsForDB(t *testing.T) {
 
 	var mr *MongoRestore
 	var buff bytes.Buffer
-
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
@@ -238,8 +233,6 @@ func TestCreateIntentsForDBLongCollectionName(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
 
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
 		log.SetWriter(&buff)
@@ -269,7 +262,6 @@ func TestCreateIntentsForDBLongCollectionName(t *testing.T) {
 }
 
 func TestCreateIntentsRenamed(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a test MongoRestore", t, func() {
 		mr := newMongoRestore()
 		mr.renamer, _ = ns.NewRenamer([]string{"db1.*"}, []string{"db4.test.*"})
@@ -311,7 +303,6 @@ func TestHandlingBSON(t *testing.T) {
 	t.Skip()
 
 	var mr *MongoRestore
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		mr = newMongoRestore()
@@ -362,8 +353,6 @@ func TestHandlingBSON(t *testing.T) {
 func TestCreateIntentsForCollection(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
-
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		buff = bytes.Buffer{}
@@ -464,7 +453,6 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
 
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey("With a test MongoRestore", t, func() {
 		buff = bytes.Buffer{}
 		mr = &MongoRestore{
@@ -558,8 +546,6 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 
 	var mr *MongoRestore
 	var buff bytes.Buffer
-
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	Convey("With a test MongoRestore", t, func() {
 		buff = bytes.Buffer{}

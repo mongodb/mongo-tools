@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package bsonutil
 
 import (
@@ -13,15 +15,12 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestConvertObjectIdBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	bsonObjId := bson.NewObjectID()
 	jsonObjId := json.ObjectId(bsonObjId.Hex())
 
@@ -35,8 +34,6 @@ func TestConvertObjectIdBSONToJSON(t *testing.T) {
 }
 
 func TestArraysBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("empty arrays", func(t *testing.T) {
 		jArr, err := ConvertBSONValueToLegacyExtJSON([]any{})
 		require.NoError(t, err)
@@ -87,8 +84,6 @@ func TestArraysBSONToJSON(t *testing.T) {
 }
 
 func TestDateBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	timeNow := time.Now()
 	secs := timeNow.Unix()
 	nanosecs := timeNow.Nanosecond()
@@ -128,8 +123,6 @@ func TestDateBSONToJSON(t *testing.T) {
 }
 
 func TestMaxKeyBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MaxKey{})
 	require.NoError(t, err)
 	jObj, ok := _jObj.(json.MaxKey)
@@ -139,8 +132,6 @@ func TestMaxKeyBSONToJSON(t *testing.T) {
 }
 
 func TestMinKeyBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.MinKey{})
 	require.NoError(t, err)
 	jObj, ok := _jObj.(json.MinKey)
@@ -150,8 +141,6 @@ func TestMinKeyBSONToJSON(t *testing.T) {
 }
 
 func Test64BitIntBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(int32(243))
 	require.NoError(t, err)
 	jObj, ok := _jObj.(json.NumberInt)
@@ -161,8 +150,6 @@ func Test64BitIntBSONToJSON(t *testing.T) {
 }
 
 func Test32BitIntBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(int64(888234334343))
 	require.NoError(t, err)
 	jObj, ok := _jObj.(json.NumberLong)
@@ -172,8 +159,6 @@ func Test32BitIntBSONToJSON(t *testing.T) {
 }
 
 func TestRegExBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Regex{"decision", "gi"})
 	require.NoError(t, err)
 	jObj, ok := _jObj.(json.RegExp)
@@ -183,8 +168,6 @@ func TestRegExBSONToJSON(t *testing.T) {
 }
 
 func TestUndefinedValueBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Undefined{})
 	require.NoError(t, err)
 	jObj, ok := _jObj.(json.Undefined)
@@ -194,8 +177,6 @@ func TestUndefinedValueBSONToJSON(t *testing.T) {
 }
 
 func TestTimestampBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// {t:803434343, i:9} == bson.MongoTimestamp(803434343*2**32 + 9)
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(bson.Timestamp{T: 803434343, I: 9})
 	require.NoError(t, err)
@@ -207,8 +188,6 @@ func TestTimestampBSONToJSON(t *testing.T) {
 }
 
 func TestBinaryBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(
 		bson.Binary{'\x01', []byte("\x05\x20\x02\xae\xf7")},
 	)
@@ -223,8 +202,6 @@ func TestBinaryBSONToJSON(t *testing.T) {
 }
 
 func TestGenericBytesBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_jObj, err := ConvertBSONValueToLegacyExtJSON([]byte("this is something that's cool"))
 	require.NoError(t, err)
 	jObj, ok := _jObj.(json.BinData)
@@ -236,15 +213,11 @@ func TestGenericBytesBSONToJSON(t *testing.T) {
 }
 
 func TestUnknownBSONTypeToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	_, err := ConvertBSONValueToLegacyExtJSON(func() {})
 	require.Error(t, err)
 }
 
 func TestDBPointerBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	objId := bson.NewObjectID()
 	_jObj, err := ConvertBSONValueToLegacyExtJSON(
 		bson.DBPointer{"dbrefnamespace", objId},
@@ -257,8 +230,6 @@ func TestDBPointerBSONToJSON(t *testing.T) {
 }
 
 func TestJSCodeBSONToJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("without scope", func(t *testing.T) {
 		_jObj, err := ConvertBSONValueToLegacyExtJSON(
 			bson.CodeWithScope{"function() { return null; }", nil},

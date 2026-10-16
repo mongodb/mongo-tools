@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package ns
 
 import (
@@ -11,7 +13,6 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -23,8 +24,6 @@ func init() {
 }
 
 func TestEscape(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("with a few strings", t, func() {
 		So(Escape("(blah)"), ShouldEqual, "(blah)")
 		So(Escape(""), ShouldEqual, "")
@@ -34,8 +33,6 @@ func TestEscape(t *testing.T) {
 }
 
 func TestUnescape(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("with a few escaped strings", t, func() {
 		So(Unescape("(blah)"), ShouldEqual, "(blah)")
 		So(Unescape(""), ShouldEqual, "")
@@ -45,8 +42,6 @@ func TestUnescape(t *testing.T) {
 }
 
 func TestReplacer(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("with replacements", t, func() {
 		Convey(`'$db$.user$$' -> 'test.user$$_$db$', 'pr\*d\.*' -> 'st\*g\\ing.*'`, func() {
 			r, err := NewRenamer(
@@ -102,8 +97,6 @@ func TestReplacer(t *testing.T) {
 }
 
 func TestMatcher(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("with matcher", t, func() {
 		Convey(`'*.user*', 'pr\*d\.*'`, func() {
 			m, err := NewMatcher([]string{`*.user*`, `pr\*d\.*`})

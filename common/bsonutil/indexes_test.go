@@ -4,20 +4,19 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package bsonutil
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestIsIndexKeysEqual(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	tests := []struct {
 		IndexKeys1 bson.D
 		IndexKeys2 bson.D
@@ -58,8 +57,6 @@ func TestIsIndexKeysEqual(t *testing.T) {
 }
 
 func TestConvertLegacyIndexKeys(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	type testCase struct {
 		input           any
 		expect          any

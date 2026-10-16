@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongorestore
 
 import (
@@ -11,13 +13,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNumParallelCollectionsForArchive(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	maxParallelCollections := runtime.GOMAXPROCS(0) * maxParallelCollectionsPerProc
 
 	tests := []struct {

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//go:build !race
+//go:build unit && !race
 
 // Disable race detector since these tests are inherently racy
 package progress
@@ -15,13 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBasicProgressBar(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	writeBuffer := &bytes.Buffer{}
 
 	watching := NewCounter(10)
@@ -65,8 +62,6 @@ func TestBasicProgressBar(t *testing.T) {
 }
 
 func TestProgressBarWithNoMax(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	writeBuffer := &bytes.Buffer{}
 
 	watching := NewCounter(0)
@@ -87,7 +82,6 @@ func TestProgressBarWithNoMax(t *testing.T) {
 func TestBarConcurrency(t *testing.T) {
 	// TOOLS-2715: Disable flaky test
 	t.SkipNow()
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 
 	writeBuffer := &bytes.Buffer{}
 
@@ -117,8 +111,6 @@ func TestBarConcurrency(t *testing.T) {
 }
 
 func TestBarDrawing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("20 wide @ 50%", func(t *testing.T) {
 		b := drawBar(20, .5)
 		assert.Equal(t, 10, strings.Count(b, BarFilling))
@@ -164,8 +156,6 @@ func TestBarDrawing(t *testing.T) {
 }
 
 func TestBarUnits(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	writeBuffer := &bytes.Buffer{}
 
 	watching := NewCounter(1024 * 1024)

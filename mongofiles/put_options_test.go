@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongofiles
 
 import (
@@ -15,7 +17,6 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -31,8 +32,6 @@ var loremIpsumFiles = []string{
 // TestPutReplace checks that repeated puts of one file create separate GridFS files and that
 // `--replace` collapses them to a single file without touching other files.
 func TestPutReplace(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	client := emptyGridFSClient(t)
 	repeated := loremIpsumFiles[0]
 
@@ -73,8 +72,6 @@ func TestPutReplace(t *testing.T) {
 // TestPutIDRejectsDuplicateID checks that a `put_id` whose `_id` is already in use fails and leaves
 // the existing file's chunks alone.
 func TestPutIDRejectsDuplicateID(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	client := emptyGridFSClient(t)
 	const duplicateID = "1"
 
@@ -112,8 +109,6 @@ func TestPutIDRejectsDuplicateID(t *testing.T) {
 // TestGridFSPrefix checks that `--prefix` writes to the named files and chunks collections rather
 // than `fs.*`, and that a get through the same prefix returns the file unchanged.
 func TestGridFSPrefix(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const prefix = "custom"
 
 	client := emptyGridFSClient(t)
@@ -171,8 +166,6 @@ func TestGridFSPrefix(t *testing.T) {
 // TestPutContentType checks that `--type` is stored as the file's metadata content type and that a
 // put without it stores none.
 func TestPutContentType(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const contentType = "text/html"
 
 	client := emptyGridFSClient(t)
@@ -208,8 +201,6 @@ func TestPutContentType(t *testing.T) {
 // TestPutIntoOtherDB checks that `--db` sends the put to the named database and leaves the default
 // database untouched.
 func TestPutIntoOtherDB(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const otherDB = "mongofiles_test_other_db"
 
 	client := emptyGridFSClient(t)
@@ -237,8 +228,6 @@ func TestPutIntoOtherDB(t *testing.T) {
 // TestPutLocalFileName checks that with `--local` the local file supplies the bytes while the
 // positional argument names the GridFS file.
 func TestPutLocalFileName(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const remoteName = "remote-lorem-ipsum"
 
 	client := emptyGridFSClient(t)
@@ -285,8 +274,6 @@ func TestPutLocalFileName(t *testing.T) {
 // TestEmptyLocalFileName covers the fallback in getLocalFileName: an empty `--local` means the GridFS
 // name is used as the local path too.
 func TestEmptyLocalFileName(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const remoteName = "empty-local.txt"
 
 	emptyGridFSClient(t)
@@ -330,8 +317,6 @@ func TestEmptyLocalFileName(t *testing.T) {
 // TestPutLargeFile checks that a file far larger than one GridFS chunk is split into the expected
 // number of chunks and comes back byte for byte.
 func TestPutLargeFile(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const (
 		largeFileSize = 40 * 1024 * 1024
 		chunkSize     = 255 * 1024

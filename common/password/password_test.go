@@ -1,10 +1,11 @@
+//go:build unit
+
 package password
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +14,6 @@ const (
 )
 
 func TestPasswordFromNonTerminal(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	var buffer bytes.Buffer
 
 	buffer.WriteString(testPwd)

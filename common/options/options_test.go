@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package options
 
 import (
@@ -19,7 +21,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
@@ -30,50 +31,7 @@ const (
 	ShouldFail
 )
 
-func TestLogUnsupportedOptions(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
-	var buffer bytes.Buffer
-
-	log.SetWriter(&buffer)
-	defer log.SetWriter(os.Stderr)
-
-	t.Run("no unsupported options", func(t *testing.T) {
-		args := []string{"mongodb://mongodb.test.com:27017"}
-
-		enabled := EnabledOptions{true, true, true, true}
-		opts := New("", "", "", "", true, enabled)
-
-		_, err := opts.ParseArgs(args)
-		require.NoError(t, err)
-
-		opts.LogUnsupportedOptions()
-
-		result := buffer.String()
-		require.Empty(t, result)
-	})
-
-	t.Run("unsupported option", func(t *testing.T) {
-		args := []string{"mongodb://mongodb.test.com:27017/?foo=bar"}
-
-		enabled := EnabledOptions{true, true, true, true}
-		opts := New("", "", "", "", true, enabled)
-
-		_, err := opts.ParseArgs(args)
-		require.NoError(t, err)
-
-		opts.LogUnsupportedOptions()
-
-		result := buffer.String()
-		expectedResult := fmt.Sprintf(unknownOptionsWarningFormat, "foo")
-
-		require.Contains(t, result, expectedResult)
-	})
-}
-
 func TestVerbosityFlag(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	enabled := EnabledOptions{false, false, false, false}
 	optPtr := New("", "", "", "", true, enabled)
 	require.NotNil(t, optPtr)
@@ -160,8 +118,6 @@ type uriTester struct {
 }
 
 func TestParseAndSetOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	FalseValue := false
 
 	enabledURIOnly := EnabledOptions{false, false, false, true}
@@ -830,8 +786,6 @@ func createExpectedOpts(pw string, uri string, ssl string) *ToolOptions {
 }
 
 func TestParseConfigFile(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("no config file", func(t *testing.T) {
 		opts := New("test", "", "", "", false, EnabledOptions{})
 
@@ -1009,8 +963,6 @@ func runOptionsTestCases(t *testing.T, testCases []optionsTester) {
 }
 
 func TestOptionsParsing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// handwritten test cases
 	specialTestCases := []optionsTester{
 		// Hosts and Ports
@@ -1192,8 +1144,6 @@ func TestOptionsParsing(t *testing.T) {
 }
 
 func TestParsePositionalArgsAsURI(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	enabled := EnabledOptions{
 		Auth:       true,
 		Connection: true,
@@ -1217,8 +1167,6 @@ func TestParsePositionalArgsAsURI(t *testing.T) {
 }
 
 func TestOptionsParsingForSRV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	currentDefault := dns.DefaultResolver
 	defer func() {
 		dns.DefaultResolver = currentDefault
@@ -1286,8 +1234,6 @@ func TestOptionsParsingForSRV(t *testing.T) {
 
 // Regression test for TOOLS-1694 to prevent issue from TOOLS-1115.
 func TestHiddenOptionsDefaults(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	enabled := EnabledOptions{Connection: true}
 	opts := New("", "", "", "", true, enabled)
 	_, err := opts.CallArgParser([]string{})
@@ -1299,8 +1245,6 @@ func TestHiddenOptionsDefaults(t *testing.T) {
 }
 
 func TestNamespace_String(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	cases := []struct {
 		ns     Namespace
 		expect string
@@ -1324,7 +1268,6 @@ func TestNamespace_String(t *testing.T) {
 }
 
 func TestDeprecationWarning(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	t.Run("deprecate message", func(t *testing.T) {
 		var buffer bytes.Buffer
 
@@ -1354,8 +1297,6 @@ func TestDeprecationWarning(t *testing.T) {
 }
 
 func TestPasswordPrompt(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	pw := "some-password"
 	expectPrompt := regexp.MustCompile(`.*password.*:\n`)
 

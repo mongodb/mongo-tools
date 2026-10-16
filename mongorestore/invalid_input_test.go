@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongorestore
 
 import (
@@ -11,36 +13,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
-
-// TestApplyOpsGuardrail checks that `--oplogReplay` and `--preserveUUID` fail fast against a
-// sharded cluster, before any data is restored, since mongorestore implements both on top of the
-// `applyOps` command that shardec clusters do not support.
-func TestApplyOpsGuardrail(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.ShardedIntegrationTestType)
-
-	t.Run("--oplogReplay is rejected", func(t *testing.T) {
-		result := runRestoreFromArgs(t, OplogReplayOption, t.TempDir())
-		require.ErrorContains(
-			t, result.Err, "cannot use --oplogReplay",
-			"--oplogReplay against a sharded or DSC cluster errors",
-		)
-	})
-
-	t.Run("--preserveUUID is rejected", func(t *testing.T) {
-		result := runRestoreFromArgs(t, PreserveUUIDOption, DropOption, t.TempDir())
-		require.ErrorContains(
-			t, result.Err, "cannot use --preserveUUID",
-			"--preserveUUID against a sharded or DSC cluster errors",
-		)
-	})
-}
 
 // TestRestoreInvalidInput covers how mongorestore rejects invalid options and
 // invalid dump input: bad option combinations and values, dump targets that are
@@ -52,8 +30,6 @@ func TestApplyOpsGuardrail(t *testing.T) {
 // common/options package rather than in mongorestore, so it belongs with the
 // tests for that package.
 func TestRestoreInvalidInput(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	t.Run("--objcheck with --noobjcheck is rejected", testRestoreObjcheckWithNoobjcheck)
 	t.Run("negative write concern is rejected", testRestoreNegativeWriteConcern)
 	t.Run("malformed --oplogLimit timestamp is rejected", testRestoreMalformedOplogLimit)

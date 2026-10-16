@@ -7,6 +7,8 @@
 // Based on github.com/golang/go by The Go Authors
 // See THIRD-PARTY-NOTICES for original license terms.
 
+//go:build unit
+
 package json_test
 
 import (
@@ -18,13 +20,9 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 func TestMarshal(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	type ColorGroup struct {
 		ID     int
 		Name   string
@@ -45,8 +43,6 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestUnmarshal(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	var jsonBlob = []byte(`[
 		{"Name": "Platypus", "Order": "Monotremata"},
 		{"Name": "Quoll",    "Order": "Dasyuromorphia"}
@@ -67,8 +63,6 @@ func TestUnmarshal(t *testing.T) {
 
 // This example uses a Decoder to decode a stream of distinct JSON values.
 func TestDecoder(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	const jsonStream = `
 		{"Name": "Ed", "Text": "Knock knock."}
 		{"Name": "Sam", "Text": "Who's there?"}
@@ -99,8 +93,6 @@ func TestDecoder(t *testing.T) {
 
 // This example uses RawMessage to delay parsing part of a JSON message.
 func TestRawMessage(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	type Color struct {
 		Space string
 		Point json.RawMessage // delay parsing until we know the color space
@@ -146,8 +138,6 @@ func TestRawMessage(t *testing.T) {
 }
 
 func TestIndent(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	type Road struct {
 		Name   string
 		Number int

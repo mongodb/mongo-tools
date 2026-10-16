@@ -4,13 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoexport
 
 import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -18,8 +19,6 @@ import (
 )
 
 func TestParseOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("TestReadPreferenceParsing", func(t *testing.T) {
 		// different sets of arguments to pass to ParseOptions
 		secondaryCmdLine := []string{"--readPreference", "secondary"}
@@ -151,8 +150,6 @@ type PositionalArgumentTestCase struct {
 }
 
 func TestPositionalArgumentParsing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	positionalArgumentTestCases := []PositionalArgumentTestCase{
 		{
 			InputArgs: []string{"mongodb://foo"},
