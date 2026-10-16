@@ -4,4 +4,4 @@ set -e
 
 mise exec github:houseabsolute/precious -- precious lint --staged
 
-mise exec go -- go run build.go sa:checkTestTags
+mise exec go -- go run build.go sa:checkTestFiles

@@ -165,7 +165,7 @@ func (s *DumpRestoreSuite) testDumpExcludeCollectionsWithPrefix() {
 }
 
 // testDumpExcludeBothFlags covers the two exclude flags on one command line. The filtering logic
-// with both lists populated is unit-tested in `mongodump/prepare_test.go`; what is untested elsewhere
+// with both lists populated is unit-tested in `mongodump/prepare_unit_test.go`; what is untested elsewhere
 // is that both flags are actually wired through from the command line.
 func (s *DumpRestoreSuite) testDumpExcludeBothFlags() {
 	testDB := s.database("exclude_both")

@@ -9,5 +9,6 @@ SCRIPT_DIR=$(dirname "$0")
 
 mise exec 'github:houseabsolute/precious' -- precious lint --all
 
-# Server-facing tests must have a build tag so they only compile for the test run that runs them.
-mise exec go -- go run build.go sa:checkTestTags
+# Test files must carry a build tag and a filename suffix matching it, so each run only compiles
+# the tests it runs and the set a file belongs to is visible from its name.
+mise exec go -- go run build.go sa:checkTestFiles
