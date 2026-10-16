@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoexport
 
 import (
@@ -13,15 +15,12 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestWriteCSV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	fields := []string{"_id", "x", " y", "z.1.a"}
 
 	t.Run("with header", func(t *testing.T) {
@@ -87,8 +86,6 @@ func TestWriteCSV(t *testing.T) {
 }
 
 func TestExtractDField(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	b := []any{"inner", bsonutil.MarshalD{{"inner2", 1}}}
 	c := bsonutil.MarshalD{{"x", 5}}
 	d := bsonutil.MarshalD{{"z", nil}}

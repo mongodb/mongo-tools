@@ -1,3 +1,5 @@
+//go:build unit
+
 package evergreen
 
 import (
@@ -8,7 +10,6 @@ import (
 	"testing"
 
 	mapset "github.com/deckarep/golang-set/v3"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -25,8 +26,6 @@ type aliasEntry struct {
 //
 // This is a subset check, not equality. PRs can run things that the merge queue does not depend on.
 func TestPRTasksAreRequiredForMerge(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	c, err := Load()
 	require.NoError(t, err, "loading common.yml")
 
@@ -192,8 +191,6 @@ func sortedNames(tasks mapset.Set[variantTask]) []string {
 // text matters: a substring search would not notice a hand-written alias
 // appended after the generated block.
 func TestGitHubPRAliasBlockIsUpToDate(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	c, err := Load()
 	require.NoError(t, err, "loading common.yml")
 
@@ -217,8 +214,6 @@ func TestGitHubPRAliasBlockIsUpToDate(t *testing.T) {
 const latestVersion = "9.0"
 
 func Test_mostRecentServerVersion(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	c, err := Load()
 	require.NoError(t, err, "loading common.yml")
 

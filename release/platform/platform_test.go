@@ -1,3 +1,5 @@
+//go:build unit
+
 package platform
 
 import (
@@ -7,15 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/evergreen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPlatformsMatchCI(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	assert := assert.New(t)
 	require := require.New(t)
 
@@ -83,8 +82,6 @@ func TestPlatformsMatchCI(t *testing.T) {
 }
 
 func TestPlatformsAreSorted(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	current := Platforms()
 	var sorted []Platform
 	sorted = append(sorted, current...)
@@ -119,8 +116,6 @@ func TestPlatformsAreSorted(t *testing.T) {
 }
 
 func TestPlatformsHaveNoDuplicates(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	for _, p1 := range platforms {
 		var dupes int
 		for _, p2 := range platforms {
@@ -133,8 +128,6 @@ func TestPlatformsHaveNoDuplicates(t *testing.T) {
 }
 
 func TestPlatformCorrectArch(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	for _, p := range platforms {
 		name := p.Name
 		if p.Arch == ArchArm64 || p.Arch == ArchAarch64 {

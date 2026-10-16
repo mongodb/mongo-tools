@@ -1,3 +1,5 @@
+//go:build unit
+
 package sbom
 
 import (
@@ -6,13 +8,10 @@ import (
 	"testing"
 
 	"github.com/CycloneDX/cyclonedx-go"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMergeComponents(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	dir := t.TempDir()
 	output := filepath.Join(t.TempDir(), "merged.json")
 
@@ -92,8 +91,6 @@ func TestMergeComponents(t *testing.T) {
 }
 
 func TestMergeComponentsExcludesMainModuleFromComponents(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	dir := t.TempDir()
 	output := filepath.Join(t.TempDir(), "merged.json")
 
@@ -124,8 +121,6 @@ func TestMergeComponentsExcludesMainModuleFromComponents(t *testing.T) {
 }
 
 func TestMergeComponentsNoRoot(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	dir := t.TempDir()
 	output := filepath.Join(t.TempDir(), "merged.json")
 
@@ -151,8 +146,6 @@ func TestMergeComponentsNoRoot(t *testing.T) {
 }
 
 func TestMergeComponentsNoComponents(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	dir := t.TempDir()
 	output := filepath.Join(t.TempDir(), "merged.json")
 
@@ -168,8 +161,6 @@ func TestMergeComponentsNoComponents(t *testing.T) {
 }
 
 func TestMergeComponentsMissingDir(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	err := MergeComponents(
 		filepath.Join(t.TempDir(), "does-not-exist"),
 		modulePrefix,
@@ -184,8 +175,6 @@ func TestMergeComponentsMissingDir(t *testing.T) {
 }
 
 func TestMergeComponentsMalformedJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	dir := t.TempDir()
 	output := filepath.Join(t.TempDir(), "merged.json")
 

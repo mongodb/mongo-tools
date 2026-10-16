@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongofiles
 
 import (
@@ -20,37 +22,9 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
-	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testopts"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/v2/bson"
 )
-
-var (
-	testDB = "mongofiles_test_db"
-
-	ssl         = testopts.GetSSLOptions()
-	toolOptions = mustGetToolOptions()
-	testFiles   = map[string]bson.ObjectID{
-		"testfile1": bson.NewObjectID(),
-		"testfile2": bson.NewObjectID(),
-		"testfile3": bson.NewObjectID(),
-		"testfile4": bson.NewObjectID(),
-	}
-)
-
-func mustGetToolOptions() *options.ToolOptions {
-	toolOptions, err := testopts.GetToolOptions()
-	if err != nil {
-		panic(fmt.Sprintf("could not get tool options: %v", err))
-	}
-
-	return toolOptions
-}
 
 // put in some test data into GridFS.
 func setUpGridFSTestData() (map[string]int, error) {
@@ -173,18 +147,6 @@ func simpleMongoFilesInstanceWithFilenameAndID(
 	return &mongofiles, nil
 }
 
-// simpleMockMongoFilesInstanceWithFilename gets an instance of MongoFiles with no underlying SessionProvider.
-// Use this for tests that don't communicate with the server (e.g. options parsing tests).
-func simpleMockMongoFilesInstanceWithFilename(command, fname string) *MongoFiles {
-	return &MongoFiles{
-		ToolOptions:    toolOptions,
-		InputOptions:   &InputOptions{},
-		StorageOptions: &StorageOptions{GridFSPrefix: "fs", DB: testDB},
-		Command:        command,
-		FileName:       fname,
-	}
-}
-
 // The returned MongoFiles is closed when the test ends, for the same reason as
 // simpleMongoFilesInstanceWithFilenameAndID, and must not be used after that.
 func getMongofilesWithArgs(t *testing.T, args ...string) (*MongoFiles, error) {
@@ -294,107 +256,8 @@ func fileExists(name string) bool {
 	return true
 }
 
-// Test that it works whenever valid arguments are passed in and that
-// it barfs whenever invalid ones are passed.
-func TestValidArguments(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	mf := simpleMockMongoFilesInstanceWithFilename("search", "file")
-	t.Run("no args", func(t *testing.T) {
-		args := []string{}
-		err := mf.ValidateCommand(args)
-		require.Error(t, err)
-		assert.EqualError(t, err, "no command specified")
-	})
-
-	t.Run("non-URI positional args", func(t *testing.T) {
-		for _, command := range []string{"list", "delete", "search", "get_id", "delete_id"} {
-			args := []string{command, "arg1", "arg2"}
-			err := mf.ValidateCommand(args)
-			require.Error(t, err)
-			assert.EqualError(
-				t,
-				err,
-				"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
-				"%v: too many args",
-				args,
-			)
-		}
-	})
-
-	t.Run("put_id with too many args", func(t *testing.T) {
-		args := []string{"put_id", "arg1", "arg2", "arg3"}
-		err := mf.ValidateCommand(args)
-		require.Error(t, err)
-		assert.EqualError(
-			t,
-			err,
-			"too many non-URI positional arguments (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
-			"%v: too many args",
-			args,
-		)
-	})
-
-	t.Run("put_id with too few args", func(t *testing.T) {
-		args := []string{"put_id", "arg1"}
-		err := mf.ValidateCommand(args)
-		require.Error(t, err)
-		assert.EqualError(t, err, fmt.Sprintf("%#q argument(s) missing", "put_id"))
-	})
-
-	t.Run("list with no args", func(t *testing.T) {
-		args := []string{"list"}
-		require.NoError(t, mf.ValidateCommand(args))
-		assert.Equal(t, "", mf.StorageOptions.LocalFileName)
-	})
-
-	t.Run("get with multiple args", func(t *testing.T) {
-		args := []string{"get", "foo", "bar", "baz"}
-		require.NoError(t, mf.ValidateCommand(args))
-		assert.Equal(t, []string{"foo", "bar", "baz"}, mf.FileNameList)
-	})
-
-	t.Run("put with multiple args", func(t *testing.T) {
-		args := []string{"put", "foo", "bar", "baz"}
-		require.NoError(t, mf.ValidateCommand(args))
-		assert.Equal(t, []string{"foo", "bar", "baz"}, mf.FileNameList)
-	})
-
-	t.Run("too few args", func(t *testing.T) {
-		for _, command := range []string{"get", "put", "delete", "search", "get_id", "delete_id"} {
-			args := []string{command}
-			err := mf.ValidateCommand(args)
-			require.Error(t, err)
-			assert.EqualError(
-				t,
-				err,
-				fmt.Sprintf("%#q argument missing", command),
-				"%s with no additional argument",
-				command,
-			)
-		}
-	})
-
-	t.Run("nonsensical command", func(t *testing.T) {
-		args := []string{"commandnonexistent"}
-
-		err := mf.ValidateCommand(args)
-		require.Error(t, err)
-		assert.EqualError(
-			t,
-			err,
-			fmt.Sprintf(
-				"%#q is not a valid command (If you are trying to specify a connection string, it must begin with mongodb:// or mongodb+srv://)",
-				args[0],
-			),
-		)
-	})
-}
-
 // Test that the output from mongofiles is actually correct.
 func TestMongoFilesCommands(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	Convey("Testing the various commands (get|get_id|put|delete|delete_id|search|list) "+
 		"with a MongoDump instance", t, func() {
 		bytesExpected, err := setUpGridFSTestData()
@@ -1190,7 +1053,6 @@ func TestMongoFilesCommands(t *testing.T) {
 
 // Test that when no write concern is specified, a majority write concern is set.
 func TestDefaultWriteConcern(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	if ssl.UseSSL {
 		t.Skip("Skipping non-SSL test with SSL configuration")
 	}

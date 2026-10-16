@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongostat
 
 import (
@@ -12,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
 	"github.com/stretchr/testify/assert"
@@ -31,8 +32,6 @@ func readBSONFile(file string, t *testing.T) (stat *status.ServerStatus) {
 }
 
 func TestStatLine(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	defaultHeaders := make([]string, len(line.CondHeaders))
 	for i, h := range line.CondHeaders {
 		defaultHeaders[i] = h.Key
@@ -109,8 +108,6 @@ func TestStatLine(t *testing.T) {
 }
 
 func TestIsMongos(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	tests := []struct {
 		processName string
 		expect      bool

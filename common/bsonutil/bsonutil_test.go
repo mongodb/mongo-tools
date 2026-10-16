@@ -1,3 +1,5 @@
+//go:build unit
+
 package bsonutil
 
 import (
@@ -5,14 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestBson2Float64(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	assert := assert.New(t)
 
 	decimalVal, _ := bson.ParseDecimal128("-1")
@@ -46,8 +45,6 @@ func TestBson2Float64(t *testing.T) {
 // for IsEqual means that we are always passing `bson.D` values to
 // `bson.Marshal()`, and I don't think those can cause marshaling errors.
 func TestIsEqual(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	assert := assert.New(t)
 
 	tests := []struct {
@@ -100,8 +97,6 @@ func TestIsEqual(t *testing.T) {
 }
 
 func TestMarshalExtJSONReversible(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	tests := []struct {
 		val          any
 		reversible   bool
@@ -140,8 +135,6 @@ func TestMarshalExtJSONReversible(t *testing.T) {
 }
 
 func TestMarshalExtJSONWithBSONRoundtripConsistency(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	tests := []struct {
 		val                          any
 		consistentAfterRoundtripping bool

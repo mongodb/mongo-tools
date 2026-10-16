@@ -4,12 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package db
 
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -22,8 +23,6 @@ func numberToTimestamp(ts int64) bson.Timestamp {
 }
 
 func TestOpTimeComparisons(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	timestamp1 := numberToTimestamp(6346129894295994369)
 	timestamp2 := numberToTimestamp(6346129894295994370)
 	term1 := int64(1)

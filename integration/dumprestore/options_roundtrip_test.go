@@ -1,3 +1,5 @@
+//go:build integration || sharded
+
 package dumprestore
 
 import (

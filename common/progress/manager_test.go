@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package progress
 
 import (
@@ -14,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,8 +44,6 @@ func (b *safeBuffer) Reset() {
 }
 
 func TestManagerAttachAndDetach(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	setup := func() (*BarWriter, *safeBuffer) {
 		writeBuffer := new(safeBuffer)
 		manager := NewBarWriter(writeBuffer, time.Second, 10, false)
@@ -116,8 +115,6 @@ func TestManagerAttachAndDetach(t *testing.T) {
 }
 
 func TestManagerStartAndStop(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	writeBuffer := new(safeBuffer)
 
 	manager := NewBarWriter(writeBuffer, 10*time.Millisecond, 10, false)
@@ -147,8 +144,6 @@ func TestManagerStartAndStop(t *testing.T) {
 }
 
 func TestNumberOfWrites(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	setup := func() (*BarWriter, *CountWriter) {
 		cw := new(CountWriter)
 		manager := NewBarWriter(cw, time.Millisecond*10, 10, false)

@@ -7,6 +7,8 @@
 // Based on github.com/golang/go by The Go Authors
 // See THIRD-PARTY-NOTICES for original license terms.
 
+//go:build unit
+
 package json
 
 import (
@@ -16,8 +18,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 // Test values for the stream test.
@@ -44,8 +44,6 @@ false
 `
 
 func TestEncoder(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	for i := 0; i <= len(streamTest); i++ {
 		var buf bytes.Buffer
 		enc := NewEncoder(&buf)
@@ -63,8 +61,6 @@ func TestEncoder(t *testing.T) {
 }
 
 func TestDecoder(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	for i := 0; i <= len(streamTest); i++ {
 		// Use stream without newlines as input,
 		// just to stress the decoder even more.
@@ -97,8 +93,6 @@ func TestDecoder(t *testing.T) {
 }
 
 func TestDecoderBuffered(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	r := strings.NewReader(`{"Name": "Gopher"} extra `)
 	var m struct {
 		Name string
@@ -135,8 +129,6 @@ func nlines(s string, n int) string {
 }
 
 func TestRawMessage(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// TODO(rsc): Should not need the * in *RawMessage
 	var data struct {
 		X  float64
@@ -162,8 +154,6 @@ func TestRawMessage(t *testing.T) {
 }
 
 func TestNullRawMessage(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// TODO(rsc): Should not need the * in *RawMessage
 	var data struct {
 		X  float64
@@ -194,8 +184,6 @@ var blockingTests = []string{
 }
 
 func TestBlocking(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	for _, enc := range blockingTests {
 		r, w := net.Pipe()
 		//nolint:errcheck
@@ -213,8 +201,6 @@ func TestBlocking(t *testing.T) {
 }
 
 func BenchmarkEncoderEncode(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	b.ReportAllocs()
 	type T struct {
 		X, Y string

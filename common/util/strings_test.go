@@ -1,15 +1,14 @@
+//go:build unit
+
 package util
 
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestQuoteAndJoin(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	cases := []struct {
 		input   []string
 		sep     string
@@ -60,8 +59,6 @@ func TestQuoteAndJoin(t *testing.T) {
 }
 
 func TestSanitizeURI(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	cases := [][]string{
 		{"mongodb://example.com/", "mongodb://example.com/"},
 		{"mongodb://example.com/?appName=foo:@bar", "mongodb://example.com/?appName=foo:@bar"},

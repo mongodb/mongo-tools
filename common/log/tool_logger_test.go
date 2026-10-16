@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package log
 
 import (
@@ -13,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,8 +28,6 @@ func (v verbosity) IsQuiet() bool { return v.Q }
 func (v verbosity) Level() int    { return v.L }
 
 func TestBasicToolLoggerFunctionality(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	oldTime := time.Now()
 	// sleep to avoid failures due to low timestamp resolution
 	time.Sleep(time.Millisecond)
@@ -69,8 +68,6 @@ func TestBasicToolLoggerFunctionality(t *testing.T) {
 }
 
 func TestGlobalToolLoggerFunctionality(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	globalToolLogger = nil // just to be sure
 
 	globalToolLogger = NewToolLogger(&verbosity{L: 3})
@@ -83,8 +80,6 @@ func TestGlobalToolLoggerFunctionality(t *testing.T) {
 }
 
 func TestToolLoggerWriter(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	buff := bytes.NewBuffer(make([]byte, 1024))
 	tl := NewToolLogger(&verbosity{L: 3})
 	tl.SetWriter(buff)

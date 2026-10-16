@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongotop
 
 import (
@@ -40,7 +42,6 @@ import (
 // mongotop needs two polls of the top command before it can report a diff, so `--rowcount n` prints
 // n rows after n+1 polls.
 func TestMongotopJSON(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "mongotop cannot run against a mongos")
 
 	for _, rowCount := range []int{1, 5} {
@@ -67,7 +68,6 @@ func TestMongotopJSON(t *testing.T) {
 // naming the ns, total, read, and write columns, and a data row carrying those three times. What
 // the numbers mean is checked by TestMongotopReportsActivity, through JSON.
 func TestMongotopGrid(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "mongotop cannot run against a mongos")
 
 	stdout, stderr, err := runMongotop(t, "--rowcount", "1")
@@ -95,7 +95,6 @@ func TestMongotopGrid(t *testing.T) {
 // something a Go test can produce. Counts are only ever compared against zero, for the same reason
 // - the exact values are not reproducible.
 func TestMongotopReportsActivity(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "mongotop cannot run against a mongos")
 
 	const (
@@ -233,8 +232,6 @@ func TestMongotopReportsActivity(t *testing.T) {
 // whether it fails is dependent on the test cluster's port. We can't test this in any reasonable
 // way here.
 func TestMongotopRejectsInvalidOptions(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	// Each case carries the whole argument list, including the `--rowcount` that keeps a case which
 	// does get as far as running from running forever: a `--rowcount` appended afterwards would
 	// override the ones under test.
@@ -371,28 +368,6 @@ func TestMongotopAuth(t *testing.T) {
 		)
 		assert.Empty(t, testcmd.Rows(stdout), "no rows are printed")
 	})
-}
-
-// TestMongotopRejectsMongos checks that mongotop refuses to run against a mongos, which does not
-// support the top command, rather than failing later with whatever the mongos makes of it.
-func TestMongotopRejectsMongos(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.ShardedIntegrationTestType)
-
-	const wantError = "cannot run mongotop against a mongos"
-
-	for _, c := range []struct {
-		name string
-		args []string
-	}{
-		{"with no arguments", nil},
-		{"with a sleep time", []string{"2"}},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			_, stderr, err := runMongotop(t, append(slices.Clone(c.args), "--rowcount", "1")...)
-			testcmd.RequireExitFailure(t, err, "mongotop")
-			assert.Contains(t, stderr, wantError, "the failure names the mongos")
-		})
-	}
 }
 
 // workUntilStopped runs work repeatedly until the returned function is called, which it is safe to

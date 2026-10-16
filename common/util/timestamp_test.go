@@ -4,18 +4,17 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package util
 
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestTimestampComparisons(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("TestTimestampGreaterThan", func(t *testing.T) {
 		reference := bson.Timestamp{T: 5, I: 5}
 

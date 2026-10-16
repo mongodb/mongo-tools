@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoexport
 
 import (
@@ -11,15 +13,12 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/json"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestWriteJSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("ObjectId to extended JSON", func(t *testing.T) {
 		out := new(bytes.Buffer)
 		jsonExporter := NewJSONExportOutput(false, false, out, Relaxed)
@@ -51,8 +50,6 @@ func TestWriteJSON(t *testing.T) {
 }
 
 func TestJSONArray(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	out := new(bytes.Buffer)
 
 	jsonExporter := NewJSONExportOutput(true, false, out, Relaxed)

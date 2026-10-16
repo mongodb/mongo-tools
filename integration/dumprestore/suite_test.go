@@ -1,3 +1,5 @@
+//go:build integration || sharded
+
 package dumprestore
 
 import (
@@ -13,10 +15,10 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/testopts"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
 	"github.com/mongodb/mongo-tools/mongorestore"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -28,7 +30,6 @@ type DumpRestoreSuite struct {
 }
 
 func TestDumpRestore(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	suite.Run(t, new(DumpRestoreSuite))
 }
 
@@ -127,7 +128,6 @@ func (s *DumpRestoreSuite) withConcurrentInserts(
 	}
 
 	inserter.Go(func() {
-
 		for i := range concurrentInsertCap {
 			select {
 			case <-stop:
@@ -516,4 +516,24 @@ func optionValue(options bson.D, key string) any {
 	}
 
 	return value
+}
+
+// stringIDDoc decodes just the `_id` of a document. Every document these tests insert has a string
+// `_id`, so the ids can be compared as sets.
+type stringIDDoc struct {
+	ID string `bson:"_id"`
+}
+
+// documentIDs returns the `_id` values in the given collection.
+func (s *DumpRestoreSuite) documentIDs(coll *mongo.Collection) []string {
+	cursor, err := coll.Find(s.Context(), bson.D{})
+	s.Require().NoError(err, "can read %#q", coll.Name())
+
+	var docs []stringIDDoc
+	s.Require().
+		NoError(cursor.All(s.Context(), &docs), "can decode the documents in %#q", coll.Name())
+
+	return lo.Map(docs, func(doc stringIDDoc, _ int) string {
+		return doc.ID
+	})
 }

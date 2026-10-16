@@ -1,14 +1,12 @@
+//go:build unit
+
 package db
 
 import (
 	"testing"
-
-	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 func TestVersionCmp(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	type testCase struct {
 		v1  Version
 		v2  Version
@@ -39,8 +37,6 @@ func TestVersionCmp(t *testing.T) {
 }
 
 func TestVersionComparisons(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// Expect true
 	if !(Version{1, 2, 3}).LT(Version{1, 3, 0}) {
 		t.Errorf("LT failed")
@@ -83,8 +79,6 @@ func TestVersionComparisons(t *testing.T) {
 }
 
 func TestStrToVersion(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	type testCase struct {
 		str string
 		v   Version

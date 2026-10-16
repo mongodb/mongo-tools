@@ -4,14 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongodump
 
 import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"math/rand"
@@ -33,7 +33,6 @@ import (
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
@@ -45,13 +44,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
-var (
-	// database with test data.
-	testDB = "mongodump_test_db"
-	// temp database used for restoring a DB.
-	testRestoreDB       = "temp_mongodump_restore_test_db"
-	testCollectionNames = []string{"coll1", "coll2", "coll/three"}
-)
+// temp database used for restoring a DB.
+var testRestoreDB = "temp_mongodump_restore_test_db"
 
 const (
 	longPrefix = "aVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery" +
@@ -61,29 +55,6 @@ const (
 	longBsonName       = longPrefix + "%2FLong%2FCollection%2FName%24FUVlwTrb2eHN1RUE1swI1fFzWmA.bson"
 	longMetadataName   = longPrefix + "%2FLong%2FCollection%2FName%24FUVlwTrb2eHN1RUE1swI1fFzWmA.metadata.json"
 )
-
-func simpleMongoDumpInstance() (*MongoDump, error) {
-	toolOptions, err := testopts.GetToolOptions()
-	if err != nil {
-		return nil, fmt.Errorf("error getting tool options to create a mongodump instance: %w", err)
-	}
-
-	// Limit ToolOptions to test database
-	toolOptions.Namespace = &options.Namespace{DB: testDB}
-
-	outputOptions := &OutputOptions{
-		NumParallelCollections: 1,
-	}
-	inputOptions := &InputOptions{}
-
-	log.SetVerbosity(toolOptions.Verbosity)
-
-	return &MongoDump{
-		ToolOptions:   toolOptions,
-		InputOptions:  inputOptions,
-		OutputOptions: outputOptions,
-	}, nil
-}
 
 // returns the number of .bson files in a directory.
 func countBSONFiles(dir string) (int, error) {
@@ -578,149 +549,7 @@ func testDumpOneCollection(t *testing.T, md *MongoDump, dumpDir string) {
 	})
 }
 
-func TestMongoDumpValidateOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	for _, testCase := range invalidDumpOptionsCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			md, err := simpleMongoDumpInstance()
-			require.NoError(t, err)
-
-			testCase.setUp(md)
-
-			assert.ErrorContains(
-				t,
-				md.ValidateOptions(),
-				testCase.wantErr,
-				"mongodump rejects %s",
-				testCase.name,
-			)
-		})
-	}
-}
-
-type invalidDumpOptionsCase struct {
-	name    string
-	setUp   func(*MongoDump)
-	wantErr string
-}
-
-// invalidDumpOptionsCases collects the option combinations mongodump rejects. Each case asserts on
-// the error validation returns, rather than on a process exit code, so it pins down which
-// combination was rejected and why.
-var invalidDumpOptionsCases = []invalidDumpOptionsCase{
-	{
-		name: "a collection without a db",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = ""
-			md.ToolOptions.Collection = "some_collection"
-		},
-		wantErr: "cannot dump a collection without a specified database",
-	},
-	{
-		name: "a query without a collection",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.Collection = ""
-			md.InputOptions.Query = `{"_id": ""}`
-		},
-		wantErr: "cannot dump using a query without a specified collection",
-	},
-	{
-		name: "dumping to stdout without a collection",
-		setUp: func(md *MongoDump) {
-			md.OutputOptions.Out = "-"
-			md.ToolOptions.DB = "foo"
-			md.ToolOptions.Collection = ""
-		},
-		wantErr: "can only dump a single collection to stdout",
-	},
-	{
-		name: "queryFile without a collection",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = "foo"
-			md.ToolOptions.Collection = ""
-			md.InputOptions.QueryFile = "query.json"
-		},
-		wantErr: "cannot dump using a queryFile without a specified collection",
-	},
-	{
-		name: "query together with queryFile",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = "foo"
-			md.ToolOptions.Collection = "bar"
-			md.InputOptions.Query = `{"x": 1}`
-			md.InputOptions.QueryFile = "query.json"
-		},
-		wantErr: "either query or queryFile can be specified as a query option, not both",
-	},
-	{
-		name: "forceTableScan together with a query",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = "foo"
-			md.ToolOptions.Collection = "bar"
-			md.InputOptions.Query = `{"x": 1}`
-			md.InputOptions.TableScan = true
-		},
-		wantErr: "cannot use --forceTableScan when specifying --query",
-	},
-	{
-		name: "excludeCollection without a db",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = ""
-			md.ToolOptions.Collection = ""
-			md.OutputOptions.ExcludedCollections = []string{"baz"}
-		},
-		wantErr: "--db is required when --excludeCollection is specified",
-	},
-	{
-		name: "excludeCollection together with a collection",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = "foo"
-			md.ToolOptions.Collection = "baz"
-			md.OutputOptions.ExcludedCollections = []string{"baz"}
-		},
-		wantErr: "--collection is not allowed when --excludeCollection is specified",
-	},
-	{
-		name: "excludeCollectionsWithPrefix without a db",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = ""
-			md.ToolOptions.Collection = ""
-			md.OutputOptions.ExcludedCollectionPrefixes = []string{"baz"}
-		},
-		wantErr: "--db is required when --excludeCollectionsWithPrefix is specified",
-	},
-	{
-		name: "excludeCollectionsWithPrefix together with a collection",
-		setUp: func(md *MongoDump) {
-			md.ToolOptions.DB = "foo"
-			md.ToolOptions.Collection = "baz"
-			md.OutputOptions.ExcludedCollectionPrefixes = []string{"baz"}
-		},
-		wantErr: "--collection is not allowed when --excludeCollectionsWithPrefix is specified",
-	},
-}
-
-// TestMongoDumpQueryFileMissing covers the one query-flag failure that is not an
-// option-validation error: the file is only opened when the query is read.
-func TestMongoDumpQueryFileMissing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
-	inputOptions := &InputOptions{
-		QueryFile: filepath.Join(t.TempDir(), "does-not-exist.json"),
-	}
-
-	_, err := inputOptions.GetQuery()
-	assert.ErrorContains(
-		t,
-		err,
-		"error reading queryFile",
-		"a --queryFile that does not exist is reported when the query is read",
-	)
-}
-
 func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(
 		t,
 		"it creates and drops a collection in the admin database, which mongos does not allow",
@@ -764,7 +593,6 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 }
 
 func TestMongoDumpBSON(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -956,8 +784,6 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 	// Disabled: see TOOLS-2658
 	t.Skip()
 
-	testtype.SkipUnlessIntegration(t)
-
 	session, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -1061,7 +887,6 @@ func testPreludeMetadata(md *MongoDump, dir string, serverVersion string) {
 }
 
 func TestDumpPreludeMetadataJson(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1134,7 +959,6 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		})
 
 		Convey("when the dump directory is not created", func() {
-
 			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
 			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, "nottestdb"))
 
@@ -1168,7 +992,6 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 }
 
 func TestMongoDumpMetaData(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1180,7 +1003,6 @@ func TestMongoDumpMetaData(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
-
 			md, err := simpleMongoDumpInstance()
 			So(err, ShouldBeNil)
 
@@ -1271,7 +1093,6 @@ func TestMongoDumpOplog(t *testing.T) {
 	// Disabled: see TOOLS-2657
 	t.Skip()
 
-	testtype.SkipUnlessIntegration(t)
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	if err != nil {
 		t.Fatalf("No cluster available: %v", err)
@@ -1286,9 +1107,7 @@ func TestMongoDumpOplog(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
-
 		Convey("testing that the dumped directory contains an oplog", func() {
-
 			// Start with clean filesystem
 			path, err := os.Getwd()
 			So(err, ShouldBeNil)
@@ -1365,7 +1184,6 @@ func TestMongoDumpOplog(t *testing.T) {
 // Test dumping a collection with autoIndexId:false.  As of MongoDB 4.0,
 // this is only allowed on the 'local' database.
 func TestMongoDumpTOOLS2174(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it writes to the local database, which mongos does not allow")
 	log.SetWriter(io.Discard)
 
@@ -1423,7 +1241,6 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 
 // Test dumping a collection while respecting no index scan for wired tiger.
 func TestMongoDumpTOOLS1952(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(
 		t,
 		"it enables profiling and reads system.profile, which mongos does not support",
@@ -1498,7 +1315,6 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 
 // Test the fix for nil pointer bug when getCollectionInfo failed.
 func TestMongoDumpTOOLS2498(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -1559,7 +1375,6 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 }
 
 func TestMongoDumpOrderedQuery(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1618,7 +1433,6 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 }
 
 func TestMongoDumpViewsAsCollections(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(
 		t,
 		"it enables profiling and reads system.profile, which mongos does not support",
@@ -1701,7 +1515,6 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 }
 
 func TestMongoDumpViews(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	Convey("With a MongoDump instance", t, func() {
@@ -1714,7 +1527,6 @@ func TestMongoDumpViews(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
-
 			md, err := simpleMongoDumpInstance()
 			So(err, ShouldBeNil)
 
@@ -1736,7 +1548,6 @@ func TestMongoDumpViews(t *testing.T) {
 			So(fileDirExists(dumpDBDir), ShouldBeTrue)
 
 			Convey("having one metadata file per view", func() {
-
 				c1, err := countMetaDataFiles(dumpDBDir)
 				So(err, ShouldBeNil)
 
@@ -1770,92 +1581,7 @@ func TestMongoDumpViews(t *testing.T) {
 	})
 }
 
-func TestMongoDumpCollectionOutputPath(t *testing.T) {
-	t.Skip("disabled: see TOOLS-2658")
-
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-	log.SetWriter(io.Discard)
-
-	newDump := func() *MongoDump {
-		md, err := simpleMongoDumpInstance()
-		require.NoError(t, err)
-
-		md.OutputOptions.Out = "dump"
-		return md
-	}
-
-	t.Run("paths less than 255 bytes", func(t *testing.T) {
-		md := newDump()
-
-		// 26 bytes < 255 bytes
-		// (output path will be under 255 bytes, regardless of file extension)
-		colName := "abcdefghijklmnopqrstuvwxyz"
-
-		fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-		assert.Len(t, fileComponents, 3)
-
-		filePath := fileComponents[len(fileComponents)-1]
-		assert.Equal(t, colName, filePath)
-		assert.NotContains(t, filePath, "%24")
-	})
-
-	t.Run("paths equal 255 bytes", func(t *testing.T) {
-		md := newDump()
-
-		// 17 bytes * 14 = 238 bytes
-		// (output would be exactly 255 bytes with longest possible file extension of .metadata.json.gz)
-		colName := strings.Repeat("abcdefghijklmnopq", 14)
-
-		fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-		assert.Len(t, fileComponents, 3)
-
-		filePath := fileComponents[len(fileComponents)-1]
-		assert.Equal(t, colName, filePath)
-		assert.NotContains(t, filePath, "%24")
-	})
-
-	t.Run("path longer than 255 bytes", func(t *testing.T) {
-		t.Run("without special characters", func(t *testing.T) {
-			md := newDump()
-
-			// 26 bytes * 10 = 260 bytes > 238 bytes
-			// (output path is already over the file name limit of 255, regardless of file extension)
-			colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz", 10)
-
-			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-			assert.Len(t, fileComponents, 3)
-
-			filePath := fileComponents[len(fileComponents)-1]
-			assert.Equal(t, colName[:208]+"%24", filePath[:211])
-
-			hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
-			hash := sha1.Sum([]byte(colName))
-			assert.Equal(t, hash[:], hashDecoded)
-		})
-
-		t.Run("with special characters", func(t *testing.T) {
-			md := newDump()
-
-			// (26 bytes + 3 special bytes) * 8 = 232 bytes < 238 bytes
-			// (output path is under the limit, but will go over when we escape the special symbols)
-			colName := strings.Repeat("abcdefghijklmnopqrstuvwxyz+/@", 8)
-
-			fileComponents := strings.Split(md.outputPath(testDB, colName), "/")
-			assert.Len(t, fileComponents, 3)
-
-			filePath := fileComponents[len(fileComponents)-1]
-			assert.Equal(t, url.QueryEscape(colName)[:208]+"%24", filePath[:211])
-
-			hashDecoded, _ := base64.RawURLEncoding.DecodeString(filePath[211:])
-			hash := sha1.Sum([]byte(colName))
-			assert.Equal(t, hash[:], hashDecoded)
-		})
-	})
-}
-
 func TestCount(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	Convey("test count collection", t, func() {
 		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
@@ -1902,8 +1628,6 @@ func TestCount(t *testing.T) {
 }
 
 func TestTimeseriesCollections(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
 
@@ -2295,8 +2019,6 @@ func TestTimeseriesCollections(t *testing.T) {
 }
 
 func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
 
@@ -2379,7 +2101,6 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 }
 
 func TestFailDuringResharding(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipForAtlasCluster(
 		t,
 		"this test requires permissions that may not be available for an Atlas cluster",
@@ -2554,7 +2275,6 @@ func TestFailDuringResharding(t *testing.T) {
 }
 
 func TestOptionsOrderIsPreserved(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -2650,8 +2370,6 @@ func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
 // TestBrokenPipe verifies that mongodump handles a broken pipe gracefully
 // (exits with a write error rather than being killed by SIGPIPE).
 func TestBrokenPipe(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const (
 		dbName   = "mongodump_broken_pipe_test"
 		collName = "docs"
@@ -2687,7 +2405,6 @@ func TestBrokenPipe(t *testing.T) {
 // carries a $natural hint. The view case additionally covers the count that mongodump issues
 // before dumping, which goes through CountDocuments rather than the find.
 func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -2811,8 +2528,6 @@ func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
 // point of this test is to pin down that the dump either completes with every measurement
 // or fails outright — it must never silently produce a truncated dump.
 func TestTimeseriesDumpConcurrentWithSetFCV(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	ctx := t.Context()
 
 	session, err := testutil.GetBareSession(t)

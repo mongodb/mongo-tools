@@ -1,3 +1,5 @@
+//go:build unit
+
 package main
 
 import (
@@ -7,14 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
 func TestCheckDownloadResponse(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	newResponse := func(status int, body string) *http.Response {
 		return &http.Response{
 			StatusCode: status,
@@ -73,8 +72,6 @@ func TestCheckDownloadResponse(t *testing.T) {
 }
 
 func TestRepoConfig(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	type Repo struct {
 		Name     string   `yaml:"name"`
 		Type     string   `yaml:"type"`
