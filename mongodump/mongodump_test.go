@@ -264,7 +264,7 @@ func setUpMongoDumpTestData(t *testing.T) error {
 	return nil
 }
 
-func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) {
+func setUpTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string) {
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
 	require.NoError(t, err, "get session provider")
 
@@ -288,25 +288,11 @@ func setupTimeseriesWithMixedSchema(t *testing.T, dbName string, collName string
 	createRes := sessionProvider.DB(dbName).RunCommand(t.Context(), createCmd)
 	require.NoError(t, createRes.Err(), "create timeseries coll")
 
-	// SERVER-84531 was only backported to 7.3.
-	// TODO: Run collMod command on 6.0 and 7.0 (TOOLS-3597).
-	clientFCV := testutil.GetFCV(client)
-
-	shouldAccommodateMixedSchema := clientFCV == "6.0" || clientFCV == "7.0"
-	if !shouldAccommodateMixedSchema {
-		cmp, err := testutil.CompareFCV(clientFCV, "7.3")
-		require.NoError(t, err, "compare client fcv (%s)", clientFCV)
-
-		shouldAccommodateMixedSchema = cmp >= 0
-	}
-
-	if shouldAccommodateMixedSchema {
-		res := sessionProvider.DB(dbName).RunCommand(t.Context(), bson.D{
-			{"collMod", collName},
-			{"timeseriesBucketsMayHaveMixedSchemaData", true},
-		})
-		require.NoError(t, res.Err(), "set mixed schema data")
-	}
+	res := sessionProvider.DB(dbName).RunCommand(t.Context(), bson.D{
+		{"collMod", collName},
+		{"timeseriesBucketsMayHaveMixedSchemaData", true},
+	})
+	require.NoError(t, res.Err(), "set mixed schema data")
 
 	bucketName := timeseriesCollName(serverVersion, collName)
 	bucketColl := sessionProvider.DB(dbName).Collection(bucketName)
@@ -2296,6 +2282,7 @@ func TestTimeseriesCollections(t *testing.T) {
 
 func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfFCVLessThan(t, "6.0", "mixed schema timeseries is only supported with 6.0+")
 
 	session, err := testutil.GetBareSession(t)
 	require.NoError(t, err, "get session")
@@ -2314,7 +2301,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 	colName := "timeseries_mixed_schema"
 	dbName := "timeseries_test_DB"
 
-	setupTimeseriesWithMixedSchema(t, dbName, colName)
+	setUpTimeseriesWithMixedSchema(t, dbName, colName)
 
 	md, err := simpleMongoDumpInstance()
 	require.NoError(t, err)
