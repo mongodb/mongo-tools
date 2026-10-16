@@ -12,7 +12,7 @@ import (
 )
 
 func SALint(ctx *task.Context) error {
-	if err := SACheckTestBuildTags(ctx); err != nil {
+	if err := SACheckTestFiles(ctx); err != nil {
 		return err
 	}
 
