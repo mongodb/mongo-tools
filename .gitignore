@@ -33,9 +33,6 @@ dsc-cluster/
 /mongodump/*/mongorestore_test_*/
 /mongodump/*/prelude.json
 /mongodump/*/test/
-/mongoimport/testdata/10k1dup10k.json
-/mongorestore/testdata/index_collation/test/*
-/mongorestore/testdata/txntest/oplog.bson
 node_modules
 /release.*
 /report.json
@@ -52,6 +49,20 @@ test/qa-tests/mongo*
 test/qa-tests/venv
 testing_output/
 vendor/pkg
+
+# Test fixtures are committed even though they match the extension patterns above, so un-ignore
+# everything under a testdata directory. This must come after those patterns to take effect.
 !**/testdata/**
+
+# /release.* would otherwise ignore RELEASE.md on case-insensitive filesystems.
 !/RELEASE.md
+
+# test/**/*.json would otherwise ignore this committed file.
 !test/shell_common/jsconfig.json
+
+# Exceptions to the testdata un-ignore above: fixtures these tests generate at run time, which must
+# not be committed.
+/mongoimport/testdata/10k1dup10k.json
+/mongorestore/testdata/10k1dup10k.bson
+/mongorestore/testdata/index_collation/test/*
+/mongorestore/testdata/txntest/oplog.bson
