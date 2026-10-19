@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongorestore
 
 import (
@@ -13,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,6 @@ import (
 // oplog.bson and --oplogFile points at another oplog, mongorestore fails and
 // applies no data rather than silently choosing one of the two.
 func TestOplogReplayConflict(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
@@ -57,8 +57,6 @@ func TestOplogReplayConflict(t *testing.T) {
 // local/oplog.rs.bson and --oplogFile points at a higher-priority oplog, only
 // the priority oplog's entries are applied.
 func TestOplogReplayPriorityOplog(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	// This test restores the dump_local_oplog fixture, which contains a
 	// local/oplog.rs.bson. Writing local.oplog.rs as a collection is only
 	// permitted on a standalone: a replica set rejects direct oplog writes, and
@@ -119,7 +117,6 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 // TestOplogReplayNoop checks that noop ("n") entries interleaved with inserts
 // are skipped while the inserts around them are still applied.
 func TestOplogReplayNoop(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
@@ -162,7 +159,6 @@ func TestOplogReplayNoop(t *testing.T) {
 // orders as there are fields, so a single attempt could land on the right one by
 // chance.
 func TestOplogReplayPreservesComplexIDOrder(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
@@ -270,7 +266,6 @@ func writeOplogUpdate(t *testing.T, path, ns string, id bson.D) {
 // batch of roughly 1MB ops, guarding the batching that keeps oplog replay
 // within the server's message size limit (TOOLS-939).
 func TestOplogReplaySizeSafety(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,

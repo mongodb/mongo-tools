@@ -1,10 +1,11 @@
+//go:build unit
+
 package txn
 
 import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,8 +14,6 @@ import (
 
 // test each type of transaction individually and serially.
 func TestSingleTxnBuffer(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	buffer := NewBuffer()
 	txnByID, err := mapTestTxnByID()
 	require.NoError(t, err)
@@ -27,8 +26,6 @@ func TestSingleTxnBuffer(t *testing.T) {
 }
 
 func TestMixedTxnBuffer(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	buffer := NewBuffer()
 	txnByID, err := mapTestTxnByID()
 	require.NoError(t, err)
@@ -43,7 +40,6 @@ func TestMixedTxnBuffer(t *testing.T) {
 }
 
 func testBufferOps(t *testing.T, buffer *Buffer, ops []db.Oplog, txnByID map[ID]*TestData) {
-
 	innerOpCounter := make(map[ID]int)
 
 	for _, op := range ops {
@@ -99,8 +95,6 @@ func assertNoStateForID(t *testing.T, meta Meta, buffer *Buffer) {
 }
 
 func TestOldestTimestamp(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	buffer := NewBuffer()
 
 	// With no transactions, oldest active is zero value
@@ -161,8 +155,6 @@ func TestOldestTimestamp(t *testing.T) {
 }
 
 func TestExtractInnerOps(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	// Constructing manually requires pointers to int64, so they can't be constants.
 	txnN := int64(0)
 	term := int64(1)

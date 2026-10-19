@@ -115,17 +115,17 @@ func BuildTools(ctx *task.Context) error {
 
 // TestUnit is an Executor that runs all unit tests for the provided packages.
 func TestUnit(ctx *task.Context) error {
-	return runTests(ctx, selectedPkgs(ctx), testtype.UnitTestType)
+	return runTests(ctx, selectedPkgs(ctx), TagUnit)
 }
 
 // TestKerberos is an Executor that runs all kerberos tests for the provided packages.
 func TestKerberos(ctx *task.Context) error {
-	return runTests(ctx, selectedPkgs(ctx), testtype.KerberosTestType)
+	return runTests(ctx, selectedPkgs(ctx), TagKerberos)
 }
 
 // TestIntegration is an Executor that runs all integration tests for the provided packages.
 func TestIntegration(ctx *task.Context) error {
-	return runTests(ctx, selectedPkgs(ctx), testtype.IntegrationTestType)
+	return runTests(ctx, selectedPkgs(ctx), TagIntegration)
 }
 
 // TestCrossCluster runs the dump/restore and export/import round-trip tests across two clusters. It
@@ -136,20 +136,20 @@ func TestCrossCluster(ctx *task.Context) error {
 	return runTests(
 		ctx,
 		[]string{"integration/dumprestore", "integration/exportimport"},
-		testtype.IntegrationTestType,
+		TagIntegration,
 	)
 }
 
-// TestShardedIntegration runs tests that require a sharded cluster (mongos) topology.
-// It sets only ShardedIntegrationTestType, intentionally not setting IntegrationTestType,
-// so regular integration tests (which expect a standalone mongod) are not run against mongos.
+// TestShardedIntegration runs tests that require a sharded cluster (mongos) topology. It builds
+// with only the "sharded" tag, so tests tagged "integration" alone (which expect a standalone
+// mongod or a replica set) are not compiled and cannot run against mongos.
 func TestShardedIntegration(ctx *task.Context) error {
-	return runTests(ctx, selectedPkgs(ctx), testtype.ShardedIntegrationTestType)
+	return runTests(ctx, selectedPkgs(ctx), TagSharded)
 }
 
 // TestAWSAuth is an Executor that runs all AWS auth tests for the provided packages.
 func TestAWSAuth(ctx *task.Context) error {
-	return runTests(ctx, selectedPkgs(ctx), testtype.AWSAuthTestType)
+	return runTests(ctx, selectedPkgs(ctx), TagAWSAuth)
 }
 
 // buildToolBinary builds the tool with the specified name, putting
@@ -160,7 +160,7 @@ func buildToolBinary(ctx *task.Context, tool string, outDir string) error {
 
 	mainFile := filepath.Join(tool, "main", fmt.Sprintf("%s.go", tool))
 
-	buildFlags := getBuildFlags(ctx, false)
+	buildFlags := getBuildFlags(ctx, false, "")
 
 	args := []string{
 		"build",
@@ -184,8 +184,8 @@ func buildToolBinary(ctx *task.Context, tool string, outDir string) error {
 	return nil
 }
 
-// runTests runs the tests of the provided testType for the provided packages.
-func runTests(ctx *task.Context, pkgs []string, testType string) error {
+// runTests runs the tests selected by the provided build tags for the provided packages.
+func runTests(ctx *task.Context, pkgs []string, tag TestTag) error {
 	for _, pkg := range pkgs {
 		outFile, err := sh.CreateFileR(ctx, fmt.Sprintf("testing_output/%s.suite", pkg))
 		if err != nil {
@@ -193,7 +193,7 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 		}
 		defer outFile.Close()
 
-		buildFlags := getBuildFlags(ctx, true)
+		buildFlags := getBuildFlags(ctx, true, tag.String())
 
 		// Use the recursive wildcard (...) to run all tests
 		// of the provided testType for the current pkg.
@@ -212,21 +212,14 @@ func runTests(ctx *task.Context, pkgs []string, testType string) error {
 			args = append(args, "-v")
 		}
 
-		// Append any existing environment variables, along
-		// with the ones indicating which test types to run.
+		// Append any existing environment variables, along with the ones that configure the
+		// cluster the tests run against. Which tests run is selected by build tag, not by env.
 		env := append([]string{}, os.Environ()...)
-		env = append(env, testType+"=true")
 		if ctx.Get("ssl") == "true" {
 			env = append(env, testtype.SSLTestType+"=true")
 		}
 		if ctx.Get("auth") == "true" {
 			env = append(env, testtype.AuthTestType+"=true")
-		}
-		if ctx.Get("topology") == "replSet" {
-			env = append(env, testtype.ReplSetTestType+"=true")
-		}
-		if ctx.Get("topology") == "sharded" {
-			env = append(env, testtype.ShardedIntegrationTestType+"=true")
 		}
 
 		if ctx.Get("race") == "true" {
@@ -289,9 +282,10 @@ func getLdflags(ctx *task.Context) (string, error) {
 	return ldflags, nil
 }
 
-// getBuildFlags gets all the build flags that should be used when
-// building the tools on the current platform, including tags and ldflags.
-func getBuildFlags(ctx *task.Context, forTests bool) []string {
+// getBuildFlags gets all the build flags that should be used when building the tools on the current
+// platform, including tags and ldflags. extraTag is appended to the platform's tags if set, and are
+// how a test run selects which tests to compile.
+func getBuildFlags(ctx *task.Context, forTests bool, extraTag string) []string {
 	flags := []string{}
 
 	ldflags, err := getLdflags(ctx)
@@ -302,10 +296,17 @@ func getBuildFlags(ctx *task.Context, forTests bool) []string {
 	}
 
 	tags, err := getTags(ctx)
-	if err == nil {
-		flags = append(flags, "-tags", strings.Join(tags, " "))
-	} else {
+	if err != nil {
 		ctx.Logf("failed to get tags (error: %v); will still attempt build\n", err)
+	}
+
+	// The test-selection tag is appended outside the platform-tag branch: dropping it would
+	// compile none of the selected tests, and the run would report success having run nothing.
+	if extraTag != "" {
+		tags = append(tags, extraTag)
+	}
+	if len(tags) > 0 {
+		flags = append(flags, "-tags", strings.Join(tags, " "))
 	}
 
 	pf, err := getPlatform()

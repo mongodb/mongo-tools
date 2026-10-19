@@ -4,20 +4,19 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package json
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNumberIntValue(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("single key", func(t *testing.T) {
 		var jsonMap map[string]any
 
@@ -106,8 +105,6 @@ func TestNumberIntValue(t *testing.T) {
 }
 
 func TestNumberLongValue(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	t.Run("single key", func(t *testing.T) {
 		var jsonMap map[string]any
 

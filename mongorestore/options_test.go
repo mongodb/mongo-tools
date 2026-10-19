@@ -4,13 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongorestore
 
 import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,6 @@ import (
 )
 
 func TestWriteConcernOptionParsing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	t.Run("default to majority", func(t *testing.T) {
 		opts, err := ParseOptions([]string{}, "", "")
 		require.NoError(t, err)
@@ -70,7 +70,6 @@ func TestWriteConcernOptionParsing(t *testing.T) {
 }
 
 func TestURIParsing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	args := []string{
 		"--uri", "mongodb://localhost:27017/test",
 	}
@@ -88,7 +87,6 @@ type PositionalArgumentTestCase struct {
 }
 
 func TestPositionalArgumentParsing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	positionalArgumentTestCases := []PositionalArgumentTestCase{
 		{
 			InputArgs: []string{"foo"},

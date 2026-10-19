@@ -7,17 +7,15 @@
 // Based on github.com/golang/go by The Go Authors
 // See THIRD-PARTY-NOTICES for original license terms.
 
+//go:build unit
+
 package json
 
 import (
 	"testing"
-
-	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 func TestTagParsing(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	name, opts := parseTag("field,foobar,foo")
 	if name != "field" {
 		t.Fatalf("name = %q, want field", name)

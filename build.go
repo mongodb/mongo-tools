@@ -41,13 +41,16 @@ func init() {
 	// Static Analysis
 	taskRegistry.Declare("sa:lint").
 		Description("runs precious linting").
-		Do(buildscript.SAPreciousLint)
+		Do(buildscript.SALint)
 	taskRegistry.Declare("sa:modtidy").
 		Description("runs go mod tidy").
 		Do(buildscript.SAModTidy)
 	taskRegistry.Declare("sa:checkVendoredCode").
 		Description("checks that vendored code has no unexpected local changes").
 		Do(buildscript.SACheckVendoredCode)
+	taskRegistry.Declare("sa:checkTestTags").
+		Description("checks that all test files have a build tag").
+		Do(buildscript.SACheckTestBuildTags)
 
 	// Testing
 	taskRegistry.Declare("test:unit").
@@ -56,11 +59,11 @@ func init() {
 		Do(buildscript.TestUnit)
 	taskRegistry.Declare("test:integration").
 		Description("runs all integration tests").
-		OptionalArgs("pkgs", "ssl", "auth", "kerberos", "topology", "race").
+		OptionalArgs("pkgs", "ssl", "auth", "kerberos", "race").
 		Do(buildscript.TestIntegration)
 	taskRegistry.Declare("test:cross-cluster").
 		Description("runs the dump/restore and export/import round-trip tests across two clusters").
-		OptionalArgs("ssl", "topology", "race").
+		OptionalArgs("ssl", "race").
 		Do(buildscript.TestCrossCluster)
 	taskRegistry.Declare("test:sharded-integration").
 		Description("runs tests requiring a sharded cluster topology").

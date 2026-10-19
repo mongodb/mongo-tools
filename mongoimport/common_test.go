@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build unit
+
 package mongoimport
 
 import (
@@ -11,7 +13,6 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"golang.org/x/sync/errgroup"
@@ -98,8 +99,6 @@ var (
 )
 
 func TestValidateFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Given an import input, in validating the headers", t, func() {
 		Convey("if the fields contain '..', an error should be thrown", func() {
 			So(validateFields([]string{"a..a"}, false), ShouldNotBeNil)
@@ -134,8 +133,6 @@ func TestValidateFields(t *testing.T) {
 }
 
 func TestGetUpsertValue(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Given a field and a BSON document, on calling getUpsertValue", t, func() {
 		Convey("the value of the key should be correct for unnested documents", func() {
 			bsonDocument := bson.D{{"a", 3}}
@@ -175,8 +172,6 @@ func TestGetUpsertValue(t *testing.T) {
 }
 
 func TestConstructUpsertDocument(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Given a set of upsert fields and a BSON document, on calling "+
 		"constructUpsertDocument", t, func() {
 		Convey("the key/value combination in the upsert document should be "+
@@ -217,8 +212,6 @@ func TestConstructUpsertDocument(t *testing.T) {
 }
 
 func TestSetNestedDocumentValue(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Given a field, its value, and an existing BSON document...", t, func() {
 		b := bson.D{{"c", "d"}}
 		currentDocument := bson.D{
@@ -286,8 +279,6 @@ func TestSetNestedDocumentValue(t *testing.T) {
 }
 
 func TestRemoveBlankFields(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Given an unordered BSON document", t, func() {
 		Convey("the same document should be returned if there are no blanks", func() {
 			bsonDocument := bson.D{{"a", 3}, {"b", "hello"}}
@@ -323,8 +314,6 @@ func TestRemoveBlankFields(t *testing.T) {
 }
 
 func TestTokensToBSON(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Given an slice of column specs and tokens to convert to BSON", t, func() {
 		Convey("the expected ordered BSON should be produced for the given"+
 			"column specs and tokens", func() {
@@ -404,8 +393,6 @@ func TestTokensToBSON(t *testing.T) {
 }
 
 func TestProcessDocuments(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey("Given an import worker", t, func() {
 		index := uint64(0)
 		csvConverters := []CSVConverter{
@@ -485,8 +472,6 @@ func TestProcessDocuments(t *testing.T) {
 }
 
 func TestDoSequentialStreaming(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
-
 	Convey(
 		"Given some import workers, a Converters input channel and an bson.D output channel",
 		t,
@@ -538,12 +523,10 @@ func TestDoSequentialStreaming(t *testing.T) {
 }
 
 func TestStreamDocuments(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	Convey(`Given:
 			1. a boolean indicating streaming order
 			2. an input channel where documents are streamed in
 			3. an output channel where processed documents are streamed out`, t, func() {
-
 		docsInChan := make(chan Converter, 5)
 		streamOutChan := make(chan bson.D, 5)
 

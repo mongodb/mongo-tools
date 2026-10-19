@@ -13,6 +13,8 @@
 // We benchmark converting between the JSON form
 // and in-memory data structures.
 
+//go:build unit
+
 package json
 
 import (
@@ -21,8 +23,6 @@ import (
 	"io"
 	"os"
 	"testing"
-
-	"github.com/mongodb/mongo-tools/common/testtype"
 )
 
 type codeResponse struct {
@@ -83,8 +83,6 @@ func codeInit() {
 }
 
 func BenchmarkCodeEncoder(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	if codeJSON == nil {
 		b.StopTimer()
 		codeInit()
@@ -100,8 +98,6 @@ func BenchmarkCodeEncoder(b *testing.B) {
 }
 
 func BenchmarkCodeMarshal(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	if codeJSON == nil {
 		b.StopTimer()
 		codeInit()
@@ -116,8 +112,6 @@ func BenchmarkCodeMarshal(b *testing.B) {
 }
 
 func BenchmarkCodeDecoder(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	if codeJSON == nil {
 		b.StopTimer()
 		codeInit()
@@ -140,8 +134,6 @@ func BenchmarkCodeDecoder(b *testing.B) {
 }
 
 func BenchmarkCodeUnmarshal(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	if codeJSON == nil {
 		b.StopTimer()
 		codeInit()
@@ -157,8 +149,6 @@ func BenchmarkCodeUnmarshal(b *testing.B) {
 }
 
 func BenchmarkCodeUnmarshalReuse(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	if codeJSON == nil {
 		b.StopTimer()
 		codeInit()
@@ -173,8 +163,6 @@ func BenchmarkCodeUnmarshalReuse(b *testing.B) {
 }
 
 func BenchmarkUnmarshalString(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	data := []byte(`"hello, world"`)
 	var s string
 
@@ -186,8 +174,6 @@ func BenchmarkUnmarshalString(b *testing.B) {
 }
 
 func BenchmarkUnmarshalFloat64(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	var f float64
 	data := []byte(`3.14`)
 
@@ -199,8 +185,6 @@ func BenchmarkUnmarshalFloat64(b *testing.B) {
 }
 
 func BenchmarkUnmarshalInt64(b *testing.B) {
-	testtype.SkipUnlessBenchmarkType(b, testtype.UnitTestType)
-
 	var x int64
 	data := []byte(`3`)
 

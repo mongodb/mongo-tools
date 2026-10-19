@@ -1,3 +1,5 @@
+//go:build unit
+
 package wcwrapper
 
 import (
@@ -5,14 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 func TestMarshal(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.UnitTestType)
 	True, False := true, false
 
 	cases := []struct {

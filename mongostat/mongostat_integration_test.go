@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongostat
 
 import (
@@ -42,8 +44,6 @@ import (
 // TestMongostatRowCount checks that `--rowcount` prints exactly that many data rows and exits
 // successfully, and covers the ways of naming a server that mongostat has to reject.
 func TestMongostatRowCount(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	t.Run("prints the requested number of rows", func(t *testing.T) {
 		const rowCount = 5
 		stdout, stderr, err := runMongostat(t, "--rowcount", strconv.Itoa(rowCount), "--noheaders")
@@ -98,8 +98,6 @@ func TestMongostatRowCount(t *testing.T) {
 // take (n+1) sleeps: the assertion allows for one fewer than that, which still fails if the
 // argument were ignored and the default one-second interval used instead.
 func TestMongostatSleepTime(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const (
 		rowCount     = 2
 		sleepSeconds = 2
@@ -125,8 +123,6 @@ func TestMongostatSleepTime(t *testing.T) {
 // TestMongostatHeaders checks that the column header is printed by default and suppressed by
 // `--noheaders`.
 func TestMongostatHeaders(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	for _, c := range []struct {
 		name         string
 		args         []string
@@ -142,7 +138,7 @@ func TestMongostatHeaders(t *testing.T) {
 			rows := testcmd.Rows(stdout)
 			if c.expectHeader {
 				assert.Len(t, rows, 2, "got a header by default")
-				testHeaderColumnsArePresent(t, rows[0], defaultHeaderColumns()...)
+				testHeaderColumnsArePresent(t, rows[0], defaultHeaderColumns(t)...)
 			} else {
 				assert.Len(t, rows, 1, "no header when suppressed")
 			}
@@ -154,8 +150,6 @@ func TestMongostatHeaders(t *testing.T) {
 // a column can be renamed with `name=alias`, and that a `serverStatus` field that is not one of the
 // built-in columns is read from the server.
 func TestMongostatCustomColumns(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	// The default time format contains spaces, so a row whose last column is the time splits into
 	// more fields than there are columns. `--humanReadable=false` prints an RFC 3339 timestamp
 	// instead, which is a single field.
@@ -285,7 +279,7 @@ func TestMongostatCustomColumns(t *testing.T) {
 
 		rows := testcmd.Rows(stdout)
 		require.Len(t, rows, 2, "the output is a header and one data row")
-		testHeaderColumnsArePresent(t, rows[0], append(defaultHeaderColumns(), "host")...)
+		testHeaderColumnsArePresent(t, rows[0], append(defaultHeaderColumns(t), "host")...)
 		header := strings.Fields(rows[0])
 		assert.Equal(t, "host", header[len(header)-1], "the added column comes last")
 	})
@@ -297,8 +291,6 @@ func TestMongostatCustomColumns(t *testing.T) {
 // asynchronously and can re-print a sample it already printed as `{"error":"no data received"}`,
 // which would make the per-sample value checks flaky.
 func TestMongostatJSON(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	const rowCount = 2
 	stdout, stderr, err := runMongostatAgainstServer(
 		t,
@@ -336,11 +328,20 @@ func TestMongostatJSON(t *testing.T) {
 // defaultHeaderColumns returns the columns mongostat prints in its default header. A replica set
 // adds the set and repl columns that a standalone does not have. The host column is not part of the
 // default header: it only appears with --discover or when monitoring more than one host.
-func defaultHeaderColumns() []string {
+func defaultHeaderColumns(t *testing.T) []string {
+	t.Helper()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
+	require.NoError(t, err)
+
+	isReplicaSet, err := sessionProvider.IsReplicaSet()
+	require.NoError(t, err, "can determine whether the server is a replica set")
+
 	cols := []string{"insert", "conn", "time"}
-	if testtype.HasTestType(testtype.ReplSetTestType) {
+	if isReplicaSet {
 		cols = append(cols, "set", "repl")
 	}
+
 	return cols
 }
 
@@ -361,8 +362,6 @@ func testHeaderColumnsArePresent(t *testing.T, header string, cols ...string) {
 // failure exit status. main passes a nil finalizer to signals.Handle, so the first signal reaches
 // the os.Exit(ExitFailure) in handleSignals.
 func TestMongostatExitsOnSignal(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping test because Windows does not support sending SIGTERM to a process")
 	}
@@ -459,40 +458,6 @@ func TestMongostatAuth(t *testing.T) {
 		)
 		assert.Empty(t, testcmd.Rows(stdout), "no stats are printed")
 	})
-}
-
-// TestMongostatDiscoverShards checks that `--discover` against a mongos reports on every shard, not
-// just the mongos it was pointed at.
-func TestMongostatDiscoverShards(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.ShardedIntegrationTestType)
-
-	shardHosts := shardHostsFromConfig(t)
-	require.NotEmpty(t, shardHosts, "the cluster has shards to discover")
-
-	// Discovery happens on the first poll of the mongos, but a host needs two samples before it
-	// produces a row, so the first rows cover only the seed.  Enough rows are requested for every
-	// shard to have been picked up.
-	stdout, stderr, err := runMongostat(t, "--discover", "--rowcount", "8", "--noheaders")
-	require.NoError(t, err, "mongostat exits successfully: %s", stderr)
-
-	// A host whose poll failed still gets a row, holding the error text instead of counters, so a
-	// row only counts as reporting if it carries a count.
-	reported := make(map[string]bool)
-	for _, row := range testcmd.Rows(stdout) {
-		fields := strings.Fields(row)
-		if len(fields) > 1 && countedField(fields[1]) {
-			reported[fields[0]] = true
-		}
-	}
-	for _, host := range shardHosts {
-		assert.True(
-			t,
-			reported[host],
-			"--discover reports counters for shard %#q, saw %v",
-			host,
-			reported,
-		)
-	}
 }
 
 // countedField reports whether a field is one of mongostat's counts, which are

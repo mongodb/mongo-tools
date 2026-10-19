@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package mongorestore
 
 import (
@@ -29,7 +31,6 @@ import (
 // mongorestore requires the restore role, and that fine-grained custom roles correctly scope
 // per-collection access.
 func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
 
 	const (
@@ -229,7 +230,6 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 // TestDumpRestorePreservesAdminUsersAndRoles verifies that user and role definitions stored in the
 // admin database survive a round-trip through mongodump and mongorestore, including with --drop.
 func TestDumpRestorePreservesAdminUsersAndRoles(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
 
 	t.Run("backup and restore roles", func(t *testing.T) {
@@ -431,7 +431,6 @@ func dumpRestorePreservesAdminUsersAndRoles(t *testing.T, backupRole, restoreRol
 // --restoreDbUsersAndRoles flags correctly include or exclude per-database user and role
 // definitions during single-database dump/restore operations.
 func TestDumpRestoreSingleDBWithDBUsersAndRoles(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testutil.SkipIfSharded(
 		t,
 		"it drops temporary users and roles collections in the admin database, which mongos does not allow",
@@ -922,7 +921,6 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 // collection with an extra index ends up with both _id and that index, while
 // a collection with only _id keeps just _id.
 func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
 
 	const (
@@ -1012,7 +1010,6 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 // `shouldSkipSystemNamespace` leaves out only `admin.system.keys`, while for every other database
 // it skips `system.*`.
 func TestDumpAdminSystemProfileAsBackupUser(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
 
 	const (

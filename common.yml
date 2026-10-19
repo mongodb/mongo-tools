@@ -1236,7 +1236,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: integration-5.0
     tags: ["5.0", "required-for-merge-queue"]
@@ -1299,7 +1299,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: aws-auth-5.0
     tags: ["5.0", "aws-auth", "required-for-merge-queue"]
@@ -1381,7 +1381,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: aws-auth-6.0
     tags: ["6.0", "aws-auth", "required-for-merge-queue"]
@@ -1463,7 +1463,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: aws-auth-7.0
     tags: ["7.0", "aws-auth", "required-for-merge-queue"]
@@ -1545,7 +1545,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: aws-auth-8.0
     tags: ["8.0", "aws-auth", "required-for-merge-queue"]
@@ -1627,7 +1627,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: aws-auth-8.2
     tags: ["8.2", "aws-auth", "required-for-merge-queue"]
@@ -1709,7 +1709,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: aws-auth-8.3
     tags: ["8.3", "aws-auth", "required-for-merge-queue"]
@@ -1815,7 +1815,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true -topology=replSet ${testArgs}
+          target: test:integration -ssl=true ${testArgs}
 
   - name: aws-auth-9.0
     tags: ["9.0", "aws-auth", "required-for-merge-queue"]
@@ -1852,7 +1852,7 @@ tasks:
       # the suite through the TOOLS_TESTING_MONGOD expansion that "start dsc cluster" sets.
       - func: "run make target"
         vars:
-          target: test:integration -topology=replSet ${testArgs}
+          target: test:integration ${testArgs}
 
   # Runs the dump/restore and export/import round-trip tests across a plain 9.0 ASC mongod and the
   # 9.1 DSC cluster, in both directions. The ASC mongod owns the primary connection

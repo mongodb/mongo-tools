@@ -24,7 +24,7 @@ cmd = [
     "run",
     "--allow-parallel-runners",
     "--build-tags",
-    "failpoints",
+    "failpoints,unit,integration,sharded,kerberos,awsauth",
     "--color",
     "always",
     "--timeout",
@@ -68,7 +68,16 @@ working-dir = "root"
 # "verifier", but absolute paths work okay. See
 # https://github.com/houseabsolute/precious/issues/104.
 path-args = "absolute-dir"
-cmd = ["mise", "exec", "go", "--", "go", "fix", "-tags", "mstests,ruleguard"]
+cmd = [
+    "mise",
+    "exec",
+    "go",
+    "--",
+    "go",
+    "fix",
+    "-tags",
+    "mstests,ruleguard,unit,integration,sharded,kerberos,awsauth",
+]
 lint-flags = "-diff"
 ok-exit-codes = 0
 lint-failure-exit-codes = 1

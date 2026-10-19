@@ -4,6 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build integration || sharded
+
 package db
 
 import (
@@ -11,15 +13,12 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/testopts"
-	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestBufferedBulkInserterInserts(t *testing.T) {
-	testtype.SkipUnlessIntegration(t)
-
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)

@@ -7,12 +7,16 @@ description: Use when converting JS/resmoke integration tests in mongo-tools to 
 
 ## Integration Test Boilerplate
 
-For tests within an individual tool's package (e.g. `mongoimport/`, `mongodump/`):
+For tests within an individual tool's package (e.g. `mongoimport/`, `mongodump/`). The file must
+carry a build tag naming the environments it needs; the tag replaces the old
+`testtype.SkipUnlessTestType` call, so the test body has no skip:
 
 ```go
-func TestFoo(t *testing.T) {
-    testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+//go:build integration
 
+package mongoimport
+
+func TestFoo(t *testing.T) {
     const (
         dbName   = "mongofoo_test_db"
         collName = "coll"
@@ -32,16 +36,19 @@ func TestFoo(t *testing.T) {
 }
 ```
 
-Test type constants: `IntegrationTestType`, `ReplSetTestType`, `ShardedIntegrationTestType`,
-`SSLTestType`, `AuthTestType`.
+Test build tags: `unit`, `integration`, `sharded`, `kerberos`, `awsauth`. A test that runs against
+every topology (standalone, replica set, and sharded) uses `integration || sharded`. TLS and auth
+still come from the `TOOLS_TESTING_SSL`/`TOOLS_TESTING_AUTH` env vars; topology is detected from the
+server with `testutil.SkipUnlessStandalone`, `testutil.SkipUnlessReplicaSet`, or
+`testutil.SkipIfSharded`.
 
 ## E2E Tests (Integration Suite)
 
 Tests that exercise the full tool pipeline (dump+restore or export+import) belong in
 `integration/dumprestore` or `integration/exportimport` and use **testify suites**.
 
-Add tests as methods on the existing suite type for the relevant package. The suite entry point
-looks like:
+Add tests as methods on the existing suite type for the relevant package. The suite file carries
+`//go:build integration || sharded`, and its entry point looks like:
 
 ```go
 type DumpRestoreSuite struct {
@@ -49,7 +56,6 @@ type DumpRestoreSuite struct {
 }
 
 func TestDumpRestore(t *testing.T) {
-    testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
     suite.Run(t, new(DumpRestoreSuite))
 }
 ```
@@ -225,15 +231,13 @@ For BSON-type-preserving output (e.g. subdocument \_ids), use
 Tool-package test:
 
 ```bash
-TOOLS_TESTING_INTEGRATION=true \
-go test ./mongoimport/... -v -run TestFoo -count=1
+go test -tags integration ./mongoimport/... -v -run TestFoo -count=1
 ```
 
 Suite (e2e) test:
 
 ```bash
-TOOLS_TESTING_INTEGRATION=true \
-go test ./integration/dumprestore/... -v -run TestDumpRestore/TestFoo -count=1
+go test -tags integration ./integration/dumprestore/... -v -run TestDumpRestore/TestFoo -count=1
 ```
 
 Add `TOOLS_TESTING_AUTH=1 TOOLS_TESTING_AUTH_USERNAME=... TOOLS_TESTING_AUTH_PASSWORD=...` when
@@ -243,7 +247,7 @@ Always run the test locally before committing.
 
 ## Conversion Process
 
-1. Read the JS test, note what testtype it requires
+1. Read the JS test, note which build tag it needs
 2. Decide which form to use:
    - **Full-pipeline e2e** (dump+restore, export+import): add a method to the existing suite in
      `integration/dumprestore` or `integration/exportimport`
