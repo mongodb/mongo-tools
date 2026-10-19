@@ -31,11 +31,7 @@ var loremIpsumFiles = []string{
 // TestPutReplace checks that repeated puts of one file create separate GridFS files and that
 // `--replace` collapses them to a single file without touching other files.
 func TestPutReplace(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	client := emptyGridFSClient(t)
 	repeated := loremIpsumFiles[0]
@@ -77,11 +73,7 @@ func TestPutReplace(t *testing.T) {
 // TestPutIDRejectsDuplicateID checks that a `put_id` whose `_id` is already in use fails and leaves
 // the existing file's chunks alone.
 func TestPutIDRejectsDuplicateID(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	client := emptyGridFSClient(t)
 	const duplicateID = "1"
@@ -120,11 +112,7 @@ func TestPutIDRejectsDuplicateID(t *testing.T) {
 // TestGridFSPrefix checks that `--prefix` writes to the named files and chunks collections rather
 // than `fs.*`, and that a get through the same prefix returns the file unchanged.
 func TestGridFSPrefix(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	const prefix = "custom"
 
@@ -183,11 +171,7 @@ func TestGridFSPrefix(t *testing.T) {
 // TestPutContentType checks that `--type` is stored as the file's metadata content type and that a
 // put without it stores none.
 func TestPutContentType(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	const contentType = "text/html"
 
@@ -224,11 +208,7 @@ func TestPutContentType(t *testing.T) {
 // TestPutIntoOtherDB checks that `--db` sends the put to the named database and leaves the default
 // database untouched.
 func TestPutIntoOtherDB(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	const otherDB = "mongofiles_test_other_db"
 
@@ -257,11 +237,7 @@ func TestPutIntoOtherDB(t *testing.T) {
 // TestPutLocalFileName checks that with `--local` the local file supplies the bytes while the
 // positional argument names the GridFS file.
 func TestPutLocalFileName(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	const remoteName = "remote-lorem-ipsum"
 
@@ -309,11 +285,7 @@ func TestPutLocalFileName(t *testing.T) {
 // TestEmptyLocalFileName covers the fallback in getLocalFileName: an empty `--local` means the GridFS
 // name is used as the local path too.
 func TestEmptyLocalFileName(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	const remoteName = "empty-local.txt"
 
@@ -358,11 +330,7 @@ func TestEmptyLocalFileName(t *testing.T) {
 // TestPutLargeFile checks that a file far larger than one GridFS chunk is split into the expected
 // number of chunks and comes back byte for byte.
 func TestPutLargeFile(t *testing.T) {
-	testtype.RequireMatchingTestType(
-		t,
-		testtype.IntegrationTestType,
-		testtype.ShardedIntegrationTestType,
-	)
+	testtype.SkipUnlessIntegration(t)
 
 	const (
 		largeFileSize = 40 * 1024 * 1024

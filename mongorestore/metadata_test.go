@@ -25,7 +25,11 @@ import (
 const ExistsDB = "restore_collection_exists"
 
 func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(
+		t,
+		"it creates and drops a collection in the admin database, which mongos does not allow",
+	)
 	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -66,7 +70,7 @@ func TestMongoRestoreConnectedToAtlasProxy(t *testing.T) {
 }
 
 func TestCollectionExists(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	_, err := testutil.GetBareSession(t)
 	if err != nil {
 		t.Fatalf("No server available")
@@ -282,7 +286,7 @@ func TestGetDumpAuthVersion(t *testing.T) {
 const indexCollationTestDataFile = "testdata/index_collation.json"
 
 func TestIndexGetsSimpleCollation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	metadata, err := readCollationTestData(indexCollationTestDataFile)
 	if err != nil {

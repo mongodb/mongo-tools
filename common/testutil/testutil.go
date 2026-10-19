@@ -168,6 +168,23 @@ func SkipUnlessStandalone(t *testing.T) {
 	}
 }
 
+// SkipIfSharded skips the test when it is connected to a sharded cluster (via
+// mongos). Integration tests run against sharded clusters by default, so use
+// this for the ones that depend on behavior a sharded cluster does not support,
+// naming that behavior in the reason.
+func SkipIfSharded(t *testing.T, reason string) {
+	t.Helper()
+
+	sessionProvider, _, err := GetBareSessionProvider(t)
+	require.NoError(t, err)
+
+	nodeType, err := sessionProvider.GetNodeType()
+	require.NoError(t, err)
+	if nodeType == db.Mongos {
+		t.Skipf("Skipping test on a sharded cluster because %s", reason)
+	}
+}
+
 func dottedStringToSlice(s string) ([]int, error) {
 	parts := make([]int, 0, 2)
 	for v := range strings.SplitSeq(s, ".") {

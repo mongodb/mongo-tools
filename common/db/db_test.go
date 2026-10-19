@@ -29,7 +29,7 @@ var (
 )
 
 func TestNewSessionProvider(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
@@ -45,7 +45,7 @@ func TestNewSessionProvider(t *testing.T) {
 }
 
 func TestIsDisaggregatedStorage(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
@@ -64,7 +64,7 @@ func TestIsDisaggregatedStorage(t *testing.T) {
 }
 
 func TestConfigureClientForSRV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	enabled := options.EnabledOptions{
 		Auth:       true,
@@ -86,7 +86,7 @@ func TestConfigureClientForSRV(t *testing.T) {
 }
 
 func TestDatabaseNames(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
@@ -113,7 +113,7 @@ func TestDatabaseNames(t *testing.T) {
 }
 
 func TestFindOne(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
@@ -135,7 +135,7 @@ func TestFindOne(t *testing.T) {
 }
 
 func TestGetIndexes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
@@ -181,7 +181,7 @@ func TestGetIndexes(t *testing.T) {
 }
 
 func TestServerVersionArray(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
@@ -213,7 +213,7 @@ func hostAndPortFromEnvVar(t *testing.T) (string, string) {
 }
 
 func TestServerCertificateVerification(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
 
 	auth := testopts.GetAuthOptions()
@@ -243,7 +243,7 @@ func TestServerCertificateVerification(t *testing.T) {
 }
 
 func TestServerPKCS8Verification(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
 
 	auth := testopts.GetAuthOptions()

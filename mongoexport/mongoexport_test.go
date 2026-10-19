@@ -99,7 +99,8 @@ func TestFieldSelect(t *testing.T) {
 // Test exporting a collection with autoIndexId:false.  As of MongoDB 4.0,
 // this is only allowed on the 'local' database.
 func TestMongoExportTOOLS2174(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it writes to the local database, which mongos does not allow")
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
@@ -154,7 +155,11 @@ func TestMongoExportTOOLS2174(t *testing.T) {
 // Test exporting a collection, _id should only be hinted iff
 // this is not a wired tiger collection.
 func TestMongoExportTOOLS1952(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(
+		t,
+		"it enables profiling and reads system.profile, which mongos does not support",
+	)
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it reads system.profile, and DSC does not support profile level 2",
@@ -240,7 +245,7 @@ func TestMongoExportTOOLS1952(t *testing.T) {
 }
 
 func TestBadOptions(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	log.SetWriter(io.Discard)
 
@@ -326,7 +331,7 @@ func TestBadOptions(t *testing.T) {
 // TestBrokenPipe verifies that mongoexport handles a broken pipe gracefully
 // (exits with a write error rather than being killed by SIGPIPE).
 func TestBrokenPipe(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 
 	const (
 		dbName   = "mongoexport_broken_pipe_test"
@@ -359,7 +364,7 @@ func TestBrokenPipe(t *testing.T) {
 // TestExportNamespaceValidation verifies that mongoexport rejects invalid DB
 // names and accepts system collections.
 func TestExportNamespaceValidation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	for _, dbName := range []string{"test.bar", `test"bar`} {
@@ -391,7 +396,7 @@ func TestExportNamespaceValidation(t *testing.T) {
 // TestExportNoData verifies that exporting an empty collection succeeds, but
 // fails with --assertExists.
 func TestExportNoData(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	toolOptions, err := testopts.GetToolOptions()
@@ -423,7 +428,7 @@ func TestExportNoData(t *testing.T) {
 // TestExportPretty verifies that mongoexport --pretty --jsonArray produces
 // indented, parseable JSON with correct field values.
 func TestExportPretty(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	const dbName = "mongoexport_pretty_test"
@@ -470,7 +475,7 @@ func TestExportPretty(t *testing.T) {
 // TestExportWritesToStdout verifies that the mongoexport CLI writes all
 // documents to stdout when no --out flag is given.
 func TestExportWritesToStdout(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	const dbName = "mongoexport_stdout_test"
@@ -501,7 +506,7 @@ func TestExportWritesToStdout(t *testing.T) {
 // TestExportTypeCase verifies that --type is case-insensitive and that invalid
 // types are rejected.
 func TestExportTypeCase(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	const dbName = "mongoexport_typecase_test"
@@ -541,7 +546,7 @@ func TestExportTypeCase(t *testing.T) {
 // TestExportNestedFieldsCSV verifies that mongoexport correctly handles nested
 // field paths and $ projection in --fields with --csv output.
 func TestExportNestedFieldsCSV(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	const dbName = "mongoexport_nestedfieldscsv_test"
@@ -708,7 +713,7 @@ func rowsContainValue(rows []map[string]string, col, val string) bool {
 // neither a query nor a sort plans an unbounded COLLSCAN, which the server rejects with
 // NoQueryExecutionPlans unless the query carries a $natural hint.
 func TestMongoExportMaxEstimatedScanBytes(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	log.SetWriter(io.Discard)
 
 	sessionProvider, _, err := testutil.GetBareSessionProvider(t)

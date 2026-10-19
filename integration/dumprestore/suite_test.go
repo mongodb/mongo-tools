@@ -28,7 +28,7 @@ type DumpRestoreSuite struct {
 }
 
 func TestDumpRestore(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
 	suite.Run(t, new(DumpRestoreSuite))
 }
 

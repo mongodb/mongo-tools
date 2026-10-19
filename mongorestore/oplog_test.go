@@ -133,7 +133,8 @@ func TestValidOplogLimitChecking(t *testing.T) {
 }
 
 func TestOplogRestore(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -183,7 +184,8 @@ func TestOplogRestore(t *testing.T) {
 }
 
 func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -223,7 +225,8 @@ func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 }
 
 func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -506,7 +509,8 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 }
 
 func TestOplogRestoreMaxDocumentSize(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -619,7 +623,8 @@ func generateOplogWith16MiBDocument() ([]byte, error) {
 }
 
 func TestOplogRestoreTools2002(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -722,7 +727,8 @@ func TestOplogRestoreVectoredInsert(t *testing.T) {
 }
 
 func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -806,7 +812,8 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 }
 
 func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -874,7 +881,8 @@ func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 }
 
 func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -928,7 +936,8 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 }
 
 func TestOplogRestoreCollModTTLIndex(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -989,7 +998,8 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 // loudly with a specific diagnostic rather than being silently skipped or rejected with the
 // generic "unknown oplog command name" error.
 func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
@@ -1089,7 +1099,8 @@ func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
 // table drop, see SERVER-118737) is skipped during oplog replay rather than aborting it or being
 // forwarded to the target, whether it appears on its own or nested inside an applyOps.
 func TestOplogRestoreDropIdent(t *testing.T) {
-	testtype.SkipUnlessTestType(t, testtype.IntegrationTestType)
+	testtype.SkipUnlessIntegration(t)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
 	testutil.SkipForDisaggregatedStorage(
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
