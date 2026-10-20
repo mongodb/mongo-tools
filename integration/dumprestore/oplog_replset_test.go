@@ -416,6 +416,180 @@ func (s *DumpRestoreSuite) TestOplogReplayTimeseriesBucketDiffsBeforeWindow() {
 	}
 }
 
+// TestOplogReplayTimeseriesBucketCreatedInWindow exercises a replay failure that is distinct from
+// TOOLS-4373 and that the per-op validation bypass does not address. It does not depend on the
+// bypass at all: it fails the same way with and without it.
+//
+// The failure is a bucket that does not exist at the archive's read point and is created inside the
+// oplog window by a compressed-column diff (op "u", $v:2) rather than an insert (op "i"). applyOps
+// cannot materialize a bucket from a diff, so replay aborts with Location6781400 ("Time series
+// bucket document is missing 'control' field") before any final validation could run.
+//
+// The read point is placed after the first half of the writes, so the second half creates buckets
+// for a new hour under meta values that already exist. That write shape makes the server record
+// bucket creation as a diff instead of an insert, which is what the test relies on; it asserts the
+// precondition holds so a server that starts emitting inserts cannot make the test pass vacuously.
+func (s *DumpRestoreSuite) TestOplogReplayTimeseriesBucketCreatedInWindow() {
+	testutil.SkipForDisaggregatedStorage(
+		s.T(),
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
+	testutil.SkipIfFCVLessThan(s.T(), "8.0", "compressed bucket diffs require FCV 8.0")
+
+	const collName = "metrics"
+
+	base := time.Now().Truncate(time.Hour)
+	at := func(i int) time.Time { return base.Add(time.Duration(i) * time.Second) }
+	// Cycling a small set of meta values means the second half of the writes opens a new hour for
+	// meta values that already have a bucket, which is the shape that produces diff-style creation.
+	meta := func(i int) string { return fmt.Sprintf("m%d", i%50) }
+
+	testDB := s.database("oplog_ts_bucket_in_window")
+	dbName := testDB.Name()
+	bucketColl := s.bucketCollectionName(collName)
+	bucketNS := dbName + "." + bucketColl
+
+	s.Require().NoError(testDB.Drop(s.Context()), "start from a clean database")
+
+	createOpts := mopt.CreateCollection().SetTimeSeriesOptions(
+		mopt.TimeSeries().SetTimeField("ts").SetMetaField("m").SetGranularity("seconds"),
+	)
+	s.Require().NoError(
+		testDB.CreateCollection(s.Context(), collName, createOpts),
+		"can create the timeseries collection",
+	)
+
+	coll := testDB.Collection(collName)
+	s.insertMeasurements(coll, rangeDocs(0, 100, at, meta))
+
+	// The oplog window opens here, before the archive is read.
+	checkpoint := s.latestOplogTimestamp()
+
+	// These buckets exist when the archive is read below.
+	s.insertMeasurements(coll, rangeDocs(100, 4000, at, meta))
+
+	s.withBSONMongodump(func(dir string) {
+		// These writes land after the archive's read point, so the buckets they create are not in
+		// the archive. The window below captures their creation ops.
+		s.insertMeasurements(coll, rangeDocs(4000, 8000, at, meta))
+
+		want := s.readMeasurements(coll)
+
+		oplogDir, cleanupOplog := testutil.MakeTempDir(s.T())
+		defer cleanupOplog()
+		s.runMongodumpWithArgs(
+			"--out", oplogDir,
+			"--db", "local",
+			"--collection", "oplog.rs",
+			"--query", fmt.Sprintf(
+				`{"ts": {"$gt": {"$timestamp": {"t": %d, "i": %d}}}, "ns": %q}`,
+				checkpoint.T,
+				checkpoint.I,
+				bucketNS,
+			),
+		)
+		oplogPath := filepath.Join(oplogDir, "local", "oplog.rs.bson")
+
+		// Confirm the scenario actually occurs: the window must create, by diff, a bucket the
+		// archive does not hold. Otherwise this test proves nothing.
+		archiveIDs := s.archiveBucketIDs(filepath.Join(dir, dbName, bucketColl+".bson"))
+		s.Require().True(
+			s.windowCreatesMissingBucketByDiff(oplogPath, archiveIDs),
+			"the window creates a bucket by diff that the archive lacks",
+		)
+
+		s.dropDB(testDB)
+
+		result := s.runRestore(
+			mongorestore.OplogReplayOption,
+			mongorestore.OplogFileOption, oplogPath,
+			mongorestore.DirectoryOption, dir,
+		)
+		s.Require().NoError(
+			result.Err,
+			"replaying a window that creates buckets the archive lacks succeeds",
+		)
+
+		s.Assert().Equal(
+			want,
+			s.readMeasurements(coll),
+			"the restored measurements match the source",
+		)
+
+		s.assertBucketIsValid(testDB, bucketColl)
+	}, "--db", dbName)
+}
+
+// archiveBucketIDs returns the _id of every bucket document in a dumped bucket collection.
+func (s *DumpRestoreSuite) archiveBucketIDs(path string) map[any]bool {
+	file, err := os.Open(path)
+	s.Require().NoError(err, "the dumped bucket collection exists at %#q", path)
+	defer file.Close()
+
+	source := db.NewDecodedBSONSource(db.NewBSONSource(file))
+	defer source.Close()
+
+	ids := map[any]bool{}
+	var doc struct {
+		ID any `bson:"_id"`
+	}
+	for source.Next(&doc) {
+		ids[doc.ID] = true
+	}
+	s.Require().NoError(source.Err(), "can read the dumped bucket collection")
+
+	return ids
+}
+
+// windowCreatesMissingBucketByDiff reports whether the captured oplog window contains a compressed
+// diff update whose target bucket is absent from archiveIDs.
+func (s *DumpRestoreSuite) windowCreatesMissingBucketByDiff(
+	path string,
+	archiveIDs map[any]bool,
+) bool {
+	file, err := os.Open(path)
+	s.Require().NoError(err, "the captured oplog exists at %#q", path)
+	defer file.Close()
+
+	source := db.NewDecodedBSONSource(db.NewBSONSource(file))
+	defer source.Close()
+
+	op := db.Oplog{}
+	for source.Next(&op) {
+		if op.Operation != "u" {
+			continue
+		}
+
+		var id any
+		for _, e := range op.Query {
+			if e.Key == "_id" {
+				id = e.Value
+			}
+		}
+
+		if id != nil && !archiveIDs[id] {
+			return true
+		}
+	}
+	s.Require().NoError(source.Err(), "can read the captured oplog")
+
+	return false
+}
+
+// bucketCollectionName returns the namespace a timeseries collection's buckets are written to, which
+// is where both the oplog records bucket writes and `validate` finds the buckets. Bucket writes use
+// the internal system.buckets.<coll> namespace up to FCV 9.0; viewless collections (FCV 9.0+) write
+// them under the user-facing collection name. This is a later boundary than SupportsRawData (8.3),
+// which only controls the rawData read API.
+func (s *DumpRestoreSuite) bucketCollectionName(collName string) string {
+	fcv := testutil.GetFCV(s.Client())
+	if cmp, err := testutil.CompareFCV(fcv, "9.0"); err == nil && cmp >= 0 {
+		return collName
+	}
+
+	return common.TimeseriesBucketPrefix + collName
+}
+
 // assertOplogReplayTimeseriesBucketDiffs runs one mutation through the dump/capture/replay cycle.
 // seed creates the bucket(s), the oplog is checkpointed, mutate changes the collection, the
 // resulting diffs are captured, and the dump's final state is replayed with only those diffs. It
