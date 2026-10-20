@@ -209,6 +209,12 @@ go run build.go test:kerberos                 # -tags kerberos
 go run build.go test:awsauth                  # -tags awsauth
 ```
 
+A test file's name must end with a suffix matching its tag: `_unit_test.go`, `_integration_test.go`,
+`_sharded_test.go`, `_integration_sharded_test.go`, `_kerberos_test.go`, or `_awsauth_test.go`. A
+shared helper file with no tag is named `_helpers_test.go`. Files under `common/json/` (copied from
+the Go standard library) and `integration/` are exempt. The `sa:checkTestFiles` check, run as part
+of lint, enforces both the tag and the filename.
+
 Example of how to run a specific integration test directly:
 
 ```
@@ -328,7 +334,7 @@ delete the directory, which is useful when investigating test failures.
 #### Example
 
 For an example of all of this, see the `TestRestoreClusteredIndex` func in
-`mongorestore/mongorestore_test.go`.
+`mongorestore/mongorestore_integration_sharded_test.go`.
 
 ### Static Analysis with `gosec`
 

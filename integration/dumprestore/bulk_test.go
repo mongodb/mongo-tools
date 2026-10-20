@@ -18,7 +18,7 @@ import (
 // seconds -- but because it could not show the split happening. The driver breaks
 // an oversized InsertMany into several OP_MSG batches on its own, so a 50MB restore
 // succeeds just the same with the inserter's byte limit raised out of the way. That
-// split is covered by unit tests in common/db/buffered_bulk_test.go.
+// split is covered by integration tests in common/db/buffered_bulk_integration_sharded_test.go.
 func (s *DumpRestoreSuite) TestRestoreLargeBulk() {
 	// A shade under the largest document a server will accept, which is the only
 	// size near this code that anything is actually built around: the BSON reader

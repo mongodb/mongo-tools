@@ -56,26 +56,6 @@ func TestIsDisaggregatedStorage(t *testing.T) {
 	assert.False(t, isDSC, "a normal server reports no disaggregated storage")
 }
 
-func TestConfigureClientForSRV(t *testing.T) {
-	enabled := options.EnabledOptions{
-		Auth:       true,
-		Connection: true,
-		Namespace:  true,
-		URI:        true,
-	}
-
-	// AuthSource without a username is invalid, we want to check the URI does not get
-	// validated as part of client configuration
-	toolOptions := options.New("test", "", "", "", true, enabled)
-	_, err := toolOptions.ParseArgs(
-		[]string{"--uri", "mongodb://foo/?authSource=admin", "--username", "bar"},
-	)
-	require.NoError(t, err)
-
-	err = configureClientAndDisconnectAtEnd(t, *toolOptions)
-	require.NoError(t, err)
-}
-
 func TestDatabaseNames(t *testing.T) {
 	opts := testopts.MustGetToolOptions(t)
 	provider, err := NewSessionProvider(opts)
