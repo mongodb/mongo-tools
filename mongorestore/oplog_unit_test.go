@@ -11,7 +11,9 @@ package mongorestore
 import (
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/db"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -180,5 +182,123 @@ func TestShouldIgnoreNamespace(t *testing.T) {
 		if shouldIgnoreNamespace(testVals.ns) != testVals.output {
 			t.Errorf("%s should have been %v but failed\n", testVals.ns, testVals.output)
 		}
+	}
+}
+
+func TestIsCompressedBucketDiff(t *testing.T) {
+	tests := []struct {
+		name string
+		op   db.Oplog
+		want bool
+	}{
+		{
+			name: "timeseries bucket append",
+			op: db.Oplog{
+				Operation: "u",
+				Object: bson.D{
+					{"$v", int32(2)},
+					{
+						"diff",
+						bson.D{
+							{"scontrol", bson.D{{"u", bson.D{{"count", int32(4)}}}}},
+							{
+								"sdata",
+								bson.D{
+									{
+										"b",
+										bson.D{
+											{
+												"ts",
+												bson.D{
+													{"o", int32(0)},
+													{"d", bson.Binary{Data: []byte{1, 2, 3}}},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "ordinary v2 update",
+			op: db.Oplog{
+				Operation: "u",
+				Object: bson.D{
+					{"$v", int32(2)},
+					{"diff", bson.D{{"u", bson.D{{"x", int32(1)}}}}},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "ordinary v2 update with a sub-diff",
+			op: db.Oplog{
+				Operation: "u",
+				Object: bson.D{
+					{"$v", int32(2)},
+					{"diff", bson.D{{"sfoo", bson.D{{"u", bson.D{{"x", int32(1)}}}}}}},
+				},
+			},
+			want: false,
+		},
+		{
+			// A regular update to a field named "control" produces an "scontrol" section too, but
+			// no "sdata", so it must not be treated as a bucket append.
+			name: "v2 update touching a field named control",
+			op: db.Oplog{
+				Operation: "u",
+				Object: bson.D{
+					{"$v", int32(2)},
+					{"diff", bson.D{{"scontrol", bson.D{{"u", bson.D{{"x", int32(1)}}}}}}},
+				},
+			},
+			want: false,
+		},
+		{
+			// A regular update to a field named "data" produces an "sdata" section too, but no
+			// "scontrol", so it must not be treated as a bucket append.
+			name: "v2 update touching a field named data",
+			op: db.Oplog{
+				Operation: "u",
+				Object: bson.D{
+					{"$v", int32(2)},
+					{"diff", bson.D{{"sdata", bson.D{{"u", bson.D{{"x", int32(1)}}}}}}},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "v1 update",
+			op: db.Oplog{
+				Operation: "u",
+				Object:    bson.D{{"$set", bson.D{{"x", int32(1)}}}},
+			},
+			want: false,
+		},
+		{
+			name: "insert",
+			op: db.Oplog{
+				Operation: "i",
+				Object:    bson.D{{"_id", int32(1)}},
+			},
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(
+				t,
+				tc.want,
+				isCompressedBucketDiff(tc.op),
+				"isCompressedBucketDiff(%v)",
+				tc.op,
+			)
+		})
 	}
 }
