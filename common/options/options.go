@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/mongodb/mongo-tools/common/failpoint"
 	"github.com/mongodb/mongo-tools/common/log"
@@ -28,7 +30,6 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
-	"gopkg.in/yaml.v2"
 )
 
 // XXX Force these true as the Go driver supports them always.  Once the
@@ -608,27 +609,51 @@ func (opts *ToolOptions) ParseConfigFile(args []string) error {
 
 	// Unmarshal the config file as a top-level YAML file.
 	var config struct {
-		Password            string `yaml:"password"`
-		ConnectionString    string `yaml:"uri"`
-		SSLPEMKeyPassword   string `yaml:"sslPEMKeyPassword"`
-		DestinationPassword string `yaml:"destinationPassword"`
+		Password            configString `yaml:"password"`
+		ConnectionString    configString `yaml:"uri"`
+		SSLPEMKeyPassword   configString `yaml:"sslPEMKeyPassword"`
+		DestinationPassword configString `yaml:"destinationPassword"`
 	}
-	err = yaml.UnmarshalStrict(configBytes, &config)
+	err = yaml.UnmarshalWithOptions(configBytes, &config, yaml.Strict())
 	if err != nil {
-		return errors.Wrapf(err, "error parsing config file %s", opts.ConfigPath)
+		// FormatError with inclSource disabled keeps the offending line, and any credential on
+		// it, out of the message that reaches the logs.
+		return errors.Wrapf(
+			errors.New(yaml.FormatError(err, false, false)),
+			"error parsing config file %s",
+			opts.ConfigPath,
+		)
 	}
 
 	// Assign each parsed value to its respective ToolOptions field.
-	opts.Password = config.Password
-	opts.ConnectionString = config.ConnectionString
-	opts.SSLPEMKeyPassword = config.SSLPEMKeyPassword
+	opts.Password = string(config.Password)
+	opts.ConnectionString = string(config.ConnectionString)
+	opts.SSLPEMKeyPassword = string(config.SSLPEMKeyPassword)
 
 	// Mongomirror has an extra option to set.
 	for _, extraOpt := range opts.extraOptionsRegistry {
 		if destinationAuth, ok := extraOpt.(DestinationAuthOptions); ok {
-			destinationAuth.SetDestinationPassword(config.DestinationPassword)
+			destinationAuth.SetDestinationPassword(string(config.DestinationPassword))
 			break
 		}
+	}
+
+	return nil
+}
+
+// configString is a YAML string field that preserves the scalar's original text. Decoding an
+// unquoted scalar such as `1.00`, `TRUE`, or `0123` into a plain string resolves it to a number or
+// boolean and reformats it, which would silently change a password that happens to look numeric.
+type configString string
+
+func (s *configString) UnmarshalYAML(node ast.Node) error {
+	switch n := node.(type) {
+	case *ast.StringNode:
+		*s = configString(n.Value)
+	case *ast.NullNode:
+		*s = ""
+	default:
+		*s = configString(node.String())
 	}
 
 	return nil

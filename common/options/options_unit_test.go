@@ -851,6 +851,18 @@ func TestParseConfigFile(t *testing.T) {
 				ShouldSucceed,
 			},
 			{
+				"preserving the text of numeric-looking credential fields",
+				[]byte("password: 1.00\nuri: 1.0\nsslPEMKeyPassword: 0123"),
+				createExpectedOpts("1.00", "1.0", "0123"),
+				ShouldSucceed,
+			},
+			{
+				"preserving the text of boolean-looking credential fields",
+				[]byte("password: TRUE"),
+				createExpectedOpts("TRUE", "", ""),
+				ShouldSucceed,
+			},
+			{
 				"containing a duplicate field",
 				[]byte("password: abc123\npassword: def456"),
 				nil,
@@ -888,6 +900,54 @@ func TestParseConfigFile(t *testing.T) {
 			require.Equal(t, "ghi789", opts.Password)
 		})
 	})
+}
+
+// A config file that fails to parse must not put the offending source line, which may contain a
+// credential, into the error, because the error is logged by the tools.
+func TestParseConfigFileDoesNotLeakCredentials(t *testing.T) {
+	configFilePath := "./test-config.yaml"
+	defer os.Remove(configFilePath)
+
+	testCases := []struct {
+		description string
+		yamlBytes   []byte
+		secret      string
+	}{
+		{
+			"a duplicate password key",
+			[]byte("password: supersecret\npassword: other"),
+			"supersecret",
+		},
+		{
+			"an unknown key holding a password",
+			[]byte("pasword: supersecret"),
+			"supersecret",
+		},
+		{
+			"a syntax error on a credential line",
+			[]byte("password: [supersecret"),
+			"supersecret",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.description, func(t *testing.T) {
+			if err := os.WriteFile(configFilePath, testCase.yamlBytes, 0644); err != nil {
+				require.NoError(t, err)
+			}
+
+			opts := New("test", "", "", "", false, EnabledOptions{true, true, true, true})
+			err := opts.ParseConfigFile([]string{"--config", configFilePath})
+
+			require.Error(t, err)
+			require.NotContains(
+				t,
+				err.Error(),
+				testCase.secret,
+				"the parse error does not expose the credential",
+			)
+		})
+	}
 }
 
 type optionsTester struct {

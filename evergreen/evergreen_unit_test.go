@@ -7,12 +7,13 @@ import (
 	"os/exec"
 	"regexp"
 	"slices"
+	"strings"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set/v3"
+	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 )
 
 type aliasEntry struct {
@@ -54,19 +55,21 @@ func TestPRTasksAreRequiredForMerge(t *testing.T) {
 	)
 }
 
-// parseAliases pulls one alias sequence out of a YAML document. It decodes only the requested key,
+// parseAliases pulls one alias sequence out of a YAML document. It reads only the requested key,
 // so that it works on all of common.yml and not just on a generated block.
 func parseAliases(t *testing.T, doc, key string) []aliasEntry {
 	t.Helper()
 
-	var parsed map[string]yaml.Node
-	require.NoError(t, yaml.Unmarshal([]byte(doc), &parsed), "the %s YAML parses", key)
-
-	node, ok := parsed[key]
-	require.True(t, ok, "the YAML contains the %s key", key)
+	path, err := yaml.PathString("$." + key)
+	require.NoError(t, err, "building the path to the %s key", key)
 
 	var entries []aliasEntry
-	require.NoError(t, node.Decode(&entries), "the %s value is a list of aliases", key)
+	require.NoError(
+		t,
+		path.Read(strings.NewReader(doc), &entries),
+		"the YAML contains the %s key as a list of aliases",
+		key,
+	)
 
 	return entries
 }
