@@ -3,6 +3,7 @@
 package dumprestore
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -536,4 +537,24 @@ func (s *DumpRestoreSuite) documentIDs(coll *mongo.Collection) []string {
 	return lo.Map(docs, func(doc stringIDDoc, _ int) string {
 		return doc.ID
 	})
+}
+
+const (
+	profilingOff      = 0
+	profileEverything = 2
+)
+
+func (s *DumpRestoreSuite) setProfilingLevel(testDB *mongo.Database, level int) {
+	s.Require().NoError(
+		setProfilingLevel(s.Context(), testDB, level),
+		"can set the profiling level on %#q to %d",
+		testDB.Name(),
+		level,
+	)
+}
+
+// setProfilingLevel takes its context from the caller, so that a test tearing
+// profiling back down can pass one that outlives the test itself.
+func setProfilingLevel(ctx context.Context, testDB *mongo.Database, level int) error {
+	return testDB.RunCommand(ctx, bson.D{{"profile", level}}).Err()
 }
