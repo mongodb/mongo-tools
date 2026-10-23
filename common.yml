@@ -41,8 +41,10 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mise-and-go
         remote_path: mongo-tools/mise-cache
     - command: shell.exec
@@ -69,8 +71,10 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mise-and-go
         paths:
           - .local/bin
@@ -109,9 +113,11 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
           - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mise-all-tools
         remote_path: mongo-tools/mise-cache
     - command: shell.exec
@@ -139,9 +145,11 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
           - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mise-all-tools
         paths:
           - .local/bin
@@ -171,10 +179,12 @@ functions:
           - ${mise_mongodb_runner_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/functions.sh
           - src/github.com/mongodb/mongo-tools/scripts/install-mongodb-runner.sh
           - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mise-mongodb-runner
         remote_path: mongo-tools/mise-cache
     - command: subprocess.exec
@@ -199,10 +209,12 @@ functions:
           - ${mise_mongodb_runner_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/functions.sh
           - src/github.com/mongodb/mongo-tools/scripts/install-mongodb-runner.sh
           - src/github.com/mongodb/mongo-tools/scripts/recreate-npm-bin-symlinks.py
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mise-mongodb-runner
         paths:
           - .local/bin
@@ -315,6 +327,7 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
         name: mongodb-downloader
         remote_path: mongo-tools/mise-cache
@@ -348,6 +361,7 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
         name: mongodb-downloader
         paths:
@@ -438,6 +452,7 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
         name: mongodb-downloader
         remote_path: mongo-tools/mise-cache
@@ -478,6 +493,7 @@ functions:
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
           - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
         name: mongodb-downloader
         paths:

@@ -52,12 +52,10 @@ const (
 type MongoImport struct {
 	// processedCount keeps track of how many documents have successfully
 	// been processed (inserted, upserted, merged, or deleted)
-	// updated atomically, aligned at the beginning of the struct
-	processedCount uint64
+	processedCount atomic.Uint64
 
 	// failureCount keeps track of how many documents have failed to be inserted into the database.
-	// Should be updated atomically.
-	failureCount uint64
+	failureCount atomic.Uint64
 
 	// generic mongo tool options
 	ToolOptions *options.ToolOptions
@@ -406,8 +404,8 @@ func (imp *MongoImport) importDocuments(inputReader InputReader) (uint64, uint64
 
 	err = eg.Wait()
 
-	processedCount := atomic.LoadUint64(&imp.processedCount)
-	failureCount := atomic.LoadUint64(&imp.failureCount)
+	processedCount := imp.processedCount.Load()
+	failureCount := imp.failureCount.Load()
 	return processedCount, failureCount, err
 }
 
@@ -483,18 +481,16 @@ readLoop:
 
 func (imp *MongoImport) updateCounts(result *mongo.BulkWriteResult, err error) {
 	if result != nil {
-		atomic.AddUint64(
-			&imp.processedCount,
-			safecast.MustConvert[uint64](
-				result.InsertedCount+
-					result.ModifiedCount+
-					result.UpsertedCount+
-					result.DeletedCount,
-			),
+		imp.processedCount.Add(safecast.MustConvert[uint64](
+			result.InsertedCount +
+				result.ModifiedCount +
+				result.UpsertedCount +
+				result.DeletedCount,
+		),
 		)
 	}
 	if bwe, ok := err.(mongo.BulkWriteException); ok {
-		atomic.AddUint64(&imp.failureCount, uint64(len(bwe.WriteErrors)))
+		imp.failureCount.Add(uint64(len(bwe.WriteErrors)))
 	}
 }
 

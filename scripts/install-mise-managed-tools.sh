@@ -32,3 +32,5 @@ fi
 # We only retry twice here because each attempt uses up some of the GitHub API's rate limit.
 RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
     retry mise install
+
+prepare_mise_tree_for_evergreen_cache

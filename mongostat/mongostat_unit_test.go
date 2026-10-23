@@ -57,7 +57,7 @@ func TestStatLine(t *testing.T) {
 		assert.Equal(t, "7", statsLine.Fields["update"])
 		assert.Equal(t, "2", statsLine.Fields["delete"])
 		assert.Equal(t, "3", statsLine.Fields["getmore"])
-		command := strings.Split(statsLine.Fields["command"], "|")[0]
+		command, _, _ := strings.Cut(statsLine.Fields["command"], "|")
 		assert.Equal(t, "669", command)
 
 		locked := strings.Split(statsLine.Fields["locked_db"], ":")
@@ -89,7 +89,7 @@ func TestStatLine(t *testing.T) {
 		deleted := strings.TrimPrefix(statsLine.Fields["delete"], "*")
 		assert.Equal(t, "0", deleted)
 		assert.Equal(t, "1", statsLine.Fields["getmore"])
-		command := strings.Split(statsLine.Fields["command"], "|")[0]
+		command, _, _ := strings.Cut(statsLine.Fields["command"], "|")
 		assert.Equal(t, "223", command)
 
 		locked := strings.Split(statsLine.Fields["locked_db"], ":")

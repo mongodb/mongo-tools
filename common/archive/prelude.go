@@ -26,7 +26,7 @@ import (
 
 // MetadataFile implements intents.file.
 type MetadataFile struct {
-	pos int64 // updated atomically, aligned at the beginning of the struct
+	pos atomic.Int64
 	*bytes.Buffer
 	Intent *intents.Intent
 }
@@ -40,12 +40,12 @@ func (md *MetadataFile) Close() error {
 
 func (md *MetadataFile) Read(p []byte) (int, error) {
 	n, err := md.Buffer.Read(p)
-	atomic.AddInt64(&md.pos, int64(n))
+	md.pos.Add(int64(n))
 	return n, err
 }
 
 func (md *MetadataFile) Pos() int64 {
-	return atomic.LoadInt64(&md.pos)
+	return md.pos.Load()
 }
 
 // DirLike represents the group of methods done on directories and files in dump directories,
@@ -369,7 +369,7 @@ func (pe *PreludeExplorer) Parent() DirLike {
 
 // MetadataPreludeFile is part of the intents.file. It allows the metadata contained in the prelude to be opened and read.
 type MetadataPreludeFile struct {
-	pos     int64 // updated atomically, aligned at the beginning of the struct
+	pos     atomic.Int64
 	Intent  *intents.Intent
 	Origin  string
 	Prelude *Prelude
@@ -400,10 +400,10 @@ func (mpf *MetadataPreludeFile) Close() error {
 
 func (mpf *MetadataPreludeFile) Read(p []byte) (int, error) {
 	n, err := mpf.Buffer.Read(p)
-	atomic.AddInt64(&mpf.pos, int64(n))
+	mpf.pos.Add(int64(n))
 	return n, err
 }
 
 func (mpf *MetadataPreludeFile) Pos() int64 {
-	return atomic.LoadInt64(&mpf.pos)
+	return mpf.pos.Load()
 }

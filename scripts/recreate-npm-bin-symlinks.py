@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Recreate bin/ symlinks for a single npm package inside a mise install directory.
 
-Evergreen's cache.save command dereferences symlinks, converting them to regular files. npm global
-installs create bin/ symlinks pointing to lib/node_modules/{pkg}/bin/{file}. After a cache restore
-these become plain copies of those files, which breaks Node.js ESM relative imports (the import
-base URL is now bin/ instead of lib/node_modules/{pkg}/bin/). This script recreates those symlinks
-so the cache-hit path behaves the same as a fresh install.
+npm global installs create bin/ symlinks pointing to lib/node_modules/{pkg}/bin/{file}. If a cache
+restore ever leaves those as plain copies of the files, Node.js ESM relative imports break (the
+import base URL is bin/ instead of lib/node_modules/{pkg}/bin/), so this recreates the symlinks.
+
+Some CI images (e.g. SUSE 12) still run Python 2 as python3, so keep this 2/3 compatible.
 
 Usage: recreate-npm-bin-symlinks.py <install_dir> <pkg_name> <pkg_json_path>
 """
@@ -20,11 +20,12 @@ with open(pkg_json_path) as f:
     pkg = json.load(f)
 
 bins = pkg.get("bin", {})
-if isinstance(bins, str):
+if not isinstance(bins, dict):
     bins = {pkg_name: bins}
 
 bin_dir = os.path.join(install_dir, "bin")
-os.makedirs(bin_dir, exist_ok=True)
+if not os.path.isdir(bin_dir):
+    os.makedirs(bin_dir)
 
 for name, rel_path in bins.items():
     link = os.path.join(bin_dir, name)
@@ -32,7 +33,7 @@ for name, rel_path in bins.items():
     target = os.path.join("..", "lib", "node_modules", pkg_name, rel_path_clean)
     try:
         os.unlink(link)
-    except FileNotFoundError:
+    except (IOError, OSError):
         pass
     os.symlink(target, link)
     # Make the link target executable.

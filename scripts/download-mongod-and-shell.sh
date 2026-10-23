@@ -22,6 +22,10 @@ export MISE_ENV=dsc
 RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
     retry mise install github:10gen/mongodb-downloader
 
+# This script's `cache.save` caches `.local/share/mise`, which now holds the mongodb-downloader
+# install and its mise version aliases. Strip what the cache cannot keep before it is saved.
+prepare_mise_tree_for_evergreen_cache
+
 # The config labels versions by major.minor; MONGO_VERSION can be a full version or a release
 # candidate, and "latest" is a label of its own.
 case "$MONGO_VERSION" in

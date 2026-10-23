@@ -9,6 +9,7 @@ package ns
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -186,9 +187,8 @@ func NewRenamer(fromSlice, toSlice []string) (r *Renamer, err error) {
 		return
 	}
 	r = new(Renamer)
-	for i := len(fromSlice) - 1; i >= 0; i-- {
-		// reversed for replacement precedence
-		from := fromSlice[i]
+	// reversed for replacement precedence
+	for i, from := range slices.Backward(fromSlice) {
 		to := toSlice[i]
 		err = validateReplacement(from, to)
 		if err != nil {

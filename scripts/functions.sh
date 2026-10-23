@@ -74,3 +74,21 @@ recreate_npm_bin_symlinks() {
         done < <(find "${lib_modules}" -mindepth 2 -maxdepth 3 -name package.json -type f)
     done
 }
+
+# mise writes per-tool version aliases (the version prefixes and `latest`) under installs/<tool>/.
+# On Unix they are relative symlinks; from mise 2026.10 on Windows they are junctions, which
+# Evergreen's cache.save cannot archive (it aborts with "Incorrect function"). Strip them before the
+# cache is saved. They are only convenience aliases, and mise recreates them on demand.
+prepare_mise_tree_for_evergreen_cache() {
+    local script_dir script
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    script="$script_dir/remove-mise-version-aliases.py"
+    # The native Windows python3 does not understand a Cygwin path like /cygdrive/c/..., so pass it
+    # a Windows path.
+    case "$(uname -s)" in
+    CYGWIN* | MINGW* | MSYS*)
+        script=$(cygpath -w "$script")
+        ;;
+    esac
+    python3 "$script" "${MISE_DATA_DIR:?}/installs"
+}
