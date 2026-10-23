@@ -27,12 +27,6 @@ fi
 if grep --quiet "is valid with warnings" "$TEMP_FILE"; then
     while IFS= read -r line; do
         case "$line" in
-        "WARNING: task 't_resmoke_setup' defined but not used by any variants; consider using or disabling")
-            continue
-            ;;
-        "WARNING: task 'generate_mongodump_fuzz_tasks' defined but not used by any variants; consider using or disabling")
-            continue
-            ;;
         *"is valid with warnings")
             continue
             ;;

@@ -32,3 +32,8 @@ caf = "caf"
 pasword = "pasword"
 # Informal plural of "from", paired with "tos", counting --nsFrom/--nsTo arguments.
 froms = "froms"
+# Fragment of the evergreen-ci/shrub pseudo-version commit hash (…00b81afe32c9) in go.mod,
+# go.sum, and THIRD-PARTY-NOTICES, not the word "safe".
+afe = "afe"
+# Fragment of the v7.0 resmoke pin commit hash (…28daa04004) in versions/pins.go, not "data".
+daa = "daa"
