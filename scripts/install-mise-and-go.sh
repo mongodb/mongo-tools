@@ -52,15 +52,24 @@ export PATH="$MISE_BIN_DIR:$PATH"
 
 WANT_MISE_VERSION=$(cat "$REPO_ROOT/scripts/mise-version.txt")
 
-# Install mise if it is not present or is the wrong version.
+# Install mise if the workspace binary is missing or the wrong version. We check for the binary in
+# "$MISE_BIN_DIR" (mise.exe on Windows) rather than using `which mise`, because the Evergreen cache
+# archives exactly that directory; a mise elsewhere on the PATH would not populate the cache.
 INSTALL_MISE="yes"
-set +o errexit
-MISE_PATH=$(which mise 2>/dev/null)
-set -o errexit
+MISE_PATH=""
+for candidate in "$MISE_BIN_DIR/mise" "$MISE_BIN_DIR/mise.exe"; do
+    if [ -x "$candidate" ]; then
+        MISE_PATH="$candidate"
+        break
+    fi
+done
 
 if [ -n "$MISE_PATH" ]; then
-    MISE_VERSION_OUTPUT=$(mise --version)
-    if [[ $MISE_VERSION_OUTPUT == *"$WANT_MISE_VERSION"* ]]; then
+    MISE_VERSION_OUTPUT=$("$MISE_PATH" --version)
+    # mise --version prints "<version> <platform> (<date>)"; compare only the version token so
+    # that, e.g., a pin of 2026.9.4 does not match an installed 2026.9.40.
+    MISE_VERSION=${MISE_VERSION_OUTPUT%% *}
+    if [ "$MISE_VERSION" = "$WANT_MISE_VERSION" ]; then
         echo "mise $WANT_MISE_VERSION is already installed, skipping installation"
         INSTALL_MISE=""
     else
