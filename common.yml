@@ -2682,6 +2682,7 @@ buildvariants:
       # run_on is only needed for the notary client used by sign/push.
       - name: upload-sbom
         run_on: ubuntu2204-small
+        git_tag_only: true
 
   #######################################
   #     Amazon x86_64 Buildvariants     #
