@@ -530,13 +530,13 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			return nil, fmt.Errorf("CRL files are not supported on this platform")
 		}
 
-		// #nosec G402 -- We intentionally allow known-insecure TLS options when certain CLI flags
-		// are set. These are `--tlsInsecure`, `--sslAllowInvalidCertificates`, and
-		// `--sslAllowInvalidHostnames`. When these are not set, we use secure TLS settings.
 		tlsConfig := &tls.Config{
 			MinVersion: tls.VersionTLS12, // for compat back to MongoDB 4.2
 		}
 		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.TLSInsecure {
+			// #nosec G402 -- We intentionally allow known-insecure TLS options when certain CLI
+			// flags are set. These are `--tlsInsecure`, `--sslAllowInvalidCertificates`, and
+			// `--sslAllowInvalidHostnames`. When these are not set, we use secure TLS settings.
 			tlsConfig.InsecureSkipVerify = true
 		}
 
@@ -620,8 +620,7 @@ func CanIgnoreError(err error) bool {
 		return true
 	}
 
-	var mongoErr mongo.ServerError
-	if errors.As(err, &mongoErr) {
+	if mongoErr, ok := errors.AsType[mongo.ServerError](err); ok {
 		for code := range ignorableWriteErrorCodes.Iter() {
 			if mongoErr.HasErrorCode(code) {
 				return true

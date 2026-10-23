@@ -259,7 +259,7 @@ func oplogDocumentValidator(in []byte) error {
 	}
 
 	if ok {
-		dbName := strings.SplitN(nsStr, ".", 2)[0]
+		dbName, _, _ := strings.Cut(nsStr, ".")
 
 		if dbName == "config" {
 			if collNameRaw, err := raw.LookupErr("o", "create"); err == nil {

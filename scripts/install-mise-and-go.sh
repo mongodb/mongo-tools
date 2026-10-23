@@ -81,6 +81,7 @@ if [ -n "$INSTALL_MISE" ]; then
             MISE_INSTALL_HELP=0 \
             MISE_INSTALL_PATH="$MISE_BIN_DIR/mise" \
             MISE_INSTALL_MUSL=1 \
+            MISE_VERSION="$WANT_MISE_VERSION" \
             retry "$REPO_ROOT/etc/mise.run.sh"
         ;;
     esac
@@ -94,3 +95,5 @@ RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
 
 mise exec go -- go version
 mise exec go -- go env
+
+prepare_mise_tree_for_evergreen_cache

@@ -49,18 +49,18 @@ type PosReader interface {
 // posTrackingReader is a type for reading from a file and being able to determine
 // what position the file is at.
 type posTrackingReader struct {
-	pos int64 // updated atomically, aligned at the beginning of the struct
+	pos atomic.Int64
 	io.ReadCloser
 }
 
 func (f *posTrackingReader) Read(p []byte) (int, error) {
 	n, err := f.ReadCloser.Read(p)
-	atomic.AddInt64(&f.pos, int64(n))
+	f.pos.Add(int64(n))
 	return n, err
 }
 
 func (f *posTrackingReader) Pos() int64 {
-	return atomic.LoadInt64(&f.pos)
+	return f.pos.Load()
 }
 
 // mixedPosTrackingReader is a type for reading from one file but getting the position of a
@@ -112,10 +112,10 @@ func (f *realBSONFile) Open() (err error) {
 	if err != nil {
 		return fmt.Errorf("error reading BSON file %#q: %v", f.path, err)
 	}
-	posFile := &posTrackingReader{0, file}
+	posFile := &posTrackingReader{atomic.Int64{}, file}
 	if f.gzip {
 		gzFile, err := gzip.NewReader(posFile)
-		posUncompressedFile := &posTrackingReader{0, gzFile}
+		posUncompressedFile := &posTrackingReader{atomic.Int64{}, gzFile}
 		if err != nil {
 			return fmt.Errorf("error decompressing compressed BSON file %#q: %v", f.path, err)
 		}
@@ -133,7 +133,7 @@ func (f *realBSONFile) Open() (err error) {
 // The Read, Write and Close methods of the intents.file interface is implemented here by the
 // embedded os.File, the Write will return an error and not succeed.
 type realMetadataFile struct {
-	pos int64 // updated atomically, aligned at the beginning of the struct
+	pos atomic.Int64
 	io.ReadCloser
 	path string
 	// errorWrite adds a Write() method to this object allowing it to be an
@@ -167,18 +167,18 @@ func (f *realMetadataFile) Open() (err error) {
 
 func (f *realMetadataFile) Read(p []byte) (int, error) {
 	n, err := f.ReadCloser.Read(p)
-	atomic.AddInt64(&f.pos, int64(n))
+	f.pos.Add(int64(n))
 	return n, err
 }
 
 func (f *realMetadataFile) Pos() int64 {
-	return atomic.LoadInt64(&f.pos)
+	return f.pos.Load()
 }
 
 // stdinFile implements the intents.file interface. They allow intents to read single collections
 // from standard input.
 type stdinFile struct {
-	pos int64 // updated atomically, aligned at the beginning of the struct
+	pos atomic.Int64
 	io.Reader
 	errorWriter
 }
@@ -191,12 +191,12 @@ func (f *stdinFile) Open() error {
 
 func (f *stdinFile) Read(p []byte) (int, error) {
 	n, err := f.Reader.Read(p)
-	atomic.AddInt64(&f.pos, int64(n))
+	f.pos.Add(int64(n))
 	return n, err
 }
 
 func (f *stdinFile) Pos() int64 {
-	return atomic.LoadInt64(&f.pos)
+	return f.pos.Load()
 }
 
 // Close is part of the intents.file interface. After Close is called, Read will fail.

@@ -292,7 +292,7 @@ func (demux *Demultiplexer) Open(ns string, out DemuxOut) {
 
 // RegularCollectionReceiver implements the intents.file interface.
 type RegularCollectionReceiver struct {
-	pos              int64 // updated atomically, aligned at the beginning of the struct
+	pos              atomic.Int64
 	readLenChan      chan int
 	readBufChan      chan []byte
 	Intent           *intents.Intent
@@ -321,7 +321,7 @@ func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
 		} else {
 			receiver.partialReadBuf = receiver.partialReadBuf[copyLen:]
 		}
-		atomic.AddInt64(&receiver.pos, int64(copyLen))
+		receiver.pos.Add(int64(copyLen))
 		return copyLen, nil
 	}
 	// Since we're the "reader" here, not the "writer" we need to start with a read, in case the chan is closed
@@ -345,7 +345,7 @@ func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
 		receiver.hash.Write(receiver.partialReadBuf)
 		copy(r, receiver.partialReadBuf)
 		receiver.partialReadBuf = receiver.partialReadBuf[rLen:]
-		atomic.AddInt64(&receiver.pos, int64(rLen))
+		receiver.pos.Add(int64(rLen))
 		return rLen, nil
 	}
 	// Send the read buff to the BodyBSON ParserConsumer to fill
@@ -353,12 +353,12 @@ func (receiver *RegularCollectionReceiver) Read(r []byte) (int, error) {
 	// Receiver the wLen of data written
 	wLen = <-receiver.readLenChan
 	receiver.hash.Write(r[:wLen])
-	atomic.AddInt64(&receiver.pos, int64(wLen))
+	receiver.pos.Add(int64(wLen))
 	return wLen, nil
 }
 
 func (receiver *RegularCollectionReceiver) Pos() int64 {
-	return atomic.LoadInt64(&receiver.pos)
+	return receiver.pos.Load()
 }
 
 // Open is part of the intents.file interface.  It creates the chan's in the
@@ -438,7 +438,7 @@ func (receiver *RegularCollectionReceiver) End() {
 
 // SpecialCollectionCache implements both DemuxOut as well as intents.file.
 type SpecialCollectionCache struct {
-	pos    int64 // updated atomically, aligned at the beginning of the struct
+	pos    atomic.Int64
 	Intent *intents.Intent
 	Demux  *Demultiplexer
 	buf    bytes.Buffer
@@ -474,12 +474,12 @@ func (cache *SpecialCollectionCache) End() {
 
 func (cache *SpecialCollectionCache) Read(p []byte) (int, error) {
 	n, err := cache.buf.Read(p)
-	atomic.AddInt64(&cache.pos, int64(n))
+	cache.pos.Add(int64(n))
 	return n, err
 }
 
 func (cache *SpecialCollectionCache) Pos() int64 {
-	return atomic.LoadInt64(&cache.pos)
+	return cache.pos.Load()
 }
 
 func (cache *SpecialCollectionCache) Write(b []byte) (int, error) {

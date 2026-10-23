@@ -6,10 +6,10 @@
 
 [tools]
 # Go and Go tools
-go = "1.26.8"
-"go:golang.org/x/tools/gopls" = "0.23.0"
-"github:golangci/golangci-lint" = "2.12.2"
-"github:securego/gosec" = "2.27.1"
+go = "1.27.3"
+"go:golang.org/x/tools/gopls" = "0.24.0"
+"github:golangci/golangci-lint" = "2.15.0"
+"github:securego/gosec" = "2.30.0"
 "github:houseabsolute/omegasort" = "0.2.1"
 "github:houseabsolute/precious" = "0.10.2"
 "github:crate-ci/typos" = "1.46.1"
@@ -35,3 +35,10 @@ minimum_release_age = "7d"
 # We turn off GPG verification for node because it has been flaky in CI, and also requires a local
 # GPG public key.
 gpg_verify = false
+
+[settings.npm]
+# mise's default installer for npm: tools is its embedded "aube", which lays each package out as a
+# nested symlink virtual store (node_modules/.mise/...). Evergreen's cache.save cannot archive that
+# on Windows (where the store is junctions) and balloons it to gigabytes when it dereferences the
+# links elsewhere. Pin the installer to npm's plain bin/ + lib/node_modules layout instead.
+package_manager = "npm"
