@@ -188,9 +188,6 @@ fi
 if [ "$TOPOLOGY" = "sharded" ]; then
     RUNNER_ARGS+=("--shards=${SHARDS:?}")
 fi
-if [ "$TOPOLOGY" = "replset" ]; then
-    RUNNER_ARGS+=("--secondaries=${SECONDARIES:?}")
-fi
 
 json_escape() {
     printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
@@ -213,6 +210,22 @@ if [ "$CREATE_USER" = "true" ]; then
     CONFIG_ENTRIES+=(
         "\"users\": [{\"username\": \"$(json_escape "${AUTH_USERNAME:?}")\", \"password\": \"$(json_escape "${AUTH_PASSWORD:?}")\", \"roles\": [{\"role\": \"__system\", \"db\": \"admin\"}]}]"
     )
+fi
+
+# mongodb-runner gives every member but the first a priority of 0, which makes it passive: the
+# server reports passives separately from hosts in isMaster, and a passive can never be elected
+# primary. The tests want an ordinary replica set, in which any node can be primary, so the
+# membership is passed explicitly with the same priority on every member. This replaces the
+# runner's --secondaries flag, which cannot set a priority.
+if [ "$TOPOLOGY" = "replset" ]; then
+    RS_MEMBERS=
+    for ((member = 0; member <= SECONDARIES; member++)); do
+        if [ -n "$RS_MEMBERS" ]; then
+            RS_MEMBERS+=", "
+        fi
+        RS_MEMBERS+='{"priority": 1}'
+    done
+    CONFIG_ENTRIES+=("\"rsMembers\": [${RS_MEMBERS}]")
 fi
 
 if [ "${#CONFIG_ENTRIES[@]}" -gt 0 ]; then
