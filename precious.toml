@@ -89,10 +89,17 @@ labels = ["default", "fast-tidy"]
 [commands.gosec]
 type = "lint"
 include = "**/*.go"
-exclude = ["buildscript/**/*.go", "common/testutil/**/*.go", "release/**/*.go", "vendor/**/*.go"]
-invoke.per-dir-or-once = 7
+exclude = ["buildscript/**/*.go", "common/testutil/**/*.go", "release/**/*.go"]
+# We scan ./... once from the repo root instead of letting precious pass the directories that
+# contain matching files. gosec builds the "uri" of each SARIF result by stripping the most
+# specific path argument from the file's path, so handing it individual package directories
+# collapses every uri to a bare filename like "bindata.go". From the root the only path argument
+# is the repo root, which yields uris relative to the repo root. precious's `exclude` can no
+# longer constrain what gosec scans, so the excluded directories are repeated as -exclude-dir
+# flags below.
+invoke = "once"
 working-dir = "root"
-path-args = "dir"
+path-args = "none"
 # This wrapper lets us control the output with an env var so we can generate a SARIF report for
 # release snapshots (see scripts/generate-release-ssdlc-files.sh) but use the default format for
 # regular linting.
@@ -106,6 +113,15 @@ cmd = [
     "-severity",
     "high",
     "-terse",
+    "-exclude-dir",
+    "buildscript",
+    "-exclude-dir",
+    "common/testutil",
+    "-exclude-dir",
+    "release",
+    "-exclude-dir",
+    "vendor",
+    "./...",
 ]
 ok_exit_codes = [0]
 lint_failure_exit_codes = [1]
