@@ -1,0 +1,1301 @@
+{
+  "components": [
+    {
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/Azure/azure-sdk-for-go/sdk/azcore?licenses=true&version=v1.23.3"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Azure/azure-sdk-for-go"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Azure/azure-sdk-for-go/sdk/azcore"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/Azure/azure-sdk-for-go/sdk/azcore",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.23.3"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.14.1?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/Azure/azure-sdk-for-go/sdk/azidentity?licenses=true&version=v1.14.1"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Azure/azure-sdk-for-go"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/Azure/azure-sdk-for-go/sdk/azidentity",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.14.1",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.14.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/Azure/azure-sdk-for-go/sdk/internal?licenses=true&version=v1.13.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Azure/azure-sdk-for-go"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Azure/azure-sdk-for-go/sdk/internal"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/Azure/azure-sdk-for-go/sdk/internal",
+      "purl": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.13.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/AzureAD/microsoft-authentication-library-for-go?licenses=true&version=v1.10.1"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/AzureAD/microsoft-authentication-library-for-go"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/AzureAD/microsoft-authentication-library-for-go",
+      "purl": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.10.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.1?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/ccoveille/go-safecast/v2?licenses=true&version=v2.0.1"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/ccoveille/go-safecast"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/ccoveille/go-safecast/v2",
+      "purl": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.1",
+      "scope": "required",
+      "type": "library",
+      "version": "v2.0.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/clipperhouse/uax29/v2@v2.7.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/clipperhouse/uax29/v2?licenses=true&version=v2.7.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/clipperhouse/uax29"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/clipperhouse/uax29/v2",
+      "purl": "pkg:golang/github.com/clipperhouse/uax29/v2@v2.7.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v2.7.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/deckarep/golang-set/v3@v3.0.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/deckarep/golang-set/v3?licenses=true&version=v3.0.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/deckarep/golang-set"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/deckarep/golang-set/v3",
+      "purl": "pkg:golang/github.com/deckarep/golang-set/v3@v3.0.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v3.0.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/golang-jwt/jwt/v5?licenses=true&version=v5.3.1"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/golang-jwt/jwt"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/golang-jwt/jwt/v5",
+      "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1",
+      "scope": "required",
+      "type": "library",
+      "version": "v5.3.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/google/uuid@v1.6.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/google/uuid?licenses=true&version=v1.6.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/google/uuid"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "github.com/google/uuid",
+      "purl": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.6.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jessevdk/go-flags@v1.6.1?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/jessevdk/go-flags?licenses=true&version=v1.6.1"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/jessevdk/go-flags"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "github.com/jessevdk/go-flags",
+      "purl": "pkg:golang/github.com/jessevdk/go-flags@v1.6.1",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.6.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/klauspost/compress@v1.20.3?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          },
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          },
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/klauspost/compress?licenses=true&version=v1.20.3"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/klauspost/compress"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "BSD-3-Clause"
+          }
+        },
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/klauspost/compress",
+      "purl": "pkg:golang/github.com/klauspost/compress@v1.20.3",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.20.3"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/kylelemons/godebug@v1.1.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/kylelemons/godebug?licenses=true&version=v1.1.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/kylelemons/godebug"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "github.com/kylelemons/godebug",
+      "purl": "pkg:golang/github.com/kylelemons/godebug@v1.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.1.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.31?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/mattn/go-runewidth?licenses=true&version=v0.0.31"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/mattn/go-runewidth"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/mattn/go-runewidth",
+      "purl": "pkg:golang/github.com/mattn/go-runewidth@v0.0.31",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.0.31"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/nsf/termbox-go@v1.1.2?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/nsf/termbox-go?licenses=true&version=v1.1.2"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/nsf/termbox-go"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/nsf/termbox-go",
+      "purl": "pkg:golang/github.com/nsf/termbox-go@v1.1.2",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.1.2"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/pkg/browser@v0.0.0-20240102092130-5ac0b6a4141c?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-2-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/pkg/browser?licenses=true&version=v0.0.0-20240102092130-5ac0b6a4141c"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/pkg/browser"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "name": "github.com/pkg/browser",
+      "purl": "pkg:golang/github.com/pkg/browser@v0.0.0-20240102092130-5ac0b6a4141c",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.0.0-20240102092130-5ac0b6a4141c"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/pkg/errors@v0.9.1?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-2-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/pkg/errors?licenses=true&version=v0.9.1"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/pkg/errors"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "name": "github.com/pkg/errors",
+      "purl": "pkg:golang/github.com/pkg/errors@v0.9.1",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.9.1"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/samber/lo@v1.53.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/samber/lo?licenses=true&version=v1.53.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/samber/lo"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/samber/lo",
+      "purl": "pkg:golang/github.com/samber/lo@v1.53.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.53.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/xdg-go/scram?licenses=true&version=v1.2.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/xdg-go/scram"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "github.com/xdg-go/scram",
+      "purl": "pkg:golang/github.com/xdg-go/scram@v1.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.2.0"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/xdg-go/stringprep?licenses=true&version=v1.0.4"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/xdg-go/stringprep"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "github.com/xdg-go/stringprep",
+      "purl": "pkg:golang/github.com/xdg-go/stringprep@v1.0.4",
+      "scope": "required",
+      "type": "library",
+      "version": "v1.0.4"
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "MIT"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/github.com/youmark/pkcs8?licenses=true&version=v0.0.0-20240726163527-a2c0da244d78"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/youmark/pkcs8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "github.com/youmark/pkcs8",
+      "purl": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.0.0-20240726163527-a2c0da244d78"
+    },
+    {
+      "bom-ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/go.mongodb.org/mongo-driver/v2?licenses=true&version=v2.9.2"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/mongodb/mongo-go-driver.git"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "go.mongodb.org/mongo-driver/v2",
+      "purl": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2",
+      "scope": "required",
+      "type": "library",
+      "version": "v2.9.2"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.58.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/crypto?licenses=true&version=v0.58.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/crypto"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "golang.org/x/crypto",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.58.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.58.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/net@v0.61.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/net?licenses=true&version=v0.61.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/net"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "golang.org/x/net",
+      "purl": "pkg:golang/golang.org/x/net@v0.61.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.61.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/sync@v0.24.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/sync?licenses=true&version=v0.24.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/sync"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "golang.org/x/sync",
+      "purl": "pkg:golang/golang.org/x/sync@v0.24.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.24.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/sys@v0.49.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/sys?licenses=true&version=v0.49.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/sys"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "golang.org/x/sys",
+      "purl": "pkg:golang/golang.org/x/sys@v0.49.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.49.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/term@v0.47.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/term?licenses=true&version=v0.47.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/term"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "golang.org/x/term",
+      "purl": "pkg:golang/golang.org/x/term@v0.47.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.47.0"
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/text@v0.43.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "BSD-3-Clause"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/golang.org/x/text?licenses=true&version=v0.43.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://go.googlesource.com/text"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "golang.org/x/text",
+      "purl": "pkg:golang/golang.org/x/text@v0.43.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v0.43.0"
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0?type=module",
+      "evidence": {
+        "licenses": [
+          {
+            "license": {
+              "id": "Apache-2.0"
+            }
+          }
+        ]
+      },
+      "externalReferences": [
+        {
+          "comment": "License metadata retrieved via pkg.go.dev lookup.",
+          "type": "evidence",
+          "url": "https://pkg.go.dev/v1/package/gopkg.in/yaml.v2?licenses=true&version=v2.4.0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/go-yaml/yaml"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gopkg.in/yaml.v2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "gopkg.in/yaml.v2",
+      "purl": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
+      "scope": "required",
+      "type": "library",
+      "version": "v2.4.0"
+    },
+    {
+      "bom-ref": "pkg:golang/std@go1.27.3?type=module",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "concluded",
+            "name": "LicenseRef-MongoDB-Internal"
+          }
+        }
+      ],
+      "name": "std",
+      "properties": [
+        {
+          "name": "internal:private",
+          "value": "true"
+        }
+      ],
+      "purl": "pkg:golang/std@go1.27.3",
+      "scope": "required",
+      "type": "library",
+      "version": "go1.27.3"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0?type=module",
+        "pkg:golang/golang.org/x/net@v0.61.0?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3?type=module",
+        "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0?type=module",
+        "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1?type=module",
+        "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1?type=module",
+        "pkg:golang/github.com/google/uuid@v1.6.0?type=module",
+        "pkg:golang/github.com/kylelemons/godebug@v1.1.0?type=module",
+        "pkg:golang/github.com/pkg/browser@v0.0.0-20240102092130-5ac0b6a4141c?type=module",
+        "pkg:golang/golang.org/x/crypto@v0.58.0?type=module",
+        "pkg:golang/golang.org/x/net@v0.61.0?type=module",
+        "pkg:golang/golang.org/x/sync@v0.24.0?type=module",
+        "pkg:golang/golang.org/x/sys@v0.49.0?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.14.1?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3?type=module",
+        "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.14.1?type=module",
+        "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1?type=module",
+        "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1?type=module",
+        "pkg:golang/github.com/google/uuid@v1.6.0?type=module",
+        "pkg:golang/github.com/kylelemons/godebug@v1.1.0?type=module",
+        "pkg:golang/github.com/pkg/browser@v0.0.0-20240102092130-5ac0b6a4141c?type=module",
+        "pkg:golang/golang.org/x/crypto@v0.58.0?type=module",
+        "pkg:golang/golang.org/x/net@v0.61.0?type=module",
+        "pkg:golang/golang.org/x/sync@v0.24.0?type=module",
+        "pkg:golang/golang.org/x/sys@v0.49.0?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1?type=module",
+        "pkg:golang/github.com/google/uuid@v1.6.0?type=module",
+        "pkg:golang/github.com/kylelemons/godebug@v1.1.0?type=module",
+        "pkg:golang/github.com/pkg/browser@v0.0.0-20240102092130-5ac0b6a4141c?type=module",
+        "pkg:golang/golang.org/x/net@v0.61.0?type=module",
+        "pkg:golang/golang.org/x/sync@v0.24.0?type=module",
+        "pkg:golang/golang.org/x/sys@v0.49.0?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/github.com/AzureAD/microsoft-authentication-library-for-go@v1.10.1?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.1?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/clipperhouse/uax29/v2@v2.7.0?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/deckarep/golang-set/v3@v3.0.0?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/google/uuid@v1.6.0?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/golang.org/x/sys@v0.49.0?type=module"],
+      "ref": "pkg:golang/github.com/jessevdk/go-flags@v1.6.1?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/klauspost/compress@v1.20.3?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/kylelemons/godebug@v1.1.0?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/github.com/clipperhouse/uax29/v2@v2.7.0?type=module"],
+      "ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.31?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.3?type=module",
+        "pkg:golang/github.com/Azure/azure-sdk-for-go/sdk/azidentity@v1.14.1?type=module",
+        "pkg:golang/github.com/ccoveille/go-safecast/v2@v2.0.1?type=module",
+        "pkg:golang/github.com/deckarep/golang-set/v3@v3.0.0?type=module",
+        "pkg:golang/github.com/google/uuid@v1.6.0?type=module",
+        "pkg:golang/github.com/jessevdk/go-flags@v1.6.1?type=module",
+        "pkg:golang/github.com/nsf/termbox-go@v1.1.2?type=module",
+        "pkg:golang/github.com/pkg/errors@v0.9.1?type=module",
+        "pkg:golang/github.com/samber/lo@v1.53.0?type=module",
+        "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module",
+        "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2?type=module",
+        "pkg:golang/golang.org/x/sync@v0.24.0?type=module",
+        "pkg:golang/golang.org/x/term@v0.47.0?type=module",
+        "pkg:golang/gopkg.in/yaml.v2@v2.4.0?type=module",
+        "pkg:golang/std@go1.27.3?type=module"
+      ],
+      "ref": "pkg:golang/github.com/mongodb/mongo-tools@v0.0.0-20261023202023-6d04794a7ab3?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/clipperhouse/uax29/v2@v2.7.0?type=module",
+        "pkg:golang/github.com/mattn/go-runewidth@v0.0.31?type=module",
+        "pkg:golang/golang.org/x/sys@v0.49.0?type=module"
+      ],
+      "ref": "pkg:golang/github.com/nsf/termbox-go@v1.1.2?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/golang.org/x/sys@v0.49.0?type=module"],
+      "ref": "pkg:golang/github.com/pkg/browser@v0.0.0-20240102092130-5ac0b6a4141c?type=module"
+    },
+    {
+      "ref": "pkg:golang/github.com/pkg/errors@v0.9.1?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/golang.org/x/text@v0.43.0?type=module"],
+      "ref": "pkg:golang/github.com/samber/lo@v1.53.0?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/golang.org/x/text@v0.43.0?type=module"],
+      "ref": "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/golang.org/x/crypto@v0.58.0?type=module"],
+      "ref": "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/github.com/klauspost/compress@v1.20.3?type=module",
+        "pkg:golang/github.com/xdg-go/scram@v1.2.0?type=module",
+        "pkg:golang/github.com/xdg-go/stringprep@v1.0.4?type=module",
+        "pkg:golang/github.com/youmark/pkcs8@v0.0.0-20240726163527-a2c0da244d78?type=module",
+        "pkg:golang/golang.org/x/crypto@v0.58.0?type=module",
+        "pkg:golang/golang.org/x/sync@v0.24.0?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/go.mongodb.org/mongo-driver/v2@v2.9.2?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/golang.org/x/net@v0.61.0?type=module",
+        "pkg:golang/golang.org/x/sys@v0.49.0?type=module",
+        "pkg:golang/golang.org/x/term@v0.47.0?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/golang.org/x/crypto@v0.58.0?type=module"
+    },
+    {
+      "dependsOn": [
+        "pkg:golang/golang.org/x/crypto@v0.58.0?type=module",
+        "pkg:golang/golang.org/x/sys@v0.49.0?type=module",
+        "pkg:golang/golang.org/x/term@v0.47.0?type=module",
+        "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+      ],
+      "ref": "pkg:golang/golang.org/x/net@v0.61.0?type=module"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/sync@v0.24.0?type=module"
+    },
+    {
+      "ref": "pkg:golang/golang.org/x/sys@v0.49.0?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/golang.org/x/sys@v0.49.0?type=module"],
+      "ref": "pkg:golang/golang.org/x/term@v0.47.0?type=module"
+    },
+    {
+      "dependsOn": ["pkg:golang/golang.org/x/sync@v0.24.0?type=module"],
+      "ref": "pkg:golang/golang.org/x/text@v0.43.0?type=module"
+    },
+    {
+      "ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0?type=module"
+    },
+    {
+      "ref": "pkg:golang/std@go1.27.3?type=module"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "pkg:golang/github.com/mongodb/mongo-tools@v0.0.0-20261023202023-6d04794a7ab3?type=module",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/mongodb/mongo-tools"
+        }
+      ],
+      "name": "github.com/mongodb/mongo-tools",
+      "properties": [
+        {
+          "name": "cdx:gomod:build:env:CGO_ENABLED",
+          "value": "0"
+        },
+        {
+          "name": "cdx:gomod:build:env:GOARCH",
+          "value": "amd64"
+        },
+        {
+          "name": "cdx:gomod:build:env:GOOS",
+          "value": "darwin"
+        },
+        {
+          "name": "cdx:gomod:build:env:GOVERSION",
+          "value": "go1.27.3"
+        }
+      ],
+      "purl": "pkg:golang/github.com/mongodb/mongo-tools@v0.0.0-20261023202023-6d04794a7ab3",
+      "type": "application",
+      "version": "v0.0.0-20261023202023-6d04794a7ab3"
+    },
+    "timestamp": "2026-10-26T18:43:17.536170+00:00"
+  },
+  "serialNumber": "urn:uuid:2fa30fe4-d4f2-4c2a-82f2-8efbf0038e20",
+  "version": 2,
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6"
+}
