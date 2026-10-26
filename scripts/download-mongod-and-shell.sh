@@ -38,7 +38,8 @@ if [ "${DISAGG:-false}" = "true" ]; then
     # the whole tarball instead of merging bin/* into ./bin. The version is a build label used
     # verbatim, not a release series.
     DOWNLOADER_LABEL="$MONGO_VERSION"
-    SERVER_DIR="${REPO_ROOT:?}/dsc-cluster/server"
+    # start-test-cluster.sh --dsc reads it from its cluster directory, which .gitignore covers.
+    SERVER_DIR="${REPO_ROOT:?}/test-cluster/tools-dsc/server"
 else
     # The config labels versions by major.minor; MONGO_VERSION can be a full version or a release
     # candidate, and "latest" is a label of its own.

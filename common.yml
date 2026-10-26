@@ -293,7 +293,8 @@ functions:
         binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
         args:
-          - "./scripts/start-dsc-cluster.sh"
+          - "./scripts/start-test-cluster.sh"
+          - "--dsc"
         env:
           # The cross-cluster task points this at TOOLS_TESTING_MONGOD2 so a separately-started ASC
           # mongod can own the primary var. Defaults to TOOLS_TESTING_MONGOD in the script.
@@ -304,7 +305,7 @@ functions:
     # lets the "run make target" function see TOOLS_TESTING_MONGOD.
     - command: expansions.update
       params:
-        file: src/github.com/mongodb/mongo-tools/dsc-cluster/expansions.yml
+        file: src/github.com/mongodb/mongo-tools/test-cluster/tools-dsc/expansions.yml
 
   # These two tasks run in the project-wide "post" block, so they have to be safe for every
   # task. Both are no-ops when the task never started a DSC cluster.
@@ -330,7 +331,8 @@ functions:
         binary: bash
         working_dir: src/github.com/mongodb/mongo-tools
         args:
-          - "./scripts/stop-dsc-cluster.sh"
+          - "./scripts/stop-test-cluster.sh"
+          - "--dsc"
         env:
           EVG_WORKDIR: ${workdir}
 
@@ -339,7 +341,7 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/github.com/mongodb/mongo-tools/dsc-cluster/logs.tgz
+        local_file: src/github.com/mongodb/mongo-tools/test-cluster/tools-dsc/logs.tgz
         remote_file: mongo-tools/dsc-logs/${build_id}/${task_name}/logs.tgz
         content_type: application/x-gzip
         bucket: mciuploads

@@ -99,7 +99,7 @@ MONGO_VERSION=9.1-dsc DISAGG=true ./scripts/download-mongod-and-shell.sh
 Then start the cluster:
 
 ```
-SLS_AWS_ECR_PROFILE=... ./scripts/start-dsc-cluster.sh
+SLS_AWS_ECR_PROFILE=... ./scripts/start-test-cluster.sh --dsc
 ```
 
 The `SLS_AWS_ECR_PROFILE` value should be the name of the authenticated profile which has access to
@@ -108,7 +108,7 @@ the ECR repo.
 You can stop the cluster with:
 
 ```
-./scripts/stop-dsc-cluster.sh
+./scripts/stop-test-cluster.sh --dsc
 ```
 
 ## Getting Started

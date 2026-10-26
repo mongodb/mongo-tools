@@ -29,7 +29,6 @@ bin/
 /data
 /deb_build
 /dev-bin
-dsc-cluster/
 /mongo-release
 /mongodb-database-tools-*
 /mongodump/*/admin/
