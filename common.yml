@@ -40,7 +40,6 @@ functions:
           - ${mise_and_go_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
@@ -70,7 +69,6 @@ functions:
           - ${mise_and_go_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-and-go.sh
@@ -112,7 +110,6 @@ functions:
           - ${mise_all_tools_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
@@ -144,7 +141,6 @@ functions:
           - ${mise_all_tools_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
           - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
           - src/github.com/mongodb/mongo-tools/scripts/install-mise-managed-tools.sh
@@ -269,22 +265,11 @@ functions:
   #######################################
   #  Disaggregated Storage (DSC) setup  #
   #######################################
-  # A DSC cluster needs mongodb-downloader, which is in a private repo and so needs a generated
-  # token. It also needs credentials for two different AWS accounts.
+  # A DSC cluster pulls the SLS container images from a private ECR registry, which needs an IAM
+  # role in the account that owns it. The task's "download mongod and shell" call (with disagg set)
+  # fetches the DSC binaries and SLS files before this runs.
 
   "start dsc cluster":
-    # The order of these commands is important. ec2.assume_role overwrites existing AWS_*
-    # expansions, so each role has to be used before the next one is assumed. Two roles are needed
-    # because the SLS container images and the Server build live in different accounts. The GitHub
-    # token is generated first because assume_role does not touch it.
-    - command: github.generate_token
-      params:
-        owner: 10gen
-        repo: mongodb-downloader
-        expansion_name: generated_token_mongodb_downloader
-        permissions:
-          attestations: read
-          contents: read
     - command: ec2.assume_role
       display_name: Assume IAM role with permissions to pull SLS images from ECR
       params:
@@ -301,27 +286,6 @@ functions:
           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-    - command: ec2.assume_role
-      display_name: Assume IAM role with permissions to read Server builds from S3
-      params:
-        role_arn: arn:aws:iam::557821124784:role/evergreen.aws-c2c-sync
-    # Share the mongodb-downloader cache with the "download mongod and shell" function.
-    - command: cache.restore
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        bucket: mciuploads
-        key_expansions:
-          - ${distro_arch}
-          - ${mise_and_go_cache_version}
-          - ${mongodb_downloader_cache_version}
-        key_files:
-          - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
-          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
-          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
-        name: mongodb-downloader
-        remote_path: mongo-tools/mise-cache
     - command: subprocess.exec
       params:
         # binary must be bash (with the script passed via args), not the script
@@ -331,34 +295,10 @@ functions:
         args:
           - "./scripts/start-dsc-cluster.sh"
         env:
-          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
           # The cross-cluster task points this at TOOLS_TESTING_MONGOD2 so a separately-started ASC
           # mongod can own the primary var. Defaults to TOOLS_TESTING_MONGOD in the script.
           EVG_EXPANSION_VAR: ${EVG_EXPANSION_VAR|TOOLS_TESTING_MONGOD}
           EVG_WORKDIR: ${workdir}
-          # mise installs mongodb-downloader from a private repo, so it needs a token.
-          GITHUB_TOKEN: ${generated_token_mongodb_downloader}
-    - command: cache.save
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        bucket: mciuploads
-        key_expansions:
-          - ${distro_arch}
-          - ${mise_and_go_cache_version}
-          - ${mongodb_downloader_cache_version}
-        key_files:
-          - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
-          - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
-          - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
-        name: mongodb-downloader
-        paths:
-          - .local/bin
-          - .local/share/mise
-        remote_path: mongo-tools/mise-cache
     # The cluster's connection string is only known at runtime, and each command runs in its own
     # shell, so the script passes this setting through a file rather than an exported variable. This
     # lets the "run make target" function see TOOLS_TESTING_MONGOD.
@@ -415,8 +355,8 @@ functions:
         expansion_name: generated_token_mongo_release
         permissions:
           contents: read
-    # mongodb-downloader is private, so mise needs a token to install it. The S3 cache it downloads
-    # from lives in a different account than the CDN, so we assume the c2c role for that too.
+    # mongodb-downloader is a private-repo tool, so it needs a token of its own. Cache it here so
+    # each task does not download and verify the release every run.
     - command: github.generate_token
       params:
         owner: 10gen
@@ -425,12 +365,6 @@ functions:
         permissions:
           attestations: read
           contents: read
-    - command: ec2.assume_role
-      display_name: Assume IAM role with permissions to read Server builds from S3
-      params:
-        role_arn: arn:aws:iam::557821124784:role/evergreen.aws-c2c-sync
-    # mongodb-downloader is a private-repo tool, so only these token-bearing functions can install
-    # it. Cache it here so each task does not download and verify the release every run.
     - command: cache.restore
       params:
         aws_key: ${aws_key}
@@ -442,11 +376,19 @@ functions:
           - ${mongodb_downloader_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/mise.downloader.toml
           - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/scripts/functions.sh
+          - src/github.com/mongodb/mongo-tools/scripts/download-mongod-and-shell.sh
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mongodb-downloader
         remote_path: mongo-tools/mise-cache
+    # mongodb-downloader reads Server builds from an S3 bucket in a different account than the CDN.
+    - command: ec2.assume_role
+      display_name: Assume IAM role with permissions to read Server builds from S3
+      params:
+        role_arn: arn:aws:iam::557821124784:role/evergreen.aws-c2c-sync
     - command: subprocess.exec
       params:
         # binary must be bash (with the script passed via args), not the script
@@ -459,6 +401,7 @@ functions:
           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+          DISAGG: ${disagg}
           EVG_BUILD_ID: ${build_id}
           EVG_IS_PATCH: ${is_patch}
           EVG_KEY: ${evg_key}
@@ -483,9 +426,12 @@ functions:
           - ${mongodb_downloader_cache_version}
         key_files:
           - src/github.com/mongodb/mongo-tools/mise.toml
-          - src/github.com/mongodb/mongo-tools/mise.dsc.toml
+          - src/github.com/mongodb/mongo-tools/mise.downloader.toml
           - src/github.com/mongodb/mongo-tools/etc/mise.run.sh
           - src/github.com/mongodb/mongo-tools/scripts/mise-version.txt
+          - src/github.com/mongodb/mongo-tools/scripts/functions.sh
+          - src/github.com/mongodb/mongo-tools/scripts/download-mongod-and-shell.sh
+          - src/github.com/mongodb/mongo-tools/scripts/remove-mise-version-aliases.py
         name: mongodb-downloader
         paths:
           - .local/bin
@@ -971,7 +917,7 @@ pre:
           value: "mongosync-coverage-binary"
   # Bump these to force-invalidate the mise Evergreen caches (see the "install mise and go",
   # "install node and mongodb-runner", "install mise-managed tools", and the mongodb-downloader
-  # caches in the "download mongod and shell" and "start dsc cluster" functions).
+  # cache in the "download mongod and shell" function).
   - command: expansions.update
     params:
       updates:
@@ -1848,12 +1794,16 @@ tasks:
     commands:
       - func: "fetch source"
       - func: "install mise and go"
-      - func: "install mise-managed tools"
+      - func: "install node and mongodb-runner"
       # Starting the SLS services is slow, so we want to build the tools before starting the
       # cluster.
       - func: "run make target"
         vars:
           target: build
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "9.1-dsc"
+          disagg: "true"
       - func: "start dsc cluster"
       # No -ssl: mongodb-runner starts the replica set without TLS. The connection string reaches
       # the suite through the TOOLS_TESTING_MONGOD expansion that "start dsc cluster" sets.
@@ -1870,7 +1820,6 @@ tasks:
     commands:
       - func: "fetch source"
       - func: "install mise and go"
-      - func: "install mise-managed tools"
       - func: "download mongod and shell"
         vars:
           mongo_version: "9.0.0-rc0"
@@ -1882,6 +1831,10 @@ tasks:
       - func: "run make target"
         vars:
           target: build
+      - func: "download mongod and shell"
+        vars:
+          mongo_version: "9.1-dsc"
+          disagg: "true"
       - func: "start dsc cluster"
         vars:
           EVG_EXPANSION_VAR: "TOOLS_TESTING_MONGOD2"
