@@ -15,29 +15,42 @@ SCRIPT_DIR=$(dirname "$0")
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# mongodb-downloader lives in a private repo, so it is in mise.dsc.toml rather than mise.toml and
-# needs MISE_ENV=dsc to be visible to mise and a token to read that repo. We only retry twice because
-# the likely failure is a token that cannot read the repo, which is not transient.
-export MISE_ENV=dsc
+# mongodb-downloader lives in a private repo, so it is in mise.downloader.toml rather than mise.toml
+# and needs MISE_ENV=downloader to be visible to mise and a token to read that repo. We only retry
+# twice because the likely failure is a token that cannot read the repo, which is not transient.
+export MISE_ENV=downloader
 RETRY_FAILURES_BEFORE_BACKOFF=0 RETRY_FAILURES_BEFORE_HARD_FAIL=1 \
     retry mise install github:10gen/mongodb-downloader
 
 # This script's `cache.save` caches `.local/share/mise`, which now holds the mongodb-downloader
-# install and its mise version aliases. Strip what the cache cannot keep before it is saved.
-prepare_mise_tree_for_evergreen_cache
+# install and its mise version aliases. Strip what the cache cannot keep before it is saved. Outside
+# Evergreen there is no cache, and this would edit the developer's own mise installs.
+if [ -n "${EVG_WORKDIR:-}" ]; then
+    prepare_mise_tree_for_evergreen_cache
+fi
 
-# The config labels versions by major.minor; MONGO_VERSION can be a full version or a release
-# candidate, and "latest" is a label of its own.
-case "$MONGO_VERSION" in
-latest) DOWNLOADER_LABEL="latest" ;;
-*) DOWNLOADER_LABEL="$(echo "$MONGO_VERSION" | cut -d. -f1,2)" ;;
-esac
-
-# `download --to` replaces its target directory wholesale, and ./bin also holds the built tools
-# binaries, so we extract into a scratch directory and merge the Server binaries into ./bin.
-SERVER_DIR="${REPO_ROOT:?}/.server-download"
 CONFIG_PATH="${REPO_ROOT:?}/etc/mongodb-downloader-config.yaml"
 OUTPUT_DIR="${REPO_ROOT:?}/etc"
+
+if [ "${DISAGG:-false}" = "true" ]; then
+    # A disaggregated-storage (DSC) build ships the SLS files (compose file, manifest, and helpers)
+    # alongside the binaries, and mongodb-runner reads both from the extraction directory, so keep
+    # the whole tarball instead of merging bin/* into ./bin. The version is a build label used
+    # verbatim, not a release series.
+    DOWNLOADER_LABEL="$MONGO_VERSION"
+    SERVER_DIR="${REPO_ROOT:?}/dsc-cluster/server"
+else
+    # The config labels versions by major.minor; MONGO_VERSION can be a full version or a release
+    # candidate, and "latest" is a label of its own.
+    case "$MONGO_VERSION" in
+    latest) DOWNLOADER_LABEL="latest" ;;
+    *) DOWNLOADER_LABEL="$(echo "$MONGO_VERSION" | cut -d. -f1,2)" ;;
+    esac
+    # `download --to` replaces its target directory wholesale, and ./bin also holds the built tools
+    # binaries, so we extract into a scratch directory and merge the Server binaries into ./bin.
+    SERVER_DIR="${REPO_ROOT:?}/.server-download"
+fi
+
 TO_ARG="$SERVER_DIR"
 
 # mongodb-downloader is a native Windows binary, so under Cygwin it cannot open the POSIX paths we
@@ -54,6 +67,11 @@ mise exec github:10gen/mongodb-downloader -- mongodb-downloader download \
     --output-dir "$OUTPUT_DIR" \
     --server-version "$DOWNLOADER_LABEL" \
     --to "$TO_ARG"
+
+# The DSC tarball stays where it is for mongodb-runner; only a release build is merged into ./bin.
+if [ "${DISAGG:-false}" = "true" ]; then
+    exit 0
+fi
 
 mkdir -p "${REPO_ROOT:?}/bin"
 mv "$SERVER_DIR"/bin/* "${REPO_ROOT:?}/bin/"
