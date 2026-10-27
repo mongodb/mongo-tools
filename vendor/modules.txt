@@ -271,6 +271,20 @@ github.com/craiggwilson/goke/task/internal
 # github.com/deckarep/golang-set/v3 v3.0.0
 ## explicit; go 1.25
 github.com/deckarep/golang-set/v3
+# github.com/evergreen-ci/shrub v0.0.0-20260701183255-ec2947f5a08d
+## explicit; go 1.23.0
+github.com/evergreen-ci/shrub
+# github.com/goccy/go-yaml v1.19.2
+## explicit; go 1.21.0
+github.com/goccy/go-yaml
+github.com/goccy/go-yaml/ast
+github.com/goccy/go-yaml/internal/errors
+github.com/goccy/go-yaml/internal/format
+github.com/goccy/go-yaml/lexer
+github.com/goccy/go-yaml/parser
+github.com/goccy/go-yaml/printer
+github.com/goccy/go-yaml/scanner
+github.com/goccy/go-yaml/token
 # github.com/golang-jwt/jwt/v5 v5.3.1
 ## explicit; go 1.21
 github.com/golang-jwt/jwt/v5
@@ -281,6 +295,12 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/go-github/v73 v73.0.0
+## explicit; go 1.23.0
+github.com/google/go-github/v73/github
+# github.com/google/go-querystring v1.2.0
+## explicit; go 1.13
+github.com/google/go-querystring/query
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
