@@ -1,5 +1,50 @@
 # Database Tools Changelog
 
+## 100.20.0
+
+_Released 2026-10-26_
+
+We are pleased to announce version 100.20.0 of the MongoDB Database Tools.
+
+This release removes support for MongoDB Server versions before 4.2, so both the target server and
+any dump files must now be from 4.2 or later. It also fixes two `mongorestore` bugs: a crash when
+using a namespace without an active consumer, and a failure when replaying an oplog that contains
+writes to a time-series collection. The release includes Go 1.27.3 and Go driver upgrades.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4176'>TOOLS-4176</a>] -         Mongorestore crash when namespace without active consumer is used
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4373'>TOOLS-4373</a>] -         mongorestore --oplogReplay aborts with Location7667503 when a time-series collection was written during mongodump --oplog
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4350'>TOOLS-4350</a>] -         Remove support for pre-4.2 Server versions and dump files
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4401'>TOOLS-4401</a>] -         Upgrade to the latest Go driver version
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4404'>TOOLS-4404</a>] -         Remove Amazon 2018 from CI
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4414'>TOOLS-4414</a>] -         Upgrade our github.com/deckarep/golang-set dependency to v3
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4432'>TOOLS-4432</a>] -         Upgrade to Go 1.27.3
+</li>
+</ul>
+
 ## 100.19.1
 
 _Released 2026-09-29_

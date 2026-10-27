@@ -287,6 +287,10 @@ Bugs and feature requests can be reported in the [Database Tools Jira](https://j
   vulnerabilities. These vulnerability tickets will be linked to a corresponding ticket in the
   internal-only "VULN" Jira project.
 - Make sure there is nothing in the list that might have been tagged with the wrong fix version.
+- Remove the release ticket itself from the list. That is the ticket whose "Issue Type" is
+  "Release", the same one you are using for this changelog update. It is not part of the release
+  contents, so it should not appear in the changelog, and if it is the only ticket in its section,
+  remove that section's heading too.
 - Copy the HTML list of tickets from Jira and paste it in CHANGELOG.md in place of
   `<INSERT-LIST-OF-TICKETS>`.
 - Remove the top line of the list of tickets that says
