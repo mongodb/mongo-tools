@@ -422,14 +422,14 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4010'>TOOLS-4010</a>] -         Security Finding: Update package crypto@v0.38.0
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                            
+
 <h3>        Bug
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-4019'>TOOLS-4019</a>] -         Fix path traversal in mongofiles
 </li>
 </ul>
-                
+
 <h3>        Task
 </h3>
 <ul>
@@ -474,14 +474,14 @@ found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3825'>TOOLS-3825</a>] -         Investigate changes in SERVER-103887: Introduce QueryRecord IDL type
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
 <h3>        Vulnerability
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3907'>TOOLS-3907</a>] -         Security Finding: Update package aws-sdk-go@v1.53.11
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+
 <h3>        Bug
 </h3>
 <ul>
@@ -492,14 +492,14 @@ found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3934'>TOOLS-3934</a>] -         CVE-2025-22874 in mongoexport and mongoimport
 </li>
 </ul>
-    
+
 <h3>        Epic
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3454'>TOOLS-3454</a>] -         Mongodump/mongorestore passthrough tests
 </li>
 </ul>
-            
+
 <h3>        Task
 </h3>
 <ul>
@@ -676,7 +676,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3637'>TOOLS-3637</a>] -         Mongodump should check collection metadata consistency 
 </li>
 </ul>
-                
+
 <h3>        Task
 </h3>
 <ul>
@@ -1077,7 +1077,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-3324'>TOOLS-3324</a>] -         Fix failure to dump needed sharded collections from config database
 </li>
 </ul>
-                
+
 ### Task
 
 <ul>
@@ -1470,8 +1470,9 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2938'>TOOLS-2938</a>] -         Re-add Ubuntu 16.04 PowerPC platform
 </li>
 </ul>
-                                                                        
+
 ### Release
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2880'>TOOLS-2880</a>] -         Release Database Tools 100.5.0
 </li>
@@ -1483,14 +1484,16 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2863'>TOOLS-2863</a>] -         cs.AuthMechanismProperties is not initialized when mechanism set by --authenticationMechanism
 </li>
 </ul>
-        
+
 ### New Feature
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2937'>TOOLS-2937</a>] -         Set loadbalanced option in db.configureClient()
 </li>
 </ul>
-        
+
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2932'>TOOLS-2932</a>] -         Upgrade to Go Driver 1.7.1
 </li>
@@ -1525,25 +1528,28 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2927'>TOOLS-2927</a>] -         Clean up the platforms list inside platform.go
 </li>
 </ul>
-                                                                        
+
 ### Release
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2929'>TOOLS-2929</a>] -         Release Database Tools 100.4.1
 </li>
 </ul>
-                                                      
+
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2931'>TOOLS-2931</a>] -         mongodump skips documents with empty field names
 </li>
 </ul>
-                
+
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2926'>TOOLS-2926</a>] -         Run release on &#39;test&#39; and &#39;development&#39; linux repo separately. 
 </li>
 </ul>
-                      
+
 ## 100.4.0
 
 _Released 2021-07-19_
@@ -1570,14 +1576,14 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2893'>TOOLS-2893</a>] -         legacy-js-tests 4.4 and 5.0 failing on all variants
 </li>
 </ul>
-                                                                        
+
 <h3>        Release
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2845'>TOOLS-2845</a>] -         Release Database Tools 100.4.0
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
 <h3>        Bug
 </h3>
 <ul>
@@ -1588,7 +1594,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2925'>TOOLS-2925</a>] -         RPM packages are only signed with the 4.4 auth token
 </li>
 </ul>
-        
+
 <h3>        New Feature
 </h3>
 <ul>
@@ -1601,7 +1607,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2860'>TOOLS-2860</a>] -         Include/Exclude/Rename timeseries collections in mongorestore
 </li>
 </ul>
-        
+
 <h3>        Task
 </h3>
 <ul>
@@ -1632,7 +1638,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2921'>TOOLS-2921</a>] -         Upgrade to Go Driver 1.6
 </li>
 </ul>
-                                                
+
 ## 100.3.1
 
 _Released 2021-03-17_
@@ -1661,14 +1667,14 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2815'>TOOLS-2815</a>] -         Development build artifacts accidentally uploaded for versioned release
 </li>
 </ul>
-                                                                        
+
 <h3>        Release
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2791'>TOOLS-2791</a>] -         Release Database Tools 100.3.1
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
 <h3>        Bug
 </h3>
 <ul>
@@ -1677,7 +1683,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2783'>TOOLS-2783</a>] -         Mongorestore uses huge amount of RAM
 </li>
 </ul>
-                
+
 <h3>        Task
 </h3>
 <ul>
@@ -1724,21 +1730,21 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2800'>TOOLS-2800</a>] -         RPM creation failing on amazon linux 1
 </li>
 </ul>
-                                                                        
+
 <h3>        Release
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2790'>TOOLS-2790</a>] -         Release Database Tools 100.3.0
 </li>
 </ul>
-                                                            
+
 <h3>        Investigation
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2771'>TOOLS-2771</a>] -         SSL connection problems mongodump
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+
 <h3>        Bug
 </h3>
 <ul>
@@ -1749,14 +1755,14 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2775'>TOOLS-2775</a>] -         --local does not work with multi-file get or get_regex
 </li>
 </ul>
-        
+
 <h3>        New Feature
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2779'>TOOLS-2779</a>] -         Add --config option for password values
 </li>
 </ul>
-        
+
 <h3>        Task
 </h3>
 <ul>
@@ -1796,28 +1802,28 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2767'>TOOLS-2767</a>] -         Windows 64 dist task fails
 </li>
 </ul>
-                                                                        
+
 <h3>        Release
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2741'>TOOLS-2741</a>] -         Release Database Tools 100.2.1
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+
 <h3>        Bug
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2744'>TOOLS-2744</a>] -         mongorestore not scaling due to unnecessary incremental sleep time
 </li>
 </ul>
-        
+
 <h3>        New Feature
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2750'>TOOLS-2750</a>] -         Log before getting collection counts
 </li>
 </ul>
-        
+
 <h3>        Task
 </h3>
 <ul>
@@ -1868,14 +1874,14 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2747'>TOOLS-2747</a>] -         Git tag release process does not work
 </li>
 </ul>
-                                                                        
+
 <h3>        Release
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2704'>TOOLS-2704</a>] -         Release Database Tools 100.2.0
 </li>
 </ul>
-                                                       
+
 <h3>        Bug
 </h3>
 <ul>
@@ -1894,7 +1900,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2716'>TOOLS-2716</a>] -         mongodb-database-tools package should break older versions of mongodb-*-tools
 </li>
 </ul>
-        
+
 <h3>        New Feature
 </h3>
 <ul>
@@ -1903,7 +1909,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2668'>TOOLS-2668</a>] -         Create regex interface for getting files from remote FS in mongofiles
 </li>
 </ul>
-        
+
 <h3>        Task
 </h3>
 <ul>
@@ -1940,7 +1946,7 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2685'>TOOLS-2685</a>] -         Release Database Tools 100.1.1
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
 <h3>        Bug
 </h3>
 <ul>
@@ -1979,14 +1985,14 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2643'>TOOLS-2643</a>] -         New linux distros missing from repo-config.yaml
 </li>
 </ul>
-                                                                        
+
 <h3>        Release
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2630'>TOOLS-2630</a>] -         Release Database Tools 100.1.0
 </li>
 </ul>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
 <h3>        Bug
 </h3>
 <ul>
@@ -2013,14 +2019,14 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2670'>TOOLS-2670</a>] -         Troubleshoot IAM auth options errors
 </li>
 </ul>
-        
+
 <h3>        New Feature
 </h3>
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2369'>TOOLS-2369</a>] -         IAM Role-based authentication
 </li>
 </ul>
-        
+
 <h3>        Task
 </h3>
 <ul>
@@ -2083,8 +2089,9 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2593'>TOOLS-2593</a>] -         Fix special handling of $admin filenames
 </li>
 </ul>
-                
+
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2446'>TOOLS-2446</a>] -         Add MMAPV1 testing to Tools tests
 </li>
@@ -2176,8 +2183,9 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2489'>TOOLS-2489</a>] -         format-go task failing on master
 </li>
 </ul>
-                                                                                                           
+
 ### Bug
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-1493'>TOOLS-1493</a>] -         Tools crash running help when terminal width is low
 </li>
@@ -2224,8 +2232,9 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2548'>TOOLS-2548</a>] -         Installing database tools fails on SLES 15
 </li>
 </ul>
-        
+
 ### New Feature
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-1954'>TOOLS-1954</a>] -         Support roundtrip of mongoexport array notation in mongoimport
 </li>
@@ -2244,8 +2253,9 @@ can be found.
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2529'>TOOLS-2529</a>] -         Mongodump outputs new file format for long collection names
 </li>
 </ul>
-        
+
 ### Task
+
 <ul>
 <li>[<a href='https://jira.mongodb.org/browse/TOOLS-2418'>TOOLS-2418</a>] -         Remove mongoreplay from mongo-tools
 </li>
