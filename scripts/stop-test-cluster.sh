@@ -1,71 +1,47 @@
 #!/bin/bash
 
-# Stops a cluster started by scripts/start-test-cluster.sh. This is a no-op when the cluster was not
-# started, so it is safe to run unconditionally.
+# Stops a cluster started by scripts/start-test-cluster.sh, including a DSC cluster started with
+# --dsc. This is a no-op when the cluster was not started, so it is safe to run unconditionally.
+#
+# The logic lives in stop-test-cluster.py. This wrapper keeps Evergreen's `binary: bash` invocation
+# (Windows cannot execute a shebang script as a native binary) and inherits the environment
+# ci-env.sh sets up, notably mise on PATH.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
 SCRIPT_DIR=$(dirname "$0")
-REPO_ROOT="$(cd "${SCRIPT_DIR:?}/.." && pwd)"
 
-CLUSTER_ID="${CLUSTER_ID:-tools-test}"
-
-usage() {
-    cat <<'EOF'
-Stops a cluster started by scripts/start-test-cluster.sh.
-
-Usage:
-  ./scripts/stop-test-cluster.sh [--id=<id>]
-EOF
-}
-
-while [ $# -gt 0 ]; do
-    # Accept both "--id value" and "--id=value". Bash's built-in getopts only handles short options,
-    # and GNU getopt (which does handle long options) is not available on macOS, so rewrite the
-    # separated form to the --id=value form the parser below expects.
-    case "$1" in
+# This runs in Evergreen's project-wide post block on every host, including ones that may not have a
+# usable python3, so exit before needing it when there is plainly no cluster to stop. This mirrors
+# the argument handling and cluster_exists() check in stop-test-cluster.py. Anything unusual (help,
+# an unknown argument, or an invalid id) is left to the Python script.
+cluster_id="${CLUSTER_ID:-tools-test}"
+dsc=false
+defer=false
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+    case "${args[i]}" in
+    -h | --help) defer=true ;;
+    --dsc) dsc=true ;;
+    --id=*) cluster_id="${args[i]#--id=}" ;;
     --id)
-        if [ $# -lt 2 ]; then
-            echo "option $1 requires a value" >&2
-            exit 1
-        fi
-        set -- "$1=$2" "${@:3}"
+        cluster_id="${args[i + 1]:-}"
+        i=$((i + 1))
         ;;
+    *) defer=true ;;
     esac
-
-    case "$1" in
-    --id=*) CLUSTER_ID="${1#*=}" ;;
-    --help | -h)
-        usage
-        exit 0
-        ;;
-    *)
-        echo "unknown argument: $1" >&2
-        exit 1
-        ;;
-    esac
-    shift
 done
-
-# The id is used in filesystem paths and mongodb-runner rejects ids outside [A-Za-z0-9_-], so
-# validate it before we stop or remove anything.
-case "$CLUSTER_ID" in
-*[!A-Za-z0-9_-]* | "")
-    echo "invalid cluster id '$CLUSTER_ID'; use only letters, digits, underscores, and hyphens" >&2
-    exit 1
-    ;;
-esac
-
-CLUSTER_DIR="${REPO_ROOT:?}/test-cluster/${CLUSTER_ID:?}"
-
-# This runs in the Evergreen project-wide post block, so it has to be a no-op for the tasks that
-# never started a cluster. We check for logs as well as the connection string because a start that
-# failed partway through leaves logs but no connection string.
-if [ ! -f "${CLUSTER_DIR:?}/connection-string" ] && [ ! -d "${CLUSTER_DIR:?}/logs" ]; then
-    echo "no ${CLUSTER_DIR} to stop" >&2
-    exit 0
+if [ "$dsc" = true ]; then
+    cluster_id=tools-dsc
+fi
+if [ "$defer" = false ] && [[ $cluster_id =~ ^[A-Za-z0-9_-]+$ ]]; then
+    cluster_dir="$(cd "${SCRIPT_DIR:?}/.." && pwd)/test-cluster/$cluster_id"
+    if [ ! -f "$cluster_dir/connection-string" ] && [ ! -d "$cluster_dir/logs" ]; then
+        echo "no $cluster_dir to stop" >&2
+        exit 0
+    fi
 fi
 
 # In Evergreen, mise itself is under ${workdir}, which is what ci-env.sh puts on PATH.
@@ -74,8 +50,4 @@ if [ -n "${EVG_WORKDIR:-}" ]; then
     source "${SCRIPT_DIR:?}/ci-env.sh"
 fi
 
-RUNNER=(mise exec node npm:@mongodb-js/mongodb-runner -- mongodb-runner)
-
-"${RUNNER[@]}" stop --id="${CLUSTER_ID:?}"
-
-rm -f "${CLUSTER_DIR:?}/connection-string" "${CLUSTER_DIR:?}/expansions.yml"
+exec python3 "${SCRIPT_DIR:?}/stop-test-cluster.py" "$@"
