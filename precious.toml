@@ -64,10 +64,7 @@ include = "*.go"
 exclude = "common/json/**/*.go"
 invoke.per-dir-or-once = 7
 working-dir = "root"
-# What we really want is something like "dir-with-dot" so we get paths like "./verifier" instead of
-# "verifier", but absolute paths work okay. See
-# https://github.com/houseabsolute/precious/issues/104.
-path-args = "absolute-dir"
+path-args = "dir"
 cmd = [
     "mise",
     "exec",

@@ -11,20 +11,20 @@ go = "1.27.3"
 "github:golangci/golangci-lint" = "2.15.0"
 "github:securego/gosec" = "2.30.0"
 "github:houseabsolute/omegasort" = "0.2.1"
-"github:houseabsolute/precious" = "0.10.2"
-"github:crate-ci/typos" = "1.46.1"
+"github:houseabsolute/precious" = "1.0.0"
+"github:crate-ci/typos" = "1.51.1"
 "github:koalaman/shellcheck" = "0.11.0"
-"github:mvdan/sh" = { version = "3.13.1", bin = "shfmt" }
+"github:mvdan/sh" = { version = "3.14.1", bin = "shfmt" }
 
 # Node and npm tools
 # node is here because the npm: tools below need a Node runtime to execute.
-node = "22.22.0"
+node = "22.23.4"
 "npm:eslint" = "8.57.0"
 "npm:github-codeowners" = "0.2.1"
 # This opts out of the minimum_release_age below because this is a MongoDB project and we often need
 # to update to new versions.
-"npm:@mongodb-js/mongodb-runner" = { version = "8.4.1", minimum_release_age = "0d" }
-"npm:oxfmt" = "0.52.0"
+"npm:@mongodb-js/mongodb-runner" = { version = "8.4.3", minimum_release_age = "0d" }
+"npm:oxfmt" = "0.74.0"
 
 [settings]
 # This prevents us from upgrading to anything that was released less than 7 days ago. It gives us a
