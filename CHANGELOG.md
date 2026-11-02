@@ -1,5 +1,53 @@
 # Database Tools Changelog
 
+## 100.20.1
+
+_Released 2026-11-02_
+
+We are pleased to announce version 100.20.1 of the MongoDB Database Tools.
+
+This release hardens how the tools handle untrusted input and fixes several security issues, including
+path traversal and query-operator injection. It also prevents secrets from leaking into error messages
+and corrects the `uri` field in generated SARIF reports.
+
+The Database Tools are available on the
+[MongoDB Download Center](https://www.mongodb.com/try/download/database-tools). Installation
+instructions and documentation can be found on
+[docs.mongodb.com/database-tools](https://docs.mongodb.com/database-tools/). Questions and inquiries
+can be asked on the
+[MongoDB Developer Community Forum](https://developer.mongodb.com/community/forums/tags/c/developer-tools/49/database-tools).
+Please make sure to tag forum posts with `database-tools`. Bugs and feature requests can be reported
+in the [Database Tools Jira](https://jira.mongodb.org/browse/TOOLS) where a list of current issues
+can be found.
+
+### Bug
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4352'>TOOLS-4352</a>] -         mongorestore should reject crafted collection names that resolve to $admin.system. auth collections*
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4417'>TOOLS-4417</a>] -         Mongorestore should not unescape real collection names if filenames are truncated
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4448'>TOOLS-4448</a>] -         Mongoimport allows query-operator injection into the selector
+</li>
+</ul>
+
+### Task
+
+<ul>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4222'>TOOLS-4222</a>] -         Fix path traversal bypass in mongofiles get &lt;filename&gt;
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4415'>TOOLS-4415</a>] -         Mongofiles: treat server-returned &quot;-&quot; as a filename rather than stdout
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4422'>TOOLS-4422</a>] -         Mongodump: validate server-returned collection names to prevent path traversal
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4429'>TOOLS-4429</a>] -         Replace all uses of gopkg.in/yaml.v3 with github.com/goccy/go-yaml
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4439'>TOOLS-4439</a>] -         The &quot;uri&quot; field for SARIF entries shows only a filename, not the path to the file from the repo root
+</li>
+<li>[<a href='https://jira.mongodb.org/browse/TOOLS-4446'>TOOLS-4446</a>] -         Redact secrets from connection strings in error messages
+</li>
+</ul>
+
 ## 100.20.0
 
 _Released 2026-10-26_
