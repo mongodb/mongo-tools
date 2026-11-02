@@ -2113,6 +2113,150 @@ func TestImportModeUpsertFields(t *testing.T) {
 	})
 }
 
+// TestImportModeMatchesSelectorValuesLiterally checks that selectors built from
+// input file values only ever match those values literally, and can therefore
+// not be used to reach unrelated documents.
+func TestImportModeMatchesSelectorValuesLiterally(t *testing.T) {
+	const (
+		dbName   = "mongoimport_modes_literal_selectors_test"
+		collName = "c"
+	)
+
+	client := newImportTestClient(t, dbName)
+
+	coll := client.Database(dbName).Collection(collName)
+	ns := &options.Namespace{DB: dbName, Collection: collName}
+	dir := t.TempDir()
+
+	t.Run("mode=delete ignores an operator value", func(t *testing.T) {
+		if serverVersion(t).GTE(db.Version{8, 2, 0}) {
+			t.Skip(
+				"MongoDB 8.2 and later reject an _id equality predicate whose " +
+					"value cannot be stored in an _id",
+			)
+		}
+
+		importFile := writeJSONLinesFile(t, dir, "delete_operators.json", []map[string]any{
+			{"_id": map[string]any{"$ne": nil}},
+		})
+
+		require.NoError(t, coll.Drop(t.Context()))
+		_, err := coll.InsertMany(t.Context(), []any{
+			bson.D{{"_id", "one"}},
+			bson.D{{"_id", "two"}},
+		})
+		require.NoError(t, err)
+
+		err = importCollection(
+			t,
+			ns,
+			importFile,
+			IngestOptions{Mode: modeDelete, UpsertFields: "_id"},
+		)
+		require.NoError(t, err)
+
+		count, err := coll.CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			int64(2),
+			count,
+			"operator value from the input file must not delete documents",
+		)
+	})
+
+	t.Run("mode=delete ignores an operator value on another field", func(t *testing.T) {
+		importFile := writeJSONLinesFile(t, dir, "delete_operators_field.json", []map[string]any{
+			{"a": map[string]any{"$ne": nil}},
+		})
+
+		require.NoError(t, coll.Drop(t.Context()))
+		_, err := coll.InsertMany(t.Context(), []any{
+			bson.D{{"_id", "one"}, {"a", "keep"}},
+			bson.D{{"_id", "two"}, {"a", "keep two"}},
+		})
+		require.NoError(t, err)
+
+		err = importCollection(
+			t,
+			ns,
+			importFile,
+			IngestOptions{Mode: modeDelete, UpsertFields: "a"},
+		)
+		require.NoError(t, err)
+
+		count, err := coll.CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			int64(2),
+			count,
+			"operator value from the input file must not delete documents",
+		)
+	})
+
+	t.Run("mode=upsert still matches a subdocument value", func(t *testing.T) {
+		importFile := writeJSONLinesFile(t, dir, "subdocument_id.json", []map[string]any{
+			{"_id": map[string]any{"a": 1}, "x": "replaced"},
+		})
+
+		require.NoError(t, coll.Drop(t.Context()))
+		_, err := coll.InsertMany(t.Context(), []any{
+			bson.D{{"_id", bson.D{{"a", 1}}}, {"x", "original"}},
+		})
+		require.NoError(t, err)
+
+		err = importCollection(
+			t,
+			ns,
+			importFile,
+			IngestOptions{Mode: modeUpsert, UpsertFields: "_id"},
+		)
+		require.NoError(t, err)
+
+		count, err := coll.CountDocuments(t.Context(), bson.D{})
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), count, "subdocument _id must be matched, not inserted again")
+
+		var doc bson.M
+		require.NoError(
+			t,
+			coll.FindOne(t.Context(), bson.D{{"_id", bson.D{{"a", 1}}}}).Decode(&doc),
+		)
+		assert.Equal(t, "replaced", doc["x"], "subdocument _id match must replace the document")
+	})
+
+	t.Run("mode=upsert ignores a regular expression value", func(t *testing.T) {
+		importFile := writeTestFile(
+			t,
+			dir,
+			"regex_value.json",
+			`{"a": {"$regularExpression": {"pattern": ".*", "options": ""}}, "x": "attacker"}`+"\n",
+		)
+
+		require.NoError(t, coll.Drop(t.Context()))
+		_, err := coll.InsertMany(t.Context(), []any{
+			bson.D{{"_id", 1}, {"a", "keep"}, {"x", "original"}},
+			bson.D{{"_id", 2}, {"a", "keep two"}, {"x", "original"}},
+		})
+		require.NoError(t, err)
+
+		err = importCollection(
+			t,
+			ns,
+			importFile,
+			IngestOptions{Mode: modeUpsert, UpsertFields: "a"},
+		)
+		require.NoError(t, err)
+
+		cursor, err := coll.Find(t.Context(), bson.D{{"x", "original"}})
+		require.NoError(t, err)
+		var docs []bson.M
+		require.NoError(t, cursor.All(t.Context(), &docs))
+		assert.Len(t, docs, 2, "regex value from the input file must not replace documents")
+	})
+}
+
 // TestImportModeByID tests --mode without --upsertFields (matches on _id).
 func TestImportModeByID(t *testing.T) {
 	const (
@@ -2220,6 +2364,20 @@ func newImportTestClient(t *testing.T, dbName string) *mongo.Client {
 		sessionProvider.Close()
 	})
 	return client
+}
+
+// serverVersion returns the version of the server that the integration tests
+// run against.
+func serverVersion(t *testing.T) db.Version {
+	t.Helper()
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
+	require.NoError(t, err, "should get a session provider")
+
+	version, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err, "should get the server version")
+
+	return version
 }
 
 func importCollection(

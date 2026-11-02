@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -213,7 +214,6 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	metadataFullPath := ""
 
 	collName := ""
-	unescapedCollName := ""
 
 	fileType := UnknownFileType
 	var err error
@@ -252,26 +252,31 @@ func (restore *MongoRestore) getInfoFromFile(filename string) (string, FileType,
 	// (1) $admin.system.users
 	// (2) $admin.system.roles
 	// (3) $admin.system.version
+	fromMetadata := false
 	if strings.Contains(collName, "%24") && len(collName) == 238 {
 		collName, err = restore.getCollectionNameFromMetadata(metadataFullPath)
 		if err != nil {
 			return "", UnknownFileType, err
 		}
+		fromMetadata = true
 	}
 
-	// Unescape the finalized collection name and return it.
-	unescapedCollName, err = url.QueryUnescape(collName)
-	if err != nil {
-		return "", UnknownFileType, fmt.Errorf(
-			"error parsing collection name from filename %#q: %v",
-			baseFileName,
-			err,
-		)
+	// The name from a metadata file is the real collection name and must not be
+	// unescaped, since the real name may itself contain escape sequences.
+	if !fromMetadata {
+		collName, err = url.QueryUnescape(collName)
+		if err != nil {
+			return "", UnknownFileType, fmt.Errorf(
+				"error parsing collection name from filename %#q: %v",
+				baseFileName,
+				err,
+			)
+		}
 	}
-	return unescapedCollName, fileType, nil
+	return collName, fileType, nil
 }
 
-// getCollectionNameFromMetadata returns the escaped collection name from a metadata file on disk.
+// getCollectionNameFromMetadata returns the real collection name from a metadata file on disk.
 // It returns the collection name found in the metadata file under the `collectionName` field. This
 // is only valid for newer metadata files and metadata files with truncated names, as there may be
 // older metadata files that have no `collectionName` field.
@@ -428,6 +433,42 @@ func (restore *MongoRestore) CreateIntentForOplog() error {
 	return nil
 }
 
+var authCollections = []string{
+	intents.FauxUsersCollection,
+	intents.FauxRolesCollection,
+	intents.FauxAuthVersionCollection,
+}
+
+// validateDumpCollectionName rejects collection names that no mongodump could
+// have written. Their presence indicates a hand-assembled archive, and the faux
+// auth collections would otherwise be merged into admin.system.users.
+func validateDumpCollectionName(db string, collection string) error {
+	if collection == "" {
+		return fmt.Errorf("found empty collection name; this dump may be corrupted")
+	}
+	if slices.Contains(authCollections, collection) {
+		if db == "admin" {
+			return fmt.Errorf(
+				"found special collection %#q in a dump of the admin database; this dump may be corrupted",
+				collection,
+			)
+		}
+		return nil
+	}
+
+	invalid := strings.ContainsAny(collection, util.InvalidCollectionChars) ||
+		strings.HasPrefix(collection, common.TimeseriesBucketPrefix+"system.")
+
+	if invalid {
+		return fmt.Errorf(
+			"found collection with an invalid name, %#q; this dump may be corrupted",
+			collection,
+		)
+	}
+
+	return nil
+}
+
 // CreateIntentsForDB drills down into the dir folder, creating intents
 // for all of the collection dump files it finds for the db database.
 func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) (err error) {
@@ -452,39 +493,47 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 			switch fileType {
 			case BSONFileType:
 				var skip bool
-				// Dumps of a single database (i.e. with the -d flag) may contain special
-				// db-specific files that start with a "$" (for example, $admin.system.users
-				// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
-				// If these special files manage to be included in a dump directory during a full
-				// (multi-db) restore, we should ignore them.
-				if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" &&
-					strings.HasPrefix(collection, "$") {
-					log.Logvf(
-						log.DebugLow,
-						"not restoring special collection %#q",
-						db+"."+collection,
-					)
-					skip = true
+
+				if err := validateDumpCollectionName(db, collection); err != nil {
+					return err
 				}
-				// TOOLS-717: disallow restoring to the system.profile collection.
-				// Server versions >= 3.0.3 disallow user inserts to system.profile so
-				// it would likely fail anyway.
-				if collection == "system.profile" {
-					log.Logvf(
-						log.DebugLow,
-						"skipping restore of system.profile collection in %#q",
-						db,
-					)
-					skip = true
-				}
-				// system.indexes was only written by dumps from servers older than
-				// 3.0, which are no longer supported. Index information now comes
-				// from .metadata.json files.
-				if collection == "system.indexes" {
-					log.Logvf(log.Always,
-						"not restoring system.indexes collection in database %#q; "+
-							"restoring dumps from servers older than 4.2 is not supported", db)
-					skip = true
+
+				switch {
+				case slices.Contains(authCollections, collection):
+					// Dumps of a single database (i.e. with the -d flag) may contain special
+					// db-specific files that start with a "$" (for example, $admin.system.users
+					// holds the users for a database that was dumped with --dumpDbUsersAndRoles enabled).
+					// If these special files manage to be included in a dump directory during a full
+					// (multi-db) restore, we should ignore them.
+					if restore.ToolOptions.Namespace != nil && restore.ToolOptions.DB == "" {
+						log.Logvf(
+							log.DebugLow,
+							"not restoring db-specific auth collection %#q",
+							db+"."+collection,
+						)
+						skip = true
+					}
+				default:
+					// TOOLS-717: disallow restoring to the system.profile collection.
+					// Server versions >= 3.0.3 disallow user inserts to system.profile so
+					// it would likely fail anyway.
+					if collection == "system.profile" {
+						log.Logvf(
+							log.DebugLow,
+							"skipping restore of system.profile collection in %#q",
+							db,
+						)
+						skip = true
+					}
+					// system.indexes was only written by dumps from servers older than
+					// 3.0, which are no longer supported. Index information now comes
+					// from .metadata.json files.
+					if collection == "system.indexes" {
+						log.Logvf(log.Always,
+							"not restoring system.indexes collection in database %#q; "+
+								"restoring dumps from servers older than 4.2 is not supported", db)
+						skip = true
+					}
 				}
 
 				checkSourceNS := db + "." + strings.TrimPrefix(
@@ -508,6 +557,7 @@ func (restore *MongoRestore) CreateIntentsForDB(db string, dir archive.DirLike) 
 					)
 					skip = true
 				}
+
 				destNS := restore.renamer.Get(sourceNS)
 				destDB, destC := util.SplitNamespace(destNS)
 				destC = strings.TrimPrefix(destC, common.TimeseriesBucketPrefix)
@@ -682,6 +732,12 @@ func (restore *MongoRestore) CreateIntentForCollection(
 		return fmt.Errorf("file %#q does not have .bson or .bson.gz extension", bsonFile.Path())
 	}
 
+	// This must happen before the bucket prefix is stripped below, since
+	// stripping it is what turns a crafted name into a faux auth collection.
+	if err := validateDumpCollectionName(db, collection); err != nil {
+		return err
+	}
+
 	var isTimeseries bool
 	if strings.HasPrefix(bsonFile.Name(), common.TimeseriesBucketPrefix) {
 		isTimeseries = true
@@ -805,7 +861,10 @@ func (restore *MongoRestore) handleBSONInsteadOfDirectory(path string) error {
 			restore.ToolOptions.DB,
 		)
 	}
-	return nil
+
+	// An inferred name never passed through the --collection validation in
+	// ParseAndValidateOptions, so it gets checked here instead.
+	return validateDumpCollectionName(restore.ToolOptions.DB, restore.ToolOptions.Collection)
 }
 
 type actualPath struct {

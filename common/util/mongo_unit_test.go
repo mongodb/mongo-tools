@@ -127,6 +127,17 @@ func TestInvalidNames(t *testing.T) {
 	t.Run("[empty] is invalid", func(t *testing.T) {
 		require.Error(t, ValidateFullNamespace(""))
 	})
+	t.Run("[dot] is invalid", func(t *testing.T) {
+		require.Error(t, ValidateCollectionGrammar("."), "'.' should be rejected")
+		require.Error(t, ValidateCollectionGrammar(".."), "'..' should be rejected")
+		require.Error(t, ValidateCollectionGrammar(".hidden"), "leading dot should be rejected")
+		require.Error(t, ValidateCollectionName(".."), "'..' should be rejected")
+		require.Error(t, ValidateFullNamespace("db.."), "'db..' should be rejected")
+	})
+	t.Run("db.coll/name is valid", func(t *testing.T) {
+		require.NoError(t, ValidateCollectionGrammar("coll/name"))
+		require.NoError(t, ValidateFullNamespace("db.coll/name"))
+	})
 	t.Run("db.col is valid", func(t *testing.T) {
 		require.NoError(t, ValidateDBName("db"))
 		require.NoError(t, ValidateCollectionName("col"))

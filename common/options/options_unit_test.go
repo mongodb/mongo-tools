@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
@@ -899,6 +900,143 @@ func TestParseConfigFile(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, "ghi789", opts.Password)
 		})
+	})
+}
+
+// A conflict between a secret option in the URI and on the command line must not put either value
+// into the error, because the error is logged by the tools.
+func TestConflictingArgsErrorRedactsSecrets(t *testing.T) {
+	testCases := []struct {
+		description string
+		args        []string
+		secrets     []string
+	}{
+		{
+			"ssl PEM key password",
+			[]string{
+				"--uri",
+				"mongodb://user:pass@host/?tlsCertificateKeyFilePassword=uriSecret",
+				"--sslPEMKeyPassword",
+				"cliSecret",
+			},
+			[]string{"uriSecret", "cliSecret"},
+		},
+		{
+			"AWS session token",
+			[]string{
+				"--uri",
+				"mongodb://user:pass@host/?authMechanism=MONGODB-AWS&authMechanismProperties=AWS_SESSION_TOKEN:uriSecret",
+				"--awsSessionToken",
+				"cliSecret",
+			},
+			[]string{"uriSecret", "cliSecret"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.description, func(t *testing.T) {
+			toolOptions := New(
+				"test",
+				"",
+				"",
+				"",
+				true,
+				EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true},
+			)
+
+			_, err := toolOptions.ParseArgs(testCase.args)
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), util.RedactedValue, "the error shows a redacted value")
+			for _, secret := range testCase.secrets {
+				require.NotContains(t, err.Error(), secret, "the error does not expose a secret")
+			}
+		})
+	}
+}
+
+// A conflict on a non-secret option must still show the conflicting values.
+func TestConflictingArgsErrorKeepsNonSecretValues(t *testing.T) {
+	toolOptions := New(
+		"test",
+		"",
+		"",
+		"",
+		true,
+		EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true},
+	)
+
+	_, err := toolOptions.ParseArgs([]string{"--db", "cliDB", "--uri", "mongodb://host/uriDB"})
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cliDB")
+	require.Contains(t, err.Error(), "uriDB")
+	require.NotContains(t, err.Error(), util.RedactedValue)
+}
+
+// A connection string parse error must not quote a malformed credential value.
+func TestConnectionStringParseErrorRedactsSecrets(t *testing.T) {
+	testCases := []struct {
+		description string
+		args        []string
+		secret      string
+	}{
+		{
+			"secret in the --uri option",
+			[]string{"--uri", "mongodb://user:pass@host/?tlsCertificateKeyFilePassword=key%ZZ"},
+			"key%ZZ",
+		},
+		{
+			"secret in a positional URI",
+			[]string{"mongodb://user:pass@host/?tlsCertificateKeyFilePassword=key%ZZ"},
+			"key%ZZ",
+		},
+		{
+			"secret in authMechanismProperties",
+			[]string{
+				"--uri",
+				"mongodb://user:pass@host/?authMechanismProperties=AWS_SESSION_TOKEN:tok%ZZ",
+			},
+			"tok%ZZ",
+		},
+		{
+			"secret followed by a semicolon-separated option",
+			[]string{
+				"--uri",
+				"mongodb://user:pass@host/?tlsCertificateKeyFilePassword=key%ZZ;appName=app",
+			},
+			"key%ZZ",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.description, func(t *testing.T) {
+			toolOptions := New(
+				"test",
+				"",
+				"",
+				"",
+				true,
+				EnabledOptions{Auth: true, Connection: true, Namespace: true, URI: true},
+			)
+
+			_, err := toolOptions.ParseArgs(testCase.args)
+
+			require.Error(t, err)
+			require.NotContains(
+				t,
+				err.Error(),
+				testCase.secret,
+				"the error does not expose a secret",
+			)
+		})
+	}
+
+	t.Run("NewURI", func(t *testing.T) {
+		_, err := NewURI("mongodb://host/?tlsCertificateKeyFilePassword=key%ZZ")
+
+		require.Error(t, err)
+		require.NotContains(t, err.Error(), "key%ZZ", "the error does not expose a secret")
 	})
 }
 

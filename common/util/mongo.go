@@ -203,6 +203,11 @@ func ValidateCollectionGrammar(collection string) error {
 		return fmt.Errorf("collection name cannot be an empty string")
 	}
 
+	// collection names cannot begin with a dot
+	if collection[0] == '.' {
+		return fmt.Errorf("collection name %#q cannot begin with a '.'", collection)
+	}
+
 	// check for illegal characters
 	for _, illegalRune := range InvalidCollectionChars {
 		if strings.ContainsRune(collection, illegalRune) {

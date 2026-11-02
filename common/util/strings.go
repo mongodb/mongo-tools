@@ -7,12 +7,17 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
 )
+
+// RedactedValue replaces credentials in sanitized strings.
+const RedactedValue = "[**REDACTED**]"
 
 // Pluralize takes an amount and two strings denoting the singular
 // and plural noun the amount represents. If the amount is singular,
@@ -35,8 +40,75 @@ func QuoteAndJoin(ss []string, sep string) string {
 	}), sep)
 }
 
-var uriRedactionRE = regexp.MustCompile(`^([^:]+)://[^/?]*@`)
+var (
+	uriRedactionRE = regexp.MustCompile(`^([^:]+)://[^/?]*@`)
 
+	// Connection strings may carry credentials in query parameters, e.g.
+	// tlsCertificateKeyFilePassword or an AWS_SESSION_TOKEN inside
+	// authMechanismProperties. Match these directly instead of parsing the URL
+	// because SanitizeURI is also used on strings that do not parse.
+	uriSecretQueryRE = regexp.MustCompile(
+		`(?i)([?&;](?:[^=&#;]*(?:password|secret|token|credential)[^=&#;]*|authmechanismproperties)=)[^&#;]*`,
+	)
+
+	// uriSecretValueRE captures the raw value of a secret query parameter so it
+	// can be redacted from an error message that quotes just the value.
+	uriSecretValueRE = regexp.MustCompile(
+		`(?i)[?&;](?:[^=&#;]*(?:password|secret|token|credential)[^=&#;]*|authmechanismproperties)=([^&#;]*)`,
+	)
+)
+
+// SanitizeURI returns u with credentials replaced by RedactedValue. It handles
+// both userinfo credentials and credentials in query parameters.
 func SanitizeURI(u string) string {
-	return uriRedactionRE.ReplaceAllString(u, "$1://[**REDACTED**]@")
+	return sanitizeURI(u, u)
+}
+
+// SanitizeURIError returns err with any secrets taken from uri removed from its
+// message. Use this instead of SanitizeURI when the text is an error message
+// that may quote individual values from uri rather than the URI itself. For
+// example, a connection string parsing error can quote the raw value of a
+// malformed credential.
+func SanitizeURIError(err error, uri string) error {
+	if err == nil {
+		return nil
+	}
+
+	return errors.New(sanitizeURI(err.Error(), uri))
+}
+
+func sanitizeURI(text, uri string) string {
+	// Replace an embedded URI wholesale first, because error messages such as
+	// url.Parse errors quote the whole URI rather than just a secret value.
+	if uri != "" {
+		text = strings.ReplaceAll(text, uri, redactURIParts(uri))
+	}
+	text = redactURIParts(text)
+
+	// Replace longer values first so that a value that contains another secret
+	// is redacted completely.
+	for _, secret := range uriSecretValues(uri) {
+		text = strings.ReplaceAll(text, secret, RedactedValue)
+	}
+
+	return text
+}
+
+func redactURIParts(uri string) string {
+	uri = uriRedactionRE.ReplaceAllString(uri, "$1://"+RedactedValue+"@")
+	return uriSecretQueryRE.ReplaceAllString(uri, "$1"+RedactedValue)
+}
+
+func uriSecretValues(uri string) []string {
+	var secrets []string
+	for _, match := range uriSecretValueRE.FindAllStringSubmatch(uri, -1) {
+		if len(match[1]) > 0 {
+			secrets = append(secrets, match[1])
+		}
+	}
+
+	slices.SortFunc(secrets, func(a, b string) int {
+		return len(b) - len(a)
+	})
+	return secrets
 }

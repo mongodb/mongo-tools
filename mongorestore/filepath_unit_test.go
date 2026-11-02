@@ -10,6 +10,7 @@ package mongorestore
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,6 +21,8 @@ import (
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongorestore/ns"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -609,5 +612,51 @@ func TestCreateIntentsForLongCollectionName(t *testing.T) {
 				})
 			},
 		)
+	})
+}
+
+func TestGetInfoFromFileCollectionName(t *testing.T) {
+	// A real collection name that contains a URL escape sequence, which must be
+	// preserved when it is read from a metadata file.
+	const realName = "test%5Fcollection"
+
+	t.Run("truncated file name uses the metadata name without unescaping", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Dump file names are truncated to 238 bytes:
+		// 208 bytes of escaped name + 3 byte %24 delimiter + 27 byte hash.
+		truncatedName := strings.Repeat("a", 208) + "%24xFO0VquRn7cg3QooSZD5sglTddU"
+		require.Len(t, truncatedName, 238)
+
+		metadataPath := filepath.Join(dir, truncatedName+".metadata.json")
+		bsonPath := filepath.Join(dir, truncatedName+".bson")
+		require.NoError(
+			t,
+			os.WriteFile(metadataPath, []byte(`{"collectionName":"`+realName+`"}`), 0o600),
+		)
+		require.NoError(t, os.WriteFile(bsonPath, nil, 0o600))
+
+		mr := newMongoRestore()
+
+		name, fileType, err := mr.getInfoFromFile(bsonPath)
+		require.NoError(t, err)
+		assert.Equal(t, BSONFileType, fileType, "file type for a .bson file")
+		assert.Equal(t, realName, name, "collection name from a truncated .bson file")
+
+		name, fileType, err = mr.getInfoFromFile(metadataPath)
+		require.NoError(t, err)
+		assert.Equal(t, MetadataFileType, fileType, "file type for a .metadata.json file")
+		assert.Equal(t, realName, name, "collection name from a truncated .metadata.json file")
+	})
+
+	t.Run("non-truncated file name is still unescaped", func(t *testing.T) {
+		dir := t.TempDir()
+		bsonPath := filepath.Join(dir, realName+".bson")
+		require.NoError(t, os.WriteFile(bsonPath, nil, 0o600))
+
+		name, fileType, err := newMongoRestore().getInfoFromFile(bsonPath)
+		require.NoError(t, err)
+		assert.Equal(t, BSONFileType, fileType, "file type for a .bson file")
+		assert.Equal(t, "test_collection", name, "collection name unescaped from a file name")
 	})
 }

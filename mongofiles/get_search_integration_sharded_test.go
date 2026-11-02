@@ -9,6 +9,7 @@
 package mongofiles
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,6 +21,40 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+func TestGetServerFileNameDashDoesNotUseStdout(t *testing.T) {
+	client := emptyGridFSClient(t)
+
+	contents := []byte("contents of a GridFS file named dash")
+	_, err := client.Database(testDB).
+		GridFSBucket().
+		UploadFromStream(t.Context(), "-", bytes.NewReader(contents))
+	require.NoError(t, err, `can store a GridFS file named "-"`)
+
+	// Work in a temporary directory so the file named "-" does not collide
+	// with anything in the repository.
+	t.Chdir(t.TempDir())
+
+	mf := mongoFilesWithStorageOptions(t, "get", StorageOptions{})
+	mf.FileName = "-"
+
+	captured := captureStdout(t, func() {
+		_, err := mf.Run(false)
+		require.NoError(t, err, `a get of a GridFS file named "-" succeeds`)
+	})
+
+	// A server-returned "-" is a filename, not a request to write to stdout.
+	assert.NotContains(
+		t,
+		string(captured),
+		string(contents),
+		`the file's contents are not written to stdout`,
+	)
+
+	got, err := os.ReadFile("-")
+	require.NoError(t, err, `a local file named "-" is created`)
+	assert.Equal(t, contents, got, `the local file named "-" holds the file's contents`)
+}
 
 func TestGetToStdout(t *testing.T) {
 	emptyGridFSClient(t)

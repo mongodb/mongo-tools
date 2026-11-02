@@ -180,13 +180,13 @@ func TestConstructUpsertDocument(t *testing.T) {
 			upsertFields := []string{"a"}
 			upsertDocument := constructUpsertDocument(upsertFields,
 				bsonDocument)
-			So(upsertDocument, ShouldResemble, bsonDocument)
+			So(upsertDocument, ShouldResemble, bson.D{{"a", bson.D{{"$eq", 3}}}})
 		})
 		Convey("the key/value combination in the upsert document should be "+
 			"correct for unnested documents with several fields", func() {
 			bsonDocument := bson.D{{"a", 3}, {"b", "string value"}}
 			upsertFields := []string{"a"}
-			expectedDocument := bson.D{{"a", 3}}
+			expectedDocument := bson.D{{"a", bson.D{{"$eq", 3}}}}
 			upsertDocument := constructUpsertDocument(upsertFields,
 				bsonDocument)
 			So(upsertDocument, ShouldResemble, expectedDocument)
@@ -196,7 +196,7 @@ func TestConstructUpsertDocument(t *testing.T) {
 			inner := bson.D{{testCollection, 4}}
 			bsonDocument := bson.D{{"a", inner}, {"b", "string value"}}
 			upsertFields := []string{"a.c"}
-			expectedDocument := bson.D{{"a.c", 4}}
+			expectedDocument := bson.D{{"a.c", bson.D{{"$eq", 4}}}}
 			upsertDocument := constructUpsertDocument(upsertFields,
 				bsonDocument)
 			So(upsertDocument, ShouldResemble, expectedDocument)
@@ -207,6 +207,43 @@ func TestConstructUpsertDocument(t *testing.T) {
 			upsertFields := []string{testCollection}
 			upsertDocument := constructUpsertDocument(upsertFields, bsonDocument)
 			So(upsertDocument, ShouldBeNil)
+		})
+		Convey("an input document value containing query operators should be "+
+			"matched literally", func() {
+			bsonDocument := bson.D{{"_id", bson.D{{"$ne", nil}}}}
+			upsertDocument := constructUpsertDocument([]string{"_id"}, bsonDocument)
+			So(upsertDocument, ShouldResemble,
+				bson.D{{"_id", bson.D{{"$eq", bson.D{{"$ne", nil}}}}}})
+		})
+		Convey("an input nested field value containing query operators should "+
+			"be matched literally", func() {
+			operator := bson.D{{"$gt", ""}}
+			bsonDocument := bson.D{{"a", bson.D{{"b", operator}}}}
+			upsertDocument := constructUpsertDocument([]string{"a.b"}, bsonDocument)
+			So(upsertDocument, ShouldResemble,
+				bson.D{{"a.b", bson.D{{"$eq", operator}}}})
+		})
+		Convey("a document value with no query operators should be matched "+
+			"literally", func() {
+			bsonDocument := bson.D{{"_id", bson.D{{"a", 3}}}}
+			upsertDocument := constructUpsertDocument([]string{"_id"}, bsonDocument)
+			So(upsertDocument, ShouldResemble,
+				bson.D{{"_id", bson.D{{"$eq", bson.D{{"a", 3}}}}}})
+		})
+		Convey("a regular expression value should be matched literally", func() {
+			regex := bson.Regex{Pattern: ".*"}
+			bsonDocument := bson.D{{"_id", regex}}
+			upsertDocument := constructUpsertDocument([]string{"_id"}, bsonDocument)
+			So(upsertDocument, ShouldResemble,
+				bson.D{{"_id", bson.D{{"$eq", regex}}}})
+		})
+		Convey("every field of a compound key should be matched literally", func() {
+			bsonDocument := bson.D{{"a", 3}, {"b", bson.D{{"$ne", nil}}}}
+			upsertDocument := constructUpsertDocument([]string{"a", "b"}, bsonDocument)
+			So(upsertDocument, ShouldResemble, bson.D{
+				{"a", bson.D{{"$eq", 3}}},
+				{"b", bson.D{{"$eq", bson.D{{"$ne", nil}}}}},
+			})
 		})
 	})
 }

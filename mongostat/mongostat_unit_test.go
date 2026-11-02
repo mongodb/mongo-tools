@@ -31,6 +31,14 @@ func readBSONFile(file string, t *testing.T) (stat *status.ServerStatus) {
 	return
 }
 
+func TestRewriteURIRedactsCredentialsOnError(t *testing.T) {
+	_, err := rewriteURI("mongodb://user:pass%ZZ@host/", "other:27017")
+
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "user:pass", "the error does not expose the credentials")
+	require.NotContains(t, err.Error(), "pass%ZZ", "the error does not expose the password")
+}
+
 func TestStatLine(t *testing.T) {
 	defaultHeaders := make([]string, len(line.CondHeaders))
 	for i, h := range line.CondHeaders {

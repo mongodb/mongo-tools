@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/db"
@@ -221,6 +222,13 @@ func (mf *MongoFiles) getLocalFileName(gridFile *gfsFile) string {
 	return localFileName
 }
 
+// shouldUseStdio reports whether the user asked for stdin/stdout by passing
+// "-" to --local. A GridFS file named "-" must not be mistaken for stdio, so
+// the flag itself has to be checked rather than the resolved local filename.
+func (mf *MongoFiles) shouldUseStdio() bool {
+	return mf.StorageOptions.LocalFileName == "-"
+}
+
 // handleGet contains the logic for the 'get' and 'get_id' commands.
 func (mf *MongoFiles) handleGet() (err error) {
 	files, err := mf.getTargetGFSFiles()
@@ -310,40 +318,13 @@ func (mf *MongoFiles) getTargetGFSFiles() ([]*gfsFile, error) {
 		return nil, err
 	}
 
-	if len(mf.FileNameList) == 0 {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return nil, errors.Wrap(err, "getting working directory")
-		}
-
-		for _, gf := range gridFiles {
-			absPath, err := filepath.Abs(gf.Name)
-			if err != nil {
-				return nil, errors.Wrapf(err, "determining %#q’s absolute path", gf.Name)
-			}
-
-			// 1. Find the relative path from the current directory to the file
-			rel, err := filepath.Rel(cwd, absPath)
-			if err != nil {
-				return nil, errors.Wrapf(err, "calculating relative path for %#q", gf.Name)
-			}
-
-			// 2. IsLocal guarantees the relative path doesn't escape the cwd
-			//    and isn't a malicious Windows device name.
-			if !filepath.IsLocal(rel) {
-				if mf.StorageOptions.AllowUnsafeTraversal {
-					log.Logvf(
-						log.Always,
-						"WARNING: %#q lies outside the current directory. Restoring anyway per configuration.",
-						gf.Name,
-					)
-				} else {
-					return nil, fmt.Errorf(
-						"%#q lies outside the current directory; set --allowUnsafeTraversal if you really want to write to that path",
-						gf.Name,
-					)
-				}
-			}
+	for _, gf := range gridFiles {
+		if len(mf.FileNameList) > 0 && !slices.Contains(mf.FileNameList, gf.Name) {
+			return nil, fmt.Errorf(
+				"server returned file %#q, which was not requested; expected one of: %v",
+				gf.Name,
+				util.QuoteAndJoin(mf.FileNameList, ", "),
+			)
 		}
 	}
 
@@ -430,18 +411,10 @@ func (mf *MongoFiles) parseOrCreateID() (any, error) {
 func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 	localFileName := mf.getLocalFileName(gridFile)
 	var localFile io.WriteCloser
-	if localFileName == "-" {
+	if mf.shouldUseStdio() {
 		localFile = os.Stdout
 	} else {
-		if mf.StorageOptions.OverwriteLocal {
-			localFile, err = os.Create(localFileName)
-		} else {
-			localFile, err = os.OpenFile(
-				localFileName,
-				os.O_CREATE|os.O_EXCL|os.O_RDWR,
-				0o666,
-			)
-		}
+		localFile, err = mf.openLocalFileForWriting(localFileName)
 
 		if err != nil {
 			if errors.Is(err, os.ErrExist) {
@@ -472,6 +445,62 @@ func (mf *MongoFiles) writeGFSFileToLocal(gridFile *gfsFile) (err error) {
 	return nil
 }
 
+// openLocalFileForWriting opens the local file that a GridFS file will be
+// written to. A name that came from the server rather than the user is
+// confined to the current directory via os.Root, which also rejects symlinks
+// that point outside of it.
+func (mf *MongoFiles) openLocalFileForWriting(localFileName string) (*os.File, error) {
+	flags := os.O_CREATE | os.O_RDWR | os.O_TRUNC
+	if !mf.StorageOptions.OverwriteLocal {
+		flags = os.O_CREATE | os.O_EXCL | os.O_RDWR
+	}
+
+	userChoseName := mf.StorageOptions.LocalFileName != "" || len(mf.FileNameList) > 0
+	if userChoseName {
+		return os.OpenFile(localFileName, flags, 0o666)
+	}
+
+	if mf.StorageOptions.AllowUnsafeTraversal {
+		if !filepath.IsLocal(localFileName) {
+			log.Logvf(
+				log.Always,
+				"WARNING: %#q lies outside the current directory. Writing anyway per configuration.",
+				localFileName,
+			)
+		}
+		return os.OpenFile(localFileName, flags, 0o666)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, errors.Wrap(err, "getting working directory")
+	}
+
+	// os.Root rejects all absolute paths, even ones inside the root.
+	rootRelName := localFileName
+	if filepath.IsAbs(localFileName) {
+		if rel, err := filepath.Rel(cwd, localFileName); err == nil {
+			rootRelName = rel
+		}
+	}
+
+	root, err := os.OpenRoot(cwd)
+	if err != nil {
+		return nil, errors.Wrap(err, "opening current directory")
+	}
+	defer root.Close()
+
+	file, err := root.OpenFile(rootRelName, flags, 0o666)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		return nil, fmt.Errorf(
+			"%w; if %#q lies outside the current directory, set --allowUnsafeTraversal if you really want to write to that path",
+			err,
+			localFileName,
+		)
+	}
+	return file, err
+}
+
 // Write the given GridFS file to the database. Will fail if file already exists and --replace flag turned off.
 func (mf *MongoFiles) put(
 	baseCtx context.Context,
@@ -486,7 +515,7 @@ func (mf *MongoFiles) put(
 	localFileName := mf.getLocalFileName(gridFile)
 
 	var localFile io.ReadCloser
-	if localFileName == "-" {
+	if mf.shouldUseStdio() {
 		localFile = os.Stdin
 	} else {
 		localFile, err = os.Open(localFileName)

@@ -27,6 +27,7 @@ import (
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/youmark/pkcs8"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -123,7 +124,11 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	}
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %s: %v", opts.ParsedConnString(), err)
+		return nil, fmt.Errorf(
+			"failed to connect to %s: %v",
+			util.SanitizeURI(opts.ConnectionString),
+			util.SanitizeURIError(err, opts.ConnectionString),
+		)
 	}
 
 	// create the provider

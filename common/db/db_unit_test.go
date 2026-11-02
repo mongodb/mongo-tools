@@ -350,6 +350,32 @@ func parseTestCertificate(t *testing.T, path string) *x509.Certificate {
 	return cert
 }
 
+func TestNewSessionProviderRedactsConnectionString(t *testing.T) {
+	enabled := options.EnabledOptions{
+		Auth:       true,
+		Connection: true,
+		Namespace:  true,
+		URI:        true,
+	}
+
+	toolOptions := options.New("test", "", "", "", true, enabled)
+	_, err := toolOptions.ParseArgs([]string{
+		"--uri",
+		"mongodb://user:S3cr3tP%40ss@127.0.0.1:1/db?tlsCertificateKeyFilePassword=keySecretXYZ",
+		"--serverSelectionTimeout=1",
+	})
+	require.NoError(t, err)
+
+	_, err = NewSessionProvider(*toolOptions)
+	require.Error(t, err)
+
+	assert.NotContains(t, err.Error(), "S3cr3tP", "error must not contain the password")
+	assert.NotContains(
+		t, err.Error(), "keySecretXYZ", "error must not contain a query-string secret",
+	)
+	assert.Contains(t, err.Error(), "[**REDACTED**]", "error shows a redacted connection string")
+}
+
 func TestConfigureClientForSRV(t *testing.T) {
 	enabled := options.EnabledOptions{
 		Auth:       true,

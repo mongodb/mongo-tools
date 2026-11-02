@@ -44,10 +44,24 @@ func ConflictingArgsErrorFormat(optionName, uriValue, cliValue, cliOptionName st
 	return fmt.Errorf(
 		"Invalid Options: Cannot specify different %s in connection URI and command-line option %#q was specified in the URI and %#q was specified in the %s option",
 		optionName,
-		uriValue,
-		cliValue,
+		redactOptionValue(optionName, uriValue),
+		redactOptionValue(optionName, cliValue),
 		cliOptionName,
 	)
+}
+
+// redactOptionValue hides values of options that carry credentials and sanitizes
+// any connection-string-shaped values for all other options.
+func redactOptionValue(optionName, value string) string {
+	lowerOptionName := strings.ToLower(optionName)
+	if strings.Contains(lowerOptionName, "password") ||
+		strings.Contains(lowerOptionName, "secret") ||
+		strings.Contains(lowerOptionName, "token") ||
+		strings.Contains(lowerOptionName, "credential") {
+		return util.RedactedValue
+	}
+
+	return util.SanitizeURI(value)
 }
 
 const deprecationWarningSSLAllow = "WARNING: --sslAllowInvalidCertificates and --sslAllowInvalidHostnames are deprecated, please use --tlsInsecure instead"
@@ -422,7 +436,11 @@ func (ssl *SSL) pemKeyFileHasEncryptedKey() (bool, error) {
 func NewURI(unparsed string) (*URI, error) {
 	cs, err := connstring.Parse(unparsed)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing URI from %v: %v", unparsed, err)
+		return nil, fmt.Errorf(
+			"error parsing URI from %v: %v",
+			util.SanitizeURI(unparsed),
+			util.SanitizeURIError(err, unparsed),
+		)
 	}
 	return &URI{ConnectionString: cs.String(), ConnString: cs}, nil
 }
@@ -680,7 +698,7 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 		} else if err.Error() == "error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"" {
 			newArgs = append(newArgs, arg)
 		} else {
-			return []string{}, err
+			return []string{}, util.SanitizeURIError(err, arg)
 		}
 	}
 
@@ -715,7 +733,7 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 
 	cs, err := connstring.Parse(opts.ConnectionString)
 	if err != nil {
-		return err
+		return util.SanitizeURIError(err, opts.ConnectionString)
 	}
 	err = opts.setOptionsFromURI(cs)
 	if err != nil {

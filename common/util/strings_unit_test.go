@@ -3,6 +3,7 @@
 package util
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,12 +77,67 @@ func TestSanitizeURI(t *testing.T) {
 		{"mongodb+srv://user:@example.com/", "mongodb+srv://[**REDACTED**]@example.com/"},
 		{"mongodb+srv://:pass@example.com/", "mongodb+srv://[**REDACTED**]@example.com/"},
 		{"mongodb+srv://user:pass@example.com/", "mongodb+srv://[**REDACTED**]@example.com/"},
+		{
+			"mongodb://user:pass@example.com/db?tlsCertificateKeyFilePassword=keySecretXYZ",
+			"mongodb://[**REDACTED**]@example.com/db?tlsCertificateKeyFilePassword=[**REDACTED**]",
+		},
+		{
+			"mongodb://example.com/db?tls=true&sslClientCertificateKeyPassword=keySecretXYZ",
+			"mongodb://example.com/db?tls=true&sslClientCertificateKeyPassword=[**REDACTED**]",
+		},
+		{
+			"mongodb://example.com/db?AuthMechanismProperties=AWS_SESSION_TOKEN:token",
+			"mongodb://example.com/db?AuthMechanismProperties=[**REDACTED**]",
+		},
+		{
+			"mongodb://example.com/db?appName=password",
+			"mongodb://example.com/db?appName=password",
+		},
 	}
 
 	for _, c := range cases {
-		got := SanitizeURI(c[0])
-		if got != c[1] {
-			t.Errorf("For %s: got: %s; wanted: %s", c[0], got, c[1])
-		}
+		assert.Equal(t, c[1], SanitizeURI(c[0]), c[0])
 	}
+}
+
+func TestSanitizeURIError(t *testing.T) {
+	cases := []struct {
+		description string
+		err         error
+		uri         string
+		expected    string
+	}{
+		{
+			"quoted query secret",
+			errors.New(`invalid option value "key%ZZ": invalid URL escape "%ZZ"`),
+			"mongodb://user:pass@example.com/db?tlsCertificateKeyFilePassword=key%ZZ",
+			`invalid option value "[**REDACTED**]": invalid URL escape "%ZZ"`,
+		},
+		{
+			"quoted authMechanismProperties secret",
+			errors.New(`invalid option value "AWS_SESSION_TOKEN:tok%ZZ": invalid URL escape "%ZZ"`),
+			"mongodb://user:pass@example.com/db?authMechanismProperties=AWS_SESSION_TOKEN:tok%ZZ",
+			`invalid option value "[**REDACTED**]": invalid URL escape "%ZZ"`,
+		},
+		{
+			"embedded URI",
+			errors.New(`parse "mongodb://user:pass%ZZ@example.com/": invalid URL escape "%ZZ"`),
+			"mongodb://user:pass%ZZ@example.com/",
+			`parse "mongodb://[**REDACTED**]@example.com/": invalid URL escape "%ZZ"`,
+		},
+		{
+			"no secret",
+			errors.New("some other error"),
+			"mongodb://example.com/",
+			"some other error",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.description, func(t *testing.T) {
+			assert.Equal(t, c.expected, SanitizeURIError(c.err, c.uri).Error())
+		})
+	}
+
+	assert.NoError(t, SanitizeURIError(nil, "mongodb://example.com/"))
 }

@@ -132,6 +132,11 @@ func newBomDiscardingReader(r io.Reader) *bomDiscardingReader {
 }
 
 // constructUpsertDocument constructs a BSON document to use for upserts.
+//
+// Every value is wrapped in $eq so that it is always matched as a literal
+// value. Without the wrapper the server reads a document value such as
+// {"$ne": null} as a query operator, which would let input file contents
+// select unrelated documents in --mode=upsert, --mode=merge, and --mode=delete.
 func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 	upsertDocument := bson.D{}
 	var hasDocumentKey bool
@@ -140,7 +145,10 @@ func constructUpsertDocument(upsertFields []string, document bson.D) bson.D {
 		if val != nil {
 			hasDocumentKey = true
 		}
-		upsertDocument = append(upsertDocument, bson.E{Key: key, Value: val})
+		upsertDocument = append(upsertDocument, bson.E{
+			Key:   key,
+			Value: bson.D{{"$eq", val}},
+		})
 	}
 	if !hasDocumentKey {
 		return nil

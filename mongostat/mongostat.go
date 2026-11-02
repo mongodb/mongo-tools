@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer"
 	"github.com/mongodb/mongo-tools/mongostat/stat_consumer/line"
 	"github.com/mongodb/mongo-tools/mongostat/status"
@@ -264,7 +265,8 @@ func NewNodeMonitor(opts options.ToolOptions, fullHost string) (*NodeMonitor, er
 func rewriteURI(oldURI, newAddress string) (string, error) {
 	u, err := url.Parse(oldURI)
 	if err != nil {
-		return "", err
+		// url.Parse errors quote the URL, which may contain credentials.
+		return "", fmt.Errorf("error parsing URI: %w", util.SanitizeURIError(err, oldURI))
 	}
 	u.Host = newAddress
 	return u.String(), nil
