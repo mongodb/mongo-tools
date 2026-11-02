@@ -6,7 +6,7 @@ _Released 2026-11-02_
 
 We are pleased to announce version 100.20.1 of the MongoDB Database Tools.
 
-This release hardens how the tools handle untrusted input and fixes several security issues,
+This release hardens how the tools handle untrusted input and fixes several security concerns,
 including path traversal and query-operator injection. It also prevents secrets from leaking into
 error messages and corrects the `uri` field in generated SARIF reports.
 
