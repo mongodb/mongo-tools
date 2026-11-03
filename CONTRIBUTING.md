@@ -133,11 +133,12 @@ is the `merge-queue` build variant in `common.yml`. The only task in that varian
 `depends_on` the tasks that gate a merge. It turns green as soon as those pass, so a PR can enter
 the queue without waiting for every task the PR runs.
 
-To change what gates a merge, edit that variant's `depends_on`. Many test tasks include the
-`required-for-merge-queue` tag, so **a new test task must carry the tag** if we want it to block
-merges. A unit test in `evergreen` fails if a dependency of the `merge-queue` variant is not also
-run for PRs, since the required check could then never pass. Note that the opposite is not required.
-PRs can run tasks that are not required by the merge queue.
+To change what gates a merge, edit that variant's `depends_on`. The queue gates on static analysis
+and unit tests only, so the queue is fast. The full integration matrix still runs on pull requests,
+but it does not run in merge queue versions at all, since Evergreen only schedules the gate task and
+its dependencies there. A unit test in `evergreen` fails if a dependency of the `merge-queue`
+variant is not also run for PRs, since the required check could then never pass. Note that the
+opposite is not required. PRs can run tasks that are not required by the merge queue.
 
 The `github_pr_aliases` config is generated because part of it is derived from each variant's task
 list rather than written out by hand:
