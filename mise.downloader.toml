@@ -4,8 +4,8 @@
 # has no way to make a tool conditional on the user having access, so instead this config
 # environment keeps it out of sight of everything except the code that actually wants it.
 #
-# When `MISE_ENV=dsc` is set, then this config file is included when `mise install` is run. This is
-# set by `scripts/start-dsc-cluster.sh`.
+# When `MISE_ENV=downloader` is set, then this config file is included when `mise install` is run.
+# This is set by the scripts that install or use mongodb-downloader.
 #
 # Reading the private repo also needs a GitHub token. mise ignores `github.credential_command` in
 # project config for security reasons, so developers must set it in their global mise config. See

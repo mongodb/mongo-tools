@@ -72,10 +72,10 @@ locally.
 ## Running DSC Clusters Locally
 
 In order to run these locally, you need access to the private `10gen/mongodb-downloader` repo. This
-is only available for MongoDB employees. The `dsc` config environment adds `mongodb-downloader` to
-the tools that `mise install` resolves, and mise needs a GitHub token that can read that repo.
-`github.credential_command` is ignored in project config for security reasons, so set it in your
-global mise config (`~/.config/mise/config.toml`):
+is only available for MongoDB employees. The `downloader` config environment adds
+`mongodb-downloader` to the tools that `mise install` resolves, and mise needs a GitHub token that
+can read that repo. `github.credential_command` is ignored in project config for security reasons,
+so set it in your global mise config (`~/.config/mise/config.toml`):
 
 ```toml
 [settings]
@@ -89,10 +89,17 @@ First, you must authenticate with aws using a profile that has access to the SLS
 also need to authenticate with a profile that can access the S3 bucket containing Server binaries
 used by `mongodb-downloader`. This can be two different profiles or just one.
 
-In order to start a DSC cluster, run this command:
+The DSC binaries are not downloaded for you; fetch them first (this needs a profile with access to
+the S3 bucket holding the Server build):
 
 ```
-MISE_ENV=dsc SLS_AWS_ECR_PROFILE=... ./scripts/start-dsc-cluster.sh
+MONGO_VERSION=9.1-dsc DISAGG=true ./scripts/download-mongod-and-shell.sh
+```
+
+Then start the cluster:
+
+```
+SLS_AWS_ECR_PROFILE=... ./scripts/start-dsc-cluster.sh
 ```
 
 The `SLS_AWS_ECR_PROFILE` value should be the name of the authenticated profile which has access to
@@ -101,7 +108,7 @@ the ECR repo.
 You can stop the cluster with:
 
 ```
-MISE_ENV=dsc mise exec -- ./scripts/stop-dsc-cluster.sh
+./scripts/stop-dsc-cluster.sh
 ```
 
 ## Getting Started
