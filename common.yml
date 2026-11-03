@@ -2613,33 +2613,17 @@ buildvariants:
       - rhel80-small
     tasks:
       - name: merge-queue-workaround
+    # The merge queue gates on static analysis and unit tests only, so the queue is fast. The unit
+    # task builds the tools before testing, so it doubles as the compile check, and the windows unit
+    # task gates the cross-platform build. Everything else - the full integration matrix, race
+    # detector runs, and so on - runs on pull requests but not in merge queue versions, which only
+    # schedule the gate task and its dependencies.
     depends_on:
       - name: "*"
         variant: static
-      - name: "*"
-        variant: rhel88-race
-      # Every task on this variant that runs tests, which is all of them except dist, push, and
-      # sign.
-      - name: .required-for-merge-queue
-        variant: rhel88
-      - name: integration-9.1-dsc
-        variant: ubuntu2204-arm64-dsc
-      - name: integration-9.1-dsc-cross-cluster
-        variant: ubuntu2204-arm64-dsc
-      # These carry the required-for-merge-queue tag too, but they have to be named individually:
-      # the windows variant runs every server version, while pull request testing only runs the 9.0
-      # tasks on it. Selecting by tag here would gate on tasks a pull request never ran.
       - name: unit
-        variant: windows
-      - name: integration-9.0
-        variant: windows
-      - name: integration-9.0-auth
-        variant: windows
-      - name: integration-9.0-cluster
-        variant: windows
-      - name: integration-9.0-sharded
-        variant: windows
-      - name: integration-9.0-sharded-tls
+        variant: rhel88
+      - name: unit
         variant: windows
 
   #######################################
