@@ -194,12 +194,7 @@ func (s *DumpRestoreSuite) TestRestoreDumpWithSymlinks() {
 // writeNamespacedBSONFile writes the same documents insertNamespacedDocs would have inserted, so
 // the restored data can be checked with assertDocsCameFrom.
 func (s *DumpRestoreSuite) writeNamespacedBSONFile(path, sourceNS string) {
-	docs := make([]bson.D, namespaceDocCount)
-	for i := range docs {
-		docs[i] = bson.D{{"_id", namespacedID(i, sourceNS)}}
-	}
-
-	s.writeBSONFile(path, docs...)
+	s.writeBSONFile(path, s.namespacedDocs(sourceNS)...)
 }
 
 func (s *DumpRestoreSuite) databaseNames() []string {

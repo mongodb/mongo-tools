@@ -8,10 +8,8 @@ import (
 	"path/filepath"
 
 	mapset "github.com/deckarep/golang-set/v3"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongorestore"
-	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -526,39 +524,15 @@ func namespaceOf(coll *mongo.Collection) string {
 }
 
 func (s *DumpRestoreSuite) assertDocsCameFrom(coll *mongo.Collection, sourceNS string) {
-	var restored []struct {
-		ID string `bson:"_id"`
-	}
+	var restored []bson.D
 	cursor, err := coll.Find(s.Context(), bson.D{})
 	s.Require().NoError(err, "can read %#q", namespaceOf(coll))
 	s.Require().NoError(cursor.All(s.Context(), &restored), "can decode %#q", namespaceOf(coll))
 
-	s.Require().Len(
-		restored,
-		namespaceDocCount,
-		"%#q holds every document from %#q",
-		namespaceOf(coll),
-		sourceNS,
-	)
-
-	wantIDs := lo.Map(
-		s.namespacedDocs(sourceNS),
-		func(doc bson.D, _ int) string {
-			id, err := bsonutil.FindStringValueByKey("_id", &doc)
-			s.Require().NoError(err, "finding _id in BSON doc")
-			return id
-		},
-	)
-
-	gotIDs := make([]string, 0, len(restored))
-	for _, doc := range restored {
-		gotIDs = append(gotIDs, doc.ID)
-	}
-
 	s.Assert().ElementsMatch(
-		wantIDs,
-		gotIDs,
-		"every document in %#q came from %#q",
+		s.namespacedDocs(sourceNS),
+		restored,
+		"every document in %#q came from %#q with its fields intact",
 		namespaceOf(coll),
 		sourceNS,
 	)
@@ -600,7 +574,12 @@ func namespaceSourceDocCount() int {
 func (s *DumpRestoreSuite) namespacedDocs(ns string) []bson.D {
 	docs := make([]bson.D, namespaceDocCount)
 	for i := range docs {
-		docs[i] = bson.D{{"_id", namespacedID(i, ns)}}
+		docs[i] = bson.D{
+			{"_id", namespacedID(i, ns)},
+			// A field other than _id, so that a restore that loses or mangles document contents is
+			// caught too.
+			{"payload", int32(i * 1000)},
+		}
 	}
 	return docs
 }
