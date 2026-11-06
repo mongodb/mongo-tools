@@ -17,6 +17,23 @@ import (
 // cannot take. Servers before 5.0 word this as "not master".
 const NotWritablePrimary = "not (primary|master)"
 
+// SingleNodeHost returns one host of the deployment the suite is connected to,
+// named the way the deployment itself names it: the primary on a replica set,
+// and the first configured host on a standalone or sharded cluster. A tool
+// pointed at this host with DirectToolArgs reaches that one node and no other.
+func (s *IntegrationSuite) SingleNodeHost() string {
+	if status := s.replicaSetStatus(); status.SetName != "" {
+		s.Require().NotEmpty(status.Primary, "the replica set has a primary")
+
+		return status.Primary
+	}
+
+	hosts := s.configuredHosts()
+	s.Require().NotEmpty(hosts, "the deployment is configured with at least one host")
+
+	return hosts[0]
+}
+
 // PrimaryHost returns the host the replica set currently considers its primary.
 func (s *IntegrationSuite) PrimaryHost() string {
 	primary, _ := s.replicaSetHosts()
