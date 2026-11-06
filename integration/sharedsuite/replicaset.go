@@ -25,9 +25,10 @@ func (s *IntegrationSuite) ReplicaSetToolArgs() []string {
 // replicaSetStatus is what the tests need to know about the replica set the
 // server belongs to.
 type replicaSetStatus struct {
-	SetName string   `bson:"setName"`
-	Primary string   `bson:"primary"`
-	Hosts   []string `bson:"hosts"`
+	SetName  string   `bson:"setName"`
+	Primary  string   `bson:"primary"`
+	Hosts    []string `bson:"hosts"`
+	Passives []string `bson:"passives"`
 }
 
 // replicaSetStatus asks the server about the replica set it belongs to. Callers
