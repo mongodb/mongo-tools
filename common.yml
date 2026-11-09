@@ -2558,9 +2558,9 @@ buildvariants:
   - name: merge-queue
     display_name: "! Required for Merge"
     # This variant exists only to gate a merge, and it must not run on the waterfall. Evergreen
-    # activates a task's dependencies, and the dependencies below include the rhel88 variant, which
-    # is deliberately nightly-only (`cron`). Without this restriction every mainline commit would
-    # pull that whole nightly set in.
+    # activates a task's dependencies, and the dependencies below include the rhel8_10 variant,
+    # which is deliberately nightly-only (`cron`). Without this restriction every mainline commit
+    # would pull that whole nightly set in.
     allowed_requesters: ["github_pr", "github_merge_queue", "patch"]
     run_on:
       - rhel80-small
@@ -2575,7 +2575,7 @@ buildvariants:
       - name: "*"
         variant: static
       - name: unit
-        variant: rhel88
+        variant: rhel8_10
       - name: unit
         variant: windows
 
@@ -2700,10 +2700,12 @@ buildvariants:
   #     RHEL x86_64 Buildvariants       #
   #######################################
 
-  - name: rhel70
-    display_name: RHEL 7.0
+  # RHEL builds run on the latest point release distro for each major version, since that is
+  # what Red Hat fully maintains, and the platform names reflect that point release.
+  - name: rhel7_9
+    display_name: RHEL 7.9
     run_on:
-      - rhel70-small
+      - rhel7.9-small
     tasks:
       - name: "dist"
       - name: "sign"
@@ -2711,11 +2713,11 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel88
-    display_name: "# RHEL 8.8"
+  - name: rhel8_10
+    display_name: "# RHEL 8.10"
     cron: 0 3 * * *
     run_on:
-      - rhel8.8-large
+      - rhel8.10-large
     expansions:
       resmoke_use_tls: _tls
       run_kinit: true
@@ -2739,10 +2741,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel88-race
-    display_name: RHEL 8.8 w/ Race Detector
+  - name: rhel8_10-race
+    display_name: RHEL 8.10 w/ Race Detector
     run_on:
-      - rhel8.8-large
+      - rhel8.10-large
     expansions:
       testArgs: "-race=true"
       resmoke_use_tls: _tls
@@ -2764,10 +2766,10 @@ buildvariants:
       - name: ".9.0 !.no-race"
       - name: ".kerberos"
 
-  - name: rhel93
-    display_name: RHEL 9.3
+  - name: rhel9_8
+    display_name: RHEL 9.8
     run_on:
-      - rhel93-small
+      - rhel98-small
     tasks:
       - name: "dist"
       - name: "sign"
@@ -2775,8 +2777,8 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel10
-    display_name: RHEL 10
+  - name: rhel10_0
+    display_name: RHEL 10.0
     run_on:
       - rhel10.0-small
     tasks:
@@ -3050,10 +3052,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel88-aarch64
-    display_name: RHEL 8.8 ARM
+  - name: rhel8_10-aarch64
+    display_name: RHEL 8.10 ARM
     run_on:
-      - rhel8.8-arm64-small
+      - rhel8.10-arm64-small
     stepback: false
     tasks:
       - name: "dist"
@@ -3062,10 +3064,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel93-aarch64
-    display_name: RHEL 9.3 ARM
+  - name: rhel9_8-aarch64
+    display_name: RHEL 9.8 ARM
     run_on:
-      - rhel93-arm64-small
+      - rhel98-arm64-small
     stepback: false
     tasks:
       - name: "dist"
@@ -3074,8 +3076,8 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel10-aarch64
-    display_name: RHEL 10 ARM
+  - name: rhel10_0-aarch64
+    display_name: RHEL 10.0 ARM
     run_on:
       - rhel10.0-arm64-small
     stepback: false
@@ -3118,8 +3120,8 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel9-ppc64le
-    display_name: ZAP PPC64LE RHEL 9
+  - name: rhel9_7-ppc64le
+    display_name: ZAP PPC64LE RHEL 9.7
     run_on:
       - rhel9-power-small
     stepback: false
@@ -3132,8 +3134,8 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel10-ppc64le
-    display_name: ZAP PPC64LE RHEL 10
+  - name: rhel10_0-ppc64le
+    display_name: ZAP PPC64LE RHEL 10.0
     run_on:
       - rhel10-power-small
     stepback: false
@@ -3178,8 +3180,8 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel9-s390x
-    display_name: ZAP s390x RHEL 9
+  - name: rhel9_8-s390x
+    display_name: ZAP s390x RHEL 9.8
     run_on:
       - rhel9-zseries-small
     stepback: false
@@ -3192,8 +3194,8 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel10-s390x
-    display_name: ZAP s390x RHEL 10
+  - name: rhel10_0-s390x
+    display_name: ZAP s390x RHEL 10.0
     run_on:
       - rhel10-zseries-small
     stepback: false
@@ -3233,16 +3235,16 @@ github_pr_aliases:
   - variant: "^merge-queue$"
     task: ".*"
   # Run golang tests with the race detector enabled.
-  - variant: "^rhel88-race$"
+  - variant: "^rhel8_10-race$"
     task: "^(aws-auth|integration|kerberos|unit)"
-  # Run all integration tests on one variant. We pick RHEL 8.8 because it's
+  # Run all integration tests on one variant. We pick RHEL 8.10 because it's
   # a relatively recent platform that supports a wide range of servers.
-  - variant: "^rhel88$"
+  - variant: "^rhel8_10$"
     task: "^(aws-auth|integration|kerberos|legacy|qa-dump-restore|qa-tests)"
   # Run the integration tests against a disaggregated-storage cluster.
   - variant: "^ubuntu2204-arm64-dsc$"
     task: ".*"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel88|windows)$"
+  - variant: "^(rhel8_10|windows)$"
     task: "integration-9.0"
