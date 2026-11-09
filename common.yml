@@ -2558,7 +2558,7 @@ buildvariants:
   - name: merge-queue
     display_name: "! Required for Merge"
     # This variant exists only to gate a merge, and it must not run on the waterfall. Evergreen
-    # activates a task's dependencies, and the dependencies below include the rhel88 variant, which
+    # activates a task's dependencies, and the dependencies below include the rhel8 variant, which
     # is deliberately nightly-only (`cron`). Without this restriction every mainline commit would
     # pull that whole nightly set in.
     allowed_requesters: ["github_pr", "github_merge_queue", "patch"]
@@ -2575,7 +2575,7 @@ buildvariants:
       - name: "*"
         variant: static
       - name: unit
-        variant: rhel88
+        variant: rhel8
       - name: unit
         variant: windows
 
@@ -2683,20 +2683,6 @@ buildvariants:
         run_on: rhel80-small
 
   #######################################
-  #      macOS x86_64 Buildvariant      #
-  #######################################
-
-  - name: macos
-    display_name: MacOS 14 x86_64
-    run_on:
-      - macos-14
-    tasks:
-      - name: "dist"
-      - name: "sign"
-      - name: "push"
-        run_on: rhel80-small
-
-  #######################################
   #       macOS ARM Buildvariant        #
   #######################################
 
@@ -2714,7 +2700,7 @@ buildvariants:
   #     RHEL x86_64 Buildvariants       #
   #######################################
 
-  - name: rhel70
+  - name: rhel7
     display_name: RHEL 7.0
     run_on:
       - rhel70-small
@@ -2725,9 +2711,11 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel88
-    display_name: "# RHEL 8.8"
+  - name: rhel8
+    display_name: "# RHEL 8"
     cron: 0 3 * * *
+    # Only the dist task below is pinned to an 8.0 distro so the released binaries run on all
+    # RHEL 8 minors. The tests themselves run on 8.8, a relatively recent minor.
     run_on:
       - rhel8.8-large
     expansions:
@@ -2747,14 +2735,18 @@ buildvariants:
       - name: ".9.0"
       - name: ".no-ssl"
       - name: ".kerberos"
+      # RHEL builds run on the earliest minor distro available for the major version, since per
+      # Red Hat's Application Compatibility Guide a binary is only guaranteed to run on the minor
+      # it was built on or newer.
       - name: "dist"
+        run_on: rhel80-small
       - name: "sign"
         run_on: rhel87-small
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel88-race
-    display_name: RHEL 8.8 w/ Race Detector
+  - name: rhel8-race
+    display_name: RHEL 8 w/ Race Detector
     run_on:
       - rhel8.8-large
     expansions:
@@ -2778,10 +2770,10 @@ buildvariants:
       - name: ".9.0 !.no-race"
       - name: ".kerberos"
 
-  - name: rhel93
-    display_name: RHEL 9.3
+  - name: rhel9
+    display_name: RHEL 9
     run_on:
-      - rhel93-small
+      - rhel90-small
     tasks:
       - name: "dist"
       - name: "sign"
@@ -3064,10 +3056,11 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel88-aarch64
-    display_name: RHEL 8.8 ARM
+  - name: rhel8-aarch64
+    display_name: RHEL 8 ARM
+    # 8.2 is the earliest RHEL 8 minor with an arm64 distro.
     run_on:
-      - rhel8.8-arm64-small
+      - rhel82-arm64-small
     stepback: false
     tasks:
       - name: "dist"
@@ -3076,10 +3069,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel93-aarch64
-    display_name: RHEL 9.3 ARM
+  - name: rhel9-aarch64
+    display_name: RHEL 9 ARM
     run_on:
-      - rhel93-arm64-small
+      - rhel90-arm64-small
     stepback: false
     tasks:
       - name: "dist"
@@ -3104,10 +3097,10 @@ buildvariants:
   #        Power Buildvariants          #
   #######################################
 
-  - name: rhel71-ppc64le
-    display_name: ZAP PPC64LE RHEL 7.1
+  - name: rhel7-ppc64le
+    display_name: ZAP PPC64LE RHEL 7
     run_on:
-      - rhel71-power8
+      - rhel7-power-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
@@ -3118,10 +3111,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel81-ppc64le
-    display_name: ZAP PPC64LE RHEL 8.1
+  - name: rhel8-ppc64le
+    display_name: ZAP PPC64LE RHEL 8
     run_on:
-      - rhel81-power8
+      - rhel8-power-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
@@ -3164,10 +3157,10 @@ buildvariants:
   #     Z (s390x) Buildvariants         #
   #######################################
 
-  - name: rhel72-s390x
-    display_name: ZAP s390x RHEL 7.2
+  - name: rhel7-s390x
+    display_name: ZAP s390x RHEL 7
     run_on:
-      - rhel72-zseries
+      - rhel7-zseries-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
@@ -3178,10 +3171,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel83-s390x
-    display_name: ZAP s390x RHEL 8.3
+  - name: rhel8-s390x
+    display_name: ZAP s390x RHEL 8
     run_on:
-      - rhel83-zseries
+      - rhel8-zseries-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
@@ -3247,16 +3240,16 @@ github_pr_aliases:
   - variant: "^merge-queue$"
     task: ".*"
   # Run golang tests with the race detector enabled.
-  - variant: "^rhel88-race$"
+  - variant: "^rhel8-race$"
     task: "^(aws-auth|integration|kerberos|unit)"
-  # Run all integration tests on one variant. We pick RHEL 8.8 because it's
+  # Run all integration tests on one variant. We pick RHEL 8 because it's
   # a relatively recent platform that supports a wide range of servers.
-  - variant: "^rhel88$"
+  - variant: "^rhel8$"
     task: "^(aws-auth|integration|kerberos|legacy|qa-dump-restore|qa-tests)"
   # Run the integration tests against a disaggregated-storage cluster.
   - variant: "^ubuntu2204-arm64-dsc$"
     task: ".*"
   # Run a subset of integration tests against the latest version of MongoDB
   # Server on all variants where that is the most recent supported version.
-  - variant: "^(rhel88|windows)$"
+  - variant: "^(rhel8|windows)$"
     task: "integration-9.0"

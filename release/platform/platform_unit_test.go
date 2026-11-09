@@ -47,7 +47,7 @@ func TestPlatformsMatchCI(t *testing.T) {
 		//
 		// Variant "sbom-upload" only uploads the SBOM to the Vulnerability Management Platform.
 		// It never builds anything we release.
-		if v.Name == "release" || v.Name == "static" || v.Name == "rhel88-race" ||
+		if v.Name == "release" || v.Name == "static" || v.Name == "rhel8-race" ||
 			v.Name == "mongodump_passthru_v" || v.Name == "merge-queue" ||
 			v.Name == "ubuntu2204-arm64-dsc" || v.Name == "sbom-upload" {
 			continue

@@ -64,15 +64,7 @@ repos:
   #
   ####################
 
-  - name: rhel70
-    type: rpm
-    edition: org
-    bucket: repo.mongodb.org
-    repos:
-      - yum/redhat/7/mongodb-org
-      - yum/redhat/7Server/mongodb-org
-
-  - name: rhel72
+  - name: rhel7
     type: rpm
     edition: org
     bucket: repo.mongodb.org
@@ -88,31 +80,7 @@ repos:
       - yum/redhat/8/mongodb-org
       - yum/redhat/8Server/mongodb-org
 
-  - name: rhel81
-    type: rpm
-    edition: org
-    bucket: repo.mongodb.org
-    repos:
-      - yum/redhat/8/mongodb-org
-      - yum/redhat/8Server/mongodb-org
-
-  - name: rhel82
-    type: rpm
-    edition: org
-    bucket: repo.mongodb.org
-    repos:
-      - yum/redhat/8/mongodb-org
-      - yum/redhat/8Server/mongodb-org
-
-  - name: rhel83
-    type: rpm
-    edition: org
-    bucket: repo.mongodb.org
-    repos:
-      - yum/redhat/8/mongodb-org
-      - yum/redhat/8Server/mongodb-org
-
-  - name: rhel88
+  - name: rhel8
     type: rpm
     edition: org
     bucket: repo.mongodb.org
@@ -121,14 +89,6 @@ repos:
       - yum/redhat/8Server/mongodb-org
 
   - name: rhel9
-    type: rpm
-    edition: org
-    bucket: repo.mongodb.org
-    repos:
-      - yum/redhat/9/mongodb-org
-      - yum/redhat/9Server/mongodb-org
-
-  - name: rhel93
     type: rpm
     edition: org
     bucket: repo.mongodb.org
@@ -355,7 +315,7 @@ repos:
   #
   ####################
 
-  - name: rhel70
+  - name: rhel7
     type: rpm
     edition: enterprise
     bucket: repo.mongodb.com
@@ -363,15 +323,7 @@ repos:
       - yum/redhat/7/mongodb-enterprise
       - yum/redhat/7Server/mongodb-enterprise
 
-  - name: rhel71
-    type: rpm
-    edition: enterprise
-    bucket: repo.mongodb.com
-    repos:
-      - yum/redhat/7/mongodb-enterprise
-      - yum/redhat/7Server/mongodb-enterprise
-
-  - name: rhel72
+  - name: rhel7
     type: rpm
     edition: enterprise
     bucket: repo.mongodb.com
@@ -387,31 +339,7 @@ repos:
       - yum/redhat/8/mongodb-enterprise
       - yum/redhat/8Server/mongodb-enterprise
 
-  - name: rhel81
-    type: rpm
-    edition: enterprise
-    bucket: repo.mongodb.com
-    repos:
-      - yum/redhat/8/mongodb-enterprise
-      - yum/redhat/8Server/mongodb-enterprise
-
-  - name: rhel82
-    type: rpm
-    edition: enterprise
-    bucket: repo.mongodb.com
-    repos:
-      - yum/redhat/8/mongodb-enterprise
-      - yum/redhat/8Server/mongodb-enterprise
-
-  - name: rhel83
-    type: rpm
-    edition: enterprise
-    bucket: repo.mongodb.com
-    repos:
-      - yum/redhat/8/mongodb-enterprise
-      - yum/redhat/8Server/mongodb-enterprise
-
-  - name: rhel88
+  - name: rhel8
     type: rpm
     edition: enterprise
     bucket: repo.mongodb.com
@@ -420,14 +348,6 @@ repos:
       - yum/redhat/8Server/mongodb-enterprise
 
   - name: rhel9
-    type: rpm
-    edition: enterprise
-    bucket: repo.mongodb.com
-    repos:
-      - yum/redhat/9/mongodb-enterprise
-      - yum/redhat/9Server/mongodb-enterprise
-
-  - name: rhel93
     type: rpm
     edition: enterprise
     bucket: repo.mongodb.com

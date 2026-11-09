@@ -18,7 +18,7 @@ server_versions:
         arch: x86_64
 
   # The released Server versions our integration tests run against (see the mongo_version expansions
-  # in common.yml). Most integration tests run on rhel88 and windows; the 9.1-dsc cross-cluster task
+  # in common.yml). Most integration tests run on rhel8 and windows; the 9.1-dsc cross-cluster task
   # also downloads a 9.0 ASC mongod on ubuntu2204-arm64.
   #
   # Adding or moving a version requires re-running `mongodb-downloader update` and committing the

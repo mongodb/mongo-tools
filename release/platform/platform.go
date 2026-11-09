@@ -113,8 +113,8 @@ func GetFromEnv() (Platform, error) {
 		return Platform{}, err
 	}
 
-	if variant == "rhel88-race" {
-		variant = "rhel88"
+	if variant == "rhel8-race" {
+		variant = "rhel8"
 	}
 
 	pf, ok := GetByVariant(variant)
@@ -527,13 +527,6 @@ var platforms = []Platform{
 		ServerVariantNames: mapset.NewSet("enterprise-macos-arm64"),
 	},
 	{
-		Name:               "macos",
-		Arch:               ArchX86_64,
-		OS:                 OSMac,
-		BuildTags:          defaultBuildTags,
-		ServerVariantNames: mapset.NewSet("enterprise-macos"),
-	},
-	{
 		// mongodump_passthru_v is the evergreen variant name used for
 		// the passthrough tests. It currently maps to an amazon2-aarch64,
 		// but having a distinct variant name helps in managing Evergreen
@@ -585,16 +578,7 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel70",
-		Arch:                  ArchX86_64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise, RepoOrg},
-		BuildTags:             defaultBuildTags,
-		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
-	{
-		Name:                  "rhel71",
+		Name:                  "rhel7",
 		Arch:                  ArchPpc64le,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -603,13 +587,61 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel72",
+		Name:                  "rhel7",
 		Arch:                  ArchS390x,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
 		Repos:                 []Repo{RepoEnterprise},
 		BuildTags:             defaultBuildTags,
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
+		Name:                  "rhel7",
+		Arch:                  ArchX86_64,
+		OS:                    OSLinux,
+		Pkg:                   PkgRPM,
+		Repos:                 []Repo{RepoEnterprise, RepoOrg},
+		BuildTags:             defaultBuildTags,
+		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
+		Name:      "rhel8",
+		Arch:      ArchAarch64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel8",
+		Arch:      ArchPpc64le,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel8",
+		Arch:      ArchS390x,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoEnterprise},
+		BuildTags: defaultBuildTags,
+	},
+	{
+		Name:      "rhel8",
+		Arch:      ArchX86_64,
+		OS:        OSLinux,
+		Pkg:       PkgRPM,
+		Repos:     []Repo{RepoOrg, RepoEnterprise},
+		BuildTags: defaultBuildTags,
+		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
+		// NB: Older builds are “rhel-80”, while newer ones are just “rhel-8”.
+		ServerVariantNames: mapset.NewSet(
+			"enterprise-rhel-80-64-bit",
+			"enterprise-rhel-8-64-bit",
+		),
+		ServerPlatform: "rhel80",
 	},
 	{
 		// Same variant name as mongosync passthrough tests to minimize
@@ -630,43 +662,13 @@ var platforms = []Platform{
 		ServerPlatform: "rhel80",
 	},
 	{
-		Name:      "rhel81",
-		Arch:      ArchPpc64le,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "rhel83",
-		Arch:      ArchS390x,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "rhel88",
-		Arch:      ArchAarch64,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoOrg, RepoEnterprise},
-		BuildTags: defaultBuildTags,
-	},
-	{
-		Name:      "rhel88",
-		Arch:      ArchX86_64,
-		OS:        OSLinux,
-		Pkg:       PkgRPM,
-		Repos:     []Repo{RepoOrg, RepoEnterprise},
-		BuildTags: defaultBuildTags,
-		// Using server rhel 80 builds because "enterprise-rhel-80-64-bit" is not available for all server versions.
-		// NB: Older builds are “rhel-80”, while newer ones are just “rhel-8”.
-		ServerVariantNames: mapset.NewSet(
-			"enterprise-rhel-80-64-bit",
-			"enterprise-rhel-8-64-bit",
-		),
-		ServerPlatform: "rhel80",
+		Name:                  "rhel9",
+		Arch:                  ArchAarch64,
+		OS:                    OSLinux,
+		Pkg:                   PkgRPM,
+		Repos:                 []Repo{RepoOrg, RepoEnterprise},
+		BuildTags:             defaultBuildTags,
+		MinLinuxServerVersion: &version.Version{Major: 6, Minor: 0, Patch: 0},
 	},
 	// MongoDB server only supports enterprise on RHEL9 for s390x and ppc64le, and only version 7.0+ is available.
 	{
@@ -688,16 +690,7 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel93",
-		Arch:                  ArchAarch64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoOrg, RepoEnterprise},
-		BuildTags:             defaultBuildTags,
-		MinLinuxServerVersion: &version.Version{Major: 6, Minor: 0, Patch: 0},
-	},
-	{
-		Name:                  "rhel93",
+		Name:                  "rhel9",
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,

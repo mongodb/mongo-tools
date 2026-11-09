@@ -220,22 +220,22 @@ func Test_mostRecentServerVersion(t *testing.T) {
 	c, err := Load()
 	require.NoError(t, err, "loading common.yml")
 
-	var rhel88 Variant
+	var rhel8 Variant
 	for _, v := range c.Variants {
-		if v.Name == "rhel88" {
-			rhel88 = v
+		if v.Name == "rhel8" {
+			rhel8 = v
 			break
 		}
 	}
 
-	require.NotEmpty(t, rhel88.Name, "found the rhel88 variant")
+	require.NotEmpty(t, rhel8.Name, "found the rhel8 variant")
 
-	ver, err := rhel88.mostRecentServerVersion()
-	require.NoError(t, err, "found the most recent version for the rhel88 variant")
+	ver, err := rhel8.mostRecentServerVersion()
+	require.NoError(t, err, "found the most recent version for the rhel8 variant")
 	require.Equal(
 		t,
 		latestVersion,
 		ver,
-		"found the correct most recent version for the rhel88 variant",
+		"found the correct most recent version for the rhel8 variant",
 	)
 }
