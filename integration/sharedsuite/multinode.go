@@ -1,16 +1,17 @@
 package sharedsuite
 
 import (
+	"context"
+	"fmt"
 	"net/url"
 	"slices"
+	"time"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 )
 
 // NotWritablePrimary matches the error a replica set node gives for a write it
@@ -70,13 +71,20 @@ func (s *IntegrationSuite) DirectClient(host string) *mongo.Client {
 	return client
 }
 
-// AwaitCollectionOnSecondary blocks until the secondary has applied the
-// collection's creation, so that a tool reading the secondary cannot race
-// ahead of it. A write concern covering the whole set only tells us the write
-// reached every member's journal; applying it is separate, and reads see
-// applied state. A majority read concern makes the secondary wait until it
-// has applied everything the set has majority-committed before answering,
-// which turns the visibility check itself into the wait.
+// AwaitCollectionOnSecondary blocks until the secondary has applied the collection's creation, so
+// that a tool reading the secondary cannot race ahead of it. A write concern covering the whole set
+// only tells us the write reached every member's journal; applying it is separate, and reads see
+// applied state.
+//
+// The wait compares the secondary's own applied opTime against the set's last-committed opTime. The
+// caller writes with a write concern covering the whole set, so the commit point read here already
+// includes the write, and a node that has applied through it has the collection in its catalog.
+//
+// Waiting on optimes rather than on a majority read is what makes this work on a
+// disaggregated-storage (DSC) cluster. A DSC cluster's committed snapshot comes from the log
+// service rather than from each node's applied state, so a majority read on a DSC secondary can
+// return before that node has applied the DDL to its own catalog, and listCollections reads only
+// the node's own catalog.
 func (s *IntegrationSuite) AwaitCollectionOnSecondary(host, dbName, collName string) {
 	secondary := s.DirectClient(host)
 	defer func() {
@@ -86,10 +94,9 @@ func (s *IntegrationSuite) AwaitCollectionOnSecondary(host, dbName, collName str
 		)
 	}()
 
-	testDB := secondary.Database(
-		dbName,
-		mopt.Database().SetReadConcern(readconcern.Majority()),
-	)
+	s.awaitAppliedPast(secondary, s.lastCommittedOpTime(), host)
+
+	testDB := secondary.Database(dbName)
 	names, err := testDB.ListCollectionNames(s.Context(), bson.D{{"name", collName}})
 	s.Require().NoError(err, "can list the collections in %#q on %s", dbName, host)
 	s.Require().Contains(
@@ -99,6 +106,90 @@ func (s *IntegrationSuite) AwaitCollectionOnSecondary(host, dbName, collName str
 		dbName+"."+collName,
 		host,
 	)
+}
+
+// awaitAppliedPast blocks until the node's own applied opTime reaches the given one, polling its
+// replSetGetStatus. Polling optimes is the same wait the server's own test harness makes
+// (ReplSetTest.awaitReplication): there is no command that blocks until a node applies, and unlike
+// a majority read it holds on every cluster type the suite runs against.
+func (s *IntegrationSuite) awaitAppliedPast(node *mongo.Client, through db.OpTime, host string) {
+	// The context bounds the status reads themselves, not just the loop: the clients the suite
+	// builds set no socket timeout, so without this a secondary that stops replying would hang a
+	// read past the deadline.
+	ctx, cancel := context.WithTimeout(s.Context(), 30*time.Second)
+	defer cancel()
+
+	for {
+		applied, err := appliedOpTime(ctx, node)
+		// An opTime that is not before the target is at or past it.
+		if err == nil && !db.OpTimeLessThan(applied, through) {
+			return
+		}
+		if ctx.Err() != nil {
+			s.Require().NoError(err, "can read the applied opTime of %s", host)
+			s.Require().FailNowf(
+				"timed out waiting for the secondary to apply",
+				"the secondary %s did not apply through %s within 30s; its last applied opTime was %s",
+				host, through, applied,
+			)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// lastCommittedOpTime returns the set's commit point as the primary sees it.  The client the suite
+// builds connects to the whole set, so the command reaches the primary, whose view of the commit
+// point is the most current.
+func (s *IntegrationSuite) lastCommittedOpTime() db.OpTime {
+	client := s.Client()
+	defer func() {
+		s.Require().NoError(
+			client.Disconnect(s.Context()),
+			"can disconnect after reading the commit point",
+		)
+	}()
+
+	var status replSetOptimes
+	err := client.Database("admin").
+		RunCommand(s.Context(), bson.D{{"replSetGetStatus", 1}}).
+		Decode(&status)
+	s.Require().NoError(err, "can read the replica set's commit point")
+
+	return status.Optimes.LastCommittedOpTime.opTime()
+}
+
+// appliedOpTime returns the answering node's own applied opTime from its replSetGetStatus.
+func appliedOpTime(ctx context.Context, node *mongo.Client) (db.OpTime, error) {
+	var status replSetOptimes
+	err := node.Database("admin").
+		RunCommand(ctx, bson.D{{"replSetGetStatus", 1}}).
+		Decode(&status)
+	if err != nil {
+		return db.OpTime{}, fmt.Errorf("reading the applied opTime: %w", err)
+	}
+
+	return status.Optimes.AppliedOpTime.opTime(), nil
+}
+
+// replSetOptimes is the part of the replSetGetStatus response these waits need: the set's
+// last-committed opTime and the answering node's own applied opTime.
+type replSetOptimes struct {
+	Optimes struct {
+		AppliedOpTime       rsOptTime `bson:"appliedOpTime"`
+		LastCommittedOpTime rsOptTime `bson:"lastCommittedOpTime"`
+	} `bson:"optimes"`
+}
+
+// rsOptTime decodes the {t, ts} form an optime takes in replSetGetStatus. db.OpTime itself carries
+// no bson tags because it is built from oplog entries instead, so the wait decodes into this and
+// converts.
+type rsOptTime struct {
+	Term      *int64         `bson:"t"`
+	Timestamp bson.Timestamp `bson:"ts"`
+}
+
+func (o rsOptTime) opTime() db.OpTime {
+	return db.OpTime{Timestamp: o.Timestamp, Term: o.Term}
 }
 
 // DirectToolArgs returns the command-line arguments that point a tool at one
