@@ -527,13 +527,6 @@ var platforms = []Platform{
 		ServerVariantNames: mapset.NewSet("enterprise-macos-arm64"),
 	},
 	{
-		Name:               "macos",
-		Arch:               ArchX86_64,
-		OS:                 OSMac,
-		BuildTags:          defaultBuildTags,
-		ServerVariantNames: mapset.NewSet("enterprise-macos"),
-	},
-	{
 		// mongodump_passthru_v is the evergreen variant name used for
 		// the passthrough tests. It currently maps to an amazon2-aarch64,
 		// but having a distinct variant name helps in managing Evergreen

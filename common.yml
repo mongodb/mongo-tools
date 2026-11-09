@@ -2683,20 +2683,6 @@ buildvariants:
         run_on: rhel80-small
 
   #######################################
-  #      macOS x86_64 Buildvariant      #
-  #######################################
-
-  - name: macos
-    display_name: MacOS 14 x86_64
-    run_on:
-      - macos-14
-    tasks:
-      - name: "dist"
-      - name: "sign"
-      - name: "push"
-        run_on: rhel80-small
-
-  #######################################
   #       macOS ARM Buildvariant        #
   #######################################
 
