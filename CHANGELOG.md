@@ -698,7 +698,7 @@ can be found.
 
 ## 100.11.0
 
-_Released 2024-02-01_
+_Released 2025-02-01_
 
 We are pleased to announce version 100.11.0 of the MongoDB Database Tools.
 
