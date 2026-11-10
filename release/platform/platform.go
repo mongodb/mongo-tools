@@ -113,8 +113,8 @@ func GetFromEnv() (Platform, error) {
 		return Platform{}, err
 	}
 
-	if variant == "rhel88-race" {
-		variant = "rhel88"
+	if variant == "rhel8_10-race" {
+		variant = "rhel8_10"
 	}
 
 	pf, ok := GetByVariant(variant)
@@ -542,7 +542,7 @@ var platforms = []Platform{
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel10",
+		Name:                  "rhel10_0",
 		Arch:                  ArchAarch64,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -551,7 +551,7 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel10",
+		Name:                  "rhel10_0",
 		Arch:                  ArchPpc64le,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -560,7 +560,7 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel10",
+		Name:                  "rhel10_0",
 		Arch:                  ArchS390x,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -569,7 +569,7 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel10",
+		Name:                  "rhel10_0",
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -578,15 +578,6 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 8, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel70",
-		Arch:                  ArchX86_64,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise, RepoOrg},
-		BuildTags:             defaultBuildTags,
-		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
-	{
 		Name:                  "rhel7_9",
 		Arch:                  ArchPpc64le,
 		OS:                    OSLinux,
@@ -601,6 +592,15 @@ var platforms = []Platform{
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
 		Repos:                 []Repo{RepoEnterprise},
+		BuildTags:             defaultBuildTags,
+		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
+		Name:                  "rhel7_9",
+		Arch:                  ArchX86_64,
+		OS:                    OSLinux,
+		Pkg:                   PkgRPM,
+		Repos:                 []Repo{RepoEnterprise, RepoOrg},
 		BuildTags:             defaultBuildTags,
 		MaxLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
@@ -623,7 +623,7 @@ var platforms = []Platform{
 		ServerPlatform: "rhel80",
 	},
 	{
-		Name:      "rhel88",
+		Name:      "rhel8_10",
 		Arch:      ArchAarch64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
@@ -631,7 +631,7 @@ var platforms = []Platform{
 		BuildTags: defaultBuildTags,
 	},
 	{
-		Name:      "rhel88",
+		Name:      "rhel8_10",
 		Arch:      ArchX86_64,
 		OS:        OSLinux,
 		Pkg:       PkgRPM,
@@ -663,7 +663,7 @@ var platforms = []Platform{
 	},
 	// MongoDB server only supports enterprise on RHEL9 for s390x and ppc64le, and only version 7.0+ is available.
 	{
-		Name:                  "rhel9",
+		Name:                  "rhel9_7",
 		Arch:                  ArchPpc64le,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -672,16 +672,7 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel9",
-		Arch:                  ArchS390x,
-		OS:                    OSLinux,
-		Pkg:                   PkgRPM,
-		Repos:                 []Repo{RepoEnterprise},
-		BuildTags:             defaultBuildTags,
-		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
-	},
-	{
-		Name:                  "rhel93",
+		Name:                  "rhel9_8",
 		Arch:                  ArchAarch64,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,
@@ -690,7 +681,16 @@ var platforms = []Platform{
 		MinLinuxServerVersion: &version.Version{Major: 6, Minor: 0, Patch: 0},
 	},
 	{
-		Name:                  "rhel93",
+		Name:                  "rhel9_8",
+		Arch:                  ArchS390x,
+		OS:                    OSLinux,
+		Pkg:                   PkgRPM,
+		Repos:                 []Repo{RepoEnterprise},
+		BuildTags:             defaultBuildTags,
+		MinLinuxServerVersion: &version.Version{Major: 7, Minor: 0, Patch: 0},
+	},
+	{
+		Name:                  "rhel9_8",
 		Arch:                  ArchX86_64,
 		OS:                    OSLinux,
 		Pkg:                   PkgRPM,

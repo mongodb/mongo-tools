@@ -161,14 +161,14 @@ func (c *Config) aliases() ([]alias, error) {
 		},
 		{
 			comment: "Run golang tests with the race detector enabled.",
-			variant: `^rhel88-race$`,
+			variant: `^rhel8_10-race$`,
 			tasks:   `^(aws-auth|integration|kerberos|unit)`,
 		},
 		{
-			comment: "Run all integration tests on one variant. We pick RHEL 8.8 because" +
+			comment: "Run all integration tests on one variant. We pick RHEL 8.10 because" +
 				" it's a relatively recent platform that supports a wide range of" +
 				" servers.",
-			variant: `^rhel88$`,
+			variant: `^rhel8_10$`,
 			tasks:   `^(aws-auth|integration|kerberos|legacy|qa-dump-restore|qa-tests)`,
 		},
 		{
@@ -266,7 +266,7 @@ func (c *Config) integrationTestAliases() ([]alias, error) {
 	variantsByServerVersion := make(map[string][]string)
 	for _, v := range c.Variants {
 		// This is a special case that is covered already.
-		if v.Name == "rhel88-race" {
+		if v.Name == "rhel8_10-race" {
 			continue
 		}
 		if v.includesLatest() {
