@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
+	"github.com/mongodb/mongo-tools/release/platform"
 	"github.com/stretchr/testify/require"
 )
 
@@ -108,5 +109,72 @@ func TestRepoConfig(t *testing.T) {
 				require.Contains(t, repoRepo, repo.CodeName, "Repo does not contain code name")
 			}
 		}
+	}
+}
+
+func TestRepoConfigEntries(t *testing.T) {
+	type Repo struct {
+		Name    string `yaml:"name"`
+		Edition string `yaml:"edition"`
+	}
+
+	type RepoConfig struct {
+		Repos []Repo `yaml:"repos"`
+	}
+
+	yamlFile, err := os.ReadFile("../etc/repo-config.yml")
+	require.NoError(t, err, "reading repo-config.yml")
+
+	var repoConfig RepoConfig
+	err = yaml.Unmarshal(yamlFile, &repoConfig)
+	require.NoError(t, err, "parsing repo-config.yml")
+
+	// The repo-config.yml entries are keyed by platform name and are consumed by curator via
+	// `repo submit --distro <platform name>`, so a missing entry breaks the push task for that
+	// platform.
+	configEntries := map[string]map[string]bool{}
+	for _, repo := range repoConfig.Repos {
+		if configEntries[repo.Name] == nil {
+			configEntries[repo.Name] = map[string]bool{}
+		}
+		configEntries[repo.Name][repo.Edition] = true
+	}
+
+	platformEditions := map[string]map[string]bool{}
+	for _, p := range platform.Platforms() {
+		// Platforms with SkipForJSONFeed set never run the push task, so they have no
+		// repo-config.yml entries.
+		if p.SkipForJSONFeed || len(p.Repos) == 0 {
+			continue
+		}
+		if platformEditions[p.Name] == nil {
+			platformEditions[p.Name] = map[string]bool{}
+		}
+		for _, repo := range p.Repos {
+			platformEditions[p.Name][string(repo)] = true
+		}
+	}
+
+	for name, editions := range platformEditions {
+		for edition := range editions {
+			require.Containsf(
+				t,
+				configEntries[name],
+				edition,
+				"the %s platform needs a repo-config.yml entry with edition %s",
+				name,
+				edition,
+			)
+		}
+	}
+
+	for name := range configEntries {
+		_, exists := platformEditions[name]
+		require.Truef(
+			t,
+			exists,
+			"repo-config.yml has an entry for %s but there is no platform with that name",
+			name,
+		)
 	}
 }
