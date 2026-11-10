@@ -3090,10 +3090,10 @@ buildvariants:
   #        Power Buildvariants          #
   #######################################
 
-  - name: rhel71-ppc64le
-    display_name: ZAP PPC64LE RHEL 7.1
+  - name: rhel7_9-ppc64le
+    display_name: ZAP PPC64LE RHEL 7.9
     run_on:
-      - rhel71-power8
+      - rhel7-power-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
@@ -3104,10 +3104,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel81-ppc64le
-    display_name: ZAP PPC64LE RHEL 8.1
+  - name: rhel8_9-ppc64le
+    display_name: ZAP PPC64LE RHEL 8.9
     run_on:
-      - rhel81-power8
+      - rhel8-power-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
@@ -3150,10 +3150,10 @@ buildvariants:
   #     Z (s390x) Buildvariants         #
   #######################################
 
-  - name: rhel72-s390x
-    display_name: ZAP s390x RHEL 7.2
+  - name: rhel7_9-s390x
+    display_name: ZAP s390x RHEL 7.9
     run_on:
-      - rhel72-zseries
+      - rhel7-zseries-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
@@ -3164,10 +3164,10 @@ buildvariants:
       - name: "push"
         run_on: rhel80-small
 
-  - name: rhel83-s390x
-    display_name: ZAP s390x RHEL 8.3
+  - name: rhel8_9-s390x
+    display_name: ZAP s390x RHEL 8.9
     run_on:
-      - rhel83-zseries
+      - rhel8-zseries-small
     stepback: false
     tasks:
       - name: "dist-without-mise"
