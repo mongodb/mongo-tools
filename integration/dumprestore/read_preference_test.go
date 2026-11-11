@@ -21,13 +21,16 @@ const dumpTargetTag = "dumpTarget"
 // read preference can select and it can never be the primary: a dump that ignored the read
 // preference and read the primary would send its reads to a node the preference cannot select.
 //
-// Which node served a read is observed through that node's own serverStatus opcounters. They are
-// per-node and not replicated. Only the query counter is read: mongodump's document reads each
-// begin with a query (a find per collection), the metadata commands a dump also runs count under
-// `command` instead, and getMore is left out because it cannot be attributed to the dump - a
-// replica set member fetching oplog from its sync source makes ordinary getMores on that sync
-// source, which a counter cannot tell apart from a dump's. The change in queries across the dump is
-// therefore exactly the dump's document reads.
+// Which node served a read is observed through that node's profiler. Profiling is turned on for
+// the test's database on every node, and a node's `system.profile` holds the client operations
+// it served. The profiler records only client operations, so mongod's own internal reads (the
+// logical-session maintenance the primary runs every few minutes, for instance) cannot appear
+// here the way they can in `serverStatus` opcounters (TOOLS-4495), and nothing but this dump
+// reads the test's database, so the counts are exactly the dump's reads.
+//
+// Only finds are counted, by matching the profiler's op type "query": mongodump's document reads
+// are finds, while the metadata commands a dump also runs (listCollections, listIndexes, count)
+// are recorded with op type "command", as is the count that reads them.
 //
 // Parsing of the `--readPreference` argument itself, tag sets included, is covered by unit tests in
 // common/db/read_preferences_test.go.
@@ -44,11 +47,11 @@ func (s *DumpRestoreSuite) TestDumpHonorsTaggedReadPreference() {
 		s.insertNamespacedDocs(s.fullSetWriteCollection(testDB, collName))
 	}
 
-	before := s.nodeReadCounts()
+	tags := s.nodeTags()
 
 	tagged := []string{}
-	for host, count := range before {
-		if count.tagged {
+	for host, hasTag := range tags {
+		if hasTag {
 			tagged = append(tagged, host)
 		}
 	}
@@ -65,17 +68,17 @@ func (s *DumpRestoreSuite) TestDumpHonorsTaggedReadPreference() {
 			"configuration guarantees by making it unelectable",
 	)
 
+	s.enableProfiling(testDB.Name())
+
 	s.dumpWithArgs(
 		append(s.ReplicaSetToolArgs(), "--readPreference", readPreference),
 		"--out", s.T().TempDir(),
 		"--db", testDB.Name(),
 	)
 
-	after := s.nodeReadCounts()
-
-	for host, count := range before {
-		reads := after[host].queries - count.queries
-		if count.tagged {
+	for host, hasTag := range tags {
+		reads := s.profiledQueries(host, testDB.Name())
+		if hasTag {
 			s.Assert().NotZero(
 				reads,
 				"the tagged node %s served the dump's reads",
@@ -91,28 +94,42 @@ func (s *DumpRestoreSuite) TestDumpHonorsTaggedReadPreference() {
 	}
 }
 
-// nodeReadCount is what one node of the replica set tells about itself: whether it carries the tag
-// the read preference names, and how many queries it has served since it started.
-type nodeReadCount struct {
-	tagged  bool
-	queries int64
-}
-
-// nodeReadCounts asks every node of the replica set, over a direct connection to that one node,
-// because neither thing it reports is replicated: serverStatus describes one node only, and the
-// tags a read preference selects by are the ones the node itself reports in its handshake.
-func (s *DumpRestoreSuite) nodeReadCounts() map[string]nodeReadCount {
-	counts := map[string]nodeReadCount{}
+// nodeTags reports whether each node of the replica set carries the read preference's tag. It
+// asks every node over a direct connection, because the tags a read preference selects by are
+// the ones the node itself reports in its handshake, and those are not replicated.
+func (s *DumpRestoreSuite) nodeTags() map[string]bool {
+	tags := map[string]bool{}
 	for _, host := range append([]string{s.PrimaryHost()}, s.SecondaryHosts()...) {
 		client := s.DirectClient(host)
-		counts[host] = nodeReadCount{
-			tagged:  s.hasDumpTargetTag(client),
-			queries: s.queryCount(client),
-		}
+		tags[host] = s.hasDumpTargetTag(client)
 		s.disconnect(client)
 	}
 
-	return counts
+	return tags
+}
+
+// enableProfiling turns the profiler on for dbName on every node of the replica set, over direct
+// connections: the level is per database and per node, and the reads the test counts may be
+// served by any node.
+func (s *DumpRestoreSuite) enableProfiling(dbName string) {
+	for _, host := range append([]string{s.PrimaryHost()}, s.SecondaryHosts()...) {
+		client := s.DirectClient(host)
+		res := client.Database(dbName).RunCommand(s.Context(), bson.D{{"profile", 2}})
+		s.Require().NoError(res.Err(), "can enable profiling on %#q on %s", dbName, host)
+		s.disconnect(client)
+	}
+}
+
+// profiledQueries counts the finds the profiler recorded for dbName on one node, over a direct
+// connection so the count is that node's own.
+func (s *DumpRestoreSuite) profiledQueries(host, dbName string) int64 {
+	client := s.DirectClient(host)
+	count, err := client.Database(dbName).Collection("system.profile").
+		CountDocuments(s.Context(), bson.D{{"op", "query"}})
+	s.Require().NoError(err, "can read the profiler's records for %#q on %s", dbName, host)
+	s.disconnect(client)
+
+	return count
 }
 
 func (s *DumpRestoreSuite) hasDumpTargetTag(client *mongo.Client) bool {
@@ -124,23 +141,6 @@ func (s *DumpRestoreSuite) hasDumpTargetTag(client *mongo.Client) bool {
 		Decode(&isMaster)
 
 	return err == nil && bsonLookUp(isMaster.Tags, "use") == dumpTargetTag
-}
-
-// queryCount reads only the query counter, not getMore: a replica set member fetching oplog from
-// its sync source makes ordinary getMores on that sync source, so the getMore counter counts
-// replication's traffic too, while the query counter counts only clients' finds.
-func (s *DumpRestoreSuite) queryCount(client *mongo.Client) int64 {
-	var status struct {
-		Opcounters struct {
-			Query int64 `bson:"query"`
-		} `bson:"opcounters"`
-	}
-	err := client.Database("admin").
-		RunCommand(s.Context(), bson.D{{"serverStatus", 1}}).
-		Decode(&status)
-	s.Require().NoError(err, "can read the server's own status")
-
-	return status.Opcounters.Query
 }
 
 func (s *DumpRestoreSuite) disconnect(client *mongo.Client) {
