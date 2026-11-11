@@ -347,6 +347,32 @@ functions:
         display_name: "DSC cluster logs"
         optional: true
 
+  "upload test cluster logs":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/mongodb/mongo-tools/test-cluster/logs.tgz
+        remote_file: mongo-tools/test-cluster-logs/${build_id}/${task_name}/logs.tgz
+        content_type: application/x-gzip
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Test cluster logs"
+        optional: true
+
+  "upload test cluster data":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/mongodb/mongo-tools/test-cluster/data.tgz
+        remote_file: mongo-tools/test-cluster-data/${build_id}/${task_name}/data.tgz
+        content_type: application/x-gzip
+        bucket: mciuploads
+        permissions: public-read
+        display_name: "Test cluster data files"
+        optional: true
+
   "download mongod and shell":
     - command: github.generate_token
       params:
@@ -963,6 +989,8 @@ post:
         exit 0
   - func: "stop dsc cluster"
   - func: "upload dsc cluster logs"
+  - func: "upload test cluster logs"
+  - func: "upload test cluster data"
   # Extra post steps needed for mongodump passthrough.
   - func: f_resmoke_report_attach
   - func: "attach artifacts"

@@ -76,6 +76,33 @@ fi
 
 RUNNER=(mise exec node npm:@mongodb-js/mongodb-runner -- mongodb-runner)
 
-"${RUNNER[@]}" stop --id="${CLUSTER_ID:?}"
+# The runner's stop deletes the dbpaths (they live under the tmpDir pinned by
+# start-test-cluster.sh), so the data files are archived first, while the servers are still
+# running. That snapshot is not a clean checkpoint — mongod can be mid-write — but it is enough
+# for post-mortems of test failures.
+if [ -d "${CLUSTER_DIR:?}/data" ]; then
+    tar -czf "${REPO_ROOT:?}/test-cluster/data.tgz" -C "${CLUSTER_DIR:?}" data ||
+        echo "could not archive the cluster data files" >&2
+fi
+
+# --debug so the runner reports what it found to stop; in TOOLS-4494 the teardown ran silently and
+# there was no way to tell whether a cluster had ever been registered.
+#
+# The teardown's exit status is held rather than allowed to end the script, so that a failed
+# teardown still produces the archive below.
+STOP_STATUS=0
+"${RUNNER[@]}" stop --debug --id="${CLUSTER_ID:?}" || STOP_STATUS=$?
 
 rm -f "${CLUSTER_DIR:?}/connection-string" "${CLUSTER_DIR:?}/expansions.yml"
+
+# Archived here rather than with an `s3.put` because this runs in Evergreen's project-wide post
+# block. A filter that matches nothing would require `s3.put` to allow `optional` for multi-file
+# puts, which it does not. Only the server logs are archived: the runner's own output and config
+# contain the auth credentials in plaintext, and while Evergreen redacts those from task logs it
+# cannot redact an uploaded artifact.
+if [ -d "${CLUSTER_DIR:?}/logs" ]; then
+    tar -czf "${REPO_ROOT:?}/test-cluster/logs.tgz" -C "${CLUSTER_DIR:?}" logs ||
+        echo "could not archive the cluster logs" >&2
+fi
+
+exit "${STOP_STATUS}"
