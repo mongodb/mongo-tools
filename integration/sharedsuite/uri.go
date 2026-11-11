@@ -2,6 +2,7 @@ package sharedsuite
 
 import (
 	"maps"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -89,6 +90,41 @@ func (s *IntegrationSuite) configuredURIWithHosts(
 	}
 
 	return newURI, true
+}
+
+// configuredHosts returns the hosts the test deployment was configured with:
+// the seed list of the configured URI, or localhost and the default port when
+// there is no URI and the configuration comes from the test env vars instead.
+func (s *IntegrationSuite) configuredHosts() []string {
+	uri := os.Getenv(testopts.URIEnvVar)
+	if uri == "" {
+		return []string{net.JoinHostPort("localhost", testopts.DefaultTestPort)}
+	}
+
+	// net/url cannot parse this because a seed list's comma-separated hosts are
+	// not a valid URL authority, so the URI is split by hand.
+	_, rest, found := strings.Cut(uri, "://")
+	s.Require().True(found, "%#q has a scheme", testopts.URIEnvVar)
+
+	authority := rest
+	if i := strings.IndexAny(rest, "/?"); i >= 0 {
+		authority = rest[:i]
+	}
+	if i := strings.LastIndex(authority, "@"); i >= 0 {
+		authority = authority[i+1:]
+	}
+
+	hosts := strings.Split(authority, ",")
+	for i, host := range hosts {
+		// A URI can name a host without a port, which means MongoDB's default,
+		// but net.Dial - which the single-node tests point at these hosts -
+		// cannot dial a bare host, so the default port is filled in here.
+		if _, _, err := net.SplitHostPort(host); err != nil {
+			hosts[i] = net.JoinHostPort(host, "27017")
+		}
+	}
+
+	return hosts
 }
 
 // deleteParamIgnoringCase removes a URI option however it is capitalized, since URI option names
