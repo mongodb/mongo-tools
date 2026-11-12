@@ -1,10 +1,8 @@
-version: 1
+version: 2
 
 s3:
   bucket: c2c-testing-server-artifacts
   region: us-east-1
-  server_binaries_prefix: server-binaries
-  resmoke_prefix: resmoke
 
 server_versions:
   - version: "9.1-dsc"
