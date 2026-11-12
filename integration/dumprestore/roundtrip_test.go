@@ -383,6 +383,26 @@ func listIndexes[T any](ctx context.Context, coll *mongo.Collection, target *T) 
 	return nil
 }
 
+// stripDefaultCollation deletes the default collation from every index. The two clusters in a
+// cross-cluster test can run different server versions, and those disagree on whether listIndexes
+// reports the default collation at all: some versions (9.0.2, the 9.1-dsc builds) report
+// `collation: {locale: "simple"}` on every index while others (9.0.8) omit the field. The default
+// carries no information, so we drop it from both sides before comparing.
+func (s *DumpRestoreSuite) stripDefaultCollation(indexes []bson.M) {
+	for _, index := range indexes {
+		collation, ok := index["collation"]
+		if !ok {
+			continue
+		}
+
+		doc, ok := collation.(bson.D)
+		s.Require().True(ok, "the collation on index %#q is a document", index["name"])
+		if len(doc) == 1 && doc[0].Key == "locale" && doc[0].Value == "simple" {
+			delete(index, "collation")
+		}
+	}
+}
+
 func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 	s.WithCrossCluster(func(cc crossCluster) {
 		ctx := s.Context()
@@ -628,6 +648,9 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 									listIndexes(ctx, targetColl, &restoredIndexes),
 									"should list indexes",
 								)
+
+								s.stripDefaultCollation(archivedIndexes)
+								s.stripDefaultCollation(restoredIndexes)
 
 								s.Assert().ElementsMatch(
 									archivedIndexes,
