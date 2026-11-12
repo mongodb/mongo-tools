@@ -17,7 +17,6 @@ if [ -n "${EVG_WORKDIR:-}" ]; then
 fi
 
 TOPOLOGY="${TOPOLOGY:-standalone}"
-VERSION="${VERSION:-8.0}"
 BIN_DIR="${BIN_DIR:-}"
 CLUSTER_ID="${CLUSTER_ID:-tools-test}"
 SHARDS="${SHARDS:-2}"
@@ -57,8 +56,8 @@ An option with a value can be written as either "--opt value" or "--opt=value".
 
 Options:
   --topology standalone|replset|sharded   Cluster topology (default standalone)
-  --version <ver>                         Server version for mongodb-runner to download (default 8.0)
-  --bin-dir <dir>                         Use existing mongod/mongos binaries instead of downloading
+  --bin-dir <dir>                         Directory with the mongod/mongos binaries to run (default
+                                          ./bin, populated by scripts/download-mongod-and-shell.sh)
   --id <id>                               Cluster id, also used by stop (default tools-test)
   --shards <n>                            Number of shards for the sharded topology (default 2)
   --secondaries <n>                       Number of secondaries per replica set (default 2)
@@ -67,7 +66,7 @@ Options:
                                           AUTH_PASSWORD)
   --evg-expansion-var=<name>              Write an Evergreen expansions file setting name to the URI
 
-Every option can also be set through the matching environment variable (TOPOLOGY, VERSION, BIN_DIR,
+Every option can also be set through the matching environment variable (TOPOLOGY, BIN_DIR,
 CLUSTER_ID, SHARDS, SECONDARIES, USE_TLS, CREATE_USER, AUTH_USERNAME, AUTH_PASSWORD,
 EVG_EXPANSION_VAR, ADDITIONAL_ARGS). CI uses the environment form so that the auth password is not
 passed on the command line.
@@ -81,7 +80,7 @@ while [ $# -gt 0 ]; do
     # options, and GNU getopt (which does handle long options) is not available on macOS, so rewrite
     # the separated form to the --opt=value form the parser below expects.
     case "$1" in
-    --topology | --version | --bin-dir | --id | --shards | --secondaries | --evg-expansion-var)
+    --topology | --bin-dir | --id | --shards | --secondaries | --evg-expansion-var)
         if [ $# -lt 2 ]; then
             echo "option $1 requires a value" >&2
             exit 1
@@ -92,7 +91,6 @@ while [ $# -gt 0 ]; do
 
     case "$1" in
     --topology=*) TOPOLOGY="${1#*=}" ;;
-    --version=*) VERSION="${1#*=}" ;;
     --bin-dir=*) BIN_DIR="${1#*=}" ;;
     --id=*) CLUSTER_ID="${1#*=}" ;;
     --shards=*) SHARDS="${1#*=}" ;;
@@ -155,14 +153,20 @@ CERT_FILE="${REPO_ROOT:?}/common/db/testdata/test-server.pem"
 CA_FILE_NATIVE="$(native_path "${CA_FILE:?}")"
 CERT_FILE_NATIVE="$(native_path "${CERT_FILE:?}")"
 
-# We use the binaries in `./bin` if they already exist. This lets us test arbitrary Server binaries,
-# not just the ones downloaded by mongodb-downloader.
+# The runner never downloads the server itself; the binaries come from mongodb-downloader via
+# scripts/download-mongod-and-shell.sh, which puts them in ./bin. `--bin-dir` exists to point at
+# some other server build.
 EXTENSION=
 if [ -f "${REPO_ROOT:?}/bin/mongod.exe" ]; then
     EXTENSION=.exe
 fi
 if [ -z "$BIN_DIR" ] && [ -f "${REPO_ROOT:?}/bin/mongod${EXTENSION:-}" ]; then
     BIN_DIR="${REPO_ROOT:?}/bin"
+fi
+if [ -z "$BIN_DIR" ]; then
+    echo "no mongod to run: pass --bin-dir, or download a server into ./bin with" >&2
+    echo "MONGO_VERSION=<version> ./scripts/download-mongod-and-shell.sh" >&2
+    exit 1
 fi
 
 RUNNER=(mise exec node npm:@mongodb-js/mongodb-runner -- mongodb-runner)
@@ -174,11 +178,7 @@ mkdir -p "${LOG_DIR:?}"
 # The runner puts every server's dbpath under its tmpDir and deletes them again when it stops the
 # cluster, so tmpDir is pinned inside the cluster directory: that is what makes the data files
 # archivable from the post block (scripts/stop-test-cluster.sh) before the teardown erases them.
-# The server-binary download cache also defaults to tmpDir, so it gets its own directory to keep
-# the binaries out of the archived data. CI is unaffected by that one: it always passes --binDir,
-# so nothing is ever downloaded.
 DATA_DIR="${CLUSTER_DIR:?}/data"
-DOWNLOAD_CACHE_DIR="${REPO_ROOT:?}/test-cluster/download-cache"
 
 # The runner is silent until the cluster is ready, so without --debug a start that never completes
 # (TOOLS-4494) leaves runner-start.log empty and the failure undiagnosable. Its debug output can
@@ -192,14 +192,8 @@ RUNNER_ARGS=(
     "--id=${CLUSTER_ID:?}"
     "--logDir=$(native_path "${LOG_DIR:?}")"
     "--tmpDir=$(native_path "${DATA_DIR:?}")"
-    "--downloadDir=$(native_path "${DOWNLOAD_CACHE_DIR:?}")"
+    "--binDir=$(native_path "${BIN_DIR:?}")"
 )
-
-if [ -n "$BIN_DIR" ]; then
-    RUNNER_ARGS+=("--binDir=$(native_path "${BIN_DIR:?}")")
-else
-    RUNNER_ARGS+=("--version=${VERSION:?}")
-fi
 
 if [ "$TOPOLOGY" = "sharded" ]; then
     RUNNER_ARGS+=("--shards=${SHARDS:?}")
