@@ -959,6 +959,7 @@ func (c *Client) createBaseCursorOptions(retryOverload bool) driver.CursorOption
 		CommandMonitor:            c.monitor,
 		Crypt:                     c.cryptFLE,
 		ServerAPI:                 c.serverAPI,
+		Authenticator:             c.authenticator,
 		MaxAdaptiveRetries:        c.effectiveAdaptiveRetries(retryOverload),
 		EnableOverloadRetargeting: c.enableOverloadRetargeting,
 	}
@@ -1039,6 +1040,21 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		return nil, err
 	}
 
+	// collectionUUIDs is positionally aligned with writes, so a slice of any
+	// other length cannot be zipped onto them. Return an error if the UUID and
+	// writes slice lengths are different.
+	var collectionUUIDs [][]byte
+	if uuids, ok := optionsutil.Value(bwo.Internal, "collectionUUIDs").([][]byte); ok {
+		if len(uuids) != len(writes) {
+			return nil, fmt.Errorf(
+				"invalid collectionUUIDs: got %d UUIDs for %d writes",
+				len(uuids),
+				len(writes),
+			)
+		}
+		collectionUUIDs = uuids
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1088,6 +1104,9 @@ func (c *Client) BulkWrite(ctx context.Context, writes []ClientBulkWrite,
 		writePairs[i] = clientBulkWritePair{
 			namespace: fmt.Sprintf("%s.%s", w.Database, w.Collection),
 			model:     w.Model,
+		}
+		if len(collectionUUIDs) > 0 {
+			writePairs[i].collectionUUID = collectionUUIDs[i]
 		}
 	}
 
