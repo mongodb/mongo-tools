@@ -2687,9 +2687,9 @@ buildvariants:
   #######################################
 
   - name: macos-arm64
-    display_name: MacOS 14 ARM
+    display_name: MacOS 15 ARM
     run_on:
-      - macos-14-arm64
+      - macos-15-arm64
     tasks:
       - name: "dist"
       - name: "sign"
