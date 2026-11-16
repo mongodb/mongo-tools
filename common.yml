@@ -8,10 +8,16 @@ include:
   - filename: "mongodump_passthrough/tasks.yml"
   - filename: "mongodump_passthrough/variants.yml"
 
-#######################################
-#    Tools Driver Config for MCI      #
-#######################################
-# default command type
+# We don't actually check these other repos out, so the `branch` we set here doesn't matter.. We
+# just need to list them here so that we can mint a GitHub token for them.
+modules:
+  - name: 10gen/mongodb-downloader
+    repo: https://github.com/10gen/mongodb-downloader.git
+    branch: main
+  - name: 10gen/mongo-release
+    repo: https://github.com/10gen/mongo-release.git
+    branch: master
+
 command_type: system
 
 # 3 hour default timeout
