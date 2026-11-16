@@ -171,12 +171,28 @@ CLUSTER_DIR="${REPO_ROOT:?}/test-cluster/${CLUSTER_ID:?}"
 LOG_DIR="${CLUSTER_DIR:?}/logs"
 mkdir -p "${LOG_DIR:?}"
 
+# The runner puts every server's dbpath under its tmpDir and deletes them again when it stops the
+# cluster, so tmpDir is pinned inside the cluster directory: that is what makes the data files
+# archivable from the post block (scripts/stop-test-cluster.sh) before the teardown erases them.
+# The server-binary download cache also defaults to tmpDir, so it gets its own directory to keep
+# the binaries out of the archived data. CI is unaffected by that one: it always passes --binDir,
+# so nothing is ever downloaded.
+DATA_DIR="${CLUSTER_DIR:?}/data"
+DOWNLOAD_CACHE_DIR="${REPO_ROOT:?}/test-cluster/download-cache"
+
+# The runner is silent until the cluster is ready, so without --debug a start that never completes
+# (TOOLS-4494) leaves runner-start.log empty and the failure undiagnosable. Its debug output can
+# share the file with the JSON result: parse-connection-string.py skips lines that do not parse as
+# JSON objects.
 RUNNER_ARGS=(
     start
     --json
+    --debug
     "--topology=${TOPOLOGY:?}"
     "--id=${CLUSTER_ID:?}"
     "--logDir=$(native_path "${LOG_DIR:?}")"
+    "--tmpDir=$(native_path "${DATA_DIR:?}")"
+    "--downloadDir=$(native_path "${DOWNLOAD_CACHE_DIR:?}")"
 )
 
 if [ -n "$BIN_DIR" ]; then

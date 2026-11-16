@@ -39,7 +39,7 @@ RUNNER=(mise exec node npm:@mongodb-js/mongodb-runner -- mongodb-runner)
 # compose project down when start fails.
 STOP_STATUS=0
 if [ -f "${CLUSTER_DIR:?}/connection-string" ]; then
-    "${RUNNER[@]}" stop --id="${CLUSTER_ID:?}" || STOP_STATUS=$?
+    "${RUNNER[@]}" stop --debug --id="${CLUSTER_ID:?}" || STOP_STATUS=$?
 fi
 
 # Archived here rather than with an `s3.put` because this runs in Evergreen's project-wide post
