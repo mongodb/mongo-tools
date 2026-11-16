@@ -188,10 +188,12 @@ all of these other files that need to be updated when dependencies change.
 
 ## Testing
 
-You will need a MongoDB server to run the integration tests locally. We have scripts in `scripts/`
-to start clusters with various topologies:
+You will need a MongoDB server to run the integration tests locally. The cluster scripts run the
+binaries in `./bin`, which `scripts/download-mongod-and-shell.sh` puts there via mongodb-downloader:
 
 ```
+# one-time: download the server binaries into ./bin
+$> MONGO_VERSION=8.0 ./scripts/download-mongod-and-shell.sh
 # standalone mongod (the default)
 $> ./scripts/start-test-cluster.sh
 # three-node replica set
@@ -199,6 +201,10 @@ $> ./scripts/start-test-cluster.sh --topology replset
 # two-shard cluster with a mongos
 $> ./scripts/start-test-cluster.sh --topology sharded
 ```
+
+To run the cluster against some other server build — one you built yourself, or unpacked from an
+Evergreen task — pass `--bin-dir <dir>` with a directory containing `mongod` (and `mongos`, for the
+sharded topology) instead.
 
 The runner will pick random free ports for the cluster and print out a connection string when it's
 done. Setting that connection string in the `TOOLS_TESTING_MONGOD` env var will make the tests use
