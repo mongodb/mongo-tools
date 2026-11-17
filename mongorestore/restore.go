@@ -175,6 +175,9 @@ func (restore *MongoRestore) RestoreIndexesForNamespace(namespace *options.Names
 		}
 
 		log.Logvf(log.Always, "restoring indexes for collection %#q from metadata", namespaceString)
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			indexes = restore.convertLegacyIndexes(indexes, namespaceString)
+		}
 		for _, index := range indexes {
 			// A v:1 index dumped from a 9.0+ server carries a redundant simple collation that the
 			// server refuses to create alongside v:1; strip it before building the index.
@@ -506,6 +509,39 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	return result
+}
+
+func (restore *MongoRestore) convertLegacyIndexes(
+	indexes []*idx.IndexDocument,
+	ns string,
+) []*idx.IndexDocument {
+	var indexKeys []bson.D
+	var indexesConverted []*idx.IndexDocument
+	for _, index := range indexes {
+		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
+
+		foundIdenticalIndex := false
+		for _, keys := range indexKeys {
+			if bsonutil.IsIndexKeysEqual(keys, index.Key) {
+				foundIdenticalIndex = true
+				break
+			}
+		}
+
+		if foundIdenticalIndex {
+			log.Logvf(
+				log.Always,
+				"index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...",
+				index.Options["name"],
+			)
+			continue
+		}
+
+		indexKeys = append(indexKeys, index.Key)
+
+		indexesConverted = append(indexesConverted, index)
+	}
+	return indexesConverted
 }
 
 // stripSimpleCollation removes a redundant simple collation ({locale: "simple"}) from a v:1 index's

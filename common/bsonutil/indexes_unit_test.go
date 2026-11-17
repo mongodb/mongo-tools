@@ -56,7 +56,7 @@ func TestIsIndexKeysEqual(t *testing.T) {
 	}
 }
 
-func TestConvertLegacyIndexKeys(t *testing.T) {
+func TestConvertLegacyIndexKeyValue(t *testing.T) {
 	type testCase struct {
 		input           any
 		expect          any
@@ -101,5 +101,36 @@ func TestConvertLegacyIndexKeys(t *testing.T) {
 				}
 			},
 		)
+	}
+}
+
+func TestConvertLegacyIndexKeys(t *testing.T) {
+	tests := []struct {
+		name  string
+		input bson.D
+		want  bson.D
+	}{
+		{
+			"legacy values become ascending",
+			bson.D{{"a", int32(0)}, {"b", true}, {"c", ""}, {"d", bson.Binary{}}},
+			bson.D{{"a", int32(1)}, {"b", int32(1)}, {"c", int32(1)}, {"d", int32(1)}},
+		},
+		{
+			"negative numbers, index type strings, and other numbers are unchanged",
+			bson.D{{"a", int64(-3)}, {"b", "hashed"}, {"c", float64(2)}},
+			bson.D{{"a", int64(-3)}, {"b", "hashed"}, {"c", float64(2)}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ConvertLegacyIndexKeys(test.input, "test.test")
+			assert.Equal(
+				t,
+				test.want,
+				test.input,
+				"legacy index key values should be rewritten in place",
+			)
+		})
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-tools/common"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -756,7 +757,107 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 100)
 		})
+
+		err = coll.Drop(t.Context())
+		So(err, ShouldBeNil)
+
+		args = []string{
+			NumParallelCollectionsOption, "1",
+			NumInsertionWorkersOption, "1",
+			ConvertLegacyIndexesOption,
+		}
+
+		restore, err = getRestoreWithArgs(args...)
+		So(err, ShouldBeNil)
+		defer restore.Close()
+
+		Convey(
+			"Creating index with invalid option and --convertLegacyIndexes should succeed",
+			func() {
+				restore.TargetDirectory = "testdata/indextestdump"
+				result := restore.Restore()
+				So(result.Err, ShouldBeNil)
+
+				So(result.Successes, ShouldEqual, 100)
+				So(result.Failures, ShouldEqual, 0)
+				count, err := coll.CountDocuments(t.Context(), bson.M{})
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 100)
+			},
+		)
 	})
+}
+
+// TestFixDuplicatedLegacyIndexes restores a metadata file defining {foo: ""}, {foo: 1.0}, {foo: 1},
+// and {foo: 2} with --convertLegacyIndexes. Under pre-3.4 index key semantics the first three all
+// mean {foo: 1}, so after conversion only one of them should be created, alongside {foo: 2}.
+func TestFixDuplicatedLegacyIndexes(t *testing.T) {
+	session, err := testutil.GetBareSession(t)
+	if err != nil {
+		t.Fatalf("No server available")
+	}
+
+	restore, err := getRestoreWithArgs(ConvertLegacyIndexesOption)
+	require.NoError(t, err)
+	defer restore.Close()
+
+	testDB := session.Database("indextest")
+	defer func() {
+		require.NoError(t, testDB.Drop(t.Context()))
+	}()
+
+	restore.TargetDirectory = "testdata/duplicate_index_key"
+	result := restore.Restore()
+	require.NoError(t, result.Err)
+	assert.Zero(t, result.Successes, "the dump contains no documents")
+	assert.Zero(t, result.Failures, "no documents should fail to restore")
+
+	indexCursor, err := testDB.Collection("duplicate_index_key").Indexes().List(t.Context())
+	require.NoError(t, err)
+
+	var indexResults []struct {
+		Name string `bson:"name"`
+		Key  bson.D `bson:"key"`
+	}
+	require.NoError(t, indexCursor.All(t.Context(), &indexResults))
+
+	indexKeys := make(map[string]bson.D)
+	for _, res := range indexResults {
+		indexKeys[res.Name] = res.Key
+	}
+
+	// The _id index, the {foo: 2} index, and exactly one spelling of {foo: 1}. Which spelling
+	// survives the dedup depends on the order the index catalog hands mongorestore, which comes
+	// from a map iteration and varies between runs.
+	require.Len(
+		t,
+		indexKeys,
+		3,
+		"the _id index, one {foo: 1} index, and the {foo: 2} index should have been created",
+	)
+
+	var keptFoo1 []string
+	for _, name := range []string{"foo_", "foo_1", "foo_1.0"} {
+		if _, ok := indexKeys[name]; ok {
+			keptFoo1 = append(keptFoo1, name)
+		}
+	}
+	require.Len(
+		t,
+		keptFoo1,
+		1,
+		"exactly one of foo_, foo_1, or foo_1.0 should have been created",
+	)
+	assert.True(
+		t,
+		bsonutil.IsIndexKeysEqual(indexKeys[keptFoo1[0]], bson.D{{"foo", int32(1)}}),
+		"the kept %s index should have key {foo: 1}, got %v", keptFoo1[0], indexKeys[keptFoo1[0]],
+	)
+	assert.True(
+		t,
+		bsonutil.IsIndexKeysEqual(indexKeys["foo_2"], bson.D{{"foo", int32(2)}}),
+		"the {foo: 2} index should have key {foo: 2}, got %v", indexKeys["foo_2"],
+	)
 }
 
 func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
