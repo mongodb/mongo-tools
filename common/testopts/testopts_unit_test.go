@@ -35,6 +35,12 @@ func TestAuthOptionsFollowTestType(t *testing.T) {
 			tool.IsSet(),
 			"the tool user is unset without the auth test type",
 		)
+		oplogReplay := GetOplogReplayAuthOptions()
+		assert.False(
+			t,
+			oplogReplay.IsSet(),
+			"the oplog-replay user is unset without the auth test type",
+		)
 	})
 
 	t.Run("with the auth test type", func(t *testing.T) {
@@ -68,6 +74,20 @@ func TestAuthOptionsFollowTestType(t *testing.T) {
 			ToolPassword,
 			tool.Password,
 			"the tool user's password is the fixed constant",
+		)
+
+		oplogReplay := GetOplogReplayAuthOptions()
+		assert.Equal(
+			t,
+			OplogReplayUsername,
+			oplogReplay.Username,
+			"the oplog-replay user is the anyAction-on-anyResource user",
+		)
+		assert.Equal(
+			t,
+			OplogReplayPassword,
+			oplogReplay.Password,
+			"the oplog-replay user's password is the fixed constant",
 		)
 	})
 }

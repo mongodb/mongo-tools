@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -368,8 +370,14 @@ func testRestoreStdinWithDBAndCollection(t *testing.T) {
 // runRestoreFromArgs builds a MongoRestore from the given args, runs it, and returns the
 // result. The instance is closed when the test finishes.
 func runRestoreFromArgs(t *testing.T, args ...string) Result {
+	return runRestoreFromArgsForAuth(t, testopts.GetAuthOptions(), args...)
+}
+
+// runRestoreFromArgsForAuth is runRestoreFromArgs with the authentication identity chosen by the
+// caller, for tests that run the tool as one of the scoped users rather than the harness user.
+func runRestoreFromArgsForAuth(t *testing.T, auth options.Auth, args ...string) Result {
 	t.Helper()
-	restore, err := getRestoreWithArgs(args...)
+	restore, err := getRestoreWithArgsForAuth(auth, args...)
 	require.NoError(t, err, "building the restore instance")
 	t.Cleanup(restore.Close)
 	return restore.Restore()

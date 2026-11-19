@@ -29,6 +29,14 @@ const (
 	ToolPassword = "backuprestore"
 )
 
+// The user that tests running `mongorestore --oplogReplay` authenticate as, and its password.
+// The documentation prescribes a user-defined role with anyAction on anyResource as the minimum
+// for oplog replay; testutil.EnsureOplogReplayUser grants this user exactly that role.
+const (
+	OplogReplayUsername = "oplogreplay"
+	OplogReplayPassword = "oplogreplay"
+)
+
 // GetAuthOptions returns the credentials of the harness user, which does test setup and
 // assertions and holds the __system role the cluster script grants it.
 func GetAuthOptions() options.Auth {
@@ -51,10 +59,21 @@ func GetAuthArgs() []string {
 // backup+restore user, the minimum-privilege identity. Tool runs use these; setup and
 // assertions use GetAuthOptions instead.
 func GetToolAuthOptions() options.Auth {
+	return constantUserAuth(ToolUsername, ToolPassword)
+}
+
+// GetOplogReplayAuthOptions returns the credentials for the user that tests running
+// `mongorestore --oplogReplay` authenticate as: the anyAction-on-anyResource role the
+// documentation prescribes, and nothing else.
+func GetOplogReplayAuthOptions() options.Auth {
+	return constantUserAuth(OplogReplayUsername, OplogReplayPassword)
+}
+
+func constantUserAuth(username, password string) options.Auth {
 	if testtype.HasTestType(testtype.AuthTestType) {
 		return options.Auth{
-			Username: ToolUsername,
-			Password: ToolPassword,
+			Username: username,
+			Password: password,
 			Source:   "admin",
 		}
 	}

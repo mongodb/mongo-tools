@@ -1089,6 +1089,220 @@ func TestDumpAdminSystemProfileAsBackupUser(t *testing.T) {
 	)
 }
 
+// TestDumpRestoreOplogReplayPrivileges pins down what `mongorestore --oplogReplay` actually
+// requires. The documentation says the built-in restore role is not enough and prescribes a
+// user-defined role with anyAction on anyResource. The subtests check both identities against
+// the noop fixture, whose oplog entries create an ordinary collection and insert one document
+// into it.
+func TestDumpRestoreOplogReplayPrivileges(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+	testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
+	testutil.SkipForDisaggregatedStorage(
+		t,
+		"it replays an oplog, and DSC does not support the applyOps command",
+	)
+
+	sessionProvider, _, err := testutil.GetBareSessionProvider(t)
+	require.NoError(t, err)
+	serverVersion, err := sessionProvider.ServerVersionArray()
+	require.NoError(t, err)
+
+	const restoreUser = "oplogpriv_restore"
+
+	adminClient, err := testutil.GetBareSession(t)
+	require.NoError(t, err)
+	adminDB := adminClient.Database("admin")
+	dataColl := adminClient.Database("test").Collection("data")
+
+	cleanup := func() {
+		silentDropUser(adminDB, restoreUser)
+		_ = dataColl.Drop(context.Background())
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	replayedCount := func(t *testing.T) int64 {
+		t.Helper()
+		count, err := dataColl.CountDocuments(context.Background(), bson.D{})
+		require.NoError(t, err, "counting the documents the oplog replay inserted")
+		return count
+	}
+
+	t.Run("the restore role alone", func(t *testing.T) {
+		require.NoError(t, dataColl.Drop(context.Background()), "dropping the replay target")
+		mustCreateUser(t, adminDB, restoreUser, "password", bson.A{adminRole("restore")})
+
+		result := runRestoreFromArgsForAuth(
+			t,
+			options.Auth{Username: restoreUser, Password: "password", Source: "admin"},
+			OplogReplayOption,
+			DirectoryOption, "testdata/dump_with_noop_in_oplog",
+		)
+
+		// applyOps authorization changed in 4.4. On 4.2 the command is closed to every
+		// assignable role, which is what the documentation's anyAction-on-anyResource
+		// prescription describes. From 4.4 on, the server authorizes each op individually, so
+		// the restore role's createCollection and insert grants cover an ordinary-collection
+		// oplog.
+		if serverVersion.LT(db.Version{4, 4, 0}) {
+			require.ErrorContains(
+				t,
+				result.Err,
+				"not authorized",
+				"on 4.2 the restore role cannot replay even an ordinary-collection oplog",
+			)
+			assert.EqualValues(
+				t,
+				0,
+				replayedCount(t),
+				"no oplog entry is applied under the restore role on 4.2",
+			)
+			return
+		}
+
+		require.NoError(
+			t,
+			result.Err,
+			"an oplog of create and insert ops on an ordinary collection replays under the restore role on 4.4+",
+		)
+		assert.EqualValues(
+			t,
+			1,
+			replayedCount(t),
+			"the oplog's insert is applied under the restore role on 4.4+",
+		)
+	})
+
+	t.Run("the documented anyAction on anyResource role", func(t *testing.T) {
+		require.NoError(t, dataColl.Drop(context.Background()), "dropping the replay target")
+		testutil.EnsureOplogReplayUser(t)
+
+		result := runRestoreFromArgsForAuth(
+			t,
+			testopts.GetOplogReplayAuthOptions(),
+			OplogReplayOption,
+			DirectoryOption, "testdata/dump_with_noop_in_oplog",
+		)
+		require.NoError(
+			t,
+			result.Err,
+			"oplog replay succeeds as the user holding the documented anyAction-on-anyResource role",
+		)
+		assert.EqualValues(
+			t,
+			1,
+			replayedCount(t),
+			"the oplog's insert is applied as the anyAction-on-anyResource user",
+		)
+	})
+}
+
+// TestDumpRestoreSystemProfileInDump checks that restoring a dump whose admin database holds
+// profiler data needs nothing beyond the restore role. The mongorestore documentation claims
+// dbAdmin-level privileges are needed because the program would create the target's
+// system.profile collection, but mongorestore has skipped system.profile data and metadata
+// outright since TOOLS-717.
+func TestDumpRestoreSystemProfileInDump(t *testing.T) {
+	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+
+	const (
+		restoreUser = "sysprofile_restore"
+		dbName      = "testdr_sysprofile"
+	)
+
+	adminClient, err := testutil.GetBareSession(t)
+	require.NoError(t, err)
+	adminDB := adminClient.Database("admin")
+	testDB := adminClient.Database(dbName)
+
+	cleanup := func() {
+		silentDropUser(adminDB, restoreUser)
+		_ = testDB.Drop(context.Background())
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	mustCreateUser(t, adminDB, restoreUser, "password", bson.A{adminRole("restore")})
+
+	// The documentation's scenario needs a target that lacks admin.system.profile, so put the
+	// database back in that state: profiling has to be off for the collection to be droppable.
+	previousLevel := setProfilingLevel(t, adminDB, 0)
+	t.Cleanup(func() { setProfilingLevel(t, adminDB, previousLevel) })
+	require.NoError(
+		t,
+		adminDB.Collection("system.profile").Drop(context.Background()),
+		"dropping admin.system.profile",
+	)
+
+	dumpDir, cleanDump := testutil.MakeTempDir(t)
+	defer cleanDump()
+	adminDumpDir := filepath.Join(dumpDir, "admin")
+	dataDumpDir := filepath.Join(dumpDir, dbName)
+	for _, dir := range []string{adminDumpDir, dataDumpDir} {
+		require.NoError(t, os.MkdirAll(dir, 0755), "creating %#q in the dump", dir)
+	}
+
+	writeBSONCollectionFile(
+		t,
+		filepath.Join(adminDumpDir, "system.profile.bson"),
+		bson.D{{Key: "op", Value: "insert"}, {Key: "ns", Value: "admin.foo"}},
+	)
+	require.NoError(
+		t,
+		os.WriteFile(
+			filepath.Join(adminDumpDir, "system.profile.metadata.json"),
+			[]byte(`{"options":{"capped":true,"size":1048576},"indexes":[]}`),
+			0644,
+		),
+		"writing the system.profile metadata file",
+	)
+	writeBSONCollectionFile(
+		t,
+		filepath.Join(dataDumpDir, "bar.bson"),
+		bson.D{{Key: "_id", Value: 1}},
+	)
+	require.NoError(
+		t,
+		os.WriteFile(
+			filepath.Join(dataDumpDir, "bar.metadata.json"),
+			[]byte(`{"options":{},"indexes":[]}`),
+			0644,
+		),
+		"writing the bar metadata file",
+	)
+
+	result := runRestoreFromArgsForAuth(
+		t,
+		options.Auth{Username: restoreUser, Password: "password", Source: "admin"},
+		DirectoryOption, dumpDir,
+	)
+	require.NoError(
+		t,
+		result.Err,
+		"a restore-role user can restore a dump containing admin.system.profile",
+	)
+	assert.EqualValues(t, 1, result.Successes, "the ordinary collection is restored")
+	assert.EqualValues(
+		t,
+		0,
+		result.Failures,
+		"nothing fails: system.profile is skipped, not rejected",
+	)
+
+	barCount, err := testDB.Collection("bar").CountDocuments(context.Background(), bson.D{})
+	require.NoError(t, err, "counting the restored documents")
+	assert.EqualValues(t, 1, barCount, "the ordinary collection's data is restored")
+
+	adminCollNames, err := adminDB.ListCollectionNames(context.Background(), bson.D{})
+	require.NoError(t, err, "listing the admin database's collections")
+	assert.NotContains(
+		t,
+		adminCollNames,
+		"system.profile",
+		"system.profile is not created, matching its data being skipped",
+	)
+}
+
 // insertEntriesForNS counts the profiler entries that record an insert into ns.
 func insertEntriesForNS(entries []bson.D, ns string) int {
 	matches := 0

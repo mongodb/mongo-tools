@@ -16,7 +16,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
@@ -90,32 +89,45 @@ func GetBareSessionProviderForURI(
 	return sessionProvider, toolOptions, nil
 }
 
-var (
-	backupRestoreUserOnce sync.Once
-	backupRestoreUserErr  error
-)
+// oplogReplayRoleName is the role EnsureOplogReplayUser grants its user: the documentation's
+// prescribed minimum for `mongorestore --oplogReplay`, anyAction on anyResource, and nothing
+// else.
+const oplogReplayRoleName = "oplogReplayAll"
 
 // EnsureBackupRestoreUser creates the backup+restore user that the tools under test authenticate
 // as (testopts.ToolUsername) when it does not already exist. The cluster script creates only the
-// bootstrap root user, because the runner cannot create a second user itself, so the first test
+// bootstrap user, because the runner cannot create a second user itself, so the first test
 // that needs the tool user creates it here. A test binary calls this from every helper that
-// authenticates as the tool user; after the first call it is a no-op.
+// authenticates as the tool user.
 func EnsureBackupRestoreUser(t *testing.T) {
+	ensureUser(t, testopts.ToolUsername, createBackupRestoreUser)
+}
+
+// EnsureOplogReplayUser creates the user that tests running `mongorestore --oplogReplay`
+// authenticate as (testopts.OplogReplayUsername), holding the anyAction-on-anyResource role the
+// documentation prescribes for oplog replay. Like EnsureBackupRestoreUser, it is a no-op without
+// the auth test type.
+func EnsureOplogReplayUser(t *testing.T) {
+	ensureUser(t, testopts.OplogReplayUsername, createOplogReplayUser)
+}
+
+// ensureUser creates one of the users the tests share when it does not already exist. Existence
+// is re-checked on every call rather than cached: a test that restores admin's users with --drop
+// (TestDumpRestorePreservesAdminUsersAndRoles) can remove a shared user mid-run, and a cached
+// "already created" would leave the later tests failing authentication with no hint why.
+func ensureUser(t *testing.T, username string, create func(*mongo.Client) error) {
 	t.Helper()
 
 	if !testtype.HasTestType(testtype.AuthTestType) {
 		return
 	}
 
-	backupRestoreUserOnce.Do(func() {
-		backupRestoreUserErr = createBackupRestoreUser(t)
-	})
-	if backupRestoreUserErr != nil {
-		t.Fatalf("could not create the backup+restore user: %v", backupRestoreUserErr)
+	if err := createUserIfMissing(t, username, create); err != nil {
+		t.Fatalf("could not create the %s user: %v", username, err)
 	}
 }
 
-func createBackupRestoreUser(t *testing.T) error {
+func createUserIfMissing(t *testing.T, username string, create func(*mongo.Client) error) error {
 	session, err := GetBareSession(t)
 	if err != nil {
 		return fmt.Errorf("connecting as the harness user: %w", err)
@@ -129,18 +141,35 @@ func createBackupRestoreUser(t *testing.T) error {
 	}
 	err = adminDB.RunCommand(ctx, bson.D{
 		{Key: "usersInfo", Value: bson.A{bson.D{
-			{Key: "user", Value: testopts.ToolUsername},
+			{Key: "user", Value: username},
 			{Key: "db", Value: "admin"},
 		}}},
 	}).Decode(&info)
 	if err != nil {
-		return fmt.Errorf("looking up the backup+restore user: %w", err)
+		return fmt.Errorf("looking up the %s user: %w", username, err)
 	}
 	if len(info.Users) > 0 {
 		return nil
 	}
 
-	err = adminDB.RunCommand(ctx, bson.D{
+	err = create(session)
+	// A concurrently running test binary can win the race to create the user between the lookup
+	// above and the create callback. The once-guard never retries, so that outcome is success
+	// too.
+	var cmdErr mongo.CommandError
+	if err != nil && errors.As(err, &cmdErr) && cmdErr.Name == "UserAlreadyExists" {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("creating the %s user: %w", username, err)
+	}
+
+	return nil
+}
+
+func createBackupRestoreUser(session *mongo.Client) error {
+	ctx := context.Background()
+	return session.Database("admin").RunCommand(ctx, bson.D{
 		{Key: "createUser", Value: testopts.ToolUsername},
 		{Key: "pwd", Value: testopts.ToolPassword},
 		{Key: "roles", Value: bson.A{
@@ -148,18 +177,36 @@ func createBackupRestoreUser(t *testing.T) error {
 			bson.D{{Key: "role", Value: "restore"}, {Key: "db", Value: "admin"}},
 		}},
 	}).Err()
+}
 
-	// A concurrently running test binary can win the race to create the user between the lookup
-	// above and this command. The once-guard never retries, so that outcome is success too.
+func createOplogReplayUser(session *mongo.Client) error {
+	ctx := context.Background()
+	adminDB := session.Database("admin")
+
+	// The role is created before the user that holds it, and tolerates already existing: the
+	// user-existence check in createUserIfMissing ran over a connection of its own, so a
+	// concurrently running test binary can create either in between.
+	err := adminDB.RunCommand(ctx, bson.D{
+		{Key: "createRole", Value: oplogReplayRoleName},
+		{Key: "privileges", Value: bson.A{bson.D{
+			{Key: "resource", Value: bson.D{{Key: "anyResource", Value: true}}},
+			{Key: "actions", Value: bson.A{"anyAction"}},
+		}}},
+		{Key: "roles", Value: bson.A{}},
+	}).Err()
 	var cmdErr mongo.CommandError
-	if err != nil && errors.As(err, &cmdErr) && cmdErr.Name == "UserAlreadyExists" {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("creating the backup+restore user: %w", err)
+	if err != nil && !(errors.As(err, &cmdErr) && cmdErr.Name == "RoleAlreadyExists") {
+		return fmt.Errorf("creating the oplog-replay role: %w", err)
 	}
 
-	return nil
+	return adminDB.RunCommand(ctx, bson.D{
+		{Key: "createUser", Value: testopts.OplogReplayUsername},
+		{Key: "pwd", Value: testopts.OplogReplayPassword},
+		{Key: "roles", Value: bson.A{bson.D{
+			{Key: "role", Value: oplogReplayRoleName},
+			{Key: "db", Value: "admin"},
+		}}},
+	}).Err()
 }
 
 // GetFCV returns the featureCompatibilityVersion string for an mgo Session

@@ -46,7 +46,16 @@ func init() {
 }
 
 func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
-	opts, err := ParseOptions(append(testopts.GetBareArgs(), additionalArgs...), "", "")
+	return getRestoreWithArgsForAuth(testopts.GetAuthOptions(), additionalArgs...)
+}
+
+// getRestoreWithArgsForAuth is getRestoreWithArgs with the authentication identity chosen by the
+// caller, for tests that run the tool as one of the scoped users rather than the harness user.
+func getRestoreWithArgsForAuth(auth options.Auth, additionalArgs ...string) (*MongoRestore, error) {
+	opts, err := ParseOptions(append(
+		testopts.GetBareArgsForURIWithAuth(os.Getenv(testopts.URIEnvVar), auth),
+		additionalArgs...,
+	), "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing args: %v", err)
 	}
