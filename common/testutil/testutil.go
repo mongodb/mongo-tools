@@ -9,18 +9,21 @@ package testutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/db/dsctest"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -85,6 +88,78 @@ func GetBareSessionProviderForURI(
 	t.Cleanup(sessionProvider.Close)
 
 	return sessionProvider, toolOptions, nil
+}
+
+var (
+	backupRestoreUserOnce sync.Once
+	backupRestoreUserErr  error
+)
+
+// EnsureBackupRestoreUser creates the backup+restore user that the tools under test authenticate
+// as (testopts.ToolUsername) when it does not already exist. The cluster script creates only the
+// bootstrap root user, because the runner cannot create a second user itself, so the first test
+// that needs the tool user creates it here. A test binary calls this from every helper that
+// authenticates as the tool user; after the first call it is a no-op.
+func EnsureBackupRestoreUser(t *testing.T) {
+	t.Helper()
+
+	if !testtype.HasTestType(testtype.AuthTestType) {
+		return
+	}
+
+	backupRestoreUserOnce.Do(func() {
+		backupRestoreUserErr = createBackupRestoreUser(t)
+	})
+	if backupRestoreUserErr != nil {
+		t.Fatalf("could not create the backup+restore user: %v", backupRestoreUserErr)
+	}
+}
+
+func createBackupRestoreUser(t *testing.T) error {
+	session, err := GetBareSession(t)
+	if err != nil {
+		return fmt.Errorf("connecting as the harness user: %w", err)
+	}
+
+	ctx := context.Background()
+	adminDB := session.Database("admin")
+
+	var info struct {
+		Users []bson.D `bson:"users"`
+	}
+	err = adminDB.RunCommand(ctx, bson.D{
+		{Key: "usersInfo", Value: bson.A{bson.D{
+			{Key: "user", Value: testopts.ToolUsername},
+			{Key: "db", Value: "admin"},
+		}}},
+	}).Decode(&info)
+	if err != nil {
+		return fmt.Errorf("looking up the backup+restore user: %w", err)
+	}
+	if len(info.Users) > 0 {
+		return nil
+	}
+
+	err = adminDB.RunCommand(ctx, bson.D{
+		{Key: "createUser", Value: testopts.ToolUsername},
+		{Key: "pwd", Value: testopts.ToolPassword},
+		{Key: "roles", Value: bson.A{
+			bson.D{{Key: "role", Value: "backup"}, {Key: "db", Value: "admin"}},
+			bson.D{{Key: "role", Value: "restore"}, {Key: "db", Value: "admin"}},
+		}},
+	}).Err()
+
+	// A concurrently running test binary can win the race to create the user between the lookup
+	// above and this command. The once-guard never retries, so that outcome is success too.
+	var cmdErr mongo.CommandError
+	if err != nil && errors.As(err, &cmdErr) && cmdErr.Name == "UserAlreadyExists" {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("creating the backup+restore user: %w", err)
+	}
+
+	return nil
 }
 
 // GetFCV returns the featureCompatibilityVersion string for an mgo Session

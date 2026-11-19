@@ -217,6 +217,16 @@ if [ "$USE_TLS" = "true" ]; then
     )
 fi
 if [ "$CREATE_USER" = "true" ]; then
+    # Only the bootstrap user is created here: the runner creates users over an unauthenticated
+    # connection, which the localhost exception permits for exactly one user. The backup+restore
+    # user that the tools under test authenticate as, and any test's own scoped users, are
+    # created by the tests as this user (common/testutil.EnsureBackupRestoreUser).
+    #
+    # The bootstrap user keeps the internal __system role, which bypasses authorization: the
+    # harness has to write system collections (the timeseries fixtures restore
+    # admin/system.views.bson and system.buckets.* data), which no assignable role — not even
+    # root — permits. That is also why the tools under test get their own, lesser user rather
+    # than sharing this one.
     CONFIG_ENTRIES+=(
         "\"users\": [{\"username\": \"$(json_escape "${AUTH_USERNAME:?}")\", \"password\": \"$(json_escape "${AUTH_PASSWORD:?}")\", \"roles\": [{\"role\": \"__system\", \"db\": \"admin\"}]}]"
     )
@@ -319,6 +329,18 @@ if [ -z "$CONNECTION_STRING" ]; then
     tail -n 50 "${RUNNER_OUTPUT:?}" >&2 || true
     exit 1
 fi
+
+# The exported connection string names the cluster, not a user: the runner embeds users[0]'s
+# credentials in its own connection string, but the tests choose an identity per connection (the
+# harness user for setup and assertions, the backup+restore user for the tools themselves). Strip
+# the credentials so the URI can never contradict the identity a test selects. The @ that ends
+# the credentials is only looked for in the authority component: an @ is legal in the path and
+# query, where it must not trigger the strip.
+CONNECTION_AUTHORITY="${CONNECTION_STRING#mongodb://}"
+CONNECTION_AUTHORITY="${CONNECTION_AUTHORITY%%/*}"
+case "$CONNECTION_AUTHORITY" in
+*@*) CONNECTION_STRING="mongodb://${CONNECTION_STRING#mongodb://*@}" ;;
+esac
 
 # The tools fall back to the operational database as the auth source when the URI does not name one,
 # which fails authentication for a user created in admin, so make the source explicit.
