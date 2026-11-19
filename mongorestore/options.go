@@ -71,6 +71,7 @@ const (
 	DryRunOption                   = "--dryRun"
 	WriteConcernOption             = "--writeConcern"
 	NoIndexRestoreOption           = "--noIndexRestore"
+	ConvertLegacyIndexesOption     = "--convertLegacyIndexes"
 	NoOptionsRestoreOption         = "--noOptionsRestore"
 	KeepIndexVersionOption         = "--keepIndexVersion"
 	MaintainInsertionOrderOption   = "--maintainInsertionOrder"
@@ -90,8 +91,16 @@ type OutputOptions struct {
 	DryRun bool `long:"dryRun" description:"view summary without importing anything. recommended with verbosity"`
 
 	// By default mongorestore uses a write concern of 'majority'.
-	WriteConcern             string `long:"writeConcern" value-name:"<write-concern>" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
-	NoIndexRestore           bool   `long:"noIndexRestore" description:"don't restore indexes"`
+	WriteConcern   string `long:"writeConcern" value-name:"<write-concern>" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
+	NoIndexRestore bool   `long:"noIndexRestore" description:"don't restore indexes"`
+	// ConvertLegacyIndexes rewrites index key values that only pre-3.4 servers accepted, where
+	// anything that wasn't a negative number or a special string like "hashed" meant an ascending
+	// index. Indexes created on those servers are never rewritten by upgrades, so a dump of a fully
+	// modern cluster can still contain these key values, and every server since 3.4 rejects them at
+	// createIndexes. The ignoreUnknownIndexOptions field we always send covers legacy index
+	// options, but only this flag can fix the key values, which is why it exists even though we no
+	// longer support pre-4.2 servers (TOOLS-4501).
+	ConvertLegacyIndexes     bool   `long:"convertLegacyIndexes" description:"rewrites index key values that only pre-3.4 servers accepted (e.g. true becomes 1) and skips an index that becomes a duplicate of another index after the rewrite"`
 	NoOptionsRestore         bool   `long:"noOptionsRestore" description:"don't restore collection options"`
 	KeepIndexVersion         bool   `long:"keepIndexVersion" description:"don't update index version"`
 	MaintainInsertionOrder   bool   `long:"maintainInsertionOrder" description:"restore the documents in the order of their appearance in the input source. By default the insertions will be performed in an arbitrary order. Setting this flag also enables the behavior of --stopOnError and restricts NumInsertionWorkersPerCollection to 1."`

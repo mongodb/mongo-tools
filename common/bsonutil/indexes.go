@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -42,6 +43,39 @@ func IsIndexKeysEqual(indexKey1 bson.D, indexKey2 bson.D) bool {
 		}
 	}
 	return true
+}
+
+// ConvertLegacyIndexKeys transforms the values of index definitions pre 3.4 into
+// the stricter index definitions of 3.4+. Prior to 3.4, any value in an index key
+// that isn't a negative number or that isn't a string is treated as int32(1).
+// The one exception is an empty string is treated as int32(1).
+// All other strings that aren't one of ["2d", "geoHaystack", "2dsphere", "hashed", "text", ""]
+// will cause the index build to fail. See TOOLS-2412 for more information.
+//
+// This function logs the keys that are converted.
+//
+// For a “quiet” variant of this function, see ConvertLegacyIndexKeyValue.
+func ConvertLegacyIndexKeys(indexKey bson.D, ns string) {
+	var converted bool
+	originalJSONString := CreateExtJSONString(indexKey)
+	for j, elem := range indexKey {
+		newValue, convertedThis := ConvertLegacyIndexKeyValue(elem.Value)
+
+		if convertedThis {
+			indexKey[j].Value = newValue
+			converted = true
+		}
+	}
+	if converted {
+		newJSONString := CreateExtJSONString(indexKey)
+		log.Logvf(
+			log.Always,
+			"convertLegacyIndexes: converted index values %#q to %#q on collection %#q",
+			originalJSONString,
+			newJSONString,
+			ns,
+		)
+	}
 }
 
 // ConvertLegacyIndexKeyValue returns the normalized value and a boolean that indicates whether the

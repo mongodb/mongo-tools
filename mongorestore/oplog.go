@@ -285,6 +285,10 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 				)
 			}
 
+			if restore.OutputOptions.ConvertLegacyIndexes {
+				indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
+			}
+
 			collName, ok := op.Object[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
@@ -305,6 +309,10 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 			}
 
 			indexes := []*idx.IndexDocument{index}
+			if restore.OutputOptions.ConvertLegacyIndexes {
+				indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
+			}
+
 			collName, ok := op.Object[0].Value.(string)
 			if !ok {
 				return fmt.Errorf("could not parse collection name from op: %v", op)
