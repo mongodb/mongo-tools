@@ -97,11 +97,17 @@ rm -f "${CLUSTER_DIR:?}/connection-string" "${CLUSTER_DIR:?}/expansions.yml"
 
 # Archived here rather than with an `s3.put` because this runs in Evergreen's project-wide post
 # block. A filter that matches nothing would require `s3.put` to allow `optional` for multi-file
-# puts, which it does not. Only the server logs are archived: the runner's own output and config
-# contain the auth credentials in plaintext, and while Evergreen redacts those from task logs it
-# cannot redact an uploaded artifact.
+# puts, which it does not. The server logs are archived along with cluster.json, the runner's
+# redacted `start --json` result (see start-test-cluster.sh), which maps each server to its log
+# file and dbPath. The runner's own output and config are not archived: they contain the auth
+# credentials in plaintext, and while Evergreen redacts those from task logs it cannot redact an
+# uploaded artifact.
 if [ -d "${CLUSTER_DIR:?}/logs" ]; then
-    tar -czf "${REPO_ROOT:?}/test-cluster/logs.tgz" -C "${CLUSTER_DIR:?}" logs ||
+    TAR_INPUTS=(logs)
+    if [ -f "${CLUSTER_DIR:?}/cluster.json" ]; then
+        TAR_INPUTS+=(cluster.json)
+    fi
+    tar -czf "${REPO_ROOT:?}/test-cluster/logs.tgz" -C "${CLUSTER_DIR:?}" "${TAR_INPUTS[@]}" ||
         echo "could not archive the cluster logs" >&2
 fi
 

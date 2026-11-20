@@ -61,7 +61,7 @@ Options:
   --id <id>                               Cluster id, also used by stop (default tools-test)
   --shards <n>                            Number of shards for the sharded topology (default 2)
   --secondaries <n>                       Number of secondaries per replica set (default 2)
-  --tls                                   Require TLS using the certificates under common/db/testdata
+    --tls                                   Require TLS using the certificates under common/db/testdata
   --create-user                           Create an admin user for auth runs (needs AUTH_USERNAME and
                                           AUTH_PASSWORD)
   --evg-expansion-var=<name>              Write an Evergreen expansions file setting name to the URI
@@ -292,6 +292,11 @@ fi
 # the JSON line.
 RUNNER_OUTPUT="${CLUSTER_DIR:?}/runner-start.log"
 : >"${RUNNER_OUTPUT:?}"
+
+# A start with this id may have run before and failed after saving cluster.json; drop it so the
+# stop script cannot archive a stale file alongside this run's logs.
+rm -f "${CLUSTER_DIR:?}/cluster.json"
+
 "${RUNNER[@]}" "${RUNNER_ARGS[@]}" </dev/null >>"${RUNNER_OUTPUT:?}" 2>&1 &
 RUNNER_PID=$!
 
@@ -308,7 +313,13 @@ for ((attempt = 0; attempt < 900; attempt++)); do
     sleep 1
 done
 
-CONNECTION_STRING="$(python3 "$(native_path "${SCRIPT_DIR:?}/parse-connection-string.py")" <"${RUNNER_OUTPUT:?}" || true)"
+# The parser saves the rest of the runner's result to cluster.json for post-mortems. Its serialized
+# server entries map each member to its log file and dbPath: since mongodb-runner 8.5 the log files
+# are named <binary>-<uuid>-<timestamp>.log after the server's _id in that data, so without this
+# file the logs of a multi-member cluster cannot be told apart. The parser strips the
+# connection-string fields and the runner has already redacted credentials from the serialized
+# data, so the saved file is safe to archive, unlike runner-start.log and the runner config.
+CONNECTION_STRING="$(python3 "$(native_path "${SCRIPT_DIR:?}/parse-connection-string.py")" "$(native_path "${CLUSTER_DIR:?}/cluster.json")" <"${RUNNER_OUTPUT:?}" || true)"
 
 # Best-effort. The runner never stops the cluster on a signal, so this can't take the cluster down,
 # and we don't `wait` because on Windows the kill may not land.

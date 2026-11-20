@@ -86,6 +86,10 @@ cleanup_started_cluster() {
 touch "${CLUSTER_DIR:?}/connection-string"
 trap cleanup_started_cluster EXIT
 
+# A start with this id may have run before and failed after saving cluster.json; drop it so the
+# stop script cannot archive a stale file alongside this run's logs.
+rm -f "${CLUSTER_DIR:?}/cluster.json"
+
 # Without --debug a DSC startup failure is very hard to diagnose: details are in the compose output
 # and the per-mongod logs. The runner writes its diagnostics to stderr and only the JSON result to
 # stdout, so capturing stdout keeps it parseable while the debug output stays visible on the
@@ -111,7 +115,12 @@ OUTPUT="$("${RUNNER[@]}" start \
 # The runner prints a single-line JSON object with the connection string last. The extraction can
 # legitimately find nothing when the cluster comes up but the output is malformed, so the `if` here
 # is what keeps errexit from swallowing the diagnostic below.
-CONNECTION_STRING="$(printf '%s\n' "${OUTPUT:?}" | python3 "${SCRIPT_DIR:?}/parse-connection-string.py" || true)"
+#
+# The parser saves the rest of the runner's result to cluster.json for post-mortems: the serialized
+# server entries map each member to its log file and dbPath, and for a DSC cluster the result
+# carries the `sls` object with the allocated service ports, which the runner otherwise only prints
+# to stderr. The parser strips the connection-string fields, so the saved file has no credentials.
+CONNECTION_STRING="$(printf '%s\n' "${OUTPUT:?}" | python3 "${SCRIPT_DIR:?}/parse-connection-string.py" "${CLUSTER_DIR:?}/cluster.json" || true)"
 if [ -z "$CONNECTION_STRING" ]; then
     echo "the cluster started but printed no connection string; check ${LOG_DIR}" >&2
     exit 1
