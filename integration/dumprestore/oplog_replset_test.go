@@ -89,7 +89,8 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 	emptyDir, cleanupEmpty := testutil.MakeTempDir(s.T())
 	defer cleanupEmpty()
 
-	restore, err := getRestoreWithArgs(
+	restore, err := getRestoreAsOplogReplayUser(
+		s.T(),
 		mongorestore.OplogReplayOption,
 		mongorestore.OplogFileOption, filepath.Join(dumpDir, "local", "oplog.rs.bson"),
 		mongorestore.DirectoryOption, emptyDir,

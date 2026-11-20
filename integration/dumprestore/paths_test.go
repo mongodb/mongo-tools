@@ -71,18 +71,35 @@ func (s *DumpRestoreSuite) TestArchiveThroughStdout() {
 		s.insertNamespacedDocs(testDB.Collection(collName))
 	}
 
+	// The tools run under their minimum-privilege identities: the backup user for mongodump and
+	// the restore user for mongorestore. The users are ensured here because the tools run as
+	// subprocesses, which cannot create them themselves.
+	testutil.EnsureBackupUser(s.T())
+	testutil.EnsureRestoreUser(s.T())
 	dump := exec.Command(
 		"go",
 		append(
 			[]string{"run", filepath.Join("..", "..", "mongodump", "main")},
-			append(testopts.GetBareArgs(), "--archive", "--db", testDB.Name())...,
+			append(
+				testopts.GetBareArgsForURIWithAuth(
+					os.Getenv(testopts.URIEnvVar),
+					testopts.GetBackupAuthOptions(),
+				),
+				"--archive", "--db", testDB.Name(),
+			)...,
 		)...,
 	)
 	restore := exec.Command(
 		"go",
 		append(
 			[]string{"run", filepath.Join("..", "..", "mongorestore", "main")},
-			append(testopts.GetBareArgs(), "--archive", "--drop")...,
+			append(
+				testopts.GetBareArgsForURIWithAuth(
+					os.Getenv(testopts.URIEnvVar),
+					testopts.GetRestoreAuthOptions(),
+				),
+				"--archive", "--drop",
+			)...,
 		)...,
 	)
 

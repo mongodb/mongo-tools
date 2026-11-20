@@ -135,6 +135,40 @@ func EnsureSharedUser(t *testing.T, auth options.Auth) {
 	}
 }
 
+// DropAdminSystemViews removes admin.system.views. The backup role has no find on it — it
+// grants find on admin's system.users, system.roles, system.js, and system.profile
+// collections, but not on system.views — so its presence makes a dump of the admin database
+// or of everything fail as the tool user. The collection exists on any cluster where a view
+// was ever created in the admin database, and it stays after the views themselves are
+// dropped. Tests that dump admin or the whole cluster call this to state their precondition
+// that it is not there. It is a no-op without the auth test type: without authentication
+// every connection reads as the tool user's better.
+func DropAdminSystemViews(t *testing.T) {
+	t.Helper()
+
+	if !testtype.HasTestType(testtype.AuthTestType) {
+		return
+	}
+
+	session, err := GetBareSession(t)
+	require.NoError(t, err, "connecting as the harness user to drop admin.system.views")
+
+	err = session.Database("admin").Collection("system.views").Drop(t.Context())
+	// A mongos refuses to drop any collection in the admin database, so the precondition cannot
+	// be established on a sharded cluster. That is tolerable: the sharded CI variants run the
+	// packages in an order where nothing has left admin.system.views behind by the time the
+	// dumps under test run.
+	var cmdErr mongo.CommandError
+	if err != nil &&
+		!(errors.As(err, &cmdErr) && cmdErr.Name == "IllegalOperation") {
+		require.NoError(t, err, "dropping admin.system.views")
+	}
+}
+
+// ensureUser creates one of the users the tests share when it does not already exist. Existence
+// is re-checked on every call rather than cached: a test that restores admin's users with --drop
+// (TestDumpRestorePreservesAdminUsersAndRoles) can remove a shared user mid-run, and a cached
+// "already created" would leave the later tests failing authentication with no hint why.
 func ensureUser(t *testing.T, username string, create func(*mongo.Client) error) {
 	t.Helper()
 

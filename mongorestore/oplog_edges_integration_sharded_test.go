@@ -91,7 +91,7 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 		"creating op collection",
 	)
 
-	result := runRestoreFromArgs(
+	result := runRestoreAsOplogReplayUser(
 		t,
 		OplogReplayOption,
 		OplogFileOption, "testdata/extra_oplog.bson",
@@ -129,7 +129,7 @@ func TestOplogReplayNoop(t *testing.T) {
 	require.NoError(t, coll.Drop(context.Background()), "dropping target collection")
 	t.Cleanup(func() { _ = coll.Drop(context.Background()) })
 
-	result := runRestoreFromArgs(
+	result := runRestoreAsOplogReplayUser(
 		t,
 		OplogReplayOption,
 		DirectoryOption, "testdata/dump_with_noop_in_oplog",
@@ -199,7 +199,10 @@ func TestOplogReplayPreservesComplexIDOrder(t *testing.T) {
 			require.NoError(t, err, "pre-inserting the target document")
 		}
 
-		result := runRestoreFromArgs(
+		// The oplog holds an update op, which the restore role does not grant on ordinary
+		// collections (it grants insert but not update), so this runs as the
+		// anyAction-on-anyResource user the documentation prescribes for oplog replay.
+		result := runRestoreAsOplogReplayUser(
 			t,
 			OplogReplayOption,
 			DirectoryOption, dumpDir,
@@ -293,7 +296,7 @@ func TestOplogReplaySizeSafety(t *testing.T) {
 	oplogPath := filepath.Join(dir, "oplog.bson")
 	writeOplogInserts(t, oplogPath, "test.op", smallOps, largeOps, oneMB)
 
-	result := runRestoreFromArgs(t, OplogReplayOption, DirectoryOption, dir)
+	result := runRestoreAsOplogReplayUser(t, OplogReplayOption, DirectoryOption, dir)
 	require.NoError(t, result.Err, "replaying a large oplog succeeds")
 
 	count, err := coll.CountDocuments(context.Background(), bson.D{})

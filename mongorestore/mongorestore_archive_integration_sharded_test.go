@@ -81,7 +81,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 			_, err = file.Seek(0, 0)
 			So(err, ShouldBeNil)
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -117,7 +117,7 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 			OplogReplayOption,
 			DropOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreAsOplogReplayUser(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -139,7 +139,7 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 			ArchiveOption + "=" + testBadFormatArchive,
 			DropOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -176,7 +176,7 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 			// emitted if the restore asks for them.
 			"-vvv",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		require.NoError(err)
 		defer restore.Close()
 
@@ -281,7 +281,7 @@ func testRestoreAdminNamespaces(t *testing.T) {
 	withArchiveMongodump(t, func(file string) {
 		testCases.init()
 
-		restore, err := getRestoreWithArgs(
+		restore, err := getRestoreWithArgs(t,
 			DropOption,
 			ArchiveOption+"="+file,
 		)
@@ -334,6 +334,7 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 		testCases.init()
 
 		restore, err := getAtlasProxyRestoreWithArgs(
+			t,
 			DropOption,
 			ArchiveOption+"="+file,
 		)
@@ -417,8 +418,8 @@ func createCollectionWithTestDocument(
 	return collection
 }
 
-func getAtlasProxyRestoreWithArgs(args ...string) (*MongoRestore, error) {
-	restore, err := getRestoreWithArgs(args...)
+func getAtlasProxyRestoreWithArgs(t *testing.T, args ...string) (*MongoRestore, error) {
+	restore, err := getRestoreWithArgs(t, args...)
 	if err != nil {
 		return nil, err
 	}

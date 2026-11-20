@@ -286,6 +286,11 @@ func dumpRestorePreservesAdminUsersAndRoles(t *testing.T, backupRole, restoreRol
 	)
 	mustCreateUser(t, adminDB, testUser, "pass", bson.A{dbRole(customRole, "admin")})
 
+	// The dump below covers the whole cluster, which includes admin.system.views when another
+	// test's timeseries restore left it behind; the backup role cannot read that collection, so
+	// it is dropped first. See testutil.DropAdminSystemViews.
+	testutil.DropAdminSystemViews(t)
+
 	_, err = fooColl.InsertOne(context.Background(), bson.D{{Key: "word", Value: "tomato"}})
 	require.NoError(t, err)
 
@@ -518,6 +523,11 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		CountDocuments(context.Background(), bson.D{})
 	require.NoError(t, err)
 
+	// The subtests below dump the admin database and the whole cluster, which include
+	// admin.system.views when another test's timeseries restore left it behind; the backup role
+	// cannot read that collection, so it is dropped first. See testutil.DropAdminSystemViews.
+	testutil.DropAdminSystemViews(t)
+
 	var versionDoc bson.D
 	require.NoError(
 		t,
@@ -540,7 +550,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 	var fooUserCountAfterRecreate, fooRoleCountAfterRecreate int64
 
 	t.Run("dump without user data omits users and roles", func(t *testing.T) {
-		opts := baseToolOpts(t)
+		opts := baseDumpOpts(t)
 		opts.Namespace = &options.Namespace{DB: fooDBName}
 		require.NoError(t, runDump(t, opts, dumpDir, nil))
 
@@ -550,7 +560,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		require.NoError(t, fooDB.RunCommand(context.Background(),
 			bson.D{{Key: "dropAllRolesFromDatabase", Value: 1}}).Err())
 
-		restoreOpts := baseToolOpts(t)
+		restoreOpts := baseRestoreOpts(t)
 		require.NoError(
 			t,
 			runRestore(
@@ -591,7 +601,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 	})
 
 	t.Run("dump with flag restore without flag ignores user data", func(t *testing.T) {
-		opts := baseToolOpts(t)
+		opts := baseDumpOpts(t)
 		opts.Namespace = &options.Namespace{DB: fooDBName}
 		require.NoError(
 			t,
@@ -620,7 +630,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 			sysRolesWhere(t, adminClient, bson.D{{Key: "db", Value: fooDBName}}),
 		)
 
-		restoreOpts := baseToolOpts(t)
+		restoreOpts := baseRestoreOpts(t)
 		require.NoError(
 			t,
 			runRestore(
@@ -647,7 +657,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 	})
 
 	t.Run("restore with flag includes users and roles", func(t *testing.T) {
-		restoreOpts := baseToolOpts(t)
+		restoreOpts := baseRestoreOpts(t)
 		require.NoError(
 			t,
 			runRestore(t, restoreOpts, filepath.Join(dumpDir, fooDBName), func(o *Options) {
@@ -695,7 +705,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		silentDropRole(fooDB, fooRole)
 		mustCreateRole(t, fooDB, fooRole2, bson.A{}, bson.A{})
 
-		restoreOpts := baseToolOpts(t)
+		restoreOpts := baseRestoreOpts(t)
 		require.NoError(
 			t,
 			runRestore(t, restoreOpts, filepath.Join(dumpDir, fooDBName), func(o *Options) {
@@ -754,7 +764,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		adminDumpDir, cleanAdminDump := testutil.MakeTempDir(t)
 		defer cleanAdminDump()
 
-		opts := baseToolOpts(t)
+		opts := baseDumpOpts(t)
 		opts.Namespace = &options.Namespace{DB: "admin"}
 		require.NoError(t, runDump(t, opts, adminDumpDir, nil))
 
@@ -767,7 +777,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		silentDropUser(adminDB, restoreUser)
 		silentDropUser(adminDB, adminUserName)
 
-		restoreOpts := baseToolOpts(t)
+		restoreOpts := baseRestoreOpts(t)
 		require.NoError(
 			t,
 			runRestore(t, restoreOpts, filepath.Join(adminDumpDir, "admin"), func(o *Options) {
@@ -840,7 +850,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		adminUserCount := sysUsersWhere(t, adminClient, bson.D{{Key: "db", Value: "admin"}})
 		adminRoleCount := sysRolesWhere(t, adminClient, bson.D{{Key: "db", Value: "admin"}})
 
-		opts := baseToolOpts(t)
+		opts := baseDumpOpts(t)
 		opts.Namespace = &options.Namespace{}
 		require.NoError(t, runDump(t, opts, allDumpDir, nil))
 
@@ -861,7 +871,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 			sysRolesWhere(t, adminClient, bson.D{{Key: "db", Value: fooDBName}}),
 		)
 
-		restoreOpts := baseToolOpts(t)
+		restoreOpts := baseRestoreOpts(t)
 		require.NoError(t, runRestore(t, restoreOpts, allDumpDir, nil))
 
 		assert.Equal(t, int64(1), docCount(t, barColl), "data restored")
@@ -965,7 +975,7 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 	dumpDir, cleanDump := testutil.MakeTempDir(t)
 	defer cleanDump()
 
-	dumpOpts := baseToolOpts(t)
+	dumpOpts := baseDumpOpts(t)
 	dumpOpts.Namespace = &options.Namespace{DB: dbName}
 	require.NoError(t, runDump(t, dumpOpts, dumpDir, nil), "dump db as admin")
 
@@ -1065,6 +1075,10 @@ func TestDumpAdminSystemProfileAsBackupUser(t *testing.T) {
 
 	opts := toolOptsForUser(t, backupUser, backupPass)
 	opts.Namespace = &options.Namespace{DB: "admin"}
+	// The dump covers the whole admin database, which includes admin.system.views when another
+	// test's timeseries restore left it behind; the backup role cannot read that collection, so
+	// it is dropped first. See testutil.DropAdminSystemViews.
+	testutil.DropAdminSystemViews(t)
 	require.NoError(
 		t,
 		runDump(t, opts, dumpDir, nil),
@@ -1203,6 +1217,7 @@ func TestDumpRestoreOplogReplayPrivileges(t *testing.T) {
 // outright since TOOLS-717.
 func TestDumpRestoreSystemProfileInDump(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+
 	const (
 		restoreUser = "sysprofile_restore"
 		dbName      = "testdr_sysprofile"
@@ -1361,10 +1376,31 @@ func readBSONFile(t *testing.T, path string) []bson.D {
 	return docs
 }
 
-// baseToolOpts returns a fresh set of tool options from the environment.
-func baseToolOpts(t *testing.T) *options.ToolOptions {
+// baseDumpOpts returns tool options authenticating as the backup user, the minimum-privilege
+// identity for mongodump. Tests that need a different identity build their own with
+// testopts.GetToolOptionsForURIWithAuth.
+func baseDumpOpts(t *testing.T) *options.ToolOptions {
 	t.Helper()
-	opts, err := testopts.GetToolOptions()
+
+	testutil.EnsureBackupUser(t)
+	opts, err := testopts.GetToolOptionsForURIWithAuth(
+		os.Getenv(testopts.URIEnvVar),
+		testopts.GetBackupAuthOptions(),
+	)
+	require.NoError(t, err)
+	return opts
+}
+
+// baseRestoreOpts returns tool options authenticating as the restore user, the
+// minimum-privilege identity for mongorestore.
+func baseRestoreOpts(t *testing.T) *options.ToolOptions {
+	t.Helper()
+
+	testutil.EnsureRestoreUser(t)
+	opts, err := testopts.GetToolOptionsForURIWithAuth(
+		os.Getenv(testopts.URIEnvVar),
+		testopts.GetRestoreAuthOptions(),
+	)
 	require.NoError(t, err)
 	return opts
 }
