@@ -69,7 +69,7 @@ func TestRestoreInvalidInput(t *testing.T) {
 // alongside --objcheck is rejected as an unknown flag rather than as a
 // conflicting one. Either way the two cannot be combined.
 func testRestoreObjcheckWithNoobjcheck(t *testing.T) {
-	_, err := getRestoreWithArgs(ObjcheckOption, "--noobjcheck", t.TempDir())
+	_, err := getRestoreWithArgs(t, ObjcheckOption, "--noobjcheck", t.TempDir())
 	require.ErrorContains(
 		t, err, "noobjcheck",
 		"combining --objcheck with the removed --noobjcheck flag is rejected",
@@ -77,7 +77,7 @@ func testRestoreObjcheckWithNoobjcheck(t *testing.T) {
 }
 
 func testRestoreNegativeWriteConcern(t *testing.T) {
-	_, err := getRestoreWithArgs(WriteConcernOption+"=-1", t.TempDir())
+	_, err := getRestoreWithArgs(t, WriteConcernOption+"=-1", t.TempDir())
 	require.ErrorContains(
 		t, err, "invalid 'w' argument",
 		"a negative --writeConcern value is rejected",
@@ -85,7 +85,7 @@ func testRestoreNegativeWriteConcern(t *testing.T) {
 }
 
 func testRestoreMalformedOplogLimit(t *testing.T) {
-	restore, err := getRestoreWithArgs(
+	restore, err := getRestoreWithArgs(t,
 		OplogReplayOption,
 		OplogLimitOption,
 		"xxx",
@@ -101,7 +101,7 @@ func testRestoreMalformedOplogLimit(t *testing.T) {
 }
 
 func testRestoreInvalidDBName(t *testing.T) {
-	restore, err := getRestoreWithArgs(DBOption, "billy.crystal", t.TempDir())
+	restore, err := getRestoreWithArgs(t, DBOption, "billy.crystal", t.TempDir())
 	require.NoError(t, err, "building the restore instance")
 	defer restore.Close()
 	require.ErrorContains(
@@ -113,7 +113,7 @@ func testRestoreInvalidDBName(t *testing.T) {
 func testRestoreInvalidCollectionName(t *testing.T) {
 	bsonFile := filepath.Join(t.TempDir(), "coll.bson")
 	writeBSONCollectionFile(t, bsonFile)
-	restore, err := getRestoreWithArgs(
+	restore, err := getRestoreWithArgs(t,
 		DBOption,
 		"test",
 		CollectionOption,
@@ -332,7 +332,7 @@ func testRestoreOplogReplayNoOplogFile(t *testing.T) {
 // A restore target of "-" reads the dump from stdin, which carries no namespace of its own, so both
 // halves of the destination namespace have to be given explicitly.
 func testRestoreStdinWithoutCollection(t *testing.T) {
-	restore, err := getRestoreWithArgs(DBOption, "test", DirectoryOption, "-")
+	restore, err := getRestoreWithArgs(t, DBOption, "test", DirectoryOption, "-")
 	require.NoError(t, err, "building the restore instance")
 	defer restore.Close()
 	require.ErrorContains(
@@ -343,7 +343,7 @@ func testRestoreStdinWithoutCollection(t *testing.T) {
 }
 
 func testRestoreStdinWithoutDB(t *testing.T) {
-	restore, err := getRestoreWithArgs(CollectionOption, "coll", DirectoryOption, "-")
+	restore, err := getRestoreWithArgs(t, CollectionOption, "coll", DirectoryOption, "-")
 	require.NoError(t, err, "building the restore instance")
 	defer restore.Close()
 	require.ErrorContains(
@@ -354,7 +354,7 @@ func testRestoreStdinWithoutDB(t *testing.T) {
 }
 
 func testRestoreStdinWithDBAndCollection(t *testing.T) {
-	restore, err := getRestoreWithArgs(
+	restore, err := getRestoreWithArgs(t,
 		DBOption, "test",
 		CollectionOption, "coll",
 		DirectoryOption, "-",
@@ -370,17 +370,26 @@ func testRestoreStdinWithDBAndCollection(t *testing.T) {
 // runRestoreFromArgs builds a MongoRestore from the given args, runs it, and returns the
 // result. The instance is closed when the test finishes.
 func runRestoreFromArgs(t *testing.T, args ...string) Result {
-	return runRestoreFromArgsForAuth(t, testopts.GetAuthOptions(), args...)
+	return runRestoreFromArgsForAuth(t, testopts.GetRestoreAuthOptions(), args...)
 }
 
 // runRestoreFromArgsForAuth is runRestoreFromArgs with the authentication identity chosen by the
-// caller, for tests that run the tool as one of the scoped users rather than the harness user.
+// caller. When auth names one of the shared test users it is created first, so callers never
+// authenticate as a user that does not exist.
 func runRestoreFromArgsForAuth(t *testing.T, auth options.Auth, args ...string) Result {
 	t.Helper()
-	restore, err := getRestoreWithArgsForAuth(auth, args...)
+	restore, err := getRestoreWithArgsForAuth(t, auth, args...)
 	require.NoError(t, err, "building the restore instance")
 	t.Cleanup(restore.Close)
 	return restore.Restore()
+}
+
+// runRestoreAsOplogReplayUser runs a `--oplogReplay` restore as the anyAction-on-anyResource
+// user. 4.2 rejects applyOps from every role short of that one (pinned by
+// TestDumpRestoreOplogReplayPrivileges), so the oplog-replay tests cannot run as the default
+// backup+restore user across the supported version matrix.
+func runRestoreAsOplogReplayUser(t *testing.T, args ...string) Result {
+	return runRestoreFromArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 }
 
 // writeBSONCollectionFile writes the given documents to path in the concatenated-BSON format that

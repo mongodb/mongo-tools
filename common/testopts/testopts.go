@@ -49,8 +49,8 @@ func GetToolOptionsForURI(uri string) (*options.ToolOptions, error) {
 }
 
 // GetToolOptionsForURIWithAuth is GetToolOptionsForURI with the authentication identity chosen
-// by the caller: GetAuthOptions for test setup and assertions, GetToolAuthOptions for the tools
-// under test, or a test's own scoped user.
+// by the caller: GetAuthOptions for test setup and assertions, GetBackupAuthOptions and
+// GetRestoreAuthOptions for the tools under test.
 func GetToolOptionsForURIWithAuth(uri string, auth options.Auth) (*options.ToolOptions, error) {
 	var toolOptions *options.ToolOptions
 	// get ToolOptions from URI or defaults

@@ -29,11 +29,17 @@ func TestAuthOptionsFollowTestType(t *testing.T) {
 			harness.IsSet(),
 			"the harness user is unset without the auth test type",
 		)
-		tool := GetToolAuthOptions()
+		backup := GetBackupAuthOptions()
 		assert.False(
 			t,
-			tool.IsSet(),
-			"the tool user is unset without the auth test type",
+			backup.IsSet(),
+			"the backup user is unset without the auth test type",
+		)
+		restore := GetRestoreAuthOptions()
+		assert.False(
+			t,
+			restore.IsSet(),
+			"the restore user is unset without the auth test type",
 		)
 		oplogReplay := GetOplogReplayAuthOptions()
 		assert.False(
@@ -62,18 +68,32 @@ func TestAuthOptionsFollowTestType(t *testing.T) {
 			"the harness password comes from the environment",
 		)
 
-		tool := GetToolAuthOptions()
+		backup := GetBackupAuthOptions()
 		assert.Equal(
 			t,
-			ToolUsername,
-			tool.Username,
-			"the tool user is the backup+restore user",
+			BackupUsername,
+			backup.Username,
+			"the backup user is the user mongodump runs as",
 		)
 		assert.Equal(
 			t,
-			ToolPassword,
-			tool.Password,
-			"the tool user's password is the fixed constant",
+			BackupPassword,
+			backup.Password,
+			"the backup user's password is the fixed constant",
+		)
+
+		restore := GetRestoreAuthOptions()
+		assert.Equal(
+			t,
+			RestoreUsername,
+			restore.Username,
+			"the restore user is the user mongorestore runs as",
+		)
+		assert.Equal(
+			t,
+			RestorePassword,
+			restore.Password,
+			"the restore user's password is the fixed constant",
 		)
 
 		oplogReplay := GetOplogReplayAuthOptions()

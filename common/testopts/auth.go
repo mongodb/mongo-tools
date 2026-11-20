@@ -20,13 +20,16 @@ var (
 	CreatedUserPasswordEnv = "TOOLS_TESTING_AUTH_PASSWORD"
 )
 
-// The user that scripts/start-test-cluster.sh creates for the tools under test to authenticate
-// as in auth runs: exactly the built-in backup and restore roles, which the documentation
-// prescribes as sufficient for mongodump and mongorestore. The values are mirrored in that
-// script and are deliberately not configurable so the two cannot drift apart.
+// The users that the tools under test authenticate as in auth runs: one per tool, holding
+// exactly the role the documentation prescribes as sufficient for it — backup for mongodump,
+// restore for mongorestore — so a dump run never holds restore privileges and the other way
+// around. The values are mirrored in common/testutil, which creates these users, and are
+// deliberately not configurable so the two cannot drift apart.
 const (
-	ToolUsername = "backuprestore"
-	ToolPassword = "backuprestore"
+	BackupUsername  = "backup"
+	BackupPassword  = "backup"
+	RestoreUsername = "restore"
+	RestorePassword = "restore"
 )
 
 // The user that tests running `mongorestore --oplogReplay` authenticate as, and its password.
@@ -55,11 +58,17 @@ func GetAuthArgs() []string {
 	return authArgs(GetAuthOptions())
 }
 
-// GetToolAuthOptions returns the credentials the tool under test should authenticate with: the
-// backup+restore user, the minimum-privilege identity. Tool runs use these; setup and
-// assertions use GetAuthOptions instead.
-func GetToolAuthOptions() options.Auth {
-	return constantUserAuth(ToolUsername, ToolPassword)
+// GetBackupAuthOptions returns the credentials mongodump runs should authenticate with: the
+// backup user, the minimum-privilege identity for mongodump. Setup and assertions use
+// GetAuthOptions instead.
+func GetBackupAuthOptions() options.Auth {
+	return constantUserAuth(BackupUsername, BackupPassword)
+}
+
+// GetRestoreAuthOptions returns the credentials mongorestore runs should authenticate with:
+// the restore user, the minimum-privilege identity for mongorestore.
+func GetRestoreAuthOptions() options.Auth {
+	return constantUserAuth(RestoreUsername, RestorePassword)
 }
 
 // GetOplogReplayAuthOptions returns the credentials for the user that tests running
@@ -79,10 +88,6 @@ func constantUserAuth(username, password string) options.Auth {
 	}
 
 	return options.Auth{}
-}
-
-func GetToolAuthArgs() []string {
-	return authArgs(GetToolAuthOptions())
 }
 
 func authArgs(auth options.Auth) []string {

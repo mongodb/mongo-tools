@@ -45,13 +45,25 @@ func init() {
 	})
 }
 
-func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
-	return getRestoreWithArgsForAuth(testopts.GetAuthOptions(), additionalArgs...)
+func getRestoreWithArgs(t *testing.T, additionalArgs ...string) (*MongoRestore, error) {
+	return getRestoreWithArgsForAuth(t, testopts.GetRestoreAuthOptions(), additionalArgs...)
+}
+
+// getRestoreAsOplogReplayUser is getRestoreWithArgs for `--oplogReplay` restores, as the
+// anyAction-on-anyResource user; see runRestoreAsOplogReplayUser for why.
+func getRestoreAsOplogReplayUser(t *testing.T, additionalArgs ...string) (*MongoRestore, error) {
+	return getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), additionalArgs...)
 }
 
 // getRestoreWithArgsForAuth is getRestoreWithArgs with the authentication identity chosen by the
-// caller, for tests that run the tool as one of the scoped users rather than the harness user.
-func getRestoreWithArgsForAuth(auth options.Auth, additionalArgs ...string) (*MongoRestore, error) {
+// caller, for tests that run the tool as one of the scoped users rather than the default
+// backup+restore user. When auth names one of the shared test users it is created first.
+func getRestoreWithArgsForAuth(
+	t *testing.T,
+	auth options.Auth,
+	additionalArgs ...string,
+) (*MongoRestore, error) {
+	testutil.EnsureSharedUser(t, auth)
 	opts, err := ParseOptions(append(
 		testopts.GetBareArgsForURIWithAuth(os.Getenv(testopts.URIEnvVar), auth),
 		additionalArgs...,
@@ -93,7 +105,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 				CollectionOption, "coll1",
 			}
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			if err != nil {
 				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
 			}
@@ -116,7 +128,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 				CollectionOption, "coll1",
 			}
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			if err != nil {
 				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
 			}
@@ -142,7 +154,7 @@ func TestMongorestore(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -279,7 +291,7 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -389,7 +401,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -517,7 +529,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				NumInsertionWorkersOption, "1",
 				"testdata/oplogdump",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -538,7 +550,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				PreserveUUIDOption,
 				"testdata/oplogdump",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -559,7 +571,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				DropOption,
 				"testdata/oplogdump",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -581,7 +593,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				DropOption,
 				"testdata/testdirs",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -659,7 +671,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	coll := database.Collection("mio")
 
 	Convey("default restore ignores dup key errors", t, func() {
-		restore, err := getRestoreWithArgs(mioSoeFile,
+		restore, err := getRestoreWithArgs(t, mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption)
@@ -678,7 +690,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--maintainInsertionOrder stops exactly on dup key errors", t, func() {
-		restore, err := getRestoreWithArgs(mioSoeFile,
+		restore, err := getRestoreWithArgs(t, mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption,
@@ -699,7 +711,7 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--stopOnError stops on dup key errors", t, func() {
-		restore, err := getRestoreWithArgs(mioSoeFile,
+		restore, err := getRestoreWithArgs(t, mioSoeFile,
 			CollectionOption, coll.Name(),
 			DBOption, database.Name(),
 			DropOption,
@@ -737,7 +749,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -776,7 +788,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			ConvertLegacyIndexesOption,
 		}
 
-		restore, err = getRestoreWithArgs(args...)
+		restore, err = getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -806,7 +818,7 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 
-	restore, err := getRestoreWithArgs(ConvertLegacyIndexesOption)
+	restore, err := getRestoreWithArgs(t, ConvertLegacyIndexesOption)
 	require.NoError(t, err)
 	defer restore.Close()
 
@@ -885,12 +897,12 @@ func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
-		session, _ = restore.SessionProvider.GetSession()
-
+		// The setup and assertions below run as the harness session, not the restore's: the
+		// restore user cannot aggregate, and a count is an aggregate.
 		db := session.Database("indextest")
 
 		// 4.4 removes the 'ns' field nested under the 'index' field in metadata.json
@@ -923,11 +935,13 @@ func TestLongIndexName(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
-		session, err := restore.SessionProvider.GetSession()
+		// The setup and assertions below run as the harness session, not the restore's: the
+		// restore user cannot list indexes.
+		session, err := testutil.GetBareSession(t)
 		So(err, ShouldBeNil)
 
 		coll := session.Database("longindextest").Collection("test_collection")
@@ -987,7 +1001,7 @@ func TestKnownCollections(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1031,7 +1045,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1130,7 +1144,7 @@ func TestHashedIndexes(t *testing.T) {
 	Convey("Test MongoRestore with hashed indexes", t, func() {
 		args := []string{}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1206,7 +1220,14 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 			//nolint:errcheck
 			defer dbName.Collection("test_auto_idx").Drop(ctx)
 
-			opts, err := ParseOptions(testopts.GetBareArgs(), "", "")
+			testutil.EnsureRestoreUser(t)
+			opts, err := ParseOptions(
+				testopts.GetBareArgsForURIWithAuth(
+					os.Getenv(testopts.URIEnvVar),
+					testopts.GetRestoreAuthOptions(),
+				),
+				"", "",
+			)
 			So(err, ShouldBeNil)
 
 			// Set retryWrites to false since it is unsupported on `local` db.
@@ -1279,7 +1300,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 
 				var args []string
 
-				restore, err := getRestoreWithArgs(args...)
+				restore, err := getRestoreWithArgs(t, args...)
 				So(err, ShouldBeNil)
 				defer restore.Close()
 
@@ -1326,7 +1347,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 				DropOption,
 			}
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgs(t, args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -1417,7 +1438,7 @@ func TestSkipSystemCollections(t *testing.T) {
 
 		currentTS := uint32(time.Now().UTC().Unix())
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1495,7 +1516,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1572,7 +1593,7 @@ func TestCommitIndexBuild(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1661,7 +1682,7 @@ func TestCreateIndexes(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 
 		defer restore.Close()
@@ -1745,7 +1766,7 @@ func TestGeoHaystackIndexes(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1775,6 +1796,12 @@ func createTimeseries(t *testing.T, dbName, coll string, client *mongo.Client) {
 	client.Database(dbName).RunCommand(t.Context(), createCmd)
 }
 
+// TestRestoreTimeseriesCollections restores checked-in dumps of timeseries collections. Every
+// restore runs as the anyAction-on-anyResource user rather than the default backup+restore user:
+// the fixtures contain admin/system.views.bson and system.buckets.* data, whose restore issues
+// direct writes against system collections, which no assignable role — not even root — permits.
+// That is also a finding against the mongorestore documentation, which presents the restore role
+// as sufficient for all restores.
 func TestRestoreTimeseriesCollections(t *testing.T) {
 	dbName := "timeseries_test"
 
@@ -1857,21 +1884,30 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 		t.Run("directory", func(t *testing.T) {
 			args := []string{DirectoryOption, "testdata/timeseries_tests/ts_dump"}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgsForAuth(
+				t,
+				testopts.GetOplogReplayAuthOptions(),
+				args...)
 			require.NoError(t, err)
 			runTest(t, restore)
 		})
 
 		t.Run("archive", func(t *testing.T) {
 			args := []string{ArchiveOption + "=testdata/timeseries_tests/dump.archive"}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgsForAuth(
+				t,
+				testopts.GetOplogReplayAuthOptions(),
+				args...)
 			require.NoError(t, err)
 			runTest(t, restore)
 		})
 
 		t.Run("archive from stdin", func(t *testing.T) {
 			args := []string{ArchiveOption + "=-"}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgsForAuth(
+				t,
+				testopts.GetOplogReplayAuthOptions(),
+				args...)
 			require.NoError(t, err)
 
 			archiveFile, err := os.Open("testdata/timeseries_tests/dump.archive")
@@ -1889,7 +1925,10 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			createTimeseries(t, dbName, "foo_ts", session)
 
 			args := []string{DirectoryOption, "testdata/timeseries_tests/ts_dump"}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestoreWithArgsForAuth(
+				t,
+				testopts.GetOplogReplayAuthOptions(),
+				args...)
 			require.NoError(t, err)
 
 			result := restore.Restore()
@@ -1900,7 +1939,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		t.Run("buckets collection exists", func(t *testing.T) {
 			defer dropTestDB(t)
 
-			restore, err := getRestoreWithArgs()
+			restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions())
 			require.NoError(t, err)
 			// In the 8.0 release, this no longer leads to an error, so
 			// there's nothing to test here.
@@ -1938,7 +1977,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"testdata/timeseries_tests/ts_dump_with_oplog",
 			OplogReplayOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -1965,7 +2004,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"testdata/timeseries_tests/ts_dump",
 			DropOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -1982,7 +2021,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"testdata/timeseries_tests/ts_dump",
 			NoOptionsRestoreOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -1997,7 +2036,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump_invalid_buckets",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2017,7 +2056,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"testdata/timeseries_tests/ts_dump_invalid_buckets",
 			BypassDocumentValidationOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2039,7 +2078,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"foo_ts",
 			"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2058,7 +2097,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"bar_ts",
 			"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2080,7 +2119,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		args := []string{
 			"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2099,7 +2138,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"system.buckets.foo_ts",
 			"testdata/timeseries_tests/ts_single_buckets_file/system.buckets.foo_ts.bson",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2116,7 +2155,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2135,7 +2174,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2155,7 +2194,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2174,7 +2213,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			"testdata/timeseries_tests/ts_dump",
 			NoIndexRestoreOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2233,7 +2272,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2267,7 +2306,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			DirectoryOption,
 			"testdata/timeseries_tests/ts_dump",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgsForAuth(t, testopts.GetOplogReplayAuthOptions(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2342,7 +2381,7 @@ func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 	dataLen := createClusteredIndex(t, testDB, indexName)
 
 	withBSONMongodumpForCollection(t, testDB.Name(), "stocks", func(dir string) {
-		restore, err := getRestoreWithArgs(
+		restore, err := getRestoreWithArgs(t,
 			DropOption,
 			dir,
 		)
@@ -2376,7 +2415,7 @@ func testRestoreClusteredIndexFromOplog(t *testing.T, indexName string) {
 	createClusteredIndex(t, testDB, indexName)
 
 	withOplogMongoDump(t, dbName, "stocks", func(dir string) {
-		restore, err := getRestoreWithArgs(
+		restore, err := getRestoreWithArgs(t,
 			DropOption,
 			OplogReplayOption,
 			dir,
