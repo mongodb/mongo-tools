@@ -686,20 +686,21 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 		if arg == "" {
 			continue
 		}
-		cs, err := connstring.Parse(arg)
-		if err == nil {
-			if foundURI {
-				return []string{}, fmt.Errorf(
-					"too many URIs found in positional arguments: only one URI can be set as a positional argument",
-				)
-			}
-			foundURI = true
-			parsedURI = cs
-		} else if err.Error() == "error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"" {
+		if !hasURIScheme(arg) {
 			newArgs = append(newArgs, arg)
-		} else {
+			continue
+		}
+		cs, err := connstring.Parse(arg)
+		if err != nil {
 			return []string{}, util.SanitizeURIError(err, arg)
 		}
+		if foundURI {
+			return []string{}, fmt.Errorf(
+				"too many URIs found in positional arguments: only one URI can be set as a positional argument",
+			)
+		}
+		foundURI = true
+		parsedURI = cs
 	}
 
 	if foundURI { // Successfully parsed a URI
@@ -715,6 +716,14 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 	return newArgs, nil
 }
 
+// hasURIScheme reports whether arg begins with one of the MongoDB connection string schemes. The
+// driver's parser rejects anything else, but since 2.10.1 it redacts the details of its errors, so
+// a plain positional argument can no longer be recognized by the error it produces.
+func hasURIScheme(arg string) bool {
+	return strings.HasPrefix(arg, connstring.SchemeMongoDB+"://") ||
+		strings.HasPrefix(arg, connstring.SchemeMongoDBSRV+"://")
+}
+
 // NormalizeOptionsAndURI syncs the connection string and toolOptions objects.
 // It returns an error if there is any conflict between options and the connection string.
 // If a value is set on the options, but not the connection string, that value is added to the
@@ -722,6 +731,9 @@ func (opts *ToolOptions) setURIFromPositionalArg(args []string) ([]string, error
 // that value is added to the options.
 func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 	if opts.URI == nil || opts.ConnectionString == "" {
+		if err := validatePort(opts.Port); err != nil {
+			return err
+		}
 		// If URI not provided, get replica set name and generate connection string
 		_, opts.ReplicaSetName = util.SplitHostArg(opts.Host)
 		uri, err := NewURI(util.BuildURI(opts.Host, opts.Port))
@@ -774,6 +786,24 @@ func (opts *ToolOptions) NormalizeOptionsAndURI() error {
 		opts.Direct = (opts.ReplicaSetName == "") || opts.Direct
 	}
 
+	return nil
+}
+
+// validatePort checks the --port option. The check lives here rather than in the driver's URI
+// parser, which since 2.10.1 redacts the details of its parse errors: a user who passes a bad
+// --port should be told the port is the problem, not handed a vague "invalid connection string"
+// for a URI they never typed.
+func validatePort(port string) error {
+	if port == "" {
+		return nil
+	}
+	p, err := strconv.Atoi(port)
+	if err != nil {
+		return fmt.Errorf("port must be an integer: %w", err)
+	}
+	if p < 1 || p > 65535 {
+		return fmt.Errorf("port must be an integer from 1-65535 but was %#q", port)
+	}
 	return nil
 }
 

@@ -1356,10 +1356,25 @@ func TestParsePositionalArgsAsURI(t *testing.T) {
 			_, err := toolOptions.ParseArgs(args)
 			require.NoError(t, err)
 		})
+		t.Run("arguments that only look like a URI", func(t *testing.T) {
+			// A single slash in the scheme, or a scheme modifier other than
+			// +srv, means the argument is a plain positional argument.
+			for _, arg := range []string{"mongodb:/localhost:27017", "mongodb+other://localhost:27017"} {
+				_, err := toolOptions.ParseArgs([]string{arg})
+				require.NoError(t, err, "%#q is not a URI", arg)
+			}
+		})
 		t.Run("non-schema errors", func(t *testing.T) {
+			// The driver redacts the details of URI parse errors, so only the
+			// static message can be asserted on.
 			args := []string{"mongodb://a/b@localhost:27017"}
 			_, err := toolOptions.ParseArgs(args)
-			require.Equal(t, "error parsing uri: unescaped slash in username", err.Error())
+			require.Equal(t, "error parsing uri: invalid connection string", err.Error())
+		})
+		t.Run("mongodb+srv arguments are URIs", func(t *testing.T) {
+			args := []string{"mongodb+srv://user:pa:ss@localhost"}
+			_, err := toolOptions.ParseArgs(args)
+			require.Equal(t, "error parsing uri: invalid connection string", err.Error())
 		})
 	})
 }
