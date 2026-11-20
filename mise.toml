@@ -23,7 +23,7 @@ node = "22.23.4"
 "npm:github-codeowners" = "0.2.1"
 # This opts out of the minimum_release_age below because this is a MongoDB project and we often need
 # to update to new versions.
-"npm:@mongodb-js/mongodb-runner" = { version = "8.4.3", minimum_release_age = "0d" }
+"npm:@mongodb-js/mongodb-runner" = { version = "8.6.1", minimum_release_age = "0d" }
 "npm:oxfmt" = "0.74.0"
 
 [settings]
