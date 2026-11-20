@@ -58,6 +58,12 @@ func GetAuthArgs() []string {
 	return authArgs(GetAuthOptions())
 }
 
+// AuthArgs returns the command-line flags carrying the given credentials, for the suites that
+// build a tool's arguments by hand.
+func AuthArgs(auth options.Auth) []string {
+	return authArgs(auth)
+}
+
 // GetBackupAuthOptions returns the credentials mongodump runs should authenticate with: the
 // backup user, the minimum-privilege identity for mongodump. Setup and assertions use
 // GetAuthOptions instead.

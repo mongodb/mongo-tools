@@ -242,7 +242,7 @@ func (s *DumpRestoreSuite) assertOplogReplayTimeseriesBucketDiffs(
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(
+		result := s.runRestoreAsOplogReplayUser(
 			mongorestore.OplogReplayOption,
 			mongorestore.OplogFileOption, oplogPath,
 			mongorestore.DirectoryOption, dir,
@@ -341,7 +341,7 @@ func (s *DumpRestoreSuite) TestOplogReplayTimeseriesBucketCreatedInWindow() {
 
 		s.dropDB(testDB)
 
-		result := s.runRestore(
+		result := s.runRestoreAsOplogReplayUser(
 			mongorestore.OplogReplayOption,
 			mongorestore.OplogFileOption, oplogPath,
 			mongorestore.DirectoryOption, dir,
