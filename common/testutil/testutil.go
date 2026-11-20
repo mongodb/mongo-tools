@@ -151,11 +151,17 @@ func DropAdminSystemViews(t *testing.T) {
 
 	session, err := GetBareSession(t)
 	require.NoError(t, err, "connecting as the harness user to drop admin.system.views")
-	require.NoError(
-		t,
-		session.Database("admin").Collection("system.views").Drop(t.Context()),
-		"dropping admin.system.views",
-	)
+
+	err = session.Database("admin").Collection("system.views").Drop(t.Context())
+	// A mongos refuses to drop any collection in the admin database, so the precondition cannot
+	// be established on a sharded cluster. That is tolerable: the sharded CI variants run the
+	// packages in an order where nothing has left admin.system.views behind by the time the
+	// dumps under test run.
+	var cmdErr mongo.CommandError
+	if err != nil &&
+		!(errors.As(err, &cmdErr) && cmdErr.Name == "IllegalOperation") {
+		require.NoError(t, err, "dropping admin.system.views")
+	}
 }
 
 // ensureUser creates one of the users the tests share when it does not already exist. Existence
