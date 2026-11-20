@@ -1972,7 +1972,6 @@ func withCorruptedTimeseriesDump(
 func withTimeseriesOplogDump(
 	t *testing.T,
 	client *mongo.Client,
-	serverVersion db.Version,
 	testCase func(dir, dbName string),
 ) {
 	dbName := uniqueDBName()
@@ -1994,26 +1993,19 @@ func withTimeseriesOplogDump(
 
 	insertTimeseriesMeasurements(t, client, dbName, 100, 50)
 
-	// The writes are recorded under several namespaces: commands on
-	// <db>.$cmd, the view registration insert on <db>.system.views (a viewful
-	// server records the timeseries collection there), and the bucket writes
-	// on system.buckets.<coll> (viewful) or the collection itself (viewless).
-	// Matching a namespace that a server never records costs nothing. A write
-	// batch that opened several buckets at once would instead be grouped into
-	// one applyOps entry on admin.$cmd, which this filter does not match; the
-	// second round of writes only appends to the buckets the first round
-	// opened, so no such entries exist.
+	// The window is bounded by timestamp only, the way mongodump --oplog
+	// captures its own window. The writes land under namespaces that vary by
+	// version — the collection itself or system.buckets.<coll>, commands on
+	// <db>.$cmd, and write batches the server groups into applyOps entries on
+	// admin.$cmd — and a namespace filter loses entries on some servers: the
+	// 8.3.0-rc4 CI variant captured an empty window through one. Nothing else
+	// writes to the cluster while this test runs, so the whole window belongs
+	// to it.
 	query := map[string]any{
 		"ts": map[string]any{
 			"$gt": map[string]any{
 				"$timestamp": map[string]int64{"t": int64(checkpoint.T), "i": int64(checkpoint.I)},
 			},
-		},
-		"$or": []map[string]string{
-			{"ns": dbName + ".$cmd"},
-			{"ns": dbName + ".system.views"},
-			{"ns": dbName + "." + timeseriesDataCollName(serverVersion, timeseriesTestColl)},
-			{"ns": dbName + "." + timeseriesTestColl},
 		},
 	}
 	q, err := json.Marshal(query)
@@ -2025,6 +2017,15 @@ func withTimeseriesOplogDump(
 	require.NoError(t, err, "can rename %s -> %s", bsonFile, oplog)
 	err = os.RemoveAll(filepath.Join(dir, "local"))
 	require.NoError(t, err, "can remove the local directory mongodump created")
+
+	stat, err := os.Stat(oplog)
+	require.NoError(t, err, "can stat the captured oplog window")
+	require.Greater(
+		t,
+		stat.Size(),
+		int64(0),
+		"the captured oplog window holds ops to replay; an empty window would otherwise only surface as a wrong document count",
+	)
 
 	require.NoError(t, client.Database(dbName).Drop(t.Context()), "can drop the seeded database")
 
@@ -2191,9 +2192,13 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 
 	t.Run("oplogReplay", func(t *testing.T) {
 		testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
+		testutil.SkipForDisaggregatedStorage(
+			t,
+			"it replays an oplog, and DSC does not support the applyOps command",
+		)
 		testutil.SkipUnlessReplicaSet(t)
 
-		withTimeseriesOplogDump(t, session, serverVersion, func(dir, oplogDBName string) {
+		withTimeseriesOplogDump(t, session, func(dir, oplogDBName string) {
 			args := []string{
 				DirectoryOption,
 				dir,
