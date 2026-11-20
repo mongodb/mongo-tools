@@ -509,8 +509,11 @@ functions:
         SLAVE: ${slave}
         TASK_NAME: ${task_name}
 
-  # Setting CREATE_USER starts an auth-enabled server and creates the admin user the tests
-  # authenticate as.
+  # The script starts an auth-enabled server and creates the bootstrap user that test setup and
+  # assertions authenticate as; the tools under test use their own users, created by the tests
+  # (see common/testutil). Setting SKIP_AUTH starts the cluster without authentication instead.
+  # On replica sets and sharded clusters the authentication also needs the keyfile that
+  # start-test-cluster.sh passes.
   "start test cluster":
     - command: subprocess.exec
       params:
@@ -524,7 +527,7 @@ functions:
           AUTH_PASSWORD: ${auth_password}
           AUTH_USERNAME: ${auth_username}
           AWS_AUTH: ${AWS_AUTH}
-          CREATE_USER: ${CREATE_USER}
+          SKIP_AUTH: ${SKIP_AUTH}
           EVG_EXPANSION_VAR: TOOLS_TESTING_MONGOD
           EVG_WORKDIR: ${workdir}
           SECONDARIES: ${SECONDARIES}
@@ -1120,7 +1123,7 @@ tasks:
       - func: "install mise and go"
       - func: "generate full JSON feed"
 
-  - name: integration-4.2
+  - name: integration-4.2-no-auth
     tags: ["4.2", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1133,6 +1136,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1141,7 +1145,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-4.2-auth
+  - name: integration-4.2
     tags: ["4.2", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1154,7 +1158,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1162,7 +1165,7 @@ tasks:
         vars:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
-  - name: integration-4.4
+  - name: integration-4.4-no-auth
     tags: ["4.4", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1175,6 +1178,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1183,7 +1187,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-4.4-auth
+  - name: integration-4.4
     tags: ["4.4", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1196,7 +1200,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1205,7 +1208,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-4.4-cluster
-    tags: ["4.4", "cluster", "required-for-merge-queue"]
+    tags: ["4.4", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1223,9 +1226,9 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
-  - name: integration-5.0
+  - name: integration-5.0-no-auth
     tags: ["5.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1238,6 +1241,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1246,7 +1250,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-5.0-auth
+  - name: integration-5.0
     tags: ["5.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1259,7 +1263,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1268,7 +1271,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-5.0-cluster
-    tags: ["5.0", "cluster", "required-for-merge-queue"]
+    tags: ["5.0", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1286,7 +1289,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-5.0
     tags: ["5.0", "aws-auth", "required-for-merge-queue"]
@@ -1307,7 +1310,7 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
-  - name: integration-6.0
+  - name: integration-6.0-no-auth
     tags: ["6.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1320,6 +1323,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1328,7 +1332,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-6.0-auth
+  - name: integration-6.0
     tags: ["6.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1341,7 +1345,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1350,7 +1353,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-6.0-cluster
-    tags: ["6.0", "cluster", "required-for-merge-queue"]
+    tags: ["6.0", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1368,7 +1371,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-6.0
     tags: ["6.0", "aws-auth", "required-for-merge-queue"]
@@ -1389,7 +1392,7 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
-  - name: integration-7.0
+  - name: integration-7.0-no-auth
     tags: ["7.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1402,6 +1405,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1410,7 +1414,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-7.0-auth
+  - name: integration-7.0
     tags: ["7.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1423,7 +1427,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1432,7 +1435,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-7.0-cluster
-    tags: ["7.0", "cluster", "required-for-merge-queue"]
+    tags: ["7.0", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1450,7 +1453,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-7.0
     tags: ["7.0", "aws-auth", "required-for-merge-queue"]
@@ -1471,7 +1474,7 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
-  - name: integration-8.0
+  - name: integration-8.0-no-auth
     tags: ["8.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1484,6 +1487,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1492,7 +1496,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-8.0-auth
+  - name: integration-8.0
     tags: ["8.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1505,7 +1509,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1514,7 +1517,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-8.0-cluster
-    tags: ["8.0", "cluster", "required-for-merge-queue"]
+    tags: ["8.0", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1532,7 +1535,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-8.0
     tags: ["8.0", "aws-auth", "required-for-merge-queue"]
@@ -1553,7 +1556,7 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
-  - name: integration-8.2
+  - name: integration-8.2-no-auth
     tags: ["8.2", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1566,6 +1569,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1574,7 +1578,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-8.2-auth
+  - name: integration-8.2
     tags: ["8.2", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1587,7 +1591,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1596,7 +1599,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-8.2-cluster
-    tags: ["8.2", "cluster", "required-for-merge-queue"]
+    tags: ["8.2", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1614,7 +1617,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-8.2
     tags: ["8.2", "aws-auth", "required-for-merge-queue"]
@@ -1635,7 +1638,7 @@ tasks:
         vars:
           target: test:awsauth ${testArgs}
 
-  - name: integration-8.3
+  - name: integration-8.3-no-auth
     tags: ["8.3", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1648,6 +1651,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1656,7 +1660,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-8.3-auth
+  - name: integration-8.3
     tags: ["8.3", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1669,7 +1673,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1678,7 +1681,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-8.3-cluster
-    tags: ["8.3", "cluster", "required-for-merge-queue"]
+    tags: ["8.3", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1696,7 +1699,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-8.3
     tags: ["8.3", "aws-auth", "required-for-merge-queue"]
@@ -1722,7 +1725,7 @@ tasks:
   # deliberately not tagged with a server version, so that it runs only on the variants that ask for
   # ".no-ssl".
   - name: integration-9.0-no-ssl
-    tags: ["no-ssl", "required-for-merge-queue"]
+    tags: ["no-ssl", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - func: "install mise and go"
@@ -1739,9 +1742,9 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration ${testArgs}
+          target: test:integration -auth=true ${testArgs}
 
-  - name: integration-9.0
+  - name: integration-9.0-no-auth
     tags: ["9.0", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1754,6 +1757,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: "standalone"
+          SKIP_AUTH: "true"
           USE_TLS: "true"
       - func: "run make target"
         vars:
@@ -1762,7 +1766,7 @@ tasks:
         vars:
           target: test:integration -ssl=true ${testArgs}
 
-  - name: integration-9.0-auth
+  - name: integration-9.0
     tags: ["9.0", "auth", "required-for-merge-queue"]
     commands:
       - func: "fetch source"
@@ -1775,7 +1779,6 @@ tasks:
         vars:
           TOPOLOGY: "standalone"
           USE_TLS: "true"
-          CREATE_USER: "true"
       - func: "run make target"
         vars:
           target: build
@@ -1784,7 +1787,7 @@ tasks:
           target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: integration-9.0-cluster
-    tags: ["9.0", "cluster", "required-for-merge-queue"]
+    tags: ["9.0", "cluster", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1802,7 +1805,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:integration -ssl=true ${testArgs}
+          target: test:integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-9.0
     tags: ["9.0", "aws-auth", "required-for-merge-queue"]
@@ -1861,6 +1864,7 @@ tasks:
       - func: "start test cluster"
         vars:
           TOPOLOGY: replset
+          SKIP_AUTH: "true"
           USE_TLS: ""
       - func: "run make target"
         vars:
@@ -1877,7 +1881,7 @@ tasks:
           target: test:cross-cluster ${testArgs}
 
   - name: integration-4.4-sharded
-    tags: ["4.4", "sharded", "required-for-merge-queue"]
+    tags: ["4.4", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1894,10 +1898,10 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   - name: integration-5.0-sharded
-    tags: ["5.0", "sharded", "required-for-merge-queue"]
+    tags: ["5.0", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1914,10 +1918,10 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   - name: integration-6.0-sharded
-    tags: ["6.0", "sharded", "required-for-merge-queue"]
+    tags: ["6.0", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1934,10 +1938,10 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   - name: integration-7.0-sharded
-    tags: ["7.0", "sharded", "required-for-merge-queue"]
+    tags: ["7.0", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1954,10 +1958,10 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   - name: integration-8.0-sharded
-    tags: ["8.0", "sharded", "required-for-merge-queue"]
+    tags: ["8.0", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1974,10 +1978,10 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   - name: integration-8.2-sharded
-    tags: ["8.2", "sharded", "required-for-merge-queue"]
+    tags: ["8.2", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -1994,10 +1998,10 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   - name: integration-8.3-sharded
-    tags: ["8.3", "sharded", "required-for-merge-queue"]
+    tags: ["8.3", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2014,10 +2018,10 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   - name: integration-9.0-sharded
-    tags: ["9.0", "sharded", "required-for-merge-queue"]
+    tags: ["9.0", "sharded", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2034,12 +2038,12 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration ${testArgs}
+          target: test:sharded-integration -auth=true ${testArgs}
 
   # Like integration-9.0-sharded, but with TLS, so the sharded suite also covers the TLS path. The
   # other sharded tasks run without TLS; this is the only sharded task that turns it on.
   - name: integration-9.0-sharded-tls
-    tags: ["9.0", "sharded", "tls", "required-for-merge-queue"]
+    tags: ["9.0", "sharded", "tls", "required-for-merge-queue", "auth"]
     commands:
       - func: "fetch source"
       - command: expansions.update
@@ -2057,7 +2061,7 @@ tasks:
           target: build
       - func: "run make target"
         vars:
-          target: test:sharded-integration -ssl=true ${testArgs}
+          target: test:sharded-integration -ssl=true -auth=true ${testArgs}
 
   - name: aws-auth-4.4
     tags: ["4.4", "aws-auth", "required-for-merge-queue"]
