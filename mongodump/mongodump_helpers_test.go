@@ -8,10 +8,13 @@ package mongodump
 
 import (
 	"fmt"
+	"os"
+	"testing"
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
+	"github.com/mongodb/mongo-tools/common/testutil"
 )
 
 // These are shared by unit and integration tests, so they live in an untagged file.
@@ -22,8 +25,15 @@ var (
 	testCollectionNames = []string{"coll1", "coll2", "coll/three"}
 )
 
-func simpleMongoDumpInstance() (*MongoDump, error) {
-	toolOptions, err := testopts.GetToolOptions()
+// simpleMongoDumpInstance builds a mongodump authenticating as the backup user, the
+// minimum-privilege identity the documentation prescribes for mongodump. Without the auth test
+// type it behaves exactly like the unauthenticated default.
+func simpleMongoDumpInstance(t *testing.T) (*MongoDump, error) {
+	testutil.EnsureBackupUser(t)
+	toolOptions, err := testopts.GetToolOptionsForURIWithAuth(
+		os.Getenv(testopts.URIEnvVar),
+		testopts.GetBackupAuthOptions(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tool options to create a mongodump instance: %w", err)
 	}

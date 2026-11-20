@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
 	"github.com/mongodb/mongo-tools/mongodump"
@@ -32,7 +33,7 @@ func (s *DumpRestoreSuite) TestDumpFromSecondaryRestoreToPrimary() {
 
 	dir := s.T().TempDir()
 	s.dumpWithArgs(
-		s.DirectToolArgs(s.SecondaryHost()),
+		s.DirectToolArgsForAuth(s.SecondaryHost(), testopts.GetBackupAuthOptions()),
 		"--out", dir,
 		"--db", testDB.Name(),
 		"--collection", collName,
@@ -41,7 +42,7 @@ func (s *DumpRestoreSuite) TestDumpFromSecondaryRestoreToPrimary() {
 	s.dropCollection(coll)
 
 	s.restoreWithArgs(
-		s.DirectToolArgs(s.PrimaryHost()),
+		s.DirectToolArgsForAuth(s.PrimaryHost(), testopts.GetRestoreAuthOptions()),
 		"--db", testDB.Name(),
 		"--collection", collName,
 		filepath.Join(dir, testDB.Name(), collName+".bson"),
@@ -63,13 +64,14 @@ func (s *DumpRestoreSuite) TestRestoreToSecondaryFails() {
 
 	dir := s.T().TempDir()
 	s.dumpWithArgs(
-		s.DirectToolArgs(s.PrimaryHost()),
+		s.DirectToolArgsForAuth(s.PrimaryHost(), testopts.GetBackupAuthOptions()),
 		"--out", dir,
 		"--db", testDB.Name(),
 		"--collection", collName,
 	)
 
-	args := append(s.DirectToolArgs(s.SecondaryHost()),
+	args := append(
+		s.DirectToolArgsForAuth(s.SecondaryHost(), testopts.GetRestoreAuthOptions()),
 		"--db", testDB.Name(),
 		"--collection", collName,
 		filepath.Join(dir, testDB.Name(), collName+".bson"),
@@ -77,6 +79,7 @@ func (s *DumpRestoreSuite) TestRestoreToSecondaryFails() {
 	opts, err := mongorestore.ParseOptions(args, "", "")
 	s.Require().NoError(err, "can parse the mongorestore options")
 
+	testutil.EnsureRestoreUser(s.T())
 	restore, err := mongorestore.New(opts)
 	s.Require().NoError(err, "mongorestore can connect to the secondary")
 	defer restore.Close()
@@ -111,7 +114,7 @@ func (s *DumpRestoreSuite) TestRestoreWithWriteConcernForWholeSet() {
 
 	dir := s.T().TempDir()
 	s.dumpWithArgs(
-		s.DirectToolArgs(s.PrimaryHost()),
+		s.DirectToolArgsForAuth(s.PrimaryHost(), testopts.GetBackupAuthOptions()),
 		"--out", dir,
 		"--db", testDB.Name(),
 		"--collection", collName,
@@ -137,7 +140,7 @@ func (s *DumpRestoreSuite) TestRestoreWithWriteConcernForWholeSet() {
 	)
 
 	s.restoreWithArgs(
-		s.DirectToolArgs(s.PrimaryHost()),
+		s.DirectToolArgsForAuth(s.PrimaryHost(), testopts.GetRestoreAuthOptions()),
 		"--writeConcern", strconv.Itoa(1+len(secondaryHosts)),
 		"--db", testDB.Name(),
 		"--collection", collName,
@@ -168,6 +171,7 @@ func (s *DumpRestoreSuite) fullSetWriteCollection(
 }
 
 func (s *DumpRestoreSuite) dumpWithArgs(hostArgs []string, dumpArgs ...string) {
+	testutil.EnsureBackupUser(s.T())
 	opts, err := mongodump.ParseOptions(slices.Concat(hostArgs, dumpArgs), "", "")
 	s.Require().NoError(err, "can parse the mongodump options")
 
@@ -181,6 +185,7 @@ func (s *DumpRestoreSuite) dumpWithArgs(hostArgs []string, dumpArgs ...string) {
 }
 
 func (s *DumpRestoreSuite) restoreWithArgs(hostArgs []string, restoreArgs ...string) {
+	testutil.EnsureRestoreUser(s.T())
 	restore, err := getRestoreWithHostArgs(hostArgs, restoreArgs...)
 	s.Require().NoError(err, "mongorestore can connect")
 	defer restore.Close()

@@ -176,7 +176,7 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		})
 	}
 
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(t)
 	require.NoError(t, err)
 
 	for _, testVals := range tests {

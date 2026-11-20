@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
@@ -22,7 +23,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type DumpRestoreSuite struct {
@@ -42,12 +43,23 @@ func (s *DumpRestoreSuite) withBSONMongodumpForURI(
 	testCase func(string),
 	args ...string,
 ) {
+	s.withBSONMongodumpForURIForAuth(uri, testopts.GetBackupAuthOptions(), testCase, args...)
+}
+
+// withBSONMongodumpForURIForAuth is withBSONMongodumpForURI with the authentication identity
+// chosen by the caller, for the few dumps whose needs exceed the backup role.
+func (s *DumpRestoreSuite) withBSONMongodumpForURIForAuth(
+	uri string,
+	auth options.Auth,
+	testCase func(string),
+	args ...string,
+) {
 	dir, cleanup := testutil.MakeTempDir(s.T())
 	defer cleanup()
 	dirArgs := []string{
 		"--out", dir,
 	}
-	s.runMongodumpWithArgsForURI(nil, uri, append(dirArgs, args...)...)
+	s.runMongodumpWithArgsForURIForAuth(nil, uri, auth, append(dirArgs, args...)...)
 	testCase(dir)
 }
 
@@ -66,8 +78,20 @@ func (s *DumpRestoreSuite) runMongodumpWithArgsForURI(
 	uri string,
 	args ...string,
 ) {
+	s.runMongodumpWithArgsForURIForAuth(stdout, uri, testopts.GetBackupAuthOptions(), args...)
+}
+
+// runMongodumpWithArgsForURIForAuth is runMongodumpWithArgsForURI with the authentication
+// identity chosen by the caller, for the few dumps whose needs exceed the backup role.
+func (s *DumpRestoreSuite) runMongodumpWithArgsForURIForAuth(
+	stdout io.Writer,
+	uri string,
+	auth options.Auth,
+	args ...string,
+) {
+	testutil.EnsureSharedUser(s.T(), auth)
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
-	cmd = append(cmd, testopts.GetBareArgsForURI(uri)...)
+	cmd = append(cmd, testopts.GetBareArgsForURIWithAuth(uri, auth)...)
 	cmd = append(cmd, args...)
 	cmdStr := strings.Join(cmd, " ")
 
@@ -364,7 +388,7 @@ type crossCluster = sharedsuite.CrossCluster
 func (s *DumpRestoreSuite) createCollection(
 	testDB *mongo.Database,
 	collName string,
-	opts *options.CreateCollectionOptionsBuilder,
+	opts *mopt.CreateCollectionOptionsBuilder,
 ) *mongo.Collection {
 	err := testDB.CreateCollection(s.Context(), collName, opts)
 	s.Require().NoError(err, "can create the collection %#q", collName)
@@ -397,7 +421,17 @@ func (s *DumpRestoreSuite) writeBSONFile(path string, docs ...bson.D) {
 }
 
 func (s *DumpRestoreSuite) runRestore(args ...string) mongorestore.Result {
-	restore, err := getRestoreWithArgs(args...)
+	restore, err := getRestoreWithArgs(s.T(), args...)
+	s.Require().NoError(err, "can build mongorestore")
+	defer restore.Close()
+
+	return restore.Restore()
+}
+
+// runRestoreAsOplogReplayUser is runRestore for `--oplogReplay` restores, as the
+// anyAction-on-anyResource user; see getRestoreAsOplogReplayUser for why.
+func (s *DumpRestoreSuite) runRestoreAsOplogReplayUser(args ...string) mongorestore.Result {
+	restore, err := getRestoreAsOplogReplayUser(s.T(), args...)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
 

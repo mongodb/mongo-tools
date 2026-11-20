@@ -220,6 +220,17 @@ func (s *IntegrationSuite) DirectToolArgs(host string) []string {
 	)
 }
 
+// DirectToolArgsForAuth is DirectToolArgs with the authentication identity chosen by the
+// caller, for the suites whose tools run under a specific role.
+func (s *IntegrationSuite) DirectToolArgsForAuth(host string, auth options.Auth) []string {
+	return s.toolArgsForHostsForAuth(
+		[]string{host},
+		url.Values{"directConnection": {"true"}},
+		host,
+		auth,
+	)
+}
+
 // directToolOptions builds tool options addressed at one node, keeping whatever
 // SSL and auth configuration the test deployment needs.
 func (s *IntegrationSuite) directToolOptions(host string) *options.ToolOptions {

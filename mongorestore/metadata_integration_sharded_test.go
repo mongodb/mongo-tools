@@ -161,7 +161,7 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 			DropOption,
 			dumpDir.Path(),
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestoreWithArgs(t, args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 

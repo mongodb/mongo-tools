@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
@@ -19,6 +20,19 @@ func (s *IntegrationSuite) toolArgsForHosts(
 	setParams url.Values,
 	hostArg string,
 ) []string {
+	return s.toolArgsForHostsForAuth(hosts, setParams, hostArg, testopts.GetAuthOptions())
+}
+
+// toolArgsForHostsForAuth is toolArgsForHosts with the authentication identity chosen by the
+// caller, for the suites whose tools run under a specific role. The identity is passed by hand:
+// the harness default these helpers otherwise carry is the one the import and export suites
+// still rely on.
+func (s *IntegrationSuite) toolArgsForHostsForAuth(
+	hosts []string,
+	setParams url.Values,
+	hostArg string,
+	auth options.Auth,
+) []string {
 	uri, haveURI := s.configuredURIWithHosts(hosts, setParams)
 
 	args := append([]string{}, testopts.GetSSLArgs()...)
@@ -28,7 +42,7 @@ func (s *IntegrationSuite) toolArgsForHosts(
 		// option for it.
 		args = append(args, "--sslAllowInvalidHostnames")
 	}
-	args = append(args, testopts.GetAuthArgs()...)
+	args = append(args, testopts.AuthArgs(auth)...)
 
 	if haveURI {
 		return append(args, "--uri", uri)

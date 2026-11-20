@@ -19,7 +19,7 @@ import (
 // TestOplogDumpFailsOnSharded checks that `--oplog` against a sharded cluster fails. Mongodump does
 // not support oplog dump with sharded clusters.
 func TestOplogDumpFailsOnSharded(t *testing.T) {
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(t)
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
