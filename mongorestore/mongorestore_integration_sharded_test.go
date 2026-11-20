@@ -11,6 +11,7 @@ package mongorestore
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -1766,6 +1767,270 @@ func createTimeseries(t *testing.T, dbName, coll string, client *mongo.Client) {
 	client.Database(dbName).RunCommand(t.Context(), createCmd)
 }
 
+// timeseriesDataCollName returns the collection whose .bson file carries the
+// bucket data in a dump of the given timeseries collection made against this
+// server: viewful servers (pre-8.3) store buckets in system.buckets.<coll>
+// while viewless servers (8.3+) store them in the collection itself.
+func timeseriesDataCollName(serverVersion db.Version, coll string) string {
+	if serverVersion.SupportsRawData() {
+		return coll
+	}
+	return common.TimeseriesBucketPrefix + coll
+}
+
+// timeseriesTestColl is the collection every timeseries restore test targets;
+// it is fixed so the helpers do not thread it through every call site.
+const timeseriesTestColl = "foo_ts"
+
+// seedTimeseries creates the timeseries collection in the given database and
+// seeds a deterministic data set: ten meta values with one hundred
+// measurements each, all inside one bucketing interval, which buckets to
+// exactly ten buckets holding one thousand measurements on every supported
+// server.
+func seedTimeseries(t *testing.T, client *mongo.Client, dbName string) {
+	createCmd := bson.D{
+		{"create", timeseriesTestColl},
+		{"timeseries", bson.M{
+			"timeField":   "ts",
+			"metaField":   "meta",
+			"granularity": "seconds",
+		}},
+	}
+	res := client.Database(dbName).RunCommand(t.Context(), createCmd)
+	require.NoError(t, res.Err(), "can create the timeseries collection")
+
+	insertTimeseriesMeasurements(t, client, dbName, 0, 100)
+}
+
+// insertTimeseriesMeasurements appends the given number of measurements to
+// each of ten devices, with timestamps offset by start seconds into the same
+// bucketing interval, so a second round appends to the buckets the first
+// round opened.
+func insertTimeseriesMeasurements(
+	t *testing.T,
+	client *mongo.Client,
+	dbName string,
+	start, count int,
+) {
+	base := time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC)
+	measurements := client.Database(dbName).Collection(timeseriesTestColl)
+	for d := range 10 {
+		docs := make([]any, 0, count)
+		for i := range count {
+			docs = append(docs, bson.M{
+				"ts":   base.Add(time.Duration(start+i) * time.Second),
+				"meta": bson.M{"device": fmt.Sprintf("device%d", d)},
+				"val":  start + i,
+			})
+		}
+		_, err := measurements.InsertMany(t.Context(), docs)
+		require.NoError(t, err, "can seed the timeseries measurements")
+	}
+}
+
+// latestOplogTimestamp returns the timestamp of the newest oplog entry, the
+// point a capture of later entries starts from.
+func latestOplogTimestamp(t *testing.T, client *mongo.Client) bson.Timestamp {
+	opts := mopt.Find().SetSort(bson.D{{"$natural", -1}}).SetLimit(1)
+	cursor, err := client.Database("local").Collection("oplog.rs").
+		Find(t.Context(), bson.M{}, opts)
+	require.NoError(t, err, "can query the oplog tail")
+	defer cursor.Close(t.Context())
+	if !cursor.Next(t.Context()) {
+		t.Fatal("no oplog entries to checkpoint against")
+	}
+	var entry struct {
+		Timestamp bson.Timestamp `bson:"ts"`
+	}
+	require.NoError(t, cursor.Decode(&entry), "can decode the oplog tail")
+	return entry.Timestamp
+}
+
+// withTimeseriesDump seeds the given timeseries collection, dumps its database
+// with mongodump, drops the database, and hands the dump directory to the
+// test. The dump is made by the current tools against the current server,
+// which is the only dump and restore pairing we support; the fixtures this
+// replaces were mongodump output from 5.0.0-rc0, so restoring them into every
+// CI variant tested cross-version dump and restore.
+func withTimeseriesDump(
+	t *testing.T,
+	client *mongo.Client,
+	dbName string,
+	testCase func(dir string),
+) {
+	seedTimeseries(t, client, dbName)
+
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	runMongodumpWithArgs(t, "--out", dir, "--db", dbName)
+
+	require.NoError(t, client.Database(dbName).Drop(t.Context()), "can drop the dumped database")
+
+	testCase(dir)
+}
+
+// withTimeseriesDumpArchive works like withTimeseriesDump but produces an
+// archive file instead of a dump directory.
+func withTimeseriesDumpArchive(
+	t *testing.T,
+	client *mongo.Client,
+	dbName string,
+	testCase func(file string),
+) {
+	seedTimeseries(t, client, dbName)
+
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	file := filepath.Join(dir, "dump.archive")
+	runMongodumpWithArgs(t, "--archive="+file, "--db", dbName)
+
+	require.NoError(t, client.Database(dbName).Drop(t.Context()), "can drop the dumped database")
+
+	testCase(file)
+}
+
+// withTimeseriesBucketFile works like withTimeseriesDump but hands the test
+// the bucket data file under its system.buckets-prefixed name. The prefix is
+// what marks the file as timeseries data for the --db and --collection
+// restore paths on every server, so on viewless servers, whose dumps carry
+// the data unprefixed, the file is copied under the prefixed name; both forms
+// hold the same bytes.
+func withTimeseriesBucketFile(
+	t *testing.T,
+	client *mongo.Client,
+	serverVersion db.Version,
+	dbName string,
+	testCase func(dataFile string),
+) {
+	withTimeseriesDump(t, client, dbName, func(dir string) {
+		dataFile := filepath.Join(
+			dir,
+			dbName,
+			timeseriesDataCollName(serverVersion, timeseriesTestColl)+".bson",
+		)
+		prefixed := filepath.Join(
+			dir,
+			dbName,
+			common.TimeseriesBucketPrefix+timeseriesTestColl+".bson",
+		)
+		if dataFile != prefixed {
+			data, err := os.ReadFile(dataFile)
+			require.NoError(t, err, "can read the bucket data file")
+			require.NoError(
+				t,
+				os.WriteFile(prefixed, data, 0o600),
+				"can copy the data under the bucket name",
+			)
+		}
+		testCase(prefixed)
+	})
+}
+
+// withCorruptedTimeseriesDump works like withTimeseriesDump but overwrites
+// the bucket data file with documents that are not buckets. The server
+// rejects each one with DocumentValidationFailure, whether the insert targets
+// system.buckets.<coll> or arrives through the rawData option, so the restore
+// reports one failure per document.
+func withCorruptedTimeseriesDump(
+	t *testing.T,
+	client *mongo.Client,
+	serverVersion db.Version,
+	dbName string,
+	testCase func(dir string),
+) {
+	withTimeseriesDump(t, client, dbName, func(dir string) {
+		dataFile := filepath.Join(
+			dir,
+			dbName,
+			timeseriesDataCollName(serverVersion, timeseriesTestColl)+".bson",
+		)
+
+		var garbage []byte
+		for i := range 5 {
+			doc, err := bson.Marshal(bson.M{"not": fmt.Sprintf("a bucket, number %d", i)})
+			require.NoError(t, err, "can marshal a non-bucket document")
+			garbage = append(garbage, doc...)
+		}
+		require.NoError(
+			t,
+			os.WriteFile(dataFile, garbage, 0o600),
+			"can corrupt the bucket data file",
+		)
+
+		testCase(dir)
+	})
+}
+
+// withTimeseriesOplogDump seeds the timeseries collection in a uniquely-named
+// database, snapshots that state with mongodump, appends more measurements,
+// captures the replica set's oplog window covering only the appended writes —
+// the window mongodump --oplog captures for writes that land during a dump,
+// queried out of local.oplog.rs the way withOplogMongoDump does for the
+// clustered-index restores — drops the database, and hands the dump directory
+// to the test. The dump plus the replayed window restore the final state,
+// which is what the fixtures this replaced exercised.
+func withTimeseriesOplogDump(
+	t *testing.T,
+	client *mongo.Client,
+	serverVersion db.Version,
+	testCase func(dir, dbName string),
+) {
+	dbName := uniqueDBName()
+
+	seedTimeseries(t, client, dbName)
+
+	// The uniquely-named database must not outlive the subtest even when one
+	// of the steps below fails; the drop further down is the one the restore
+	// needs a clean target for, this one is the safety net.
+	t.Cleanup(func() {
+		_ = client.Database(dbName).Drop(context.Background())
+	})
+
+	checkpoint := latestOplogTimestamp(t, client)
+
+	dir, cleanup := testutil.MakeTempDir(t)
+	defer cleanup()
+	runMongodumpWithArgs(t, "--out", dir, "--db", dbName)
+
+	insertTimeseriesMeasurements(t, client, dbName, 100, 50)
+
+	// The writes are recorded under several namespaces: commands on
+	// <db>.$cmd, the view registration insert on <db>.system.views (a viewful
+	// server records the timeseries collection there), and the bucket writes
+	// on system.buckets.<coll> (viewful) or the collection itself (viewless).
+	// Matching a namespace that a server never records costs nothing. A write
+	// batch that opened several buckets at once would instead be grouped into
+	// one applyOps entry on admin.$cmd, which this filter does not match; the
+	// second round of writes only appends to the buckets the first round
+	// opened, so no such entries exist.
+	query := map[string]any{
+		"ts": map[string]any{
+			"$gt": map[string]any{
+				"$timestamp": map[string]int64{"t": int64(checkpoint.T), "i": int64(checkpoint.I)},
+			},
+		},
+		"$or": []map[string]string{
+			{"ns": dbName + ".$cmd"},
+			{"ns": dbName + ".system.views"},
+			{"ns": dbName + "." + timeseriesDataCollName(serverVersion, timeseriesTestColl)},
+			{"ns": dbName + "." + timeseriesTestColl},
+		},
+	}
+	q, err := json.Marshal(query)
+	require.NoError(t, err, "can marshal the oplog query to JSON")
+
+	bsonFile := runBSONMongodumpForCollection(t, dir, "local", "oplog.rs", "--query", string(q))
+	oplog := filepath.Join(dir, "oplog.bson")
+	err = os.Rename(bsonFile, oplog)
+	require.NoError(t, err, "can rename %s -> %s", bsonFile, oplog)
+	err = os.RemoveAll(filepath.Join(dir, "local"))
+	require.NoError(t, err, "can remove the local directory mongodump created")
+
+	require.NoError(t, client.Database(dbName).Drop(t.Context()), "can drop the seeded database")
+
+	testCase(dir, dbName)
+}
+
 func TestRestoreTimeseriesCollections(t *testing.T) {
 	dbName := "timeseries_test"
 
@@ -1794,16 +2059,17 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 	// accessible via a separate `system.buckets.*` namespace; direct access is rejected with
 	// CommandNotSupportedOnLegacyTimeseriesBucketsNamespace. Instead we read them from the logical
 	// collection using the rawData option.
-	countBuckets := func(t *testing.T, logicalColl string) int64 {
+	countBuckets := func(t *testing.T, database *mongo.Database, logicalColl string) int64 {
 		if serverVersion.SupportsRawData() {
 			opts := mopt.Count()
 			require.NoError(t, xoptions.SetInternalCountOptions(opts, "rawData", true))
-			count, err := testdb.Collection(logicalColl).CountDocuments(t.Context(), bson.M{}, opts)
+			count, err := database.Collection(logicalColl).
+				CountDocuments(t.Context(), bson.M{}, opts)
 			require.NoError(t, err)
 			return count
 		}
 
-		count, err := testdb.Collection(common.TimeseriesBucketPrefix+logicalColl).
+		count, err := database.Collection(common.TimeseriesBucketPrefix+logicalColl).
 			CountDocuments(t.Context(), bson.M{})
 		require.NoError(t, err)
 		return count
@@ -1825,7 +2091,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 
-		assert.EqualValues(t, 10, countBuckets(t, "foo_ts"))
+		assert.EqualValues(t, 10, countBuckets(t, testdb, "foo_ts"))
 	}
 
 	// This checks that there are no docs in either the data or buckets collections.
@@ -1834,7 +2100,7 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		require.NoError(t, err)
 		assert.Zero(t, count)
 
-		assert.Zero(t, countBuckets(t, "foo_ts"))
+		assert.Zero(t, countBuckets(t, testdb, "foo_ts"))
 	}
 
 	t.Run("normal restore", func(t *testing.T) {
@@ -1847,29 +2113,38 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		}
 
 		t.Run("directory", func(t *testing.T) {
-			args := []string{DirectoryOption, "testdata/timeseries_tests/ts_dump"}
-			restore, err := getRestoreWithArgs(args...)
-			require.NoError(t, err)
-			runTest(t, restore)
+			withTimeseriesDump(t, session, dbName, func(dir string) {
+				args := []string{DirectoryOption, dir}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
+				runTest(t, restore)
+			})
 		})
 
 		t.Run("archive", func(t *testing.T) {
-			args := []string{ArchiveOption + "=testdata/timeseries_tests/dump.archive"}
-			restore, err := getRestoreWithArgs(args...)
-			require.NoError(t, err)
-			runTest(t, restore)
+			withTimeseriesDumpArchive(t, session, dbName, func(file string) {
+				args := []string{ArchiveOption + "=" + file}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
+				runTest(t, restore)
+			})
 		})
 
 		t.Run("archive from stdin", func(t *testing.T) {
-			args := []string{ArchiveOption + "=-"}
-			restore, err := getRestoreWithArgs(args...)
-			require.NoError(t, err)
+			withTimeseriesDumpArchive(t, session, dbName, func(file string) {
+				args := []string{ArchiveOption + "=-"}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
 
-			archiveFile, err := os.Open("testdata/timeseries_tests/dump.archive")
-			require.NoError(t, err)
+				archiveFile, err := os.Open(file)
+				require.NoError(t, err)
+				// The archive lives in the temp dir the helper cleans up, and
+				// on Windows an open handle would block that cleanup.
+				defer archiveFile.Close()
 
-			restore.InputReader = archiveFile
-			runTest(t, restore)
+				restore.InputReader = archiveFile
+				runTest(t, restore)
+			})
 		})
 	})
 
@@ -1877,9 +2152,103 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		t.Run("collection exists", func(t *testing.T) {
 			defer dropTestDB(t)
 
-			createTimeseries(t, dbName, "foo_ts", session)
+			withTimeseriesDump(t, session, dbName, func(dir string) {
+				createTimeseries(t, dbName, "foo_ts", session)
 
-			args := []string{DirectoryOption, "testdata/timeseries_tests/ts_dump"}
+				args := []string{DirectoryOption, dir}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
+
+				result := restore.Restore()
+				defer restore.Close()
+				require.Error(t, result.Err)
+			})
+		})
+
+		t.Run("buckets collection exists", func(t *testing.T) {
+			defer dropTestDB(t)
+
+			// In the 8.0 release, this no longer leads to an error, so
+			// there's nothing to test here.
+			if serverVersion.GTE(db.Version{8, 0, 0}) {
+				t.Skip("this tests a pre-8.0 timeseries behavior")
+				return
+			}
+
+			withTimeseriesDump(t, session, dbName, func(dir string) {
+				testdb.RunCommand(t.Context(), bson.M{"create": bucketsColl.Name()})
+
+				args := []string{DirectoryOption, dir}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
+
+				result := restore.Restore()
+				defer restore.Close()
+				require.Error(t, result.Err)
+			})
+		})
+	})
+
+	t.Run("oplogReplay", func(t *testing.T) {
+		testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
+		testutil.SkipUnlessReplicaSet(t)
+
+		withTimeseriesOplogDump(t, session, serverVersion, func(dir, oplogDBName string) {
+			args := []string{
+				DirectoryOption,
+				dir,
+				OplogReplayOption,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
+
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			// The ten bucket documents come from the dump; the fifty appended
+			// measurements per bucket come back through applyOps, which does
+			// not count the documents it applies as restore successes.
+			assert.EqualValues(t, 10, result.Successes)
+			assert.Zero(t, result.Failures)
+
+			oplogDB := session.Database(oplogDBName)
+			count, err := oplogDB.Collection("foo_ts").CountDocuments(t.Context(), bson.M{})
+			require.NoError(t, err)
+			assert.EqualValues(t, 1500, count)
+
+			assert.EqualValues(t, 10, countBuckets(t, oplogDB, "foo_ts"))
+		})
+	})
+
+	t.Run("existing coll with --drop", func(t *testing.T) {
+		defer dropTestDB(t)
+
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			createTimeseries(t, dbName, "foo_ts", session)
+			args := []string{
+				DirectoryOption,
+				dir,
+				DropOption,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
+
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assertSuccess(t, result)
+		})
+	})
+
+	t.Run("--noOptionsRestore", func(t *testing.T) {
+		defer dropTestDB(t)
+
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			args := []string{
+				DirectoryOption,
+				dir,
+				NoOptionsRestoreOption,
+			}
 			restore, err := getRestoreWithArgs(args...)
 			require.NoError(t, err)
 
@@ -1887,360 +2256,324 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 			defer restore.Close()
 			require.Error(t, result.Err)
 		})
-
-		t.Run("buckets collection exists", func(t *testing.T) {
-			defer dropTestDB(t)
-
-			restore, err := getRestoreWithArgs()
-			require.NoError(t, err)
-			// In the 8.0 release, this no longer leads to an error, so
-			// there's nothing to test here.
-			if restore.serverVersion.GTE(db.Version{8, 0, 0}) {
-				t.Skip("this tests a pre-8.0 timeseries behavior")
-				return
-			}
-
-			testdb.RunCommand(t.Context(), bson.M{"create": bucketsColl.Name()})
-
-			result := restore.Restore()
-			defer restore.Close()
-			require.Error(t, result.Err)
-		})
-	})
-
-	t.Run("oplogReplay and system.buckets", func(t *testing.T) {
-		testutil.SkipIfSharded(t, "it replays an oplog, and mongos does not support applyOps")
-		// This fixture's oplog contains CRUD ops against a legacy `system.buckets.*` namespace
-		// (dumped from a pre-viewless server). Servers that support the rawData API (8.3+) use
-		// viewless timeseries collections where that namespace no longer exists, and applyOps
-		// cannot apply those ops to the logical collection (it rejects the rawData option). So
-		// replaying a legacy system.buckets oplog into a viewless timeseries collection is
-		// unsupported.
-		if serverVersion.SupportsRawData() {
-			t.Skip(
-				"legacy system.buckets oplog replay is unsupported on viewless timeseries servers (8.3+)",
-			)
-		}
-
-		defer dropTestDB(t)
-
-		args := []string{
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump_with_oplog",
-			OplogReplayOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
-
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assert.EqualValues(t, 10, result.Successes)
-		assert.Zero(t, 0, result.Failures)
-
-		count, err := dataColl.CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 2164, count)
-
-		count, err = bucketsColl.CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 10, count)
-	})
-
-	t.Run("existing coll with --drop", func(t *testing.T) {
-		defer dropTestDB(t)
-
-		createTimeseries(t, dbName, "foo_ts", session)
-		args := []string{
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-			DropOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
-
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assertSuccess(t, result)
-	})
-
-	t.Run("--noOptionsRestore", func(t *testing.T) {
-		defer dropTestDB(t)
-
-		args := []string{
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-			NoOptionsRestoreOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
-
-		result := restore.Restore()
-		defer restore.Close()
-		require.Error(t, result.Err)
 	})
 
 	t.Run("invalid system.buckets", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump_invalid_buckets",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+		withCorruptedTimeseriesDump(t, session, serverVersion, dbName, func(dir string) {
+			args := []string{
+				DirectoryOption,
+				dir,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assert.Zero(t, result.Successes)
-		assert.EqualValues(t, 5, result.Failures)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assert.Zero(t, result.Successes)
+			assert.EqualValues(t, 5, result.Failures)
 
-		assertNoDocs(t)
+			assertNoDocs(t)
+		})
 	})
 
 	t.Run("invalid system.buckets with bypassDocumentValidation", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump_invalid_buckets",
-			BypassDocumentValidationOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+		withCorruptedTimeseriesDump(t, session, serverVersion, dbName, func(dir string) {
+			args := []string{
+				DirectoryOption,
+				dir,
+				BypassDocumentValidationOption,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, err)
-		assert.Zero(t, result.Successes)
-		assert.EqualValues(t, 5, result.Failures)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assert.Zero(t, result.Successes)
+			assert.EqualValues(t, 5, result.Failures)
 
-		assertNoDocs(t)
+			assertNoDocs(t)
+		})
 	})
 
 	t.Run("system.buckets BSON with metadata", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			DBOption,
+		withTimeseriesBucketFile(
+			t,
+			session,
+			serverVersion,
 			dbName,
-			CollectionOption,
-			"foo_ts",
-			"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+			func(dataFile string) {
+				args := []string{
+					DBOption,
+					dbName,
+					CollectionOption,
+					"foo_ts",
+					dataFile,
+				}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assertSuccess(t, result)
+				result := restore.Restore()
+				defer restore.Close()
+				require.NoError(t, result.Err)
+				assertSuccess(t, result)
+			},
+		)
 	})
 
 	t.Run("system.buckets BSON with metadata and --collection", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			DBOption,
+		withTimeseriesBucketFile(
+			t,
+			session,
+			serverVersion,
 			dbName,
-			CollectionOption,
-			"bar_ts",
-			"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+			func(dataFile string) {
+				args := []string{
+					DBOption,
+					dbName,
+					CollectionOption,
+					"bar_ts",
+					dataFile,
+				}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assert.EqualValues(t, 10, result.Successes)
-		assert.Zero(t, result.Failures)
+				result := restore.Restore()
+				defer restore.Close()
+				require.NoError(t, result.Err)
+				assert.EqualValues(t, 10, result.Successes)
+				assert.Zero(t, result.Failures)
 
-		count, err := testdb.Collection("bar_ts").CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1000, count)
+				count, err := testdb.Collection("bar_ts").CountDocuments(t.Context(), bson.M{})
+				require.NoError(t, err)
+				assert.EqualValues(t, 1000, count)
 
-		assert.EqualValues(t, 10, countBuckets(t, "bar_ts"))
+				assert.EqualValues(t, 10, countBuckets(t, testdb, "bar_ts"))
+			},
+		)
 	})
 
 	t.Run("system.buckets BSON file as target with metadata", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+		withTimeseriesBucketFile(
+			t,
+			session,
+			serverVersion,
+			dbName,
+			func(dataFile string) {
+				args := []string{dataFile}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assertSuccess(t, result)
+				result := restore.Restore()
+				defer restore.Close()
+				require.NoError(t, result.Err)
+				assertSuccess(t, result)
+			},
+		)
 	})
 
 	t.Run("system.buckets BSON file without metadata", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			DBOption,
+		withTimeseriesBucketFile(
+			t,
+			session,
+			serverVersion,
 			dbName,
-			CollectionOption,
-			"system.buckets.foo_ts",
-			"testdata/timeseries_tests/ts_single_buckets_file/system.buckets.foo_ts.bson",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+			func(dataFile string) {
+				// The restore must not find any metadata, so the bucket file is
+				// copied into a directory of its own.
+				dir, cleanup := testutil.MakeTempDir(t)
+				defer cleanup()
+				loneFile := filepath.Join(dir, common.TimeseriesBucketPrefix+"foo_ts.bson")
+				data, err := os.ReadFile(dataFile)
+				require.NoError(t, err, "can read the bucket data file")
+				require.NoError(
+					t,
+					os.WriteFile(loneFile, data, 0o600),
+					"can copy the bucket data file",
+				)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.Error(t, result.Err)
+				args := []string{
+					DBOption,
+					dbName,
+					CollectionOption,
+					"system.buckets.foo_ts",
+					loneFile,
+				}
+				restore, err := getRestoreWithArgs(args...)
+				require.NoError(t, err)
+
+				result := restore.Restore()
+				defer restore.Close()
+				require.Error(t, result.Err)
+			},
+		)
 	})
 
 	t.Run("system.buckets with --nsInclude", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			NSIncludeOption,
-			dbName + ".foo_ts",
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			args := []string{
+				NSIncludeOption,
+				dbName + ".foo_ts",
+				DirectoryOption,
+				dir,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assertSuccess(t, result)
-	},
-	)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assertSuccess(t, result)
+		})
+	})
 
 	t.Run("system.buckets with not-included collection", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			NSIncludeOption,
-			dbName + "." + bucketsColl.Name(),
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			args := []string{
+				NSIncludeOption,
+				dbName + "." + bucketsColl.Name(),
+				DirectoryOption,
+				dir,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assert.Zero(t, result.Successes)
-		assert.Zero(t, result.Failures)
-		assertNoDocs(t)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assert.Zero(t, result.Successes)
+			assert.Zero(t, result.Failures)
+			assertNoDocs(t)
+		})
 	})
 
 	t.Run("system.buckets with excluded collection", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			NSExcludeOption,
-			dbName + ".foo_ts",
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			args := []string{
+				NSExcludeOption,
+				dbName + ".foo_ts",
+				DirectoryOption,
+				dir,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assert.Zero(t, result.Successes)
-		assert.Zero(t, result.Failures)
-		assertNoDocs(t)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assert.Zero(t, result.Successes)
+			assert.Zero(t, result.Failures)
+			assertNoDocs(t)
+		})
 	})
 
 	t.Run("system.buckets clustered index with --noIndexRestore", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-			NoIndexRestoreOption,
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
-
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assertSuccess(t, result)
-
-		ctx := t.Context()
-
-		indexes, err := testdb.Collection("foo_ts").Indexes().List(ctx)
-		require.NoError(t, err)
-		defer indexes.Close(ctx)
-
-		numIndexes := 0
-		for indexes.Next(ctx) {
-			numIndexes++
-		}
-
-		if (restore.serverVersion.GTE(db.Version{6, 3, 0})) {
-			assert.EqualValues(
-				t,
-				numIndexes,
-				1,
-				"--noIndexRestore should build the index on meta, time by default for time-series collections if server version >= 6.3.0",
-			)
-		} else {
-			assert.Zero(t, numIndexes)
-		}
-
-		cur, err := testdb.ListCollections(ctx, bson.M{"name": bucketsColl.Name()})
-		require.NoError(t, err)
-
-		for cur.Next(ctx) {
-			optVal, err := cur.Current.LookupErr("options")
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			args := []string{
+				DirectoryOption,
+				dir,
+				NoIndexRestoreOption,
+			}
+			restore, err := getRestoreWithArgs(args...)
 			require.NoError(t, err)
 
-			optRaw, ok := optVal.DocumentOK()
-			require.True(t, ok)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assertSuccess(t, result)
 
-			clusteredIdxVal, err := optRaw.LookupErr("clusteredIndex")
+			ctx := t.Context()
+
+			indexes, err := testdb.Collection("foo_ts").Indexes().List(ctx)
+			require.NoError(t, err)
+			defer indexes.Close(ctx)
+
+			numIndexes := 0
+			for indexes.Next(ctx) {
+				numIndexes++
+			}
+
+			if restore.serverVersion.GTE(db.Version{6, 3, 0}) {
+				assert.EqualValues(
+					t,
+					numIndexes,
+					1,
+					"--noIndexRestore should build the index on meta, time by default for time-series collections if server version >= 6.3.0",
+				)
+			} else {
+				assert.Zero(t, numIndexes)
+			}
+
+			cur, err := testdb.ListCollections(ctx, bson.M{"name": bucketsColl.Name()})
 			require.NoError(t, err)
 
-			clusteredIdx := clusteredIdxVal.Boolean()
-			assert.True(t, clusteredIdx)
-		}
+			for cur.Next(ctx) {
+				optVal, err := cur.Current.LookupErr("options")
+				require.NoError(t, err)
+
+				optRaw, ok := optVal.DocumentOK()
+				require.True(t, ok)
+
+				clusteredIdxVal, err := optRaw.LookupErr("clusteredIndex")
+				require.NoError(t, err)
+
+				clusteredIdx := clusteredIdxVal.Boolean()
+				assert.True(t, clusteredIdx)
+			}
+		})
 	})
 
 	t.Run("rename system.buckets", func(t *testing.T) {
 		defer dropTestDB(t)
 
-		args := []string{
-			NSFromOption,
-			dbName + ".foo_ts",
-			NSToOption,
-			dbName + ".foo_rename_ts",
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			args := []string{
+				NSFromOption,
+				dbName + ".foo_ts",
+				NSToOption,
+				dbName + ".foo_rename_ts",
+				DirectoryOption,
+				dir,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assert.EqualValues(t, 10, result.Successes)
-		assert.Zero(t, result.Failures)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assert.EqualValues(t, 10, result.Successes)
+			assert.Zero(t, result.Failures)
 
-		assertNoDocs(t)
+			assertNoDocs(t)
 
-		count, err := testdb.Collection("foo_rename_ts").
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.EqualValues(t, 1000, count)
+			count, err := testdb.Collection("foo_rename_ts").
+				CountDocuments(t.Context(), bson.M{})
+			require.NoError(t, err)
+			assert.EqualValues(t, 1000, count)
 
-		assert.EqualValues(t, 10, countBuckets(t, "foo_rename_ts"))
+			assert.EqualValues(t, 10, countBuckets(t, testdb, "foo_rename_ts"))
+		})
 	})
 
 	t.Run("refuse rename of system.bucket", func(t *testing.T) {
@@ -2248,30 +2581,32 @@ func TestRestoreTimeseriesCollections(t *testing.T) {
 		// renamed, even if the user tries to rename the system.buckets collection.
 		defer dropTestDB(t)
 
-		renameBucketsName := common.TimeseriesBucketPrefix + "foo_rename_ts"
+		withTimeseriesDump(t, session, dbName, func(dir string) {
+			renameBucketsName := common.TimeseriesBucketPrefix + "foo_rename_ts"
 
-		args := []string{
-			NSFromOption,
-			dbName + "." + bucketsColl.Name(),
-			NSToOption,
-			dbName + "." + renameBucketsName,
-			DirectoryOption,
-			"testdata/timeseries_tests/ts_dump",
-		}
-		restore, err := getRestoreWithArgs(args...)
-		require.NoError(t, err)
+			args := []string{
+				NSFromOption,
+				dbName + "." + bucketsColl.Name(),
+				NSToOption,
+				dbName + "." + renameBucketsName,
+				DirectoryOption,
+				dir,
+			}
+			restore, err := getRestoreWithArgs(args...)
+			require.NoError(t, err)
 
-		result := restore.Restore()
-		defer restore.Close()
-		require.NoError(t, result.Err)
-		assertSuccess(t, result)
+			result := restore.Restore()
+			defer restore.Close()
+			require.NoError(t, result.Err)
+			assertSuccess(t, result)
 
-		count, err := testdb.Collection("foo_rename_ts").
-			CountDocuments(t.Context(), bson.M{})
-		require.NoError(t, err)
-		assert.Zero(t, count)
+			count, err := testdb.Collection("foo_rename_ts").
+				CountDocuments(t.Context(), bson.M{})
+			require.NoError(t, err)
+			assert.Zero(t, count)
 
-		assert.Zero(t, countBuckets(t, "foo_rename_ts"))
+			assert.Zero(t, countBuckets(t, testdb, "foo_rename_ts"))
+		})
 	})
 }
 
