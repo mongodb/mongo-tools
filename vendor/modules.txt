@@ -410,7 +410,7 @@ github.com/xrash/smetrics
 # github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 ## explicit; go 1.17
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver/v2 v2.10.0
+# go.mongodb.org/mongo-driver/v2 v2.10.1
 ## explicit; go 1.25.0
 go.mongodb.org/mongo-driver/v2/bson
 go.mongodb.org/mongo-driver/v2/event
