@@ -42,8 +42,16 @@ func GetToolOptions() (*options.ToolOptions, error) {
 }
 
 // GetToolOptionsForURI builds ToolOptions pointing at the given URI, or at the default
-// localhost:DefaultTestPort when uri is empty.
+// localhost:DefaultTestPort when uri is empty, authenticating as the harness user: the
+// credentials for test setup and assertions, not for running a tool under test.
 func GetToolOptionsForURI(uri string) (*options.ToolOptions, error) {
+	return GetToolOptionsForURIWithAuth(uri, GetAuthOptions())
+}
+
+// GetToolOptionsForURIWithAuth is GetToolOptionsForURI with the authentication identity chosen
+// by the caller: GetAuthOptions for test setup and assertions, GetBackupAuthOptions and
+// GetRestoreAuthOptions for the tools under test.
+func GetToolOptionsForURIWithAuth(uri string, auth options.Auth) (*options.ToolOptions, error) {
 	var toolOptions *options.ToolOptions
 	// get ToolOptions from URI or defaults
 	if uri != "" {
@@ -69,12 +77,15 @@ func GetToolOptionsForURI(uri string) (*options.ToolOptions, error) {
 			)
 		}
 
+		// The connection string the test cluster exports carries no credentials; the identity
+		// is chosen per consumer, here by the auth parameter.
+		toolOptions.Auth = &auth
+
 		// ParseArgs does not set this, but tools like mongoimport and mongorestore
 		// dereference it without a nil check.
 		toolOptions.WriteConcern = wcwrapper.Majority()
 	} else {
 		ssl := GetSSLOptions()
-		auth := GetAuthOptions()
 		connection := &options.Connection{
 			Host: "localhost",
 			Port: DefaultTestPort,
@@ -115,12 +126,18 @@ func GetBareArgs() []string {
 }
 
 // GetBareArgsForURI returns the command-line args that point a tool at the given URI, or at the
-// default localhost:DefaultTestPort when uri is empty.
+// default localhost:DefaultTestPort when uri is empty, authenticating as the harness user.
 func GetBareArgsForURI(uri string) []string {
+	return GetBareArgsForURIWithAuth(uri, GetAuthOptions())
+}
+
+// GetBareArgsForURIWithAuth is GetBareArgsForURI with the authentication identity chosen by the
+// caller, mirroring GetToolOptionsForURIWithAuth.
+func GetBareArgsForURIWithAuth(uri string, auth options.Auth) []string {
 	args := []string{}
 
 	args = append(args, GetSSLArgs()...)
-	args = append(args, GetAuthArgs()...)
+	args = append(args, authArgs(auth)...)
 	if uri != "" {
 		args = append(args, "--uri", uri)
 	} else {

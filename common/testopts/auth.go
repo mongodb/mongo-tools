@@ -20,6 +20,20 @@ var (
 	CreatedUserPasswordEnv = "TOOLS_TESTING_AUTH_PASSWORD"
 )
 
+// The users that the tools under test authenticate as in auth runs: one per tool, holding
+// exactly the role the documentation prescribes as sufficient for it — backup for mongodump,
+// restore for mongorestore — so a dump run never holds restore privileges and the other way
+// around. The values are mirrored in common/testutil, which creates these users, and are
+// deliberately not configurable so the two cannot drift apart.
+const (
+	BackupUsername  = "backup"
+	BackupPassword  = "backup"
+	RestoreUsername = "restore"
+	RestorePassword = "restore"
+)
+
+// GetAuthOptions returns the credentials of the harness user, which does test setup and
+// assertions and holds the __system role the cluster script grants it.
 func GetAuthOptions() options.Auth {
 	if testtype.HasTestType(testtype.AuthTestType) {
 		return options.Auth{
@@ -33,13 +47,48 @@ func GetAuthOptions() options.Auth {
 }
 
 func GetAuthArgs() []string {
-	authOpts := GetAuthOptions()
-	if authOpts.IsSet() {
-		return []string{
-			"--username", authOpts.Username,
-			"--password", authOpts.Password,
-			"--authenticationDatabase", authOpts.Source,
+	return authArgs(GetAuthOptions())
+}
+
+// AuthArgs returns the command-line flags carrying the given credentials, for the suites that
+// build a tool's arguments by hand.
+func AuthArgs(auth options.Auth) []string {
+	return authArgs(auth)
+}
+
+// GetBackupAuthOptions returns the credentials mongodump runs should authenticate with: the
+// backup user, the minimum-privilege identity for mongodump. Setup and assertions use
+// GetAuthOptions instead.
+func GetBackupAuthOptions() options.Auth {
+	return constantUserAuth(BackupUsername, BackupPassword)
+}
+
+// GetRestoreAuthOptions returns the credentials mongorestore runs should authenticate with:
+// the restore user, the minimum-privilege identity for mongorestore.
+func GetRestoreAuthOptions() options.Auth {
+	return constantUserAuth(RestoreUsername, RestorePassword)
+}
+
+func constantUserAuth(username, password string) options.Auth {
+	if testtype.HasTestType(testtype.AuthTestType) {
+		return options.Auth{
+			Username: username,
+			Password: password,
+			Source:   "admin",
 		}
 	}
-	return nil
+
+	return options.Auth{}
+}
+
+func authArgs(auth options.Auth) []string {
+	if !auth.IsSet() {
+		return nil
+	}
+
+	return []string{
+		"--username", auth.Username,
+		"--password", auth.Password,
+		"--authenticationDatabase", auth.Source,
+	}
 }
