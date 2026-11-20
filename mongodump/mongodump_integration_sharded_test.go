@@ -2550,6 +2550,15 @@ func TestTimeseriesDumpConcurrentWithSetFCV(t *testing.T) {
 		t.Skipf("Requires FCV 9.0 so that setFCV downgrades to a viewful format; found %v", fcv)
 	}
 
+	// The failpoint and the currentOp that watches for the blocked getMore both go through this
+	// session, which against a sharded cluster is a mongos, and the blocked getMore never
+	// becomes visible there, so the test would time out waiting for it.
+	isMongos, err := sp.IsMongos()
+	require.NoError(t, err, "check for mongos")
+	if isMongos {
+		t.Skip("the blocked getMore never becomes visible through a mongos")
+	}
+
 	const dbName = "ts_setfcv_test_DB"
 	const collName = "timeseriesColl"
 	// Enough distinct meta values to produce more buckets than fit in one cursor batch, so
