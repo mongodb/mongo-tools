@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -370,6 +371,17 @@ func testRestoreStdinWithDBAndCollection(t *testing.T) {
 func runRestoreFromArgs(t *testing.T, args ...string) Result {
 	t.Helper()
 	restore, err := getRestoreWithArgs(args...)
+	require.NoError(t, err, "building the restore instance")
+	t.Cleanup(restore.Close)
+	return restore.Restore()
+}
+
+// runRestoreFromArgsForAuth is runRestoreFromArgs with the authentication identity chosen by
+// the caller. When auth names one of the shared test users it is created first, so callers
+// never authenticate as a user that does not exist.
+func runRestoreFromArgsForAuth(t *testing.T, auth options.Auth, args ...string) Result {
+	t.Helper()
+	restore, err := getRestoreWithArgsForAuth(t, auth, args...)
 	require.NoError(t, err, "building the restore instance")
 	t.Cleanup(restore.Close)
 	return restore.Restore()
