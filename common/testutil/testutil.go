@@ -89,6 +89,11 @@ func GetBareSessionProviderForURI(
 	return sessionProvider, toolOptions, nil
 }
 
+// oplogReplayRoleName is the role EnsureOplogReplayUser grants its user: the documentation's
+// prescribed minimum for `mongorestore --oplogReplay`, anyAction on anyResource, and nothing
+// else.
+const oplogReplayRoleName = "oplogReplayAll"
+
 // EnsureBackupUser creates the user that mongodump runs authenticate as
 // (testopts.BackupUsername) when it does not already exist, holding exactly the backup role the
 // documentation prescribes for mongodump. The cluster script creates only the bootstrap user,
@@ -106,10 +111,30 @@ func EnsureRestoreUser(t *testing.T) {
 	ensureUser(t, testopts.RestoreUsername, createRestoreUser)
 }
 
-// ensureUser creates one of the users the tests share when it does not already exist. Existence
-// is re-checked on every call rather than cached: a test that restores admin's users with --drop
-// (TestDumpRestorePreservesAdminUsersAndRoles) can remove a shared user mid-run, and a cached
-// "already created" would leave the later tests failing authentication with no hint why.
+// EnsureOplogReplayUser creates the user that tests running `mongorestore --oplogReplay`
+// authenticate as (testopts.OplogReplayUsername), holding the anyAction-on-anyResource role the
+// documentation prescribes for oplog replay. Like EnsureBackupUser, it is a no-op without the
+// auth test type.
+func EnsureOplogReplayUser(t *testing.T) {
+	ensureUser(t, testopts.OplogReplayUsername, createOplogReplayUser)
+}
+
+// EnsureSharedUser creates the shared test user that auth names, when it names one, so that a
+// helper handing auth to a tool invocation does not have to know which shared identity it is.
+// Auth carrying a per-test user's credentials is left alone: those tests create their own users.
+func EnsureSharedUser(t *testing.T, auth options.Auth) {
+	t.Helper()
+
+	switch auth.Username {
+	case testopts.BackupUsername:
+		EnsureBackupUser(t)
+	case testopts.RestoreUsername:
+		EnsureRestoreUser(t)
+	case testopts.OplogReplayUsername:
+		EnsureOplogReplayUser(t)
+	}
+}
+
 func ensureUser(t *testing.T, username string, create func(*mongo.Client) error) {
 	t.Helper()
 
@@ -181,6 +206,36 @@ func createRestoreUser(session *mongo.Client) error {
 		{Key: "roles", Value: bson.A{
 			bson.D{{Key: "role", Value: "restore"}, {Key: "db", Value: "admin"}},
 		}},
+	}).Err()
+}
+
+func createOplogReplayUser(session *mongo.Client) error {
+	ctx := context.Background()
+	adminDB := session.Database("admin")
+
+	// The role is created before the user that holds it, and tolerates already existing: the
+	// user-existence check in createUserIfMissing ran over a connection of its own, so a
+	// concurrently running test binary can create either in between.
+	err := adminDB.RunCommand(ctx, bson.D{
+		{Key: "createRole", Value: oplogReplayRoleName},
+		{Key: "privileges", Value: bson.A{bson.D{
+			{Key: "resource", Value: bson.D{{Key: "anyResource", Value: true}}},
+			{Key: "actions", Value: bson.A{"anyAction"}},
+		}}},
+		{Key: "roles", Value: bson.A{}},
+	}).Err()
+	var cmdErr mongo.CommandError
+	if err != nil && !(errors.As(err, &cmdErr) && cmdErr.Name == "RoleAlreadyExists") {
+		return fmt.Errorf("creating the oplog-replay role: %w", err)
+	}
+
+	return adminDB.RunCommand(ctx, bson.D{
+		{Key: "createUser", Value: testopts.OplogReplayUsername},
+		{Key: "pwd", Value: testopts.OplogReplayPassword},
+		{Key: "roles", Value: bson.A{bson.D{
+			{Key: "role", Value: oplogReplayRoleName},
+			{Key: "db", Value: "admin"},
+		}}},
 	}).Err()
 }
 

@@ -60,6 +60,31 @@ func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
 	return restore, nil
 }
 
+// getRestoreWithArgsForAuth is getRestoreWithArgs with the authentication identity chosen by
+// the caller. When auth names one of the shared test users it is created first, so callers
+// never authenticate as a user that does not exist.
+func getRestoreWithArgsForAuth(
+	t *testing.T,
+	auth options.Auth,
+	additionalArgs ...string,
+) (*MongoRestore, error) {
+	testutil.EnsureSharedUser(t, auth)
+	opts, err := ParseOptions(append(
+		testopts.GetBareArgsForURIWithAuth(os.Getenv(testopts.URIEnvVar), auth),
+		additionalArgs...,
+	), "", "")
+	if err != nil {
+		return nil, fmt.Errorf("error parsing args: %v", err)
+	}
+
+	restore, err := New(opts)
+	if err != nil {
+		return nil, fmt.Errorf("error making new instance of mongorestore: %v", err)
+	}
+
+	return restore, nil
+}
+
 func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 	// As specified in TOOLS-2363, the --db and --collection options
 	// are well-defined only for restoration of a single BSON file
