@@ -42,7 +42,7 @@ func TestShardedFullRestore(t *testing.T) {
 	require.NoError(t, err, "can insert the documents")
 
 	dumpDir := t.TempDir()
-	dumpOpts, err := testopts.GetToolOptions()
+	dumpOpts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err, "can build the dump options")
 	require.NoError(
 		t,
@@ -56,7 +56,7 @@ func TestShardedFullRestore(t *testing.T) {
 
 	require.NoError(t, coll.Database().Drop(context.Background()), "can drop the restore target")
 
-	restoreOpts, err := testopts.GetToolOptions()
+	restoreOpts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err, "can build the restore options")
 	require.ErrorContains(
 		t,
@@ -67,7 +67,7 @@ func TestShardedFullRestore(t *testing.T) {
 
 	require.NoError(t, os.RemoveAll(configDir), "can remove the config dump from the dump")
 
-	restoreOpts, err = testopts.GetToolOptions()
+	restoreOpts, err = testopts.HarnessToolOptions()
 	require.NoError(t, err, "can build the restore options")
 	require.NoError(
 		t,

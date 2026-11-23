@@ -220,8 +220,8 @@ For BSON-type-preserving output (e.g. subdocument \_ids), use
 | Helper                                               | Purpose                                                                   |
 | ---------------------------------------------------- | ------------------------------------------------------------------------- |
 | `testutil.GetBareSessionProvider()`                  | Get a live MongoDB client                                                 |
-| `testutil.GetToolOptions()`                          | Get tool options (connects to test mongod)                                |
-| `testutil.GetBareArgs()`                             | CLI args (`--host`, `--port`, auth) for `exec.Command`                    |
+| `testopts.HarnessToolOptions()`                    | Get tool options (connects to test mongod)                                |
+| `testopts.HarnessToolCLIArgs()`                       | CLI args (`--host`, `--port`, auth) for `exec.Command`                    |
 | `runImportOpts(t, ns, file, IngestOptions{})`        | Import, returns errors from `New()` too (use for option-validation tests) |
 | `importWithIngestOpts(t, ns, file, IngestOptions{})` | Import, fails test if `New()` errors                                      |
 | `testutil.AssertBrokenPipeHandled(t, cmd)`           | Verify a process handles SIGPIPE as a write error                         |

@@ -160,7 +160,7 @@ func NewMongoImport(t *testing.T) (*MongoImport, error) {
 func getImportWithArgs(t *testing.T, additionalArgs ...string) (*MongoImport, error) {
 	t.Helper()
 
-	opts, err := ParseOptions(append(testopts.GetBareArgs(), additionalArgs...), "", "")
+	opts, err := ParseOptions(append(testopts.HarnessToolCLIArgs(), additionalArgs...), "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing args: %v", err)
 	}
@@ -1174,7 +1174,7 @@ func TestImportBooleanType(t *testing.T) {
 	}
 	require.NoError(t, tmpFile.Close())
 
-	importToolOptions, err := testopts.GetToolOptions()
+	importToolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := New(Options{
@@ -1276,7 +1276,7 @@ func TestImportExtraFields(t *testing.T) {
 	fieldNames := []string{"a", "b", "c.xyz", "d.hij.lkm"}
 	fieldFilePath := writeFieldFile(t, tmpDir, "fieldfile", fieldNames)
 
-	toolOpts, err := testopts.GetToolOptions()
+	toolOpts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := New(Options{
@@ -1655,7 +1655,7 @@ func hexBinary(t *testing.T, encoded string) bson.Binary {
 
 func runTypedImport(t *testing.T, dbName, collName string, input InputOptions) error {
 	t.Helper()
-	toolOpts, err := testopts.GetToolOptions()
+	toolOpts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := New(Options{
@@ -1876,7 +1876,7 @@ func TestImportRejectsInvalidOptions(t *testing.T) {
 			if ns == (options.Namespace{}) {
 				ns = options.Namespace{DB: dbName, Collection: "c"}
 			}
-			toolOpts, err := testopts.GetToolOptions()
+			toolOpts, err := testopts.HarnessToolOptions()
 			require.NoError(t, err)
 			toolOpts.Namespace = &ns
 
@@ -2002,7 +2002,7 @@ func TestImportDropReplacesCollection(t *testing.T) {
 
 func importCSVWithDrop(t *testing.T, dbName, collName, csvFile string) {
 	t.Helper()
-	toolOpts, err := testopts.GetToolOptions()
+	toolOpts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	mi, err := New(Options{
@@ -2351,7 +2351,7 @@ func TestImportModeByID(t *testing.T) {
 
 func newImportTestClient(t *testing.T, dbName string) *mongo.Client {
 	t.Helper()
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err, "should get tool options")
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	require.NoError(t, err, "should create session provider")
@@ -2387,7 +2387,7 @@ func importCollection(
 	ingestOpts IngestOptions,
 ) error {
 	t.Helper()
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOptions.Namespace = ns
 	mi, err := New(Options{
@@ -2405,7 +2405,7 @@ func importCollection(
 
 func importFromFile(t *testing.T, filePath, dbOverride, collOverride string) {
 	t.Helper()
-	toolOpts, err := testopts.GetToolOptions()
+	toolOpts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOpts.Namespace = &options.Namespace{DB: dbOverride, Collection: collOverride}
 	mi, err := New(Options{
@@ -2527,7 +2527,7 @@ func testImportFieldsForFormat(
 	})
 
 	t.Run(format+"/noFieldSpec", func(t *testing.T) {
-		toolOpts, err := testopts.GetToolOptions()
+		toolOpts, err := testopts.HarnessToolOptions()
 		require.NoError(t, err)
 		toolOpts.Namespace = &options.Namespace{DB: dbName, Collection: format + "testcoll"}
 		_, err = New(Options{
@@ -2553,7 +2553,7 @@ func importAndCheckFields(t *testing.T, client *mongo.Client, o importFieldsOpts
 	t.Helper()
 	collName := o.format + "testcoll"
 	require.NoError(t, client.Database(o.dbName).Collection(collName).Drop(t.Context()))
-	toolOpts, err := testopts.GetToolOptions()
+	toolOpts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOpts.Namespace = &options.Namespace{DB: o.dbName, Collection: collName}
 	var ffPtr *string

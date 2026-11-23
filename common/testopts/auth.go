@@ -20,7 +20,10 @@ var (
 	CreatedUserPasswordEnv = "TOOLS_TESTING_AUTH_PASSWORD"
 )
 
-func GetAuthOptions() options.Auth {
+// HarnessAuth returns the credentials of the harness user, the identity test setup and
+// assertions connect as. Callers running a tool under test choose a different identity through
+// ToolOptions and ToolCLIArgs.
+func HarnessAuth() options.Auth {
 	if testtype.HasTestType(testtype.AuthTestType) {
 		return options.Auth{
 			Username: os.Getenv(CreatedUserNameEnv),
@@ -32,14 +35,16 @@ func GetAuthOptions() options.Auth {
 	return options.Auth{}
 }
 
-func GetAuthArgs() []string {
-	authOpts := GetAuthOptions()
-	if authOpts.IsSet() {
-		return []string{
-			"--username", authOpts.Username,
-			"--password", authOpts.Password,
-			"--authenticationDatabase", authOpts.Source,
-		}
+// AuthArgs returns the command-line flags for the given credentials, for the suites that build
+// a tool's arguments by hand.
+func AuthArgs(auth options.Auth) []string {
+	if !auth.IsSet() {
+		return nil
 	}
-	return nil
+
+	return []string{
+		"--username", auth.Username,
+		"--password", auth.Password,
+		"--authenticationDatabase", auth.Source,
+	}
 }

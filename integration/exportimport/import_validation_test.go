@@ -45,7 +45,7 @@ func (s *ExportImportSuite) TestImportDocumentValidation() {
 		_, err := cc.Source.Database(dbName).Collection(collName).InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		me, err := mongoexport.New(mongoexport.Options{

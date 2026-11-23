@@ -67,7 +67,7 @@ func (s *DumpRestoreSuite) runMongodumpWithArgsForURI(
 	args ...string,
 ) {
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
-	cmd = append(cmd, testopts.GetBareArgsForURI(uri)...)
+	cmd = append(cmd, testopts.ToolCLIArgs(uri, testopts.HarnessAuth())...)
 	cmd = append(cmd, args...)
 	cmdStr := strings.Join(cmd, " ")
 

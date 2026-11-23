@@ -26,7 +26,7 @@ import (
 var PKCS8Password = "TOOLS_TESTING_PKCS8_PASSWORD"
 
 func TestNewSessionProvider(t *testing.T) {
-	opts := testopts.MustGetToolOptions(t)
+	opts := testopts.MustHarnessToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -40,7 +40,7 @@ func TestNewSessionProvider(t *testing.T) {
 }
 
 func TestIsDisaggregatedStorage(t *testing.T) {
-	opts := testopts.MustGetToolOptions(t)
+	opts := testopts.MustHarnessToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err, "creating a session provider")
 	defer provider.Close()
@@ -57,7 +57,7 @@ func TestIsDisaggregatedStorage(t *testing.T) {
 }
 
 func TestDatabaseNames(t *testing.T) {
-	opts := testopts.MustGetToolOptions(t)
+	opts := testopts.MustHarnessToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -82,7 +82,7 @@ func TestDatabaseNames(t *testing.T) {
 }
 
 func TestFindOne(t *testing.T) {
-	opts := testopts.MustGetToolOptions(t)
+	opts := testopts.MustHarnessToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -102,7 +102,7 @@ func TestFindOne(t *testing.T) {
 }
 
 func TestGetIndexes(t *testing.T) {
-	opts := testopts.MustGetToolOptions(t)
+	opts := testopts.MustHarnessToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 	session, err := provider.GetSession()
@@ -146,7 +146,7 @@ func TestGetIndexes(t *testing.T) {
 }
 
 func TestServerVersionArray(t *testing.T) {
-	opts := testopts.MustGetToolOptions(t)
+	opts := testopts.MustHarnessToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 
@@ -155,7 +155,7 @@ func TestServerVersionArray(t *testing.T) {
 	assert.True(t, version.GT(Version{}))
 }
 
-// The certificate tests below build ToolOptions by hand instead of going through `GetToolOptions`,
+// The certificate tests below build ToolOptions by hand instead of going through `HarnessToolOptions`,
 // so they have to resolve the runner-allocated address from `TOOLS_TESTING_MONGOD` themselves.
 func hostAndPortFromEnvVar(t *testing.T) (string, string) {
 	t.Helper()
@@ -178,7 +178,7 @@ func hostAndPortFromEnvVar(t *testing.T) (string, string) {
 func TestServerCertificateVerification(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
 
-	auth := testopts.GetAuthOptions()
+	auth := testopts.HarnessAuth()
 	sslOrigin := testopts.SSLOptionsWithCert("test-client.pem")
 
 	// intermediate certs only
@@ -207,7 +207,7 @@ func TestServerCertificateVerification(t *testing.T) {
 func TestServerPKCS8Verification(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.SSLTestType)
 
-	auth := testopts.GetAuthOptions()
+	auth := testopts.HarnessAuth()
 	ssl := options.SSL{
 		UseSSL:    true,
 		SSLCAFile: testopts.TestDataPath("ca-ia.pem"),

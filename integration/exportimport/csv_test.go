@@ -53,7 +53,7 @@ func (s *ExportImportSuite) TestRoundTripFieldFile() {
 		s.Require().NoError(err)
 		s.Require().NoError(exportTarget.Close())
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 		me, err := mongoexport.New(mongoexport.Options{
@@ -75,7 +75,7 @@ func (s *ExportImportSuite) TestRoundTripFieldFile() {
 		s.Require().NoError(f.Close())
 
 		fields := "a,b,c"
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -176,7 +176,7 @@ func (s *ExportImportSuite) TestRoundTripNestedFieldsCSV() {
 		})
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 		me, err := mongoexport.New(mongoexport.Options{
@@ -196,7 +196,7 @@ func (s *ExportImportSuite) TestRoundTripNestedFieldsCSV() {
 		s.Require().NoError(err)
 		s.Require().NoError(tmpFile.Close())
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -569,7 +569,7 @@ func (s *ExportImportSuite) exportCSVAndImport(cc crossCluster, dbName, exportFi
 	s.Require().NoError(err)
 	s.Require().NoError(exportTarget.Close())
 
-	exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+	exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -590,7 +590,7 @@ func (s *ExportImportSuite) exportCSVAndImport(cc crossCluster, dbName, exportFi
 	s.Require().NoError(f.Close())
 
 	importFields := "a,b,c"
-	importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+	importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -620,7 +620,7 @@ func (s *ExportImportSuite) exportCSVForURI(
 	exportFile, err := os.CreateTemp(s.T().TempDir(), "export-*.csv")
 	s.Require().NoError(err, "can create the file to export into")
 
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 
@@ -659,7 +659,7 @@ func (s *ExportImportSuite) importDelimitedForURI(
 	ns *options.Namespace,
 	path, fileType, fields string,
 ) {
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 

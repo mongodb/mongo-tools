@@ -34,7 +34,7 @@ func TestImportExport(t *testing.T) {
 // ExportOptionsForURI builds mongoexport options pointing at the given cluster, or at the default
 // localhost:DefaultTestPort when uri is empty.
 func (s *ExportImportSuite) ExportOptionsForURI(uri string) mongoexport.Options {
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 
 	opts := mongoexport.Options{
@@ -56,7 +56,7 @@ func (s *ExportImportSuite) ExportOptionsForURI(uri string) mongoexport.Options 
 func (s *ExportImportSuite) ImportOptionsForURI(
 	uri, dbName, collName string,
 ) mongoimport.Options {
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	toolOptions.Namespace.DB = dbName
 	toolOptions.Namespace.Collection = collName
@@ -80,7 +80,7 @@ func (s *ExportImportSuite) importCollectionForURI(
 	filePath string,
 	ingestOpts mongoimport.IngestOptions,
 ) error {
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 	mi, err := mongoimport.New(mongoimport.Options{
@@ -104,7 +104,7 @@ func (s *ExportImportSuite) exportCollectionToFileForURI(
 ) string {
 	exportFile, err := os.CreateTemp(s.T().TempDir(), "export-*.json")
 	s.Require().NoError(err)
-	exportToolOptions, err := testopts.GetToolOptionsForURI(uri)
+	exportToolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = ns
 	me, err := mongoexport.New(mongoexport.Options{
@@ -131,7 +131,7 @@ func (s *ExportImportSuite) exportJSONFileForURI(
 	ns *options.Namespace,
 	jsonArray bool,
 ) string {
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 	me, err := mongoexport.New(mongoexport.Options{
@@ -177,7 +177,7 @@ func (s *ExportImportSuite) importJSONFileForURI(
 	path string,
 	flags importFlags,
 ) uint64 {
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	toolOptions.Namespace = ns
 	mi, err := mongoimport.New(mongoimport.Options{

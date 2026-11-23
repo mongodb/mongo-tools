@@ -23,7 +23,7 @@ var (
 )
 
 func simpleMongoDumpInstance() (*MongoDump, error) {
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	if err != nil {
 		return nil, fmt.Errorf("error getting tool options to create a mongodump instance: %w", err)
 	}

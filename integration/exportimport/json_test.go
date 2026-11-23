@@ -94,7 +94,7 @@ func (s *ExportImportSuite) TestRoundTripJSONArray() {
 		_, err := sourceColl.InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		me, err := mongoexport.New(mongoexport.Options{
@@ -118,7 +118,7 @@ func (s *ExportImportSuite) TestRoundTripJSONArray() {
 
 		targetColl := cc.Target.Database(dbName).Collection(collName)
 
-		importWithoutFlagOpts, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importWithoutFlagOpts, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importWithoutFlagOpts.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -134,7 +134,7 @@ func (s *ExportImportSuite) TestRoundTripJSONArray() {
 		s.Require().NoError(err)
 		s.Assert().EqualValues(0, n, "nothing should have been imported without --jsonArray")
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		mi, err = mongoimport.New(mongoimport.Options{
@@ -328,7 +328,7 @@ func (s *ExportImportSuite) exportJSONAndImport(cc crossCluster, dbName, fields 
 	s.Require().NoError(err)
 	s.Require().NoError(tmpFile.Close())
 
-	exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+	exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -348,7 +348,7 @@ func (s *ExportImportSuite) exportJSONAndImport(cc crossCluster, dbName, fields 
 	s.Require().NoError(err)
 	s.Require().NoError(f.Close())
 
-	importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+	importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{

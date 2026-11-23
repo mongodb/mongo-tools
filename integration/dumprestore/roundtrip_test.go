@@ -270,7 +270,7 @@ func getRestoreWithArgsForURI(
 	additionalArgs ...string,
 ) (*mongorestore.MongoRestore, error) {
 	opts, err := mongorestore.ParseOptions(
-		append(testopts.GetBareArgsForURI(uri), additionalArgs...),
+		append(testopts.ToolCLIArgs(uri, testopts.HarnessAuth()), additionalArgs...),
 		"",
 		"",
 	)

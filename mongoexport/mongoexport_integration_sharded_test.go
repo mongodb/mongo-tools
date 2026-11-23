@@ -40,7 +40,7 @@ var (
 )
 
 func simpleMongoExportOpts() (Options, error) {
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	if err != nil {
 		return Options{}, fmt.Errorf(
 			"error getting tool options to create a mongoexport instance: %w",
@@ -318,7 +318,7 @@ func TestBrokenPipe(t *testing.T) {
 
 	args := append(
 		[]string{"run", filepath.Join("..", "mongoexport", "main")},
-		testopts.GetBareArgs()...,
+		testopts.HarnessToolCLIArgs()...,
 	)
 	args = append(args, "--db", dbName, "--collection", collName)
 	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))
@@ -330,7 +330,7 @@ func TestExportNamespaceValidation(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	for _, dbName := range []string{"test.bar", `test"bar`} {
-		toolOptions, err := testopts.GetToolOptions()
+		toolOptions, err := testopts.HarnessToolOptions()
 		require.NoError(t, err)
 		toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "foo"}
 		_, err = New(Options{
@@ -341,7 +341,7 @@ func TestExportNamespaceValidation(t *testing.T) {
 		assert.Error(t, err, "db name %q should be rejected", dbName)
 	}
 
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOptions.Namespace = &options.Namespace{DB: "test", Collection: "system.foobar"}
 	me, err := New(Options{
@@ -360,7 +360,7 @@ func TestExportNamespaceValidation(t *testing.T) {
 func TestExportNoData(t *testing.T) {
 	log.SetWriter(io.Discard)
 
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOptions.Namespace = &options.Namespace{DB: "test", Collection: "mongoexport_no_data_test"}
 
@@ -403,7 +403,7 @@ func TestExportPretty(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 	me, err := New(Options{
@@ -450,7 +450,7 @@ func TestExportWritesToStdout(t *testing.T) {
 	require.NoError(t, err)
 
 	args := []string{"go", "run", filepath.Join("..", "mongoexport", "main")}
-	args = append(args, testopts.GetBareArgs()...)
+	args = append(args, testopts.HarnessToolCLIArgs()...)
 	args = append(args, "--db", dbName, "--collection", collName)
 	cmd := exec.Command(args[0], args[1:]...)
 	stdout, err := cmd.Output()
@@ -537,7 +537,7 @@ func TestExportNestedFieldsCSV(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 
@@ -580,7 +580,7 @@ func TestExportNestedFieldsCSV(t *testing.T) {
 
 func newExportTestClient(t *testing.T, dbName string) *mongo.Client {
 	t.Helper()
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err, "should get tool options")
 	sessionProvider, err := db.NewSessionProvider(*toolOptions)
 	require.NoError(t, err, "should create session provider")
@@ -594,7 +594,7 @@ func newExportTestClient(t *testing.T, dbName string) *mongo.Client {
 
 func exportWithType(t *testing.T, ns *options.Namespace, typeName string) (string, error) {
 	t.Helper()
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	toolOptions.Namespace = ns
 	me, err := New(Options{
