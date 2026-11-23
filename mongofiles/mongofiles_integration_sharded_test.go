@@ -22,6 +22,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/wcwrapper"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -1060,8 +1061,15 @@ func TestDefaultWriteConcern(t *testing.T) {
 	Convey("with a URI that doesn't specify write concern", t, func() {
 		mf, err := getMongofilesWithArgs(
 			t,
-			"get", "filename",
-			"--uri", uriWithoutWriteConcern(toolOptions.URI.ConnectionString),
+			append(
+				[]string{
+					"get",
+					"filename",
+					"--uri",
+					uriWithoutWriteConcern(toolOptions.URI.ConnectionString),
+				},
+				testopts.AuthArgs(testopts.HarnessAuth())...,
+			)...,
 		)
 		So(err, ShouldBeNil)
 		So(
@@ -1074,8 +1082,15 @@ func TestDefaultWriteConcern(t *testing.T) {
 	Convey("with no URI and no write concern option", t, func() {
 		mf, err := getMongofilesWithArgs(
 			t,
-			"get", "filename",
-			"--host", strings.Join(toolOptions.URI.ConnString.Hosts, ","),
+			append(
+				[]string{
+					"get",
+					"filename",
+					"--host",
+					strings.Join(toolOptions.URI.ConnString.Hosts, ","),
+				},
+				testopts.AuthArgs(testopts.HarnessAuth())...,
+			)...,
 		)
 		So(err, ShouldBeNil)
 		So(

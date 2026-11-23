@@ -9,6 +9,7 @@ package testutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -21,6 +22,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db/dsctest"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -85,6 +87,90 @@ func GetBareSessionProviderForURI(
 	t.Cleanup(sessionProvider.Close)
 
 	return sessionProvider, toolOptions, nil
+}
+
+// EnsureBackupUser creates the user that mongodump runs authenticate as
+// (testopts.BackupUsername) when it does not already exist, holding exactly the backup role the
+// documentation prescribes for mongodump. The cluster script creates only the bootstrap user,
+// because the runner cannot create a second user itself, so the first test that needs this user
+// creates it here.
+func EnsureBackupUser(t *testing.T) {
+	ensureUser(t, testopts.BackupUsername, func(session *mongo.Client) error {
+		return createUser(session, testopts.BackupUsername, testopts.BackupPassword, "backup")
+	})
+}
+
+// EnsureRestoreUser creates the user that mongorestore runs authenticate as
+// (testopts.RestoreUsername) when it does not already exist, holding exactly the restore role
+// the documentation prescribes for mongorestore. Like EnsureBackupUser, it is a no-op without
+// the auth test type.
+func EnsureRestoreUser(t *testing.T) {
+	ensureUser(t, testopts.RestoreUsername, func(session *mongo.Client) error {
+		return createUser(session, testopts.RestoreUsername, testopts.RestorePassword, "restore")
+	})
+}
+
+// ensureUser creates one of the users the tests share when it does not already exist. Existence
+// is re-checked on every call rather than cached: a test that restores admin's users with --drop
+// (TestDumpRestorePreservesAdminUsersAndRoles) can remove a shared user mid-run, and a cached
+// "already created" would leave the later tests failing authentication with no hint why.
+func ensureUser(t *testing.T, username string, create func(*mongo.Client) error) {
+	t.Helper()
+
+	if !testtype.HasTestType(testtype.AuthTestType) {
+		return
+	}
+
+	if err := createUserIfMissing(t, username, create); err != nil {
+		t.Fatalf("could not create the %s user: %v", username, err)
+	}
+}
+
+func createUserIfMissing(t *testing.T, username string, create func(*mongo.Client) error) error {
+	session, err := GetBareSession(t)
+	if err != nil {
+		return fmt.Errorf("connecting as the harness user: %w", err)
+	}
+
+	ctx := context.Background()
+	adminDB := session.Database("admin")
+
+	var info struct {
+		Users []bson.D `bson:"users"`
+	}
+	err = adminDB.RunCommand(ctx, bson.D{
+		{"usersInfo", []bson.D{{{"user", username}, {"db", "admin"}}}},
+	}).Decode(&info)
+	if err != nil {
+		return fmt.Errorf("looking up the %s user: %w", username, err)
+	}
+	if len(info.Users) > 0 {
+		return nil
+	}
+
+	err = create(session)
+	// A concurrently running test binary can win the race to create the user between the lookup
+	// above and the create callback. A failed ensure never retries, so that outcome is success
+	// too.
+	var cmdErr mongo.CommandError
+	if err != nil && errors.As(err, &cmdErr) && cmdErr.Name == "UserAlreadyExists" {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("creating the %s user: %w", username, err)
+	}
+
+	return nil
+}
+
+// createUser creates a user holding exactly one built-in role on the admin database.
+func createUser(session *mongo.Client, username, password, role string) error {
+	ctx := context.Background()
+	return session.Database("admin").RunCommand(ctx, bson.D{
+		{"createUser", username},
+		{"pwd", password},
+		{"roles", []bson.D{{{"role", role}, {"db", "admin"}}}},
+	}).Err()
 }
 
 // GetFCV returns the featureCompatibilityVersion string for an mgo Session
