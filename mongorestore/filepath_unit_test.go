@@ -10,6 +10,7 @@ package mongorestore
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func init() {
@@ -452,9 +454,59 @@ func TestCreateIntentsForCollection(t *testing.T) {
 	})
 }
 
+// collectionMetadata mirrors the metadata file mongodump writes for a timeseries collection.
+type collectionMetadata struct {
+	Options        metadataOptions `json:"options"`
+	Indexes        []any           `json:"indexes"`
+	CollectionName string          `json:"collectionName"`
+	Type           string          `json:"type"`
+}
+
+type metadataOptions struct {
+	Timeseries timeseriesOptions `json:"timeseries"`
+}
+
+type timeseriesOptions struct {
+	TimeField   string `json:"timeField"`
+	MetaField   string `json:"metaField"`
+	Granularity string `json:"granularity"`
+}
+
 func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 	var mr *MongoRestore
 	var buff bytes.Buffer
+
+	// The intent fields under test are inferred from the dump layout, so the
+	// test writes the layout itself - a system.buckets-prefixed data file
+	// with its metadata beside it - rather than depending on a checked-in
+	// fixture.
+	dumpDir := t.TempDir()
+	dbDir := filepath.Join(dumpDir, "timeseries_test")
+	require.NoError(t, os.Mkdir(dbDir, 0o700), "can create the dump's db directory")
+	bucketDoc, err := bson.Marshal(bson.D{{Key: "control", Value: bson.D{}}})
+	require.NoError(t, err, "can marshal a bucket document")
+	bucketFile := filepath.Join(dbDir, "system.buckets.foo_ts.bson")
+	require.NoError(t, os.WriteFile(bucketFile, bucketDoc, 0o600), "can write the bucket data file")
+	metadata := collectionMetadata{
+		Options: metadataOptions{
+			Timeseries: timeseriesOptions{
+				TimeField:   "ts",
+				MetaField:   "meta",
+				Granularity: "seconds",
+			},
+		},
+		Indexes:        []any{},
+		CollectionName: "foo_ts",
+		Type:           "timeseries",
+	}
+	metadataBytes, err := json.Marshal(metadata)
+	require.NoError(t, err, "can marshal the collection metadata")
+	metadataFile := filepath.Join(dbDir, "foo_ts.metadata.json")
+	require.NoError(
+		t,
+		os.WriteFile(metadataFile, metadataBytes, 0o600),
+		"can write the metadata file",
+	)
 
 	Convey("With a test MongoRestore", t, func() {
 		buff = bytes.Buffer{}
@@ -468,11 +520,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 		Convey(
 			"running CreateIntentForCollection on a system.buckets file *with* metadata",
 			func() {
-				ddl, err := newActualPath(
-					filepath.FromSlash(
-						"testdata/timeseries_tests/ts_dump/timeseries_test/system.buckets.foo_ts.bson",
-					),
-				)
+				ddl, err := newActualPath(bucketFile)
 				So(err, ShouldBeNil)
 				mr.ToolOptions.Namespace = &commonOpts.Namespace{}
 
@@ -494,7 +542,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 					So(i0, ShouldNotBeNil)
 					So(i0.DB, ShouldEqual, mr.ToolOptions.DB)
 					So(i0.C, ShouldEqual, "foo_ts")
-					So(i0.Location, ShouldEqual, filepath.FromSlash(ddl.Path()))
+					So(i0.Location, ShouldEqual, ddl.Path())
 					i1 := mr.manager.Pop()
 					So(i1, ShouldBeNil)
 
@@ -502,9 +550,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 						So(
 							i0.MetadataLocation,
 							ShouldEqual,
-							filepath.FromSlash(
-								"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
-							),
+							metadataFile,
 						)
 						logs := buff.String()
 						So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
@@ -529,9 +575,7 @@ func TestCreateIntentForCollectionTimeSeries(t *testing.T) {
 							So(
 								i0.MetadataLocation,
 								ShouldEqual,
-								filepath.FromSlash(
-									"testdata/timeseries_tests/ts_dump/timeseries_test/foo_ts.metadata.json",
-								),
+								metadataFile,
 							)
 							logs := buff.String()
 							So(strings.Contains(logs, "found metadata"), ShouldEqual, true)
