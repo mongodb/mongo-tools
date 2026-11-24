@@ -22,7 +22,7 @@ CLUSTER_ID="${CLUSTER_ID:-tools-test}"
 SHARDS="${SHARDS:-2}"
 SECONDARIES="${SECONDARIES:-2}"
 USE_TLS="${USE_TLS:-false}"
-CREATE_USER="${CREATE_USER:-false}"
+SKIP_AUTH="${SKIP_AUTH:-false}"
 AWS_AUTH="${AWS_AUTH:-false}"
 AUTH_USERNAME="${AUTH_USERNAME:-}"
 AUTH_PASSWORD="${AUTH_PASSWORD:-}"
@@ -35,7 +35,7 @@ if [ "$AWS_AUTH" = "true" ]; then
     # aws_e2e_assume_role.js authenticates as this user to create the $external AWS user, and the
     # runner needs an admin user to verify the server came up, so use the credentials that script
     # expects. AWS auth also requires an Enterprise server, so this path only runs in CI.
-    CREATE_USER=true
+    SKIP_AUTH=false
     AUTH_USERNAME=bob
     AUTH_PASSWORD=pwd123
 fi
@@ -62,12 +62,13 @@ Options:
   --shards <n>                            Number of shards for the sharded topology (default 2)
   --secondaries <n>                       Number of secondaries per replica set (default 2)
   --tls                                   Require TLS using the certificates under common/db/testdata
-  --create-user                           Create an admin user for auth runs (needs AUTH_USERNAME and
-                                          AUTH_PASSWORD)
+  --skip-auth                             Start the cluster without authentication; by default the
+                                          script enables authentication and creates the bootstrap
+                                          user (needs AUTH_USERNAME and AUTH_PASSWORD)
   --evg-expansion-var=<name>              Write an Evergreen expansions file setting name to the URI
 
 Every option can also be set through the matching environment variable (TOPOLOGY, BIN_DIR,
-CLUSTER_ID, SHARDS, SECONDARIES, USE_TLS, CREATE_USER, AUTH_USERNAME, AUTH_PASSWORD,
+CLUSTER_ID, SHARDS, SECONDARIES, USE_TLS, SKIP_AUTH, AUTH_USERNAME, AUTH_PASSWORD,
 EVG_EXPANSION_VAR, ADDITIONAL_ARGS). CI uses the environment form so that the auth password is not
 passed on the command line.
 
@@ -96,7 +97,7 @@ while [ $# -gt 0 ]; do
     --shards=*) SHARDS="${1#*=}" ;;
     --secondaries=*) SECONDARIES="${1#*=}" ;;
     --tls) USE_TLS=true ;;
-    --create-user) CREATE_USER=true ;;
+    --skip-auth) SKIP_AUTH=true ;;
     --evg-expansion-var=*) EVG_EXPANSION_VAR="${1#*=}" ;;
     --)
         shift
@@ -133,8 +134,8 @@ case "$CLUSTER_ID" in
     ;;
 esac
 
-if [ "$CREATE_USER" = "true" ] && { [ -z "$AUTH_USERNAME" ] || [ -z "$AUTH_PASSWORD" ]; }; then
-    echo "CREATE_USER=true requires both AUTH_USERNAME and AUTH_PASSWORD" >&2
+if [ "$SKIP_AUTH" != "true" ] && { [ -z "$AUTH_USERNAME" ] || [ -z "$AUTH_PASSWORD" ]; }; then
+    echo "creating the bootstrap user requires both AUTH_USERNAME and AUTH_PASSWORD; pass --skip-auth to start without authentication" >&2
     exit 1
 fi
 
@@ -216,16 +217,17 @@ if [ "$USE_TLS" = "true" ]; then
         "\"internalClientOptions\": {\"tls\": true, \"tlsCAFile\": \"$(json_escape "${CA_FILE_NATIVE:?}")\", \"tlsCertificateKeyFile\": \"$(json_escape "${CERT_FILE_NATIVE:?}")\"}"
     )
 fi
-if [ "$CREATE_USER" = "true" ]; then
+if [ "$SKIP_AUTH" != "true" ]; then
     # Only the bootstrap user is created here: the runner creates users over an unauthenticated
-    # connection, which the localhost exception permits for exactly one user. The backup+restore
-    # user that the tools under test authenticate as, and any test's own scoped users, are
-    # created by the tests as this user (common/testutil.EnsureBackupRestoreUser).
+    # connection, which the localhost exception permits for exactly one user. The backup and
+    # restore users that the tools under test authenticate as, and any test's own scoped users,
+    # are created by the tests as this user (common/testutil.EnsureBackupUser and
+    # EnsureRestoreUser).
     #
     # The bootstrap user keeps the internal __system role, which bypasses authorization: the
     # harness has to write system collections (the timeseries fixtures restore
     # admin/system.views.bson and system.buckets.* data), which no assignable role - not even
-    # root - permits. That is also why the tools under test get their own, lesser user rather
+    # root - permits. That is also why the tools under test get their own, lesser users rather
     # than sharing this one.
     CONFIG_ENTRIES+=(
         "\"users\": [{\"username\": \"$(json_escape "${AUTH_USERNAME:?}")\", \"password\": \"$(json_escape "${AUTH_PASSWORD:?}")\", \"roles\": [{\"role\": \"__system\", \"db\": \"admin\"}]}]"
@@ -283,8 +285,24 @@ if [ "$USE_TLS" = "true" ]; then
         --tlsCertificateKeyFile "${CERT_FILE_NATIVE:?}"
     )
 fi
-if [ "$CREATE_USER" = "true" ]; then
-    MONGOD_ARGS+=(--auth)
+if [ "$SKIP_AUTH" != "true" ]; then
+    case "$TOPOLOGY" in
+    replset | sharded)
+        # mongod refuses --auth on a replica set without intra-cluster auth, and mongos has no
+        # --auth option at all, so multi-node topologies get their authentication from a keyfile
+        # shared by every member (which implies --auth). The runner reads the keyfile back to
+        # connect as the __system identity it provides, which is what lets it create the user.
+        KEYFILE="${CLUSTER_DIR:?}/keyfile"
+        # mongod accepts 6-1024 base64-ish characters; od renders 48 hex ones. The permissions
+        # matter: mongod rejects a keyfile readable by group or other on non-Windows platforms.
+        od -An -N24 -tx1 /dev/urandom | tr -d ' \n' >"${KEYFILE:?}"
+        chmod 600 "${KEYFILE:?}"
+        MONGOD_ARGS+=(--keyFile "$(native_path "${KEYFILE:?}")")
+        ;;
+    standalone)
+        MONGOD_ARGS+=(--auth)
+        ;;
+    esac
 fi
 if [ "$AWS_AUTH" = "true" ]; then
     MONGOD_ARGS+=(--setParameter "authenticationMechanisms=MONGODB-AWS,SCRAM-SHA-256")
@@ -344,12 +362,31 @@ esac
 
 # The tools fall back to the operational database as the auth source when the URI does not name one,
 # which fails authentication for a user created in admin, so make the source explicit.
-if [ "$CREATE_USER" = "true" ]; then
+if [ "$SKIP_AUTH" != "true" ]; then
     case "$CONNECTION_STRING" in
     *authSource=*) ;;
     *\?*) CONNECTION_STRING="${CONNECTION_STRING}&authSource=admin" ;;
     *) CONNECTION_STRING="${CONNECTION_STRING}?authSource=admin" ;;
     esac
+fi
+
+# The runner creates the user directly on the cluster's servers, so a mongos in front of them
+# does not accept its credentials until the mongos's user cache refreshes; the first test
+# connections through a mongos would fail authentication without this wait. Only sharded
+# clusters have a mongos, so only they wait here. The probe blank-imports common/db for the
+# init that lowers the vendored driver's supported wire-version floor to 4.2's - the same
+# workaround the tools use - so it reaches 4.2 servers like they do. The probe also compiles
+# the driver into the build cache, which the build step that follows in CI reuses; where it
+# does not run, the build step just compiles that itself.
+if [ "$SKIP_AUTH" != "true" ] && [ "$TOPOLOGY" = "sharded" ]; then
+    if ! (cd "${REPO_ROOT:?}" &&
+        TOOLS_TESTING_MONGOD="${CONNECTION_STRING:?}" \
+            TOOLS_TESTING_AUTH_USERNAME="${AUTH_USERNAME:?}" \
+            TOOLS_TESTING_AUTH_PASSWORD="${AUTH_PASSWORD:?}" \
+            mise exec go -- go run ./internal/authprobe); then
+        echo "the ${AUTH_USERNAME:?} user never became usable through ${CONNECTION_STRING:?}" >&2
+        exit 1
+    fi
 fi
 
 echo "${CONNECTION_STRING:?}" >"${CLUSTER_DIR:?}/connection-string"

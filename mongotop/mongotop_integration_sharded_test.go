@@ -328,6 +328,7 @@ func TestMongotopRejectsInvalidOptions(t *testing.T) {
 // when the password is wrong rather than reporting on the server's namespaces anyway.
 func TestMongotopAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+	testutil.SkipIfSharded(t, "mongotop cannot run against a mongos")
 
 	// The credentials are supplied here rather than by `HarnessToolCLIArgs`, which would supply the right
 	// password for both cases.

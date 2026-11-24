@@ -235,6 +235,10 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 // admin database survive a round-trip through mongodump and mongorestore, including with --drop.
 func TestDumpRestorePreservesAdminUsersAndRoles(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+	testutil.SkipIfSharded(
+		t,
+		"its full-cluster restore includes the config database, which mongorestore refuses on a sharded system",
+	)
 
 	t.Run("backup and restore roles", func(t *testing.T) {
 		dumpRestorePreservesAdminUsersAndRoles(t, "backup", "restore")
@@ -1045,6 +1049,10 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 // it skips `system.*`.
 func TestDumpAdminSystemProfileAsBackupUser(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+	testutil.SkipIfSharded(
+		t,
+		"a mongos cannot drop collections in the admin database, and the profile command does not run through it",
+	)
 
 	const (
 		backupUser = "dumpauth_backup"
@@ -1241,6 +1249,10 @@ func TestDumpRestoreOplogReplayPrivileges(t *testing.T) {
 // outright since TOOLS-717.
 func TestDumpRestoreSystemProfileInDump(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
+	testutil.SkipIfSharded(
+		t,
+		"a mongos cannot drop collections in the admin database, so the precondition that the target lacks system.profile cannot be established",
+	)
 
 	const (
 		restoreUser     = "sysprofile_restore"
