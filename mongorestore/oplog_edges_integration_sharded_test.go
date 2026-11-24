@@ -40,7 +40,7 @@ func TestOplogReplayConflict(t *testing.T) {
 
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.OplogReplayAuth(),
 		OplogReplayOption,
 		OplogFileOption,
 		"testdata/extra_oplog.bson",
@@ -97,7 +97,7 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.OplogReplayAuth(),
 		OplogReplayOption,
 		OplogFileOption,
 		"testdata/extra_oplog.bson",
@@ -138,7 +138,7 @@ func TestOplogReplayNoop(t *testing.T) {
 
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.OplogReplayAuth(),
 		OplogReplayOption,
 		DirectoryOption,
 		"testdata/dump_with_noop_in_oplog",
@@ -208,7 +208,16 @@ func TestOplogReplayPreservesComplexIDOrder(t *testing.T) {
 			require.NoError(t, err, "pre-inserting the target document")
 		}
 
-		result := runRestore(t, testopts.HarnessAuth(), OplogReplayOption, DirectoryOption, dumpDir)
+		// The oplog holds an update op, which the restore role does not grant on ordinary
+		// collections (it grants insert but not update), so this runs as the
+		// anyAction-on-anyResource user the documentation prescribes for oplog replay.
+		result := runRestore(
+			t,
+			testopts.OplogReplayAuth(),
+			OplogReplayOption,
+			DirectoryOption,
+			dumpDir,
+		)
 		require.NoError(t, result.Err, "replaying the update op on attempt %d", attempt)
 
 		// The update sets "foo", so finding it proves the op matched rather than
@@ -298,7 +307,7 @@ func TestOplogReplaySizeSafety(t *testing.T) {
 	oplogPath := filepath.Join(dir, "oplog.bson")
 	writeOplogInserts(t, oplogPath, "test.op", smallOps, largeOps, oneMB)
 
-	result := runRestore(t, testopts.HarnessAuth(), OplogReplayOption, DirectoryOption, dir)
+	result := runRestore(t, testopts.OplogReplayAuth(), OplogReplayOption, DirectoryOption, dir)
 	require.NoError(t, result.Err, "replaying a large oplog succeeds")
 
 	count, err := coll.CountDocuments(context.Background(), bson.D{})

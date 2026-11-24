@@ -35,11 +35,16 @@ func TestDumpRestore(t *testing.T) {
 }
 
 func (s *DumpRestoreSuite) withBSONMongodump(testCase func(string), args ...string) {
-	s.withBSONMongodumpForURI(os.Getenv(testopts.URIEnvVar), testCase, args...)
+	s.withBSONMongodumpForURI(
+		os.Getenv(testopts.URIEnvVar),
+		testopts.BackupAuth(),
+		testCase,
+		args...)
 }
 
 func (s *DumpRestoreSuite) withBSONMongodumpForURI(
 	uri string,
+	auth options.Auth,
 	testCase func(string),
 	args ...string,
 ) {
@@ -48,7 +53,7 @@ func (s *DumpRestoreSuite) withBSONMongodumpForURI(
 	dirArgs := []string{
 		"--out", dir,
 	}
-	s.runMongodumpWithArgsForURI(nil, uri, testopts.HarnessAuth(), append(dirArgs, args...)...)
+	s.runMongodumpWithArgsForURI(nil, uri, auth, append(dirArgs, args...)...)
 	testCase(dir)
 }
 
@@ -56,7 +61,7 @@ func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
 	s.runMongodumpWithArgsForURI(
 		nil,
 		os.Getenv(testopts.URIEnvVar),
-		testopts.HarnessAuth(),
+		testopts.BackupAuth(),
 		args...,
 	)
 }
@@ -64,7 +69,7 @@ func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
 // runMongodumpToWriter runs mongodump with its standard output redirected to stdout, for the dumps
 // that write their data there rather than to a directory.
 func (s *DumpRestoreSuite) runMongodumpToWriter(stdout io.Writer, uri string, args ...string) {
-	s.runMongodumpWithArgsForURI(stdout, uri, testopts.HarnessAuth(), args...)
+	s.runMongodumpWithArgsForURI(stdout, uri, testopts.BackupAuth(), args...)
 }
 
 func (s *DumpRestoreSuite) runMongodumpWithArgsForURI(
@@ -73,6 +78,7 @@ func (s *DumpRestoreSuite) runMongodumpWithArgsForURI(
 	auth options.Auth,
 	args ...string,
 ) {
+	testutil.EnsureSharedUser(s.T(), auth)
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
 	cmd = append(cmd, testopts.ToolCLIArgs(uri, auth)...)
 	cmd = append(cmd, args...)
@@ -236,7 +242,7 @@ func (s *DumpRestoreSuite) runBSONMongodumpForCollectionForURI(
 		"--db", db,
 		"--collection", collection,
 	}
-	s.runMongodumpWithArgsForURI(nil, uri, testopts.HarnessAuth(), append(baseArgs, args...)...)
+	s.runMongodumpWithArgsForURI(nil, uri, testopts.BackupAuth(), append(baseArgs, args...)...)
 	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
 	_, err := os.Stat(bsonFile)
 	s.Require().NoError(err, "dump created BSON data file")
@@ -258,7 +264,7 @@ func (s *DumpRestoreSuite) withArchiveMongodumpForURI(
 }
 
 func (s *DumpRestoreSuite) runArchiveMongodumpForURI(uri, file string, dumpArgs ...string) {
-	s.runMongodumpWithArgsForURI(nil, uri, testopts.HarnessAuth(), append(
+	s.runMongodumpWithArgsForURI(nil, uri, testopts.BackupAuth(), append(
 		[]string{mongorestore.ArchiveOption + "=" + file},
 		dumpArgs...,
 	)...)
@@ -396,7 +402,8 @@ func (s *DumpRestoreSuite) writeBSONFile(path string, docs ...bson.D) {
 }
 
 func (s *DumpRestoreSuite) runRestore(auth options.Auth, args ...string) mongorestore.Result {
-	restore, err := getRestoreWithArgs(auth, args...)
+	testutil.EnsureSharedUser(s.T(), auth)
+	restore, err := getRestoreWithArgs(s.T(), auth, args...)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
 

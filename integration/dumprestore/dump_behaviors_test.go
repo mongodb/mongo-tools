@@ -102,7 +102,7 @@ func (s *DumpRestoreSuite) assertExtendedJSONQueryFilters(queryCase extendedJSON
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore the filtered dump")
 		s.Require().EqualValues(
 			1,
@@ -167,7 +167,7 @@ func (s *DumpRestoreSuite) TestDumpStorageEngineOptions() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump with storage engine options")
 		s.requireInserted(result, 1)
 	}, "--db", testDB.Name())

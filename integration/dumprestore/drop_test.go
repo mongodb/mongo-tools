@@ -33,7 +33,7 @@ func (s *DumpRestoreSuite) TestRestoreDropWithData() {
 			s.replaceCollectionContents(testDB.Collection(collName))
 		}
 
-		result := s.runRestore(testopts.HarnessAuth(), mongorestore.DropOption, dir)
+		result := s.runRestore(testopts.RestoreAuth(), mongorestore.DropOption, dir)
 		s.Require().NoError(result.Err, "can restore with --drop")
 		s.requireInserted(result, len(collNames))
 	}, "--db", testDB.Name())
@@ -73,7 +73,7 @@ func (s *DumpRestoreSuite) TestRestoreDropOneCollection() {
 		}
 
 		result := s.runRestore(
-			testopts.HarnessAuth(),
+			testopts.RestoreAuth(),
 			mongorestore.DropOption,
 			mongorestore.DBOption,
 			sourceDB.Name(),
@@ -105,7 +105,7 @@ func (s *DumpRestoreSuite) TestRestoreDropNonexistentDB() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), mongorestore.DropOption, dir)
+		result := s.runRestore(testopts.RestoreAuth(), mongorestore.DropOption, dir)
 		s.Require().NoError(result.Err, "--drop with nothing to drop is not an error")
 		s.requireInserted(result, 1)
 	}, "--db", testDB.Name())

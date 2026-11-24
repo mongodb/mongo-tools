@@ -56,7 +56,7 @@ func TestOplogRestore(t *testing.T) {
 			args = append(args, PreserveUUIDOption)
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 		c1 := session.Database("db1").Collection("c1")
@@ -98,7 +98,10 @@ func TestOplogRestoreWithDuplicateIndexKeys(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		// The oplog holds delete ops, which the restore role does not grant on ordinary
+		// collections (it grants insert but not remove), so this runs as the
+		// anyAction-on-anyResource user the documentation prescribes for oplog replay.
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 		coll := session.Database("test").Collection("foo")
@@ -151,7 +154,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			OplogFileOption, "testdata/oplogs/bson/drop_index.bson",
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -191,7 +194,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			OplogFileOption, "testdata/oplogs/bson/drop_collection.bson",
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -233,7 +236,11 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 				OplogFileOption, "testdata/oplogs/bson/drop_db.bson",
 			}
 
-			restore, err := getRestore(testopts.HarnessAuth(), args...)
+			// The oplog holds a dropDatabase command, which no component of the restore
+			// role grants (it grants dropCollection but not dropDatabase), so this runs as
+			// the anyAction-on-anyResource user the documentation prescribes for oplog
+			// replay.
+			restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -274,7 +281,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			OplogFileOption, "testdata/oplogs/bson/create_index.bson",
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -315,7 +322,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			OplogFileOption, "testdata/oplogs/bson/collMod.bson",
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -364,7 +371,7 @@ func TestOplogRestoreUpdatesIndexCatalog(t *testing.T) {
 			OplogFileOption, "testdata/oplogs/bson/collMod_with_hidden.bson",
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -445,7 +452,7 @@ func TestOplogRestoreMaxDocumentSize(t *testing.T) {
 			args = append(args, PreserveUUIDOption)
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -531,7 +538,7 @@ func TestOplogRestoreTools2002(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 			DropOption,
 		}
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -588,7 +595,7 @@ func testOplogRestoreVectoredInsert(t *testing.T, linked bool) {
 		OplogFileOption, oplogFileName,
 	}
 
-	restore, err := getRestore(testopts.HarnessAuth(), args...)
+	restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 	require.NoError(t, err)
 	defer restore.Close()
 
@@ -669,7 +676,7 @@ func TestOplogRestoreCollModIndexUniqueness(t *testing.T) {
 		OplogFileOption, oplogFileName,
 	}
 
-	restore, err := getRestore(testopts.HarnessAuth(), args...)
+	restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 	require.NoError(t, err)
 	defer restore.Close()
 
@@ -733,7 +740,7 @@ func TestOplogRestoreBypassDocumentValidation(t *testing.T) {
 			args = append(args, BypassDocumentValidationOption)
 		}
 
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		require.NoError(t, err)
 		defer restore.Close()
 
@@ -780,7 +787,7 @@ func TestOplogRestoreCollModTTLIndex(t *testing.T) {
 		DropOption,
 	}
 
-	restore, err := getRestore(testopts.HarnessAuth(), args...)
+	restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 	require.NoError(t, err)
 	defer restore.Close()
 
@@ -878,7 +885,7 @@ func TestOplogRestoreViewlessTimeseriesConversion(t *testing.T) {
 				OplogFileOption, oplogFile,
 			}
 
-			restore, err := getRestore(testopts.HarnessAuth(), args...)
+			restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 			require.NoError(t, err)
 			defer restore.Close()
 
@@ -984,7 +991,7 @@ func TestOplogRestoreDropIdent(t *testing.T) {
 				OplogFileOption, oplogFile,
 			}
 
-			restore, err := getRestore(testopts.HarnessAuth(), args...)
+			restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 			require.NoError(t, err)
 			defer restore.Close()
 

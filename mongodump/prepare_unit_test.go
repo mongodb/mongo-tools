@@ -177,7 +177,7 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		})
 	}
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	for _, testVals := range tests {

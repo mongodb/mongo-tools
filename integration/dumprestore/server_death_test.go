@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
+	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongodump"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -204,8 +206,12 @@ func (s *DumpRestoreSuite) dumpWhileCuttingConnection(
 	// the rest of a replica set and retry its read against a member the proxy
 	// does not front - which would turn the cut connection into a dump that
 	// simply succeeds.
+	testutil.EnsureBackupUser(s.T())
 	opts, err := mongodump.ParseOptions(
-		slices.Concat(s.DirectToolArgs(proxy.host()), dumpArgs),
+		slices.Concat(
+			s.DirectToolArgsForAuth(proxy.host(), testopts.BackupAuth()),
+			dumpArgs,
+		),
 		"",
 		"",
 	)

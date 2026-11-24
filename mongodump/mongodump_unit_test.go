@@ -26,7 +26,7 @@ import (
 func TestMongoDumpValidateOptions(t *testing.T) {
 	for _, testCase := range invalidDumpOptionsCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+			md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 			require.NoError(t, err)
 
 			testCase.setUp(md)
@@ -166,7 +166,7 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	newDump := func() *MongoDump {
-		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+		md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 		require.NoError(t, err)
 
 		md.OutputOptions.Out = "dump"

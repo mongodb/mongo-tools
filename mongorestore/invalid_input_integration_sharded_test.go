@@ -69,7 +69,7 @@ func TestRestoreInvalidInput(t *testing.T) {
 // alongside --objcheck is rejected as an unknown flag rather than as a
 // conflicting one. Either way the two cannot be combined.
 func testRestoreObjcheckWithNoobjcheck(t *testing.T) {
-	_, err := getRestore(testopts.HarnessAuth(), ObjcheckOption, "--noobjcheck", t.TempDir())
+	_, err := getRestore(t, testopts.RestoreAuth(), ObjcheckOption, "--noobjcheck", t.TempDir())
 	require.ErrorContains(
 		t, err, "noobjcheck",
 		"combining --objcheck with the removed --noobjcheck flag is rejected",
@@ -77,7 +77,7 @@ func testRestoreObjcheckWithNoobjcheck(t *testing.T) {
 }
 
 func testRestoreNegativeWriteConcern(t *testing.T) {
-	_, err := getRestore(testopts.HarnessAuth(), WriteConcernOption+"=-1", t.TempDir())
+	_, err := getRestore(t, testopts.RestoreAuth(), WriteConcernOption+"=-1", t.TempDir())
 	require.ErrorContains(
 		t, err, "invalid 'w' argument",
 		"a negative --writeConcern value is rejected",
@@ -86,7 +86,8 @@ func testRestoreNegativeWriteConcern(t *testing.T) {
 
 func testRestoreMalformedOplogLimit(t *testing.T) {
 	restore, err := getRestore(
-		testopts.HarnessAuth(),
+		t,
+		testopts.OplogReplayAuth(),
 		OplogReplayOption,
 		OplogLimitOption,
 		"xxx",
@@ -102,7 +103,7 @@ func testRestoreMalformedOplogLimit(t *testing.T) {
 }
 
 func testRestoreInvalidDBName(t *testing.T) {
-	restore, err := getRestore(testopts.HarnessAuth(), DBOption, "billy.crystal", t.TempDir())
+	restore, err := getRestore(t, testopts.RestoreAuth(), DBOption, "billy.crystal", t.TempDir())
 	require.NoError(t, err, "building the restore instance")
 	defer restore.Close()
 	require.ErrorContains(
@@ -115,7 +116,8 @@ func testRestoreInvalidCollectionName(t *testing.T) {
 	bsonFile := filepath.Join(t.TempDir(), "coll.bson")
 	writeBSONCollectionFile(t, bsonFile)
 	restore, err := getRestore(
-		testopts.HarnessAuth(),
+		t,
+		testopts.RestoreAuth(),
 		DBOption,
 		"test",
 		CollectionOption,
@@ -131,7 +133,7 @@ func testRestoreInvalidCollectionName(t *testing.T) {
 }
 
 func testRestoreMissingDumpDirectory(t *testing.T) {
-	result := runRestore(t, testopts.HarnessAuth(), missingPath(t))
+	result := runRestore(t, testopts.RestoreAuth(), missingPath(t))
 	require.ErrorContains(
 		t, result.Err, "invalid",
 		"restoring from a nonexistent directory errors",
@@ -139,7 +141,7 @@ func testRestoreMissingDumpDirectory(t *testing.T) {
 }
 
 func testRestoreMissingDumpDirectoryWithDB(t *testing.T) {
-	result := runRestore(t, testopts.HarnessAuth(), DBOption, "test", missingPath(t))
+	result := runRestore(t, testopts.RestoreAuth(), DBOption, "test", missingPath(t))
 	require.ErrorContains(
 		t, result.Err, "invalid",
 		"restoring from a nonexistent directory with --db errors",
@@ -150,7 +152,7 @@ func testRestoreMissingBSONFile(t *testing.T) {
 	missingFile := filepath.Join(t.TempDir(), "missing.bson")
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		DBOption,
 		"test",
 		CollectionOption,
@@ -164,7 +166,7 @@ func testRestoreMissingBSONFile(t *testing.T) {
 }
 
 func testRestoreFileInsteadOfDirectory(t *testing.T) {
-	result := runRestore(t, testopts.HarnessAuth(), writeNonDumpFile(t))
+	result := runRestore(t, testopts.RestoreAuth(), writeNonDumpFile(t))
 	require.ErrorContains(
 		t, result.Err, "does not have .bson extension",
 		"restoring with a file where a directory is expected errors",
@@ -172,7 +174,7 @@ func testRestoreFileInsteadOfDirectory(t *testing.T) {
 }
 
 func testRestoreFileInsteadOfDBDirectory(t *testing.T) {
-	result := runRestore(t, testopts.HarnessAuth(), DBOption, "test", writeNonDumpFile(t))
+	result := runRestore(t, testopts.RestoreAuth(), DBOption, "test", writeNonDumpFile(t))
 	require.ErrorContains(
 		t, result.Err, "does not have .bson extension",
 		"restoring with a file where a db directory is expected errors",
@@ -182,7 +184,7 @@ func testRestoreFileInsteadOfDBDirectory(t *testing.T) {
 func testRestoreDirectoryInsteadOfBSONFile(t *testing.T) {
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		DBOption,
 		"test",
 		CollectionOption,
@@ -203,7 +205,7 @@ func testRestoreMalformedBSON(t *testing.T) {
 	)
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		DBOption,
 		"dbOne",
 		CollectionOption,
@@ -231,7 +233,7 @@ func testRestoreMalformedMetadata(t *testing.T) {
 	)
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		DBOption,
 		"dbOne",
 		CollectionOption,
@@ -257,7 +259,7 @@ func testRestoreInvalidIndexMetadata(t *testing.T) {
 	)
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		DBOption,
 		"dbOne",
 		CollectionOption,
@@ -274,7 +276,7 @@ func testRestoreBlankCollectionBSONWithoutMetadata(t *testing.T) {
 	writeBSONCollectionFile(t, bsonFile)
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		DBOption,
 		"test",
 		CollectionOption,
@@ -307,7 +309,7 @@ func testRestoreBlankCollectionBSONWithMetadata(t *testing.T) {
 	)
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		DBOption,
 		"test",
 		CollectionOption,
@@ -328,7 +330,7 @@ func testRestoreBlankCollectionBSONWithMetadata(t *testing.T) {
 }
 
 func testRestoreBlankDBDirectory(t *testing.T) {
-	result := runRestore(t, testopts.HarnessAuth(), DBOption, "test", t.TempDir())
+	result := runRestore(t, testopts.RestoreAuth(), DBOption, "test", t.TempDir())
 	require.NoError(t, result.Err, "restoring from an empty db directory succeeds")
 	assert.EqualValues(t, 0, result.Successes, "an empty db directory inserts nothing")
 }
@@ -351,7 +353,7 @@ func testRestoreObjcheckValidBSON(t *testing.T) {
 
 	result := runRestore(
 		t,
-		testopts.HarnessAuth(),
+		testopts.RestoreAuth(),
 		ObjcheckOption,
 		DBOption,
 		"test",
@@ -374,7 +376,7 @@ func testRestoreOplogReplayNoOplogFile(t *testing.T) {
 		t,
 		"it replays an oplog, and DSC does not support the applyOps command",
 	)
-	result := runRestore(t, testopts.HarnessAuth(), OplogReplayOption, t.TempDir())
+	result := runRestore(t, testopts.OplogReplayAuth(), OplogReplayOption, t.TempDir())
 	require.ErrorContains(
 		t, result.Err, "no oplog file to replay",
 		"--oplogReplay against a dump with no oplog.bson errors",
@@ -384,7 +386,7 @@ func testRestoreOplogReplayNoOplogFile(t *testing.T) {
 // A restore target of "-" reads the dump from stdin, which carries no namespace of its own, so both
 // halves of the destination namespace have to be given explicitly.
 func testRestoreStdinWithoutCollection(t *testing.T) {
-	restore, err := getRestore(testopts.HarnessAuth(), DBOption, "test", DirectoryOption, "-")
+	restore, err := getRestore(t, testopts.RestoreAuth(), DBOption, "test", DirectoryOption, "-")
 	require.NoError(t, err, "building the restore instance")
 	defer restore.Close()
 	require.ErrorContains(
@@ -396,7 +398,8 @@ func testRestoreStdinWithoutCollection(t *testing.T) {
 
 func testRestoreStdinWithoutDB(t *testing.T) {
 	restore, err := getRestore(
-		testopts.HarnessAuth(),
+		t,
+		testopts.RestoreAuth(),
 		CollectionOption,
 		"coll",
 		DirectoryOption,
@@ -413,7 +416,8 @@ func testRestoreStdinWithoutDB(t *testing.T) {
 
 func testRestoreStdinWithDBAndCollection(t *testing.T) {
 	restore, err := getRestore(
-		testopts.HarnessAuth(),
+		t,
+		testopts.RestoreAuth(),
 		DBOption,
 		"test",
 		CollectionOption,
@@ -433,7 +437,8 @@ func testRestoreStdinWithDBAndCollection(t *testing.T) {
 // instance is closed when the test finishes.
 func runRestore(t *testing.T, auth options.Auth, args ...string) Result {
 	t.Helper()
-	restore, err := getRestore(auth, args...)
+	testutil.EnsureSharedUser(t, auth)
+	restore, err := getRestore(t, auth, args...)
 	require.NoError(t, err, "building the restore instance")
 	t.Cleanup(restore.Close)
 	return restore.Restore()
