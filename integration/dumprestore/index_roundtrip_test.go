@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -28,7 +29,7 @@ func (s *DumpRestoreSuite) testIndexRoundTripFromDumpDir() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropCollection(coll)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore from the dump directory")
 	}, "--db", testDB.Name())
 
@@ -43,7 +44,10 @@ func (s *DumpRestoreSuite) testIndexRoundTripFromBSONFile() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropCollection(coll)
 
-		result := s.runRestore(filepath.Join(dir, testDB.Name(), coll.Name()+".bson"))
+		result := s.runRestore(
+			testopts.HarnessAuth(),
+			filepath.Join(dir, testDB.Name(), coll.Name()+".bson"),
+		)
 		s.Require().NoError(result.Err, "can restore from the bson file")
 	}, "--db", testDB.Name())
 
@@ -229,7 +233,7 @@ func (s *DumpRestoreSuite) testKeepIndexVersion() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(mongorestore.KeepIndexVersionOption, dir)
+		result := s.runRestore(testopts.HarnessAuth(), mongorestore.KeepIndexVersionOption, dir)
 		s.Require().NoError(result.Err, "can restore with --keepIndexVersion")
 	}, "--db", testDB.Name())
 
@@ -262,7 +266,7 @@ func (s *DumpRestoreSuite) testDefaultIndexVersion() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore without --keepIndexVersion")
 	}, "--db", testDB.Name())
 
@@ -393,7 +397,7 @@ func (s *DumpRestoreSuite) TestOrderedPartialIndex() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropCollection(coll)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore an index with a partialFilterExpression")
 	}, "--db", testDB.Name())
 

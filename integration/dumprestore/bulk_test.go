@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -42,7 +43,7 @@ func (s *DumpRestoreSuite) TestRestoreLargeBulk() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore documents at the maximum size")
 		s.Assert().EqualValues(largeDocCount, result.Successes, "every document is inserted")
 		s.Assert().EqualValues(0, result.Failures, "no document is rejected")

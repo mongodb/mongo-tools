@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/integration/sharedsuite"
@@ -22,7 +23,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type DumpRestoreSuite struct {
@@ -47,27 +48,33 @@ func (s *DumpRestoreSuite) withBSONMongodumpForURI(
 	dirArgs := []string{
 		"--out", dir,
 	}
-	s.runMongodumpWithArgsForURI(nil, uri, append(dirArgs, args...)...)
+	s.runMongodumpWithArgsForURI(nil, uri, testopts.HarnessAuth(), append(dirArgs, args...)...)
 	testCase(dir)
 }
 
 func (s *DumpRestoreSuite) runMongodumpWithArgs(args ...string) {
-	s.runMongodumpWithArgsForURI(nil, os.Getenv(testopts.URIEnvVar), args...)
+	s.runMongodumpWithArgsForURI(
+		nil,
+		os.Getenv(testopts.URIEnvVar),
+		testopts.HarnessAuth(),
+		args...,
+	)
 }
 
 // runMongodumpToWriter runs mongodump with its standard output redirected to stdout, for the dumps
 // that write their data there rather than to a directory.
 func (s *DumpRestoreSuite) runMongodumpToWriter(stdout io.Writer, uri string, args ...string) {
-	s.runMongodumpWithArgsForURI(stdout, uri, args...)
+	s.runMongodumpWithArgsForURI(stdout, uri, testopts.HarnessAuth(), args...)
 }
 
 func (s *DumpRestoreSuite) runMongodumpWithArgsForURI(
 	stdout io.Writer,
 	uri string,
+	auth options.Auth,
 	args ...string,
 ) {
 	cmd := []string{"go", "run", filepath.Join("..", "..", "mongodump", "main")}
-	cmd = append(cmd, testopts.ToolCLIArgs(uri, testopts.HarnessAuth())...)
+	cmd = append(cmd, testopts.ToolCLIArgs(uri, auth)...)
 	cmd = append(cmd, args...)
 	cmdStr := strings.Join(cmd, " ")
 
@@ -229,11 +236,7 @@ func (s *DumpRestoreSuite) runBSONMongodumpForCollectionForURI(
 		"--db", db,
 		"--collection", collection,
 	}
-	s.runMongodumpWithArgsForURI(
-		nil,
-		uri,
-		append(baseArgs, args...)...,
-	)
+	s.runMongodumpWithArgsForURI(nil, uri, testopts.HarnessAuth(), append(baseArgs, args...)...)
 	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
 	_, err := os.Stat(bsonFile)
 	s.Require().NoError(err, "dump created BSON data file")
@@ -255,14 +258,10 @@ func (s *DumpRestoreSuite) withArchiveMongodumpForURI(
 }
 
 func (s *DumpRestoreSuite) runArchiveMongodumpForURI(uri, file string, dumpArgs ...string) {
-	s.runMongodumpWithArgsForURI(
-		nil,
-		uri,
-		append(
-			[]string{mongorestore.ArchiveOption + "=" + file},
-			dumpArgs...,
-		)...,
-	)
+	s.runMongodumpWithArgsForURI(nil, uri, testopts.HarnessAuth(), append(
+		[]string{mongorestore.ArchiveOption + "=" + file},
+		dumpArgs...,
+	)...)
 	_, err := os.Stat(file)
 	s.Require().NoError(err, "dump created archive data file")
 }
@@ -364,7 +363,7 @@ type crossCluster = sharedsuite.CrossCluster
 func (s *DumpRestoreSuite) createCollection(
 	testDB *mongo.Database,
 	collName string,
-	opts *options.CreateCollectionOptionsBuilder,
+	opts *mopt.CreateCollectionOptionsBuilder,
 ) *mongo.Collection {
 	err := testDB.CreateCollection(s.Context(), collName, opts)
 	s.Require().NoError(err, "can create the collection %#q", collName)
@@ -396,8 +395,8 @@ func (s *DumpRestoreSuite) writeBSONFile(path string, docs ...bson.D) {
 	s.Require().NoError(os.WriteFile(path, buf, 0644), "can write the bson file %#q", path)
 }
 
-func (s *DumpRestoreSuite) runRestore(args ...string) mongorestore.Result {
-	restore, err := getRestoreWithArgs(args...)
+func (s *DumpRestoreSuite) runRestore(auth options.Auth, args ...string) mongorestore.Result {
+	restore, err := getRestoreWithArgs(auth, args...)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
 

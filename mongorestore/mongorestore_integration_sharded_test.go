@@ -46,8 +46,13 @@ func init() {
 	})
 }
 
-func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
-	opts, err := ParseOptions(append(testopts.HarnessToolCLIArgs(), additionalArgs...), "", "")
+// getRestore builds a MongoRestore from the given command-line args, connecting as the given
+// identity against the server the environment names.
+func getRestore(auth options.Auth, additionalArgs ...string) (*MongoRestore, error) {
+	opts, err := ParseOptions(append(
+		testopts.ToolCLIArgs(os.Getenv(testopts.URIEnvVar), auth),
+		additionalArgs...,
+	), "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing args: %v", err)
 	}
@@ -85,7 +90,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 				CollectionOption, "coll1",
 			}
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			if err != nil {
 				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
 			}
@@ -108,7 +113,7 @@ func TestDeprecatedDBAndCollectionOptions(t *testing.T) {
 				CollectionOption, "coll1",
 			}
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			if err != nil {
 				t.Fatalf("Cannot bootstrap test harness: %v", err.Error())
 			}
@@ -134,7 +139,7 @@ func TestMongorestore(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -271,7 +276,7 @@ func TestMongoRestoreSpecialCharactersCollectionNames(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -381,7 +386,7 @@ func TestMongorestoreLongCollectionName(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -509,7 +514,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				NumInsertionWorkersOption, "1",
 				"testdata/oplogdump",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -530,7 +535,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				PreserveUUIDOption,
 				"testdata/oplogdump",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -551,7 +556,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				DropOption,
 				"testdata/oplogdump",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -573,7 +578,7 @@ func TestMongorestorePreserveUUID(t *testing.T) {
 				DropOption,
 				"testdata/testdirs",
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -651,10 +656,15 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	coll := database.Collection("mio")
 
 	Convey("default restore ignores dup key errors", t, func() {
-		restore, err := getRestoreWithArgs(mioSoeFile,
-			CollectionOption, coll.Name(),
-			DBOption, database.Name(),
-			DropOption)
+		restore, err := getRestore(
+			testopts.HarnessAuth(),
+			mioSoeFile,
+			CollectionOption,
+			coll.Name(),
+			DBOption,
+			database.Name(),
+			DropOption,
+		)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeFalse)
@@ -670,11 +680,16 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--maintainInsertionOrder stops exactly on dup key errors", t, func() {
-		restore, err := getRestoreWithArgs(mioSoeFile,
-			CollectionOption, coll.Name(),
-			DBOption, database.Name(),
+		restore, err := getRestore(
+			testopts.HarnessAuth(),
+			mioSoeFile,
+			CollectionOption,
+			coll.Name(),
+			DBOption,
+			database.Name(),
 			DropOption,
-			MaintainInsertionOrderOption)
+			MaintainInsertionOrderOption,
+		)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 		So(restore.OutputOptions.MaintainInsertionOrder, ShouldBeTrue)
@@ -691,12 +706,18 @@ func TestMongorestoreMIOSOE(t *testing.T) {
 	})
 
 	Convey("--stopOnError stops on dup key errors", t, func() {
-		restore, err := getRestoreWithArgs(mioSoeFile,
-			CollectionOption, coll.Name(),
-			DBOption, database.Name(),
+		restore, err := getRestore(
+			testopts.HarnessAuth(),
+			mioSoeFile,
+			CollectionOption,
+			coll.Name(),
+			DBOption,
+			database.Name(),
 			DropOption,
 			StopOnErrorOption,
-			NumParallelCollectionsOption, "1")
+			NumParallelCollectionsOption,
+			"1",
+		)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 		So(restore.OutputOptions.StopOnError, ShouldBeTrue)
@@ -729,7 +750,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -768,7 +789,7 @@ func TestDeprecatedIndexOptions(t *testing.T) {
 			ConvertLegacyIndexesOption,
 		}
 
-		restore, err = getRestoreWithArgs(args...)
+		restore, err = getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -798,7 +819,7 @@ func TestFixDuplicatedLegacyIndexes(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 
-	restore, err := getRestoreWithArgs(ConvertLegacyIndexesOption)
+	restore, err := getRestore(testopts.HarnessAuth(), ConvertLegacyIndexesOption)
 	require.NoError(t, err)
 	defer restore.Close()
 
@@ -877,7 +898,7 @@ func TestDeprecatedIndexOptionsOn44FCV(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -915,7 +936,7 @@ func TestLongIndexName(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -979,7 +1000,7 @@ func TestKnownCollections(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1023,7 +1044,7 @@ func TestReadPreludeMetadata(t *testing.T) {
 			NumInsertionWorkersOption, "1",
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1122,7 +1143,7 @@ func TestHashedIndexes(t *testing.T) {
 	Convey("Test MongoRestore with hashed indexes", t, func() {
 		args := []string{}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1271,7 +1292,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 
 				var args []string
 
-				restore, err := getRestoreWithArgs(args...)
+				restore, err := getRestore(testopts.HarnessAuth(), args...)
 				So(err, ShouldBeNil)
 				defer restore.Close()
 
@@ -1318,7 +1339,7 @@ func TestAutoIndexIdNonLocalDB(t *testing.T) {
 				DropOption,
 			}
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -1409,7 +1430,7 @@ func TestSkipSystemCollections(t *testing.T) {
 
 		currentTS := uint32(time.Now().UTC().Unix())
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1487,7 +1508,7 @@ func TestSkipStartAndAbortIndexBuild(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1564,7 +1585,7 @@ func TestCommitIndexBuild(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1653,7 +1674,7 @@ func TestCreateIndexes(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 
 		defer restore.Close()
@@ -1737,7 +1758,7 @@ func TestGeoHaystackIndexes(t *testing.T) {
 			DropOption,
 		}
 
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -1831,7 +1852,7 @@ func (tt *timeseriesRestoreTest) testNormalRestore(t *testing.T) {
 func (tt *timeseriesRestoreTest) testNormalRestoreDirectory(t *testing.T) {
 	withTimeseriesDump(t, tt.session, tt.dbName, func(dir string) {
 		args := []string{DirectoryOption, dir}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 		tt.runTest(t, restore)
 	})
@@ -1840,7 +1861,7 @@ func (tt *timeseriesRestoreTest) testNormalRestoreDirectory(t *testing.T) {
 func (tt *timeseriesRestoreTest) testNormalRestoreArchive(t *testing.T) {
 	withTimeseriesDumpArchive(t, tt.session, tt.dbName, func(file string) {
 		args := []string{ArchiveOption + "=" + file}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 		tt.runTest(t, restore)
 	})
@@ -1849,7 +1870,7 @@ func (tt *timeseriesRestoreTest) testNormalRestoreArchive(t *testing.T) {
 func (tt *timeseriesRestoreTest) testNormalRestoreFromStdin(t *testing.T) {
 	withTimeseriesDumpArchive(t, tt.session, tt.dbName, func(file string) {
 		args := []string{ArchiveOption + "=-"}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		archiveFile, err := os.Open(file)
@@ -1875,7 +1896,7 @@ func (tt *timeseriesRestoreTest) testFailureCollectionExists(t *testing.T) {
 		createTimeseries(t, tt.dbName, timeseriesTestColl, tt.session)
 
 		args := []string{DirectoryOption, dir}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -1903,7 +1924,7 @@ func (tt *timeseriesRestoreTest) testFailureBucketsExists(t *testing.T) {
 		tt.testdb.RunCommand(t.Context(), bson.M{"create": tt.bucketsColl.Name()})
 
 		args := []string{DirectoryOption, dir}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -1932,7 +1953,7 @@ func (tt *timeseriesRestoreTest) testOplogReplay(t *testing.T) {
 			dir,
 			OplogReplayOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -1963,7 +1984,7 @@ func (tt *timeseriesRestoreTest) testExistingCollWithDrop(t *testing.T) {
 			dir,
 			DropOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -1982,7 +2003,7 @@ func (tt *timeseriesRestoreTest) testNoOptionsRestore(t *testing.T) {
 			dir,
 			NoOptionsRestoreOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2003,7 +2024,7 @@ func (tt *timeseriesRestoreTest) testInvalidBuckets(t *testing.T) {
 			DirectoryOption,
 			dir,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2025,7 +2046,7 @@ func (tt *timeseriesRestoreTest) testInvalidBucketsWithBypass(t *testing.T) {
 			dir,
 			BypassDocumentValidationOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2054,7 +2075,7 @@ func (tt *timeseriesRestoreTest) testBucketsBSONWithMetadata(t *testing.T) {
 				timeseriesTestColl,
 				dataFile,
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			require.NoError(t, err)
 
 			result := restore.Restore()
@@ -2081,7 +2102,7 @@ func (tt *timeseriesRestoreTest) testBucketsBSONWithMetadataAndCollection(t *tes
 				"bar_ts",
 				dataFile,
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			require.NoError(t, err)
 
 			result := restore.Restore()
@@ -2109,7 +2130,7 @@ func (tt *timeseriesRestoreTest) testBucketsBSONFileAsTarget(t *testing.T) {
 		tt.dbName,
 		func(dataFile string) {
 			args := []string{dataFile}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			require.NoError(t, err)
 
 			result := restore.Restore()
@@ -2149,7 +2170,7 @@ func (tt *timeseriesRestoreTest) testBucketsBSONFileWithoutMetadata(t *testing.T
 				common.TimeseriesBucketPrefix + timeseriesTestColl,
 				loneFile,
 			}
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			require.NoError(t, err)
 
 			result := restore.Restore()
@@ -2173,7 +2194,7 @@ func (tt *timeseriesRestoreTest) testBucketsWithNSInclude(t *testing.T) {
 			DirectoryOption,
 			dir,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2193,7 +2214,7 @@ func (tt *timeseriesRestoreTest) testBucketsWithNotIncludedCollection(t *testing
 			DirectoryOption,
 			dir,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2215,7 +2236,7 @@ func (tt *timeseriesRestoreTest) testBucketsWithExcludedCollection(t *testing.T)
 			DirectoryOption,
 			dir,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2236,7 +2257,7 @@ func (tt *timeseriesRestoreTest) testBucketsClusteredIndexNoIndexRestore(t *test
 			dir,
 			NoIndexRestoreOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2297,7 +2318,7 @@ func (tt *timeseriesRestoreTest) testRenameBuckets(t *testing.T) {
 			DirectoryOption,
 			dir,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2333,7 +2354,7 @@ func (tt *timeseriesRestoreTest) testRefuseRenameBucket(t *testing.T) {
 			DirectoryOption,
 			dir,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(t, err)
 
 		result := restore.Restore()
@@ -2477,7 +2498,7 @@ func withTimeseriesDumpArchive(
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
 	file := filepath.Join(dir, "dump.archive")
-	runMongodumpWithArgs(t, "--archive="+file, "--db", dbName)
+	runMongodumpWithArgs(t, testopts.HarnessAuth(), "--archive="+file, "--db", dbName)
 
 	require.NoError(t, client.Database(dbName).Drop(t.Context()), "can drop the dumped database")
 
@@ -2552,7 +2573,7 @@ func withTimeseriesOplogDump(
 
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
-	runMongodumpWithArgs(t, "--out", dir, "--db", dbName)
+	runMongodumpWithArgs(t, testopts.HarnessAuth(), "--out", dir, "--db", dbName)
 
 	insertTimeseriesMeasurements(t, client, dbName, 100, 50)
 
@@ -2611,7 +2632,7 @@ func withTimeseriesDump(
 
 	dir, cleanup := testutil.MakeTempDir(t)
 	defer cleanup()
-	runMongodumpWithArgs(t, "--out", dir, "--db", dbName)
+	runMongodumpWithArgs(t, testopts.HarnessAuth(), "--out", dir, "--db", dbName)
 
 	require.NoError(t, client.Database(dbName).Drop(t.Context()), "can drop the dumped database")
 
@@ -2751,10 +2772,7 @@ func testRestoreClusteredIndexFromDump(t *testing.T, indexName string) {
 	dataLen := createClusteredIndex(t, testDB, indexName)
 
 	withBSONMongodumpForCollection(t, testDB.Name(), "stocks", func(dir string) {
-		restore, err := getRestoreWithArgs(
-			DropOption,
-			dir,
-		)
+		restore, err := getRestore(testopts.HarnessAuth(), DropOption, dir)
 		require.NoError(err)
 		defer restore.Close()
 
@@ -2785,11 +2803,7 @@ func testRestoreClusteredIndexFromOplog(t *testing.T, indexName string) {
 	createClusteredIndex(t, testDB, indexName)
 
 	withOplogMongoDump(t, dbName, "stocks", func(dir string) {
-		restore, err := getRestoreWithArgs(
-			DropOption,
-			OplogReplayOption,
-			dir,
-		)
+		restore, err := getRestore(testopts.HarnessAuth(), DropOption, OplogReplayOption, dir)
 		require.NoError(err)
 		defer restore.Close()
 
@@ -2970,10 +2984,7 @@ func runBSONMongodumpForCollection(
 		"--db", db,
 		"--collection", collection,
 	}
-	runMongodumpWithArgs(
-		t,
-		append(baseArgs, args...)...,
-	)
+	runMongodumpWithArgs(t, testopts.HarnessAuth(), append(baseArgs, args...)...)
 	bsonFile := filepath.Join(dir, db, fmt.Sprintf("%s.bson", collection))
 	_, err := os.Stat(bsonFile)
 	require.NoError(err, "dump created BSON data file")
@@ -2982,10 +2993,10 @@ func runBSONMongodumpForCollection(
 	return bsonFile
 }
 
-func runMongodumpWithArgs(t *testing.T, args ...string) {
+func runMongodumpWithArgs(t *testing.T, auth options.Auth, args ...string) {
 	require := require.New(t)
 	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
-	cmd = append(cmd, testopts.HarnessToolCLIArgs()...)
+	cmd = append(cmd, testopts.ToolCLIArgs(os.Getenv(testopts.URIEnvVar), auth)...)
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")

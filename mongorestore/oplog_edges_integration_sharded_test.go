@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,11 +38,14 @@ func TestOplogReplayConflict(t *testing.T) {
 	require.NoError(t, coll.Drop(context.Background()), "dropping target collection")
 	t.Cleanup(func() { _ = coll.Drop(context.Background()) })
 
-	result := runRestoreFromArgs(
+	result := runRestore(
 		t,
+		testopts.HarnessAuth(),
 		OplogReplayOption,
-		OplogFileOption, "testdata/extra_oplog.bson",
-		DirectoryOption, "testdata/dump_oplog_conflict",
+		OplogFileOption,
+		"testdata/extra_oplog.bson",
+		DirectoryOption,
+		"testdata/dump_oplog_conflict",
 	)
 	require.ErrorContains(
 		t, result.Err, "cannot provide both an oplog.bson file and an oplog file",
@@ -91,11 +95,14 @@ func TestOplogReplayPriorityOplog(t *testing.T) {
 		"creating op collection",
 	)
 
-	result := runRestoreFromArgs(
+	result := runRestore(
 		t,
+		testopts.HarnessAuth(),
 		OplogReplayOption,
-		OplogFileOption, "testdata/extra_oplog.bson",
-		DirectoryOption, "testdata/dump_local_oplog",
+		OplogFileOption,
+		"testdata/extra_oplog.bson",
+		DirectoryOption,
+		"testdata/dump_local_oplog",
 	)
 	require.NoError(t, result.Err, "restoring with a priority oplog succeeds")
 
@@ -129,10 +136,12 @@ func TestOplogReplayNoop(t *testing.T) {
 	require.NoError(t, coll.Drop(context.Background()), "dropping target collection")
 	t.Cleanup(func() { _ = coll.Drop(context.Background()) })
 
-	result := runRestoreFromArgs(
+	result := runRestore(
 		t,
+		testopts.HarnessAuth(),
 		OplogReplayOption,
-		DirectoryOption, "testdata/dump_with_noop_in_oplog",
+		DirectoryOption,
+		"testdata/dump_with_noop_in_oplog",
 	)
 	require.NoError(t, result.Err, "restoring an oplog with noops succeeds")
 
@@ -199,11 +208,7 @@ func TestOplogReplayPreservesComplexIDOrder(t *testing.T) {
 			require.NoError(t, err, "pre-inserting the target document")
 		}
 
-		result := runRestoreFromArgs(
-			t,
-			OplogReplayOption,
-			DirectoryOption, dumpDir,
-		)
+		result := runRestore(t, testopts.HarnessAuth(), OplogReplayOption, DirectoryOption, dumpDir)
 		require.NoError(t, result.Err, "replaying the update op on attempt %d", attempt)
 
 		// The update sets "foo", so finding it proves the op matched rather than
@@ -293,7 +298,7 @@ func TestOplogReplaySizeSafety(t *testing.T) {
 	oplogPath := filepath.Join(dir, "oplog.bson")
 	writeOplogInserts(t, oplogPath, "test.op", smallOps, largeOps, oneMB)
 
-	result := runRestoreFromArgs(t, OplogReplayOption, DirectoryOption, dir)
+	result := runRestore(t, testopts.HarnessAuth(), OplogReplayOption, DirectoryOption, dir)
 	require.NoError(t, result.Err, "replaying a large oplog succeeds")
 
 	count, err := coll.CountDocuments(context.Background(), bson.D{})

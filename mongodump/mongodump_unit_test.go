@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +26,7 @@ import (
 func TestMongoDumpValidateOptions(t *testing.T) {
 	for _, testCase := range invalidDumpOptionsCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			require.NoError(t, err)
 
 			testCase.setUp(md)
@@ -165,7 +166,7 @@ func TestMongoDumpCollectionOutputPath(t *testing.T) {
 	log.SetWriter(io.Discard)
 
 	newDump := func() *MongoDump {
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		require.NoError(t, err)
 
 		md.OutputOptions.Out = "dump"

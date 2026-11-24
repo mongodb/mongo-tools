@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,7 @@ import (
 // TestOplogDumpFailsOnSharded checks that `--oplog` against a sharded cluster fails. Mongodump does
 // not support oplog dump with sharded clusters.
 func TestOplogDumpFailsOnSharded(t *testing.T) {
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""

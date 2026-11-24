@@ -37,7 +37,7 @@ func (s *DumpRestoreSuite) TestDumpDBFlag() {
 		s.dropDB(dumpedDB)
 		s.dropDB(otherDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore the single-database dump")
 		s.requireInserted(result, 1)
 	}, "--db", dumpedDB.Name())
@@ -77,7 +77,7 @@ func (s *DumpRestoreSuite) TestDumpCollectionFlag() {
 		s.dropDB(testDB)
 		s.dropDB(otherDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore the single-collection dump")
 		s.requireInserted(result, 1)
 	}, "--db", testDB.Name(), "--collection", dumpedCollName)
@@ -117,7 +117,7 @@ func (s *DumpRestoreSuite) testDumpExcludeCollection() {
 
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump with an excluded collection")
 		s.requireInserted(result, 1)
 	}, "--db", testDB.Name(), "--excludeCollection", "drop")
@@ -148,7 +148,7 @@ func (s *DumpRestoreSuite) testDumpExcludeCollectionsWithPrefix() {
 
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump with an excluded prefix")
 		s.requireInserted(result, 1)
 	}, "--db", testDB.Name(), "--excludeCollectionsWithPrefix", "skip")
@@ -183,7 +183,7 @@ func (s *DumpRestoreSuite) testDumpExcludeBothFlags() {
 
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump with both exclude flags")
 		s.requireInserted(result, 1)
 	},
@@ -263,8 +263,11 @@ func (s *DumpRestoreSuite) TestDumpToStdout() {
 	s.dropDB(testDB)
 
 	result := s.runRestore(
-		"--db", testDB.Name(),
-		"--collection", collName,
+		testopts.HarnessAuth(),
+		"--db",
+		testDB.Name(),
+		"--collection",
+		collName,
 		bsonPath,
 	)
 	s.Require().NoError(result.Err, "can restore the bson captured from standard output")
@@ -310,7 +313,7 @@ func (s *DumpRestoreSuite) TestDumpQuotedQueryArgument() {
 
 	s.dropDB(testDB)
 
-	result := s.runRestore(dir)
+	result := s.runRestore(testopts.HarnessAuth(), dir)
 	s.Require().NoError(result.Err, "can restore the filtered dump")
 	s.Assert().EqualValues(
 		wantKept,

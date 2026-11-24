@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-tools/common/dumprestore"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -176,7 +177,7 @@ func TestShouldSkipSystemNamespace(t *testing.T) {
 		})
 	}
 
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 	require.NoError(t, err)
 
 	for _, testVals := range tests {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -32,7 +33,7 @@ func (s *DumpRestoreSuite) TestRestoreDropWithData() {
 			s.replaceCollectionContents(testDB.Collection(collName))
 		}
 
-		result := s.runRestore(mongorestore.DropOption, dir)
+		result := s.runRestore(testopts.HarnessAuth(), mongorestore.DropOption, dir)
 		s.Require().NoError(result.Err, "can restore with --drop")
 		s.requireInserted(result, len(collNames))
 	}, "--db", testDB.Name())
@@ -72,9 +73,12 @@ func (s *DumpRestoreSuite) TestRestoreDropOneCollection() {
 		}
 
 		result := s.runRestore(
+			testopts.HarnessAuth(),
 			mongorestore.DropOption,
-			mongorestore.DBOption, sourceDB.Name(),
-			mongorestore.CollectionOption, restoredCollName,
+			mongorestore.DBOption,
+			sourceDB.Name(),
+			mongorestore.CollectionOption,
+			restoredCollName,
 			filepath.Join(dir, sourceDB.Name(), restoredCollName+".bson"),
 		)
 		s.Require().NoError(result.Err, "can restore one collection with --drop")
@@ -101,7 +105,7 @@ func (s *DumpRestoreSuite) TestRestoreDropNonexistentDB() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(mongorestore.DropOption, dir)
+		result := s.runRestore(testopts.HarnessAuth(), mongorestore.DropOption, dir)
 		s.Require().NoError(result.Err, "--drop with nothing to drop is not an error")
 		s.requireInserted(result, 1)
 	}, "--db", testDB.Name())

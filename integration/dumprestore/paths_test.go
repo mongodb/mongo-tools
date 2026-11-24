@@ -36,7 +36,7 @@ func (s *DumpRestoreSuite) TestRestoreSpecialCollectionNames() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore collections with escaped names")
 		s.requireInserted(result, len(specialCollNames))
 	}, "--db", testDB.Name())
@@ -174,7 +174,7 @@ func (s *DumpRestoreSuite) TestRestoreDumpWithSymlinks() {
 		"can link a plain file into the top of the dump",
 	)
 
-	result := s.runRestore(dumpDir)
+	result := s.runRestore(testopts.HarnessAuth(), dumpDir)
 	s.Require().NoError(result.Err, "can restore a dump containing symlinks")
 	s.requireInserted(result, 2)
 

@@ -4,6 +4,7 @@ package dumprestore
 
 import (
 	mapset "github.com/deckarep/golang-set/v3"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -66,7 +67,7 @@ func (s *DumpRestoreSuite) assertDuplicateKeyRestoreFillsGaps(
 	s.withBSONMongodump(func(dir string) {
 		s.removeAndMarkDocuments(coll)
 
-		result := s.runRestore(append(restoreArgs, dir)...)
+		result := s.runRestore(testopts.HarnessAuth(), append(restoreArgs, dir)...)
 		s.Require().NoError(result.Err, "restoring over existing documents succeeds")
 		s.Require().EqualValues(
 			duplicateKeysDocCount,

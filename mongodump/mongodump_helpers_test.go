@@ -8,6 +8,7 @@ package mongodump
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
@@ -22,8 +23,8 @@ var (
 	testCollectionNames = []string{"coll1", "coll2", "coll/three"}
 )
 
-func simpleMongoDumpInstance() (*MongoDump, error) {
-	toolOptions, err := testopts.HarnessToolOptions()
+func simpleMongoDumpInstance(auth options.Auth) (*MongoDump, error) {
+	toolOptions, err := testopts.ToolOptions(os.Getenv(testopts.URIEnvVar), auth)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tool options to create a mongodump instance: %w", err)
 	}

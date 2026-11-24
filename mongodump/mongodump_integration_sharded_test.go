@@ -561,7 +561,7 @@ func TestMongoDumpConnectedToAtlasProxy(t *testing.T) {
 	require.NoError(t, err)
 	defer sessionProvider.Close()
 
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 	require.NoError(t, err)
 
 	md.isAtlasProxy = true
@@ -602,7 +602,7 @@ func TestMongoDumpBSON(t *testing.T) {
 		Convey(
 			"testing that using MongoDump WITHOUT giving a query dumps everything in the database and/or collection",
 			func() {
-				md, err := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 				So(err, ShouldBeNil)
 
 				md.InputOptions.Query = ""
@@ -720,7 +720,7 @@ func TestMongoDumpBSON(t *testing.T) {
 			func() {
 				session, err := testutil.GetBareSession(t)
 				So(err, ShouldBeNil)
-				md, err := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 				So(err, ShouldBeNil)
 
 				// expect 10 documents per collection
@@ -762,7 +762,7 @@ func TestMongoDumpBSON(t *testing.T) {
 		)
 
 		Convey("using MongoDump against a collection that doesn't exist succeeds", func() {
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			So(err, ShouldBeNil)
 
 			md.ToolOptions.DB = "nonExistentDB"
@@ -799,7 +799,7 @@ func TestMongoDumpBSONLongCollectionName(t *testing.T) {
 		err = setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		So(err, ShouldBeNil)
 
 		Convey(
@@ -902,7 +902,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("when dumping all databases", func() {
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			So(err, ShouldBeNil)
 
 			md.ToolOptions.DB = ""
@@ -942,7 +942,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 		})
 
 		Convey("when dumping one db", func() {
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			So(err, ShouldBeNil)
 
 			dumpDir := filepath.FromSlash(filepath.Join(path, "dump"))
@@ -963,7 +963,7 @@ func TestDumpPreludeMetadataJson(t *testing.T) {
 			dumpDBDir := filepath.FromSlash(filepath.Join(dumpDir, "nottestdb"))
 
 			Convey("the dump does not fail and prelude.json should not be created", func() {
-				md, err := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 				So(err, ShouldBeNil)
 
 				md.ToolOptions.DB = "nonExistentDB"
@@ -1003,7 +1003,7 @@ func TestMongoDumpMetaData(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about indexes", func() {
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			So(err, ShouldBeNil)
 
 			md.OutputOptions.Out = "dump"
@@ -1123,7 +1123,7 @@ func TestMongoDumpOplog(t *testing.T) {
 			So(tearDownMongoDumpTestData(t), ShouldBeNil)
 
 			// Prepare mongodump with options
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			So(err, ShouldBeNil)
 
 			md.OutputOptions.Oplog = true
@@ -1226,7 +1226,7 @@ func TestMongoDumpTOOLS2174(t *testing.T) {
 	}
 
 	Convey("testing dumping a capped, autoIndexId:false collection", t, func() {
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		So(err, ShouldBeNil)
 
 		md.ToolOptions.Collection = collName
@@ -1294,7 +1294,7 @@ func TestMongoDumpTOOLS1952(t *testing.T) {
 	profileCollection := dbStruct.Collection("system.profile")
 
 	Convey("testing dumping a collection query hints", t, func() {
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		So(err, ShouldBeNil)
 
 		md.ToolOptions.Collection = collName
@@ -1344,7 +1344,7 @@ func TestMongoDumpTOOLS2498(t *testing.T) {
 	}
 
 	Convey("failing to get collection info should error, but not panic", t, func() {
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		So(err, ShouldBeNil)
 
 		md.ToolOptions.Collection = collName
@@ -1390,7 +1390,7 @@ func TestMongoDumpOrderedQuery(t *testing.T) {
 			for range 100 {
 				So(os.RemoveAll(dumpDir), ShouldBeNil)
 
-				md, err := simpleMongoDumpInstance()
+				md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 				So(err, ShouldBeNil)
 
 				md.InputOptions.Query = `{"coords":{"x":0,"y":1}}`
@@ -1456,7 +1456,7 @@ func TestMongoDumpViewsAsCollections(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			So(err, ShouldBeNil)
 
 			md.ToolOptions.DB = testDB
@@ -1527,7 +1527,7 @@ func TestMongoDumpViews(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("testing that the dumped directory contains information about metadata", func() {
-			md, err := simpleMongoDumpInstance()
+			md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 			So(err, ShouldBeNil)
 
 			md.ToolOptions.DB = testDB
@@ -1652,7 +1652,7 @@ func TestTimeseriesCollections(t *testing.T) {
 	}()
 
 	setup := func(kind string) *MongoDump {
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		require.NoError(t, err)
 
 		md.ToolOptions.DB = dbName
@@ -2038,7 +2038,7 @@ func TestDumpTimeseriesCollectionsWithMixedSchema(t *testing.T) {
 
 	setupTimeseriesWithMixedSchema(t, dbName, colName)
 
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = dbName
@@ -2131,7 +2131,7 @@ func TestFailDuringResharding(t *testing.T) {
 		err := setUpMongoDumpTestData(t)
 		So(err, ShouldBeNil)
 
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		So(err, ShouldBeNil)
 
 		md.OutputOptions.Oplog = true
@@ -2325,7 +2325,7 @@ func TestOptionsOrderIsPreserved(t *testing.T) {
 }
 
 func dumpAndCheckPipelineOrder(t *testing.T, collName string, pipeline bson.A) {
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = testDB
@@ -2483,7 +2483,7 @@ func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
 		dumpDir, cleanupDir := testutil.MakeTempDir(t)
 		defer cleanupDir()
 
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		require.NoError(t, err, "create mongodump instance")
 		md.OutputOptions.Out = dumpDir
 		require.NoError(t, md.Init(), "mongodump init")
@@ -2501,7 +2501,7 @@ func TestMongoDumpMaxEstimatedScanBytes(t *testing.T) {
 		dumpDir, cleanupDir := testutil.MakeTempDir(t)
 		defer cleanupDir()
 
-		md, err := simpleMongoDumpInstance()
+		md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 		require.NoError(t, err, "create mongodump instance")
 		md.OutputOptions.Out = dumpDir
 		md.OutputOptions.ViewsAsCollections = true
@@ -2565,7 +2565,7 @@ func TestTimeseriesDumpConcurrentWithSetFCV(t *testing.T) {
 	// setFCV below — are not blocked.
 	const dumpAppName = "mongodump_setfcv_test"
 
-	md, err := simpleMongoDumpInstance()
+	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
 	require.NoError(t, err)
 	md.ToolOptions.DB = dbName
 	md.ToolOptions.AppName = dumpAppName

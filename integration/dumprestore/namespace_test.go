@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	mapset "github.com/deckarep/golang-set/v3"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -50,8 +51,11 @@ func (s *DumpRestoreSuite) TestRestoreIntoDifferentCollection() {
 
 func (s *DumpRestoreSuite) restoreInto(dbName, collName, bsonFile string) {
 	result := s.runRestore(
-		mongorestore.DBOption, dbName,
-		mongorestore.CollectionOption, collName,
+		testopts.HarnessAuth(),
+		mongorestore.DBOption,
+		dbName,
+		mongorestore.CollectionOption,
+		collName,
 		bsonFile,
 	)
 	s.Require().NoError(result.Err, "can restore into %s.%s", dbName, collName)
@@ -81,8 +85,11 @@ func (s *DumpRestoreSuite) TestRestoreIntoDifferentDB() {
 	s.withBSONMongodump(func(dir string) {
 		s.Run("--db redirects a database directory", func() {
 			result := s.runRestore(
-				mongorestore.DBOption, destDB.Name(),
-				mongorestore.DirectoryOption, filepath.Join(dir, sourceDB.Name()),
+				testopts.HarnessAuth(),
+				mongorestore.DBOption,
+				destDB.Name(),
+				mongorestore.DirectoryOption,
+				filepath.Join(dir, sourceDB.Name()),
 			)
 			s.Require().NoError(result.Err, "can restore a database directory under a new name")
 			s.requireInserted(result, len(collNames))
@@ -97,8 +104,11 @@ func (s *DumpRestoreSuite) TestRestoreIntoDifferentDB() {
 
 		s.Run("--nsFrom and --nsTo rewrite both parts of the namespace", func() {
 			result := s.runRestore(
-				mongorestore.NSFromOption, "$db$.$collection$",
-				mongorestore.NSToOption, otherDestDB.Name()+".$db$_$collection$",
+				testopts.HarnessAuth(),
+				mongorestore.NSFromOption,
+				"$db$.$collection$",
+				mongorestore.NSToOption,
+				otherDestDB.Name()+".$db$_$collection$",
 				dir,
 			)
 			s.Require().NoError(result.Err, "can restore with a namespace mapping")
@@ -131,7 +141,7 @@ func (s *DumpRestoreSuite) TestRestoreMultipleDBs() {
 		s.dropDB(dbOne)
 		s.dropDB(dbTwo)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump spanning two databases")
 		s.requireInserted(result, 4)
 	})
@@ -162,8 +172,11 @@ func (s *DumpRestoreSuite) TestPartialRestore() {
 
 		s.Run("one database out of a multi-database dump", func() {
 			result := s.runRestore(
-				mongorestore.DBOption, dbOne.Name(),
-				mongorestore.DirectoryOption, filepath.Join(dir, dbOne.Name()),
+				testopts.HarnessAuth(),
+				mongorestore.DBOption,
+				dbOne.Name(),
+				mongorestore.DirectoryOption,
+				filepath.Join(dir, dbOne.Name()),
 			)
 			s.Require().NoError(result.Err, "can restore a single database")
 			s.requireInserted(result, 2)
@@ -180,8 +193,11 @@ func (s *DumpRestoreSuite) TestPartialRestore() {
 			s.dropDB(dbOne)
 
 			result := s.runRestore(
-				mongorestore.DBOption, dbOne.Name(),
-				mongorestore.CollectionOption, "collTwo",
+				testopts.HarnessAuth(),
+				mongorestore.DBOption,
+				dbOne.Name(),
+				mongorestore.CollectionOption,
+				"collTwo",
 				filepath.Join(dir, dbOne.Name(), "collTwo.bson"),
 			)
 			s.Require().NoError(result.Err, "can restore a single collection")
@@ -221,8 +237,11 @@ func (s *DumpRestoreSuite) TestRestoreIntoDifferentDBBuildsIndexes() {
 		s.dropCollection(sourceColl)
 
 		result := s.runRestore(
-			mongorestore.DBOption, destDB.Name(),
-			mongorestore.DirectoryOption, filepath.Join(dir, sourceDB.Name()),
+			testopts.HarnessAuth(),
+			mongorestore.DBOption,
+			destDB.Name(),
+			mongorestore.DirectoryOption,
+			filepath.Join(dir, sourceDB.Name()),
 		)
 		s.Require().NoError(result.Err, "can restore into a differently named database")
 		s.requireInserted(result, 1)
@@ -417,7 +436,7 @@ func (s *DumpRestoreSuite) restoreAndAssertNamespaceMapping(mappingCase namespac
 		mappingCase.dir,
 	)
 
-	result := s.runRestore(args...)
+	result := s.runRestore(testopts.HarnessAuth(), args...)
 	s.Require().NoError(result.Err, "can restore with a namespace mapping")
 
 	wantRestored := 0
@@ -478,10 +497,15 @@ func (s *DumpRestoreSuite) restoreAndAssertNamespaceSwap(dir, sourcePrefix strin
 	dbThree := sourcePrefix + "3"
 
 	result := s.runRestore(
-		mongorestore.NSFromOption, dbOne+".*",
-		mongorestore.NSToOption, dbTwo+".*",
-		mongorestore.NSFromOption, dbTwo+".*",
-		mongorestore.NSToOption, dbOne+".*",
+		testopts.HarnessAuth(),
+		mongorestore.NSFromOption,
+		dbOne+".*",
+		mongorestore.NSToOption,
+		dbTwo+".*",
+		mongorestore.NSFromOption,
+		dbTwo+".*",
+		mongorestore.NSToOption,
+		dbOne+".*",
 		dir,
 	)
 	s.Require().NoError(result.Err, "can restore with two namespace mappings")
