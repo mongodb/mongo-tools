@@ -32,6 +32,14 @@ const (
 	RestorePassword = "restore"
 )
 
+// The user that tests running `mongorestore --oplogReplay` authenticate as, and its password.
+// The documentation prescribes a user-defined role with anyAction on anyResource as the minimum
+// for oplog replay; testutil.EnsureOplogReplayUser grants this user exactly that role.
+const (
+	OplogReplayUsername = "oplogreplay"
+	OplogReplayPassword = "oplogreplay"
+)
+
 // HarnessAuth returns the credentials of the harness user, the identity test setup and
 // assertions connect as. Callers running a tool under test choose a different identity through
 // ToolOptions and ToolCLIArgs.
@@ -72,6 +80,13 @@ func BackupAuth() options.Auth {
 // instead.
 func RestoreAuth() options.Auth {
 	return constantUserAuth(RestoreUsername, RestorePassword)
+}
+
+// OplogReplayAuth returns the credentials for the user that tests running
+// `mongorestore --oplogReplay` authenticate as: the anyAction-on-anyResource role the
+// documentation prescribes, and nothing else.
+func OplogReplayAuth() options.Auth {
+	return constantUserAuth(OplogReplayUsername, OplogReplayPassword)
 }
 
 func constantUserAuth(username, password string) options.Auth {
