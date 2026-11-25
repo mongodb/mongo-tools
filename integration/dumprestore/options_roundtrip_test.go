@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -31,7 +32,7 @@ func (s *DumpRestoreSuite) testCappedRoundTripFromDumpRoot() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore from the dump root")
 	}, "--db", testDB.Name())
 
@@ -47,8 +48,11 @@ func (s *DumpRestoreSuite) testCappedRoundTripIntoNewDB() {
 		s.dropDB(testDB)
 
 		result := s.runRestore(
-			mongorestore.DBOption, restoredDB.Name(),
-			mongorestore.DirectoryOption, filepath.Join(dir, testDB.Name()),
+			testopts.HarnessAuth(),
+			mongorestore.DBOption,
+			restoredDB.Name(),
+			mongorestore.DirectoryOption,
+			filepath.Join(dir, testDB.Name()),
 		)
 		s.Require().NoError(result.Err, "can restore a database directory under a new name")
 	}, "--db", testDB.Name())
@@ -64,7 +68,9 @@ func (s *DumpRestoreSuite) testCappedRoundTripWithNSInclude() {
 		s.dropDB(testDB)
 
 		result := s.runRestore(
-			mongorestore.NSIncludeOption, testDB.Name()+".*",
+			testopts.HarnessAuth(),
+			mongorestore.NSIncludeOption,
+			testDB.Name()+".*",
 			dir,
 		)
 		s.Require().NoError(result.Err, "can restore with --nsInclude")
@@ -82,8 +88,11 @@ func (s *DumpRestoreSuite) testCappedRoundTripSingleColl() {
 		s.dropDB(testDB)
 
 		result := s.runRestore(
-			mongorestore.DBOption, testDB.Name(),
-			mongorestore.CollectionOption, restoredColl.Name(),
+			testopts.HarnessAuth(),
+			mongorestore.DBOption,
+			testDB.Name(),
+			mongorestore.CollectionOption,
+			restoredColl.Name(),
 			filepath.Join(dir, testDB.Name(), "capped.bson"),
 		)
 		s.Require().NoError(result.Err, "can restore a single collection under a new name")
@@ -280,7 +289,7 @@ func (s *DumpRestoreSuite) TestRestoreExtendedJSONMetadata() {
 		bson.D{{"_id", 2}, {"pos", bson.A{3, 4}}},
 	)
 
-	result := s.runRestore(dir)
+	result := s.runRestore(testopts.HarnessAuth(), dir)
 	s.Require().NoError(result.Err, "can restore a dump with extended JSON metadata")
 
 	coll := testDB.Collection(collName)
@@ -340,7 +349,7 @@ func (s *DumpRestoreSuite) testRestorePreservesOptions() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore the dump")
 	}, "--db", testDB.Name())
 
@@ -370,7 +379,7 @@ func (s *DumpRestoreSuite) testNoOptionsRestoreStripsOptions() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(mongorestore.NoOptionsRestoreOption, dir)
+		result := s.runRestore(testopts.HarnessAuth(), mongorestore.NoOptionsRestoreOption, dir)
 		s.Require().NoError(result.Err, "can restore with --noOptionsRestore")
 	}, "--db", testDB.Name())
 
@@ -404,9 +413,12 @@ func (s *DumpRestoreSuite) testNoOptionsRestoreOneColl() {
 		s.dropDB(testDB)
 
 		result := s.runRestore(
+			testopts.HarnessAuth(),
 			mongorestore.NoOptionsRestoreOption,
-			mongorestore.DBOption, testDB.Name(),
-			mongorestore.CollectionOption, "capped",
+			mongorestore.DBOption,
+			testDB.Name(),
+			mongorestore.CollectionOption,
+			"capped",
 			filepath.Join(dir, testDB.Name(), "capped.bson"),
 		)
 		s.Require().NoError(result.Err, "can restore one collection with --noOptionsRestore")
@@ -497,7 +509,7 @@ func (s *DumpRestoreSuite) TestCollationRoundTrip() {
 		s.Run("restore from the dump directory", func() {
 			s.dropCollection(coll)
 
-			result := s.runRestore(dir)
+			result := s.runRestore(testopts.HarnessAuth(), dir)
 			s.Require().NoError(result.Err, "can restore from the dump directory")
 
 			s.Assert().Equal(
@@ -510,7 +522,10 @@ func (s *DumpRestoreSuite) TestCollationRoundTrip() {
 		s.Run("restore from the bson file", func() {
 			s.dropCollection(coll)
 
-			result := s.runRestore(filepath.Join(dir, testDB.Name(), collName+".bson"))
+			result := s.runRestore(
+				testopts.HarnessAuth(),
+				filepath.Join(dir, testDB.Name(), collName+".bson"),
+			)
 			s.Require().NoError(result.Err, "can restore from the bson file")
 
 			s.Assert().Equal(
@@ -552,7 +567,7 @@ func (s *DumpRestoreSuite) testValidatorDropsInvalidDocs() {
 		s.dropDB(testDB)
 		s.createValidatedCollection(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "restoring against a validator still succeeds")
 		s.Assert().EqualValues(
 			validationInvalidCount,
@@ -576,7 +591,11 @@ func (s *DumpRestoreSuite) testBypassDocumentValidation() {
 		s.dropDB(testDB)
 		s.createValidatedCollection(testDB)
 
-		result := s.runRestore(mongorestore.BypassDocumentValidationOption, dir)
+		result := s.runRestore(
+			testopts.HarnessAuth(),
+			mongorestore.BypassDocumentValidationOption,
+			dir,
+		)
 		s.Require().NoError(result.Err, "can restore with --bypassDocumentValidation")
 		s.Assert().EqualValues(0, result.Failures, "no documents are rejected")
 	}, "--db", testDB.Name())
@@ -599,7 +618,7 @@ func (s *DumpRestoreSuite) testRestoredValidatorDropsInvalidDocs() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump that carries a validator")
 		s.Assert().EqualValues(
 			validationInvalidCount,
@@ -627,7 +646,11 @@ func (s *DumpRestoreSuite) testBypassRestoredValidator() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(mongorestore.BypassDocumentValidationOption, dir)
+		result := s.runRestore(
+			testopts.HarnessAuth(),
+			mongorestore.BypassDocumentValidationOption,
+			dir,
+		)
 		s.Require().NoError(result.Err, "can restore a dump that carries a validator")
 		s.Assert().EqualValues(0, result.Failures, "no documents are rejected")
 	}, "--db", testDB.Name())
@@ -674,9 +697,12 @@ func (s *DumpRestoreSuite) assertRestoreFailsOnValidationError(
 		s.createValidatedCollection(testDB)
 
 		result := s.runRestore(
+			testopts.HarnessAuth(),
 			restoreOption,
-			mongorestore.DBOption, testDB.Name(),
-			mongorestore.CollectionOption, validationCollName,
+			mongorestore.DBOption,
+			testDB.Name(),
+			mongorestore.CollectionOption,
+			validationCollName,
 			filepath.Join(dir, testDB.Name(), validationCollName+".bson"),
 		)
 		s.Require().ErrorContains(
@@ -746,7 +772,7 @@ func (s *DumpRestoreSuite) TestSystemProfileIsNotRestored() {
 		"can write the system.profile metadata file",
 	)
 
-	result := s.runRestore(dir)
+	result := s.runRestore(testopts.HarnessAuth(), dir)
 	s.Require().NoError(result.Err, "can restore a dump that contains system.profile")
 
 	// Zero failures is what separates "mongorestore skipped the file" from

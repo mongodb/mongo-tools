@@ -18,6 +18,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -48,7 +49,7 @@ func TestMongorestoreTxns(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 
-	restore, err := getRestoreWithArgs()
+	restore, err := getRestore(testopts.HarnessAuth())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +87,7 @@ func TestMongorestoreTxns(t *testing.T) {
 			DropOption,
 			dumpPath,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 

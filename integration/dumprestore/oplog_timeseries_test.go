@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongorestore"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -243,9 +244,12 @@ func (s *DumpRestoreSuite) assertOplogReplayTimeseriesBucketDiffs(
 		s.dropDB(testDB)
 
 		result := s.runRestore(
+			testopts.HarnessAuth(),
 			mongorestore.OplogReplayOption,
-			mongorestore.OplogFileOption, oplogPath,
-			mongorestore.DirectoryOption, dir,
+			mongorestore.OplogFileOption,
+			oplogPath,
+			mongorestore.DirectoryOption,
+			dir,
 		)
 		s.Require().NoError(
 			result.Err,
@@ -342,9 +346,12 @@ func (s *DumpRestoreSuite) TestOplogReplayTimeseriesBucketCreatedInWindow() {
 		s.dropDB(testDB)
 
 		result := s.runRestore(
+			testopts.HarnessAuth(),
 			mongorestore.OplogReplayOption,
-			mongorestore.OplogFileOption, oplogPath,
-			mongorestore.DirectoryOption, dir,
+			mongorestore.OplogFileOption,
+			oplogPath,
+			mongorestore.DirectoryOption,
+			dir,
 		)
 		s.Require().NoError(
 			result.Err,

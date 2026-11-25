@@ -9,6 +9,7 @@ import (
 
 	"github.com/mongodb/mongo-tools/common/bsonutil"
 	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongorestore"
@@ -90,9 +91,12 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 	defer cleanupEmpty()
 
 	restore, err := getRestoreWithArgs(
+		testopts.HarnessAuth(),
 		mongorestore.OplogReplayOption,
-		mongorestore.OplogFileOption, filepath.Join(dumpDir, "local", "oplog.rs.bson"),
-		mongorestore.DirectoryOption, emptyDir,
+		mongorestore.OplogFileOption,
+		filepath.Join(dumpDir, "local", "oplog.rs.bson"),
+		mongorestore.DirectoryOption,
+		emptyDir,
 	)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
@@ -176,7 +180,12 @@ func (s *DumpRestoreSuite) TestDumpOplogSnapshotDuringWrites() {
 
 				s.dropDB(testDB)
 
-				result := s.runRestore(mongorestore.NSIncludeOption, testDB.Name()+".*", dir)
+				result := s.runRestore(
+					testopts.HarnessAuth(),
+					mongorestore.NSIncludeOption,
+					testDB.Name()+".*",
+					dir,
+				)
 				s.Require().NoError(result.Err, "can restore the collection half of the dump")
 			}, "--oplog")
 		},

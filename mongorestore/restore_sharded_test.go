@@ -46,7 +46,7 @@ func TestShardedFullRestore(t *testing.T) {
 	require.NoError(t, err, "can build the dump options")
 	require.NoError(
 		t,
-		runDump(t, dumpOpts, dumpDir, nil),
+		runDumpFromOptions(t, dumpOpts, dumpDir, nil),
 		"a full dump of a sharded system succeeds",
 	)
 
@@ -60,7 +60,7 @@ func TestShardedFullRestore(t *testing.T) {
 	require.NoError(t, err, "can build the restore options")
 	require.ErrorContains(
 		t,
-		runRestore(t, restoreOpts, dumpDir, nil),
+		runRestoreFromOptions(t, restoreOpts, dumpDir, nil),
 		"cannot do a full restore on a sharded system",
 		"a full restore of a sharded system is refused",
 	)
@@ -71,7 +71,7 @@ func TestShardedFullRestore(t *testing.T) {
 	require.NoError(t, err, "can build the restore options")
 	require.NoError(
 		t,
-		runRestore(t, restoreOpts, dumpDir, nil),
+		runRestoreFromOptions(t, restoreOpts, dumpDir, nil),
 		"a restore of the same dump without its config database succeeds",
 	)
 

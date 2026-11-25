@@ -120,12 +120,12 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 
 		dumpOpts := toolOptsForUser(t, backupUser, "password")
 		dumpOpts.Namespace = &options.Namespace{DB: dbName}
-		require.NoError(t, runDump(t, dumpOpts, dumpDir, nil), "dump with backup user")
+		require.NoError(t, runDumpFromOptions(t, dumpOpts, dumpDir, nil), "dump with backup user")
 
 		require.NoError(t, fooColl.Drop(context.Background()))
 
 		noAuthOpts := toolOptsNoAuth(t)
-		noAuthErr := runRestore(t, noAuthOpts, dumpDir, nil)
+		noAuthErr := runRestoreFromOptions(t, noAuthOpts, dumpDir, nil)
 		// On MongoDB 4.2 with TLS, the client cert used in CI acts as an implicit intra-cluster
 		// x.509 credential, allowing a "no auth" connection to succeed. This was tightened in 4.4,
 		// so these assertions are only reliable on 4.4+.
@@ -145,7 +145,11 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 		}
 
 		restoreOpts := toolOptsForUser(t, restoreUser, "password")
-		require.NoError(t, runRestore(t, restoreOpts, dumpDir, nil), "restore with restore user")
+		require.NoError(
+			t,
+			runRestoreFromOptions(t, restoreOpts, dumpDir, nil),
+			"restore with restore user",
+		)
 		assert.Equal(t, int64(1), docCount(t, fooColl))
 
 		var doc bson.D
@@ -173,7 +177,7 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 		backupFooOpts.Namespace = &options.Namespace{DB: dbName, Collection: "foo"}
 		require.NoError(
 			t,
-			runDump(t, backupFooOpts, dumpDir, nil),
+			runDumpFromOptions(t, backupFooOpts, dumpDir, nil),
 			"dump foo collection with backupFoo user",
 		)
 
@@ -185,7 +189,7 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 		if serverVersion.GTE(db.Version{4, 4, 0}) {
 			assert.ErrorContains(
 				t,
-				runRestore(t, restoreChesterOpts, bsonFilePath, func(o *Options) {
+				runRestoreFromOptions(t, restoreChesterOpts, bsonFilePath, func(o *Options) {
 					o.ToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "foo"}
 				}),
 				"not authorized",
@@ -202,7 +206,7 @@ func TestDumpRestoreEnforcesAuthRoles(t *testing.T) {
 		restoreFooOpts := toolOptsForUser(t, restoreFooUser, "password")
 		require.NoError(
 			t,
-			runRestore(
+			runRestoreFromOptions(
 				t,
 				restoreFooOpts,
 				bsonFilePath,
@@ -324,7 +328,7 @@ func dumpRestorePreservesAdminUsersAndRoles(t *testing.T, backupRole, restoreRol
 	t.Cleanup(cleanDump)
 
 	dumpOpts := toolOptsForUser(t, backupUser, "pass")
-	require.NoError(t, runDump(t, dumpOpts, dumpDir, nil))
+	require.NoError(t, runDumpFromOptions(t, dumpOpts, dumpDir, nil))
 
 	require.NoError(t, fooDB.Drop(context.Background()))
 	silentDropUser(adminDB, backupUser)
@@ -354,7 +358,7 @@ func dumpRestorePreservesAdminUsersAndRoles(t *testing.T, backupRole, restoreRol
 	restoreOpts := toolOptsForUser(t, restoreUser, "pass")
 
 	t.Run("restore_preserves_users_roles_and_data", func(t *testing.T) {
-		require.NoError(t, runRestore(t, restoreOpts, dumpDir, nil))
+		require.NoError(t, runRestoreFromOptions(t, restoreOpts, dumpDir, nil))
 
 		assert.Equal(
 			t,
@@ -397,7 +401,12 @@ func dumpRestorePreservesAdminUsersAndRoles(t *testing.T, backupRole, restoreRol
 
 		require.NoError(
 			t,
-			runRestore(t, restoreOpts, dumpDir, func(o *Options) { o.OutputOptions.Drop = true }),
+			runRestoreFromOptions(
+				t,
+				restoreOpts,
+				dumpDir,
+				func(o *Options) { o.OutputOptions.Drop = true },
+			),
 		)
 
 		assert.Equal(
@@ -542,7 +551,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 	t.Run("dump without user data omits users and roles", func(t *testing.T) {
 		opts := baseToolOpts(t)
 		opts.Namespace = &options.Namespace{DB: fooDBName}
-		require.NoError(t, runDump(t, opts, dumpDir, nil))
+		require.NoError(t, runDumpFromOptions(t, opts, dumpDir, nil))
 
 		require.NoError(t, fooDB.Drop(context.Background()))
 		require.NoError(t, fooDB.RunCommand(context.Background(),
@@ -553,7 +562,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		restoreOpts := baseToolOpts(t)
 		require.NoError(
 			t,
-			runRestore(
+			runRestoreFromOptions(
 				t,
 				restoreOpts,
 				filepath.Join(dumpDir, fooDBName),
@@ -595,7 +604,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		opts.Namespace = &options.Namespace{DB: fooDBName}
 		require.NoError(
 			t,
-			runDump(
+			runDumpFromOptions(
 				t,
 				opts,
 				dumpDir,
@@ -623,7 +632,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		restoreOpts := baseToolOpts(t)
 		require.NoError(
 			t,
-			runRestore(
+			runRestoreFromOptions(
 				t,
 				restoreOpts,
 				filepath.Join(dumpDir, fooDBName),
@@ -650,10 +659,15 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		restoreOpts := baseToolOpts(t)
 		require.NoError(
 			t,
-			runRestore(t, restoreOpts, filepath.Join(dumpDir, fooDBName), func(o *Options) {
-				o.ToolOptions.Namespace = &options.Namespace{DB: fooDBName}
-				o.InputOptions.RestoreDBUsersAndRoles = true
-			}),
+			runRestoreFromOptions(
+				t,
+				restoreOpts,
+				filepath.Join(dumpDir, fooDBName),
+				func(o *Options) {
+					o.ToolOptions.Namespace = &options.Namespace{DB: fooDBName}
+					o.InputOptions.RestoreDBUsersAndRoles = true
+				},
+			),
 		)
 
 		assert.Equal(t, int64(1), docCount(t, barColl), "data present")
@@ -698,11 +712,16 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		restoreOpts := baseToolOpts(t)
 		require.NoError(
 			t,
-			runRestore(t, restoreOpts, filepath.Join(dumpDir, fooDBName), func(o *Options) {
-				o.ToolOptions.Namespace = &options.Namespace{DB: fooDBName}
-				o.InputOptions.RestoreDBUsersAndRoles = true
-				o.OutputOptions.Drop = true
-			}),
+			runRestoreFromOptions(
+				t,
+				restoreOpts,
+				filepath.Join(dumpDir, fooDBName),
+				func(o *Options) {
+					o.ToolOptions.Namespace = &options.Namespace{DB: fooDBName}
+					o.InputOptions.RestoreDBUsersAndRoles = true
+					o.OutputOptions.Drop = true
+				},
+			),
 		)
 
 		assert.Equal(t, int64(1), docCount(t, barColl), "data restored")
@@ -756,7 +775,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 
 		opts := baseToolOpts(t)
 		opts.Namespace = &options.Namespace{DB: "admin"}
-		require.NoError(t, runDump(t, opts, adminDumpDir, nil))
+		require.NoError(t, runDumpFromOptions(t, opts, adminDumpDir, nil))
 
 		mustCreateUser(t, barDB, barUser2Name, "pwd", bson.A{})
 		silentDropUser(fooDB, fooUser)
@@ -770,10 +789,15 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		restoreOpts := baseToolOpts(t)
 		require.NoError(
 			t,
-			runRestore(t, restoreOpts, filepath.Join(adminDumpDir, "admin"), func(o *Options) {
-				o.ToolOptions.Namespace = &options.Namespace{DB: "admin"}
-				o.OutputOptions.Drop = true
-			}),
+			runRestoreFromOptions(
+				t,
+				restoreOpts,
+				filepath.Join(adminDumpDir, "admin"),
+				func(o *Options) {
+					o.ToolOptions.Namespace = &options.Namespace{DB: "admin"}
+					o.OutputOptions.Drop = true
+				},
+			),
 		)
 
 		assert.Equal(
@@ -842,7 +866,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 
 		opts := baseToolOpts(t)
 		opts.Namespace = &options.Namespace{}
-		require.NoError(t, runDump(t, opts, allDumpDir, nil))
+		require.NoError(t, runDumpFromOptions(t, opts, allDumpDir, nil))
 
 		require.NoError(t, fooDB.Drop(context.Background()))
 		silentDropUser(fooDB, fooUser)
@@ -862,7 +886,7 @@ func dumpRestoreSingleDBWithUsersAndRoles(t *testing.T) {
 		)
 
 		restoreOpts := baseToolOpts(t)
-		require.NoError(t, runRestore(t, restoreOpts, allDumpDir, nil))
+		require.NoError(t, runRestoreFromOptions(t, restoreOpts, allDumpDir, nil))
 
 		assert.Equal(t, int64(1), docCount(t, barColl), "data restored")
 		assert.Equal(
@@ -967,12 +991,12 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 
 	dumpOpts := baseToolOpts(t)
 	dumpOpts.Namespace = &options.Namespace{DB: dbName}
-	require.NoError(t, runDump(t, dumpOpts, dumpDir, nil), "dump db as admin")
+	require.NoError(t, runDumpFromOptions(t, dumpOpts, dumpDir, nil), "dump db as admin")
 
 	require.NoError(t, testDB.Drop(ctx), "dropping db before restore")
 
 	noAuthOpts := toolOptsNoAuth(t)
-	noAuthErr := runRestore(t, noAuthOpts, dumpDir, nil)
+	noAuthErr := runRestoreFromOptions(t, noAuthOpts, dumpDir, nil)
 	// On MongoDB 4.2 with TLS, the client cert used in CI acts as an implicit intra-cluster
 	// x.509 credential, allowing a "no auth" connection to succeed. This was tightened in 4.4,
 	// so these assertions are only reliable on 4.4+.
@@ -994,7 +1018,7 @@ func TestRestoreWithDBUserPreservesIndexes(t *testing.T) {
 	restoreOpts := toolOptsForUser(t, dbUser, "password")
 	require.NoError(
 		t,
-		runRestore(t, restoreOpts, dumpDir, nil),
+		runRestoreFromOptions(t, restoreOpts, dumpDir, nil),
 		"restore as a non-admin per-db user",
 	)
 
@@ -1067,7 +1091,7 @@ func TestDumpAdminSystemProfileAsBackupUser(t *testing.T) {
 	opts.Namespace = &options.Namespace{DB: "admin"}
 	require.NoError(
 		t,
-		runDump(t, opts, dumpDir, nil),
+		runDumpFromOptions(t, opts, dumpDir, nil),
 		"a user holding only the backup role can dump the admin database",
 	)
 
@@ -1183,7 +1207,7 @@ func toolOptsNoAuth(t *testing.T) *options.ToolOptions {
 
 // runDump builds and executes a MongoDump with the given tool options and output directory.
 // configure is an optional callback to set additional fields before Init is called.
-func runDump(
+func runDumpFromOptions(
 	t *testing.T,
 	toolOpts *options.ToolOptions,
 	outDir string,
@@ -1209,7 +1233,7 @@ func runDump(
 
 // runRestore builds and executes a MongoRestore with the given tool options and target directory.
 // configure is an optional callback to modify the Options before New is called.
-func runRestore(
+func runRestoreFromOptions(
 	t *testing.T,
 	toolOpts *options.ToolOptions,
 	targetDir string,

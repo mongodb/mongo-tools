@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/mongodump"
 	"github.com/pkg/errors"
@@ -81,7 +82,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 			_, err = file.Seek(0, 0)
 			So(err, ShouldBeNil)
 
-			restore, err := getRestoreWithArgs(args...)
+			restore, err := getRestore(testopts.HarnessAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -117,7 +118,7 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 			OplogReplayOption,
 			DropOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -139,7 +140,7 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 			ArchiveOption + "=" + testBadFormatArchive,
 			DropOption,
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -176,7 +177,7 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 			// emitted if the restore asks for them.
 			"-vvv",
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		require.NoError(err)
 		defer restore.Close()
 
@@ -281,10 +282,7 @@ func testRestoreAdminNamespaces(t *testing.T) {
 	withArchiveMongodump(t, func(file string) {
 		testCases.init()
 
-		restore, err := getRestoreWithArgs(
-			DropOption,
-			ArchiveOption+"="+file,
-		)
+		restore, err := getRestore(testopts.HarnessAuth(), DropOption, ArchiveOption+"="+file)
 		require.NoError(err)
 		defer restore.Close()
 
@@ -418,7 +416,7 @@ func createCollectionWithTestDocument(
 }
 
 func getAtlasProxyRestoreWithArgs(args ...string) (*MongoRestore, error) {
-	restore, err := getRestoreWithArgs(args...)
+	restore, err := getRestore(testopts.HarnessAuth(), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -436,13 +434,10 @@ func withArchiveMongodump(t *testing.T, testCase func(string), dumpArgs ...strin
 
 func runArchiveMongodump(t *testing.T, file string, dumpArgs ...string) string {
 	require := require.New(t)
-	runMongodumpWithArgs(
-		t,
-		append(
-			[]string{ArchiveOption + "=" + file},
-			dumpArgs...,
-		)...,
-	)
+	runMongodumpWithArgs(t, testopts.HarnessAuth(), append(
+		[]string{ArchiveOption + "=" + file},
+		dumpArgs...,
+	)...)
 	_, err := os.Stat(file)
 	require.NoError(err, "dump created archive data file")
 	return file

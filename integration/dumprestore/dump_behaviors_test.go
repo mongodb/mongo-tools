@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	mopt "go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -101,7 +102,7 @@ func (s *DumpRestoreSuite) assertExtendedJSONQueryFilters(queryCase extendedJSON
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore the filtered dump")
 		s.Require().EqualValues(
 			1,
@@ -166,7 +167,7 @@ func (s *DumpRestoreSuite) TestDumpStorageEngineOptions() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(dir)
+		result := s.runRestore(testopts.HarnessAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump with storage engine options")
 		s.requireInserted(result, 1)
 	}, "--db", testDB.Name())

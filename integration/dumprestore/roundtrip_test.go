@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/mongodb/mongo-tools/common/db/dsctest"
 	"github.com/mongodb/mongo-tools/common/idx"
+	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
@@ -190,7 +191,7 @@ func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
 			func(dir string) {
 				s.clearDB(configDB)
 
-				restore, err := getRestoreWithArgsForURI(cc.TargetURI, dir)
+				restore, err := getRestoreWithArgsForURI(cc.TargetURI, testopts.HarnessAuth(), dir)
 				s.Require().NoError(err)
 				defer restore.Close()
 
@@ -235,6 +236,7 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 
 				restore, err := getRestoreWithArgsForURI(
 					cc.TargetURI,
+					testopts.HarnessAuth(),
 					mongorestore.DropOption,
 					dir,
 				)
@@ -261,16 +263,20 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 	})
 }
 
-func getRestoreWithArgs(additionalArgs ...string) (*mongorestore.MongoRestore, error) {
-	return getRestoreWithArgsForURI(os.Getenv(testopts.URIEnvVar), additionalArgs...)
+func getRestoreWithArgs(
+	auth options.Auth,
+	additionalArgs ...string,
+) (*mongorestore.MongoRestore, error) {
+	return getRestoreWithArgsForURI(os.Getenv(testopts.URIEnvVar), auth, additionalArgs...)
 }
 
 func getRestoreWithArgsForURI(
 	uri string,
+	auth options.Auth,
 	additionalArgs ...string,
 ) (*mongorestore.MongoRestore, error) {
 	opts, err := mongorestore.ParseOptions(
-		append(testopts.ToolCLIArgs(uri, testopts.HarnessAuth()), additionalArgs...),
+		append(testopts.ToolCLIArgs(uri, auth), additionalArgs...),
 		"",
 		"",
 	)
@@ -440,6 +446,7 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 			func(dir string) {
 				restore, err := getRestoreWithArgsForURI(
 					cc.TargetURI,
+					testopts.HarnessAuth(),
 					mongorestore.DropOption,
 					dir,
 				)
@@ -523,9 +530,7 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
 		s.Require().NoError(err, "should send update")
 		s.Require().NotZero(updated.MatchedCount, "update should match a doc")
 
-		restore, err := getRestoreWithArgs(
-			dir,
-		)
+		restore, err := getRestoreWithArgs(testopts.HarnessAuth(), dir)
 		s.Require().NoError(err)
 		defer restore.Close()
 
@@ -621,6 +626,7 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 									func(dir string) {
 										restore, err := getRestoreWithArgsForURI(
 											cc.TargetURI,
+											testopts.HarnessAuth(),
 											mongorestore.DropOption,
 											dir,
 										)
@@ -676,8 +682,11 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 		s.Run("drops tempusers and temproles", func() {
 			restore, err := getRestoreWithArgsForURI(
 				cc.TargetURI,
-				mongorestore.NumParallelCollectionsOption, "1",
-				mongorestore.NumInsertionWorkersOption, "1",
+				testopts.HarnessAuth(),
+				mongorestore.NumParallelCollectionsOption,
+				"1",
+				mongorestore.NumInsertionWorkersOption,
+				"1",
 			)
 			s.Require().NoError(err)
 			defer restore.Close()
@@ -712,8 +721,11 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 			s.Run("db directory restore fails", func() {
 				restore, err := getRestoreWithArgsForURI(
 					cc.TargetURI,
-					mongorestore.NumParallelCollectionsOption, "1",
-					mongorestore.NumInsertionWorkersOption, "1",
+					testopts.HarnessAuth(),
+					mongorestore.NumParallelCollectionsOption,
+					"1",
+					mongorestore.NumInsertionWorkersOption,
+					"1",
 					mongorestore.RestoreDBUsersAndRolesOption,
 					mongorestore.DBOption,
 					"db1",
@@ -730,8 +742,11 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 			s.Run("base dump directory restore fails", func() {
 				restore, err := getRestoreWithArgsForURI(
 					cc.TargetURI,
-					mongorestore.NumParallelCollectionsOption, "1",
-					mongorestore.NumInsertionWorkersOption, "1",
+					testopts.HarnessAuth(),
+					mongorestore.NumParallelCollectionsOption,
+					"1",
+					mongorestore.NumInsertionWorkersOption,
+					"1",
 					mongorestore.RestoreDBUsersAndRolesOption,
 					mongorestore.DBOption,
 					"db1",
@@ -749,8 +764,11 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 				s.withArchiveMongodumpForURI(cc.SourceURI, func(archivePath string) {
 					restore, err := getRestoreWithArgsForURI(
 						cc.TargetURI,
-						mongorestore.NumParallelCollectionsOption, "1",
-						mongorestore.NumInsertionWorkersOption, "1",
+						testopts.HarnessAuth(),
+						mongorestore.NumParallelCollectionsOption,
+						"1",
+						mongorestore.NumInsertionWorkersOption,
+						"1",
 						mongorestore.RestoreDBUsersAndRolesOption,
 						mongorestore.DBOption,
 						"db1",
@@ -795,7 +813,7 @@ func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl(cc crossCluster)
 		InsertOne(s.Context(), bson.D{{"_id", "corruption"}})
 	s.Require().NoError(err, "can leave a document in the temp users collection")
 
-	s.restoreUsersDump(cc)
+	s.restoreUsersDump(cc, testopts.HarnessAuth())
 
 	s.assertTempCollectionsGone(adminDB, defaultTempCollNames...)
 	s.assertDumpedUserAndRoleExist(adminDB)
@@ -819,8 +837,11 @@ func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls(cc crossCluster) 
 
 	s.restoreUsersDump(
 		cc,
-		mongorestore.TempUsersCollOption, customTempCollNames[0],
-		mongorestore.TempRolesCollOption, customTempCollNames[1],
+		testopts.HarnessAuth(),
+		mongorestore.TempUsersCollOption,
+		customTempCollNames[0],
+		mongorestore.TempRolesCollOption,
+		customTempCollNames[1],
 	)
 
 	s.assertTempCollectionsGone(adminDB, customTempCollNames...)
@@ -869,7 +890,9 @@ func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles(cc crossCluster) {
 
 		restore, err := getRestoreWithArgsForURI(
 			cc.TargetURI,
-			mongorestore.DBOption, dbName,
+			testopts.HarnessAuth(),
+			mongorestore.DBOption,
+			dbName,
 			mongorestore.RestoreDBUsersAndRolesOption,
 			filepath.Join(dir, dbName),
 		)
@@ -953,7 +976,11 @@ func (s *DumpRestoreSuite) dropRoundTripUsersAndRoles(testDB *mongo.Database) {
 	testDB.RunCommand(s.Context(), bson.D{{"dropRole", roundTripRoleName}})
 }
 
-func (s *DumpRestoreSuite) restoreUsersDump(cc crossCluster, extraArgs ...string) {
+func (s *DumpRestoreSuite) restoreUsersDump(
+	cc crossCluster,
+	auth options.Auth,
+	extraArgs ...string,
+) {
 	args := append(
 		[]string{
 			mongorestore.NumParallelCollectionsOption, "1",
@@ -962,7 +989,7 @@ func (s *DumpRestoreSuite) restoreUsersDump(cc crossCluster, extraArgs ...string
 		extraArgs...,
 	)
 
-	restore, err := getRestoreWithArgsForURI(cc.TargetURI, args...)
+	restore, err := getRestoreWithArgsForURI(cc.TargetURI, auth, args...)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
 
@@ -1092,6 +1119,7 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 
 			restore, err := getRestoreWithArgsForURI(
 				cc.TargetURI,
+				testopts.HarnessAuth(),
 				mongorestore.DropOption,
 				mongorestore.ArchiveOption+"="+archivePath,
 			)
@@ -1176,6 +1204,7 @@ func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 
 			restore, err := getRestoreWithArgsForURI(
 				cc.TargetURI,
+				testopts.HarnessAuth(),
 				mongorestore.DropOption,
 				mongorestore.ArchiveOption+"="+file,
 			)
@@ -1276,6 +1305,7 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 
 				restore, err := getRestoreWithArgsForURI(
 					cc.TargetURI,
+					testopts.HarnessAuth(),
 					mongorestore.ArchiveOption+"="+archivePath,
 					"-vv",
 					"--oplogReplay",
@@ -1366,7 +1396,9 @@ func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
 
 										restore, err := getRestoreWithArgsForURI(
 											cc.TargetURI,
-											mongorestore.DBOption, dbname,
+											testopts.HarnessAuth(),
+											mongorestore.DBOption,
+											dbname,
 											mongorestore.ArchiveOption+"="+archivePath,
 											"-vv",
 										)

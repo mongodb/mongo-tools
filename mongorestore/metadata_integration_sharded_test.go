@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	commonOpts "github.com/mongodb/mongo-tools/common/options"
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
@@ -161,7 +162,7 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 			DropOption,
 			dumpDir.Path(),
 		}
-		restore, err := getRestoreWithArgs(args...)
+		restore, err := getRestore(testopts.HarnessAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 

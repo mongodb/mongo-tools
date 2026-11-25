@@ -11,6 +11,7 @@ package mongorestore
 import (
 	"testing"
 
+	"github.com/mongodb/mongo-tools/common/testopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +20,7 @@ import (
 // `applyOps` command that shardec clusters do not support.
 func TestApplyOpsGuardrail(t *testing.T) {
 	t.Run("--oplogReplay is rejected", func(t *testing.T) {
-		result := runRestoreFromArgs(t, OplogReplayOption, t.TempDir())
+		result := runRestore(t, testopts.HarnessAuth(), OplogReplayOption, t.TempDir())
 		require.ErrorContains(
 			t, result.Err, "cannot use --oplogReplay",
 			"--oplogReplay against a sharded or DSC cluster errors",
@@ -27,7 +28,7 @@ func TestApplyOpsGuardrail(t *testing.T) {
 	})
 
 	t.Run("--preserveUUID is rejected", func(t *testing.T) {
-		result := runRestoreFromArgs(t, PreserveUUIDOption, DropOption, t.TempDir())
+		result := runRestore(t, testopts.HarnessAuth(), PreserveUUIDOption, DropOption, t.TempDir())
 		require.ErrorContains(
 			t, result.Err, "cannot use --preserveUUID",
 			"--preserveUUID against a sharded or DSC cluster errors",
