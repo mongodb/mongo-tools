@@ -20,6 +20,18 @@ var (
 	CreatedUserPasswordEnv = "TOOLS_TESTING_AUTH_PASSWORD"
 )
 
+// The users the tools under test authenticate as in auth runs: one per tool, holding exactly
+// the role the documentation prescribes as sufficient for it - backup for mongodump, restore
+// for mongorestore - so a dump run never holds restore privileges and the other way around.
+// The values are mirrored in common/testutil, which creates these users, and are deliberately
+// not configurable so the two cannot drift apart.
+const (
+	BackupUsername  = "backup"
+	BackupPassword  = "backup"
+	RestoreUsername = "restore"
+	RestorePassword = "restore"
+)
+
 // HarnessAuth returns the credentials of the harness user, the identity test setup and
 // assertions connect as. Callers running a tool under test choose a different identity through
 // ToolOptions and ToolCLIArgs.
@@ -47,4 +59,29 @@ func AuthArgs(auth options.Auth) []string {
 		"--password", auth.Password,
 		"--authenticationDatabase", auth.Source,
 	}
+}
+
+// BackupAuth returns the credentials mongodump runs authenticate as: the backup user, the
+// minimum-privilege identity for mongodump. Test setup and assertions use HarnessAuth instead.
+func BackupAuth() options.Auth {
+	return constantUserAuth(BackupUsername, BackupPassword)
+}
+
+// RestoreAuth returns the credentials mongorestore runs authenticate as: the restore user, the
+// minimum-privilege identity for mongorestore. Test setup and assertions use HarnessAuth
+// instead.
+func RestoreAuth() options.Auth {
+	return constantUserAuth(RestoreUsername, RestorePassword)
+}
+
+func constantUserAuth(username, password string) options.Auth {
+	if testtype.HasTestType(testtype.AuthTestType) {
+		return options.Auth{
+			Username: username,
+			Password: password,
+			Source:   "admin",
+		}
+	}
+
+	return options.Auth{}
 }

@@ -29,6 +29,18 @@ func TestAuthOptionsFollowTestType(t *testing.T) {
 			harness.IsSet(),
 			"the harness user is unset without the auth test type",
 		)
+		backup := BackupAuth()
+		assert.False(
+			t,
+			backup.IsSet(),
+			"the backup user is unset without the auth test type",
+		)
+		restore := RestoreAuth()
+		assert.False(
+			t,
+			restore.IsSet(),
+			"the restore user is unset without the auth test type",
+		)
 	})
 
 	t.Run("with the auth test type", func(t *testing.T) {
@@ -48,6 +60,34 @@ func TestAuthOptionsFollowTestType(t *testing.T) {
 			"harness-pass",
 			harness.Password,
 			"the harness password comes from the environment",
+		)
+
+		backup := BackupAuth()
+		assert.Equal(
+			t,
+			BackupUsername,
+			backup.Username,
+			"the backup user is the user mongodump runs as",
+		)
+		assert.Equal(
+			t,
+			BackupPassword,
+			backup.Password,
+			"the backup user's password is the fixed constant",
+		)
+
+		restore := RestoreAuth()
+		assert.Equal(
+			t,
+			RestoreUsername,
+			restore.Username,
+			"the restore user is the user mongorestore runs as",
+		)
+		assert.Equal(
+			t,
+			RestorePassword,
+			restore.Password,
+			"the restore user's password is the fixed constant",
 		)
 	})
 }
