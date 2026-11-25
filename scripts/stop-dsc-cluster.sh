@@ -45,8 +45,16 @@ fi
 # Archived here rather than with an `s3.put` because this runs in Evergreen's project-wide post
 # block. A filter that matches nothing would require `s3.put` to allow `optional` for multi-file
 # puts, which it does not.
+#
+# cluster.json, the runner's redacted `start --json` result (see start-dsc-cluster.sh), is archived
+# with the logs: its serialized server entries map each member to its log file and dbPath, and it
+# carries the SLS service addresses.
 if [ -d "${CLUSTER_DIR:?}/logs" ]; then
-    tar -czf "${CLUSTER_DIR:?}/logs.tgz" -C "${CLUSTER_DIR:?}" logs ||
+    TAR_INPUTS=(logs)
+    if [ -f "${CLUSTER_DIR:?}/cluster.json" ]; then
+        TAR_INPUTS+=(cluster.json)
+    fi
+    tar -czf "${CLUSTER_DIR:?}/logs.tgz" -C "${CLUSTER_DIR:?}" "${TAR_INPUTS[@]}" ||
         echo "could not archive the cluster logs" >&2
 fi
 
