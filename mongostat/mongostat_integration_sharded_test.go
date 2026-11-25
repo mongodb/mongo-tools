@@ -441,7 +441,16 @@ func TestMongostatAuth(t *testing.T) {
 			mongostatBinary(t),
 			slices.Concat(args, []string{"--password", auth.Password})...)
 		require.NoError(t, err, "mongostat exits successfully: %s", stderr)
-		assert.Len(t, testcmd.Rows(stdout), 2, "a header and one data row are printed")
+		// How many cluster members mongostat has discovered by the first poll is
+		// timing-dependent - against a replica set it may report just the seed it connected
+		// to or every member - so require the header plus at least one row rather than
+		// exactly one.
+		assert.GreaterOrEqual(
+			t,
+			len(testcmd.Rows(stdout)),
+			2,
+			"a header and at least one data row are printed",
+		)
 	})
 
 	t.Run("a wrong password fails", func(t *testing.T) {
