@@ -23,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-tools/common/idx"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
+	"github.com/mongodb/mongo-tools/common/testtype"
 	"github.com/mongodb/mongo-tools/common/testutil"
 	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/mongodb/mongo-tools/mongodump"
@@ -186,12 +187,22 @@ func (s *DumpRestoreSuite) testDumpAndRestoreConfigDBIncludesAllCollections() {
 		)
 		defer s.clearDB(configDB)
 
+		// Both halves run as the anyAction-on-anyResource user rather than the per-tool ones.
+		// The dump needs config.system.sessions, which the backup role cannot read, so a
+		// --db config dump exceeds it; the restore then writes that system collection back,
+		// which no assignable role permits either.
 		s.withBSONMongodumpForURI(
 			cc.SourceURI,
+			testopts.OplogReplayAuth(),
 			func(dir string) {
 				s.clearDB(configDB)
 
-				restore, err := getRestoreWithArgsForURI(cc.TargetURI, testopts.HarnessAuth(), dir)
+				restore, err := getRestoreWithArgsForURI(
+					s.T(),
+					cc.TargetURI,
+					testopts.OplogReplayAuth(),
+					dir,
+				)
 				s.Require().NoError(err)
 				defer restore.Close()
 
@@ -229,14 +240,21 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 		)
 		defer s.clearDB(configDB)
 
+		// The dump below covers the whole cluster, which includes admin.system.views when
+		// anything has created a view in admin; the backup role cannot read that collection,
+		// so it is dropped first. See testutil.DropAdminSystemViews.
+		testutil.DropAdminSystemViews(s.T())
+
 		s.withBSONMongodumpForURI(
 			cc.SourceURI,
+			testopts.BackupAuth(),
 			func(dir string) {
 				s.clearDB(configDB)
 
 				restore, err := getRestoreWithArgsForURI(
+					s.T(),
 					cc.TargetURI,
-					testopts.HarnessAuth(),
+					testopts.RestoreAuth(),
 					mongorestore.DropOption,
 					dir,
 				)
@@ -264,17 +282,21 @@ func (s *DumpRestoreSuite) testDumpAndRestoreAllDBsIgnoresSomeConfigCollections(
 }
 
 func getRestoreWithArgs(
+	t *testing.T,
 	auth options.Auth,
 	additionalArgs ...string,
 ) (*mongorestore.MongoRestore, error) {
-	return getRestoreWithArgsForURI(os.Getenv(testopts.URIEnvVar), auth, additionalArgs...)
+	testutil.EnsureSharedUser(t, auth)
+	return getRestoreWithArgsForURI(t, os.Getenv(testopts.URIEnvVar), auth, additionalArgs...)
 }
 
 func getRestoreWithArgsForURI(
+	t *testing.T,
 	uri string,
 	auth options.Auth,
 	additionalArgs ...string,
 ) (*mongorestore.MongoRestore, error) {
+	testutil.EnsureSharedUser(t, auth)
 	opts, err := mongorestore.ParseOptions(
 		append(testopts.ToolCLIArgs(uri, auth), additionalArgs...),
 		"",
@@ -320,7 +342,13 @@ func getArchiveMongoDumpForURI(
 	uri string,
 	output io.WriteCloser,
 ) (*mongodump.MongoDump, error) {
-	provider, toolOpts, err := testutil.GetBareSessionProviderForURI(t, uri)
+	// The dump runs as the backup user, the minimum-privilege identity for mongodump.
+	testutil.EnsureBackupUser(t)
+	toolOpts, err := testopts.ToolOptions(uri, testopts.BackupAuth())
+	if err != nil {
+		return nil, errors.Wrap(err, "get tool options for dump")
+	}
+	provider, err := db.NewSessionProvider(*toolOpts)
 	if err != nil {
 		return nil, errors.Wrap(err, "get session provider for dump")
 	}
@@ -349,9 +377,11 @@ func getArchiveMongoRestoreForURI(
 	uri string,
 	input io.ReadCloser,
 ) (*mongorestore.MongoRestore, error) {
-	_, toolOpts, err := testutil.GetBareSessionProviderForURI(t, uri)
+	// The restore runs as the restore user, the minimum-privilege identity for mongorestore.
+	testutil.EnsureRestoreUser(t)
+	toolOpts, err := testopts.ToolOptions(uri, testopts.RestoreAuth())
 	if err != nil {
-		return nil, errors.Wrap(err, "get session provider for restore")
+		return nil, errors.Wrap(err, "get tool options for restore")
 	}
 
 	restore, err := mongorestore.New(mongorestore.Options{
@@ -444,9 +474,13 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp() {
 			coll.Database().Name(),
 			coll.Name(),
 			func(dir string) {
+				// On servers without the bypassEmptyTsReplacement flag (4.2 and 4.4) mongorestore
+				// fixes up empty-timestamp documents with an update, which the restore role cannot
+				// run on an ordinary collection, so this runs as the oplogreplay user.
 				restore, err := getRestoreWithArgsForURI(
+					s.T(),
 					cc.TargetURI,
-					testopts.HarnessAuth(),
+					testopts.OplogReplayAuth(),
 					mongorestore.DropOption,
 					dir,
 				)
@@ -530,7 +564,9 @@ func (s *DumpRestoreSuite) TestRestoreZeroTimestamp_NonClobber() {
 		s.Require().NoError(err, "should send update")
 		s.Require().NotZero(updated.MatchedCount, "update should match a doc")
 
-		restore, err := getRestoreWithArgs(testopts.HarnessAuth(), dir)
+		// Same identity as TestRestoreZeroTimestamp: on 4.2 and 4.4 the empty-timestamp
+		// fix-up update exceeds the restore role.
+		restore, err := getRestoreWithArgs(s.T(), testopts.OplogReplayAuth(), dir)
 		s.Require().NoError(err)
 		defer restore.Close()
 
@@ -625,8 +661,9 @@ func (s *DumpRestoreSuite) TestRestoreMultipleIDIndexes() {
 									coll.Name(),
 									func(dir string) {
 										restore, err := getRestoreWithArgsForURI(
+											s.T(),
 											cc.TargetURI,
-											testopts.HarnessAuth(),
+											testopts.RestoreAuth(),
 											mongorestore.DropOption,
 											dir,
 										)
@@ -681,8 +718,9 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 	s.WithCrossCluster(func(cc crossCluster) {
 		s.Run("drops tempusers and temproles", func() {
 			restore, err := getRestoreWithArgsForURI(
+				s.T(),
 				cc.TargetURI,
-				testopts.HarnessAuth(),
+				testopts.RestoreAuth(),
 				mongorestore.NumParallelCollectionsOption,
 				"1",
 				mongorestore.NumInsertionWorkersOption,
@@ -720,8 +758,9 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 		s.Run("without --dumpUsersAndRoles", func() {
 			s.Run("db directory restore fails", func() {
 				restore, err := getRestoreWithArgsForURI(
+					s.T(),
 					cc.TargetURI,
-					testopts.HarnessAuth(),
+					testopts.RestoreAuth(),
 					mongorestore.NumParallelCollectionsOption,
 					"1",
 					mongorestore.NumInsertionWorkersOption,
@@ -741,8 +780,9 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 
 			s.Run("base dump directory restore fails", func() {
 				restore, err := getRestoreWithArgsForURI(
+					s.T(),
 					cc.TargetURI,
-					testopts.HarnessAuth(),
+					testopts.RestoreAuth(),
 					mongorestore.NumParallelCollectionsOption,
 					"1",
 					mongorestore.NumInsertionWorkersOption,
@@ -761,10 +801,15 @@ func (s *DumpRestoreSuite) TestRestoreUsersOrRoles() {
 			})
 
 			s.Run("archive of entire dump restore fails", func() {
+				// The dump covers the whole cluster, so drop admin.system.views first: the
+				// backup role cannot read it once anything created views in admin. See
+				// testutil.DropAdminSystemViews.
+				testutil.DropAdminSystemViews(s.T())
 				s.withArchiveMongodumpForURI(cc.SourceURI, func(archivePath string) {
 					restore, err := getRestoreWithArgsForURI(
+						s.T(),
 						cc.TargetURI,
-						testopts.HarnessAuth(),
+						testopts.RestoreAuth(),
 						mongorestore.NumParallelCollectionsOption,
 						"1",
 						mongorestore.NumInsertionWorkersOption,
@@ -813,7 +858,7 @@ func (s *DumpRestoreSuite) testRestoreUsersWithNonemptyTempColl(cc crossCluster)
 		InsertOne(s.Context(), bson.D{{"_id", "corruption"}})
 	s.Require().NoError(err, "can leave a document in the temp users collection")
 
-	s.restoreUsersDump(cc, testopts.HarnessAuth())
+	s.restoreUsersDump(cc, testopts.RestoreAuth())
 
 	s.assertTempCollectionsGone(adminDB, defaultTempCollNames...)
 	s.assertDumpedUserAndRoleExist(adminDB)
@@ -835,9 +880,12 @@ func (s *DumpRestoreSuite) testRestoreUsersWithCustomTempColls(cc crossCluster) 
 		s.Require().NoError(err, "can seed the default temp collection %#q", collName)
 	}
 
+	// The restore runs as the anyAction-on-anyResource user; custom temp collection
+	// names exceed the restore role's find, which is granted for exactly the default
+	// names admin.tempusers and admin.temproles.
 	s.restoreUsersDump(
 		cc,
-		testopts.HarnessAuth(),
+		testopts.OplogReplayAuth(),
 		mongorestore.TempUsersCollOption,
 		customTempCollNames[0],
 		mongorestore.TempRolesCollOption,
@@ -884,13 +932,14 @@ func (s *DumpRestoreSuite) testRoundTripDBUsersAndRoles(cc crossCluster) {
 	s.insertNamespacedDocs(sourceDB.Collection("coll"))
 	s.createRoundTripUsersAndRoles(sourceDB)
 
-	s.withBSONMongodumpForURI(cc.SourceURI, func(dir string) {
+	s.withBSONMongodumpForURI(cc.SourceURI, testopts.BackupAuth(), func(dir string) {
 		s.dropDB(targetDB)
 		s.dropRoundTripUsersAndRoles(targetDB)
 
 		restore, err := getRestoreWithArgsForURI(
+			s.T(),
 			cc.TargetURI,
-			testopts.HarnessAuth(),
+			testopts.RestoreAuth(),
 			mongorestore.DBOption,
 			dbName,
 			mongorestore.RestoreDBUsersAndRolesOption,
@@ -981,6 +1030,7 @@ func (s *DumpRestoreSuite) restoreUsersDump(
 	auth options.Auth,
 	extraArgs ...string,
 ) {
+	testutil.EnsureSharedUser(s.T(), auth)
 	args := append(
 		[]string{
 			mongorestore.NumParallelCollectionsOption, "1",
@@ -989,7 +1039,7 @@ func (s *DumpRestoreSuite) restoreUsersDump(
 		extraArgs...,
 	)
 
-	restore, err := getRestoreWithArgsForURI(cc.TargetURI, auth, args...)
+	restore, err := getRestoreWithArgsForURI(s.T(), cc.TargetURI, auth, args...)
 	s.Require().NoError(err, "can build mongorestore")
 	defer restore.Close()
 
@@ -1066,6 +1116,19 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 		serverVersion, err := sessionProvider.ServerVersionArray()
 		s.Require().NoError(err, "get cluster version")
 
+		// Scoped to one database so the dump stays within the backup role: the archive this
+		// produces is overwritten below with synthetic content, so only the db's existence
+		// matters, and a full dump would drag in admin.system.views (unreadable by the backup
+		// role once anything created views in admin) for nothing.
+		s.createCollectionsWithTestDocuments(
+			cc.Source.Database("unversioned_indexes"),
+			[]string{"coll"},
+		)
+		defer func() {
+			s.Require().
+				NoError(cc.Source.Database("unversioned_indexes").Drop(s.Context()))
+		}()
+
 		dbName := uniqueDBName()
 		collName := "coll"
 
@@ -1114,12 +1177,17 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 		archiveBytes, err := simpleArchive.Marshal()
 		s.Require().NoError(err, "should marshal the archive")
 
+		// The dump is scoped to the database created above: its output is discarded (the
+		// callback overwrites the archive with synthetic bytes), so a full dump would drag in
+		// admin.system.views - unreadable by the backup role once anything created views in
+		// admin - for nothing.
 		s.withArchiveMongodumpForURI(cc.SourceURI, func(archivePath string) {
 			s.Require().NoError(os.WriteFile(archivePath, archiveBytes, 0644))
 
 			restore, err := getRestoreWithArgsForURI(
+				s.T(),
 				cc.TargetURI,
-				testopts.HarnessAuth(),
+				testopts.RestoreAuth(),
 				mongorestore.DropOption,
 				mongorestore.ArchiveOption+"="+archivePath,
 			)
@@ -1154,7 +1222,7 @@ func (s *DumpRestoreSuite) TestUnversionedIndexes() {
 				twoDIndexDoc.Options["2dsphereIndexVersion"],
 				"should have version 1 2dsphere index (unversioned)",
 			)
-		})
+		}, "--db", "unversioned_indexes")
 	})
 }
 
@@ -1195,6 +1263,10 @@ func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 		s.Require().NoError(err, "can count the source timeseries documents")
 		s.Require().EqualValues(2, sourceCount, "the source should hold the timeseries documents")
 
+		// The dump below covers the whole cluster, so drop admin.system.views first: the
+		// backup role cannot read it once anything created views in admin. See
+		// testutil.DropAdminSystemViews.
+		testutil.DropAdminSystemViews(s.T())
 		s.withArchiveMongodumpForURI(cc.SourceURI, func(file string) {
 			targetDB := cc.Target.Database(dbName)
 			targetBucketColl := targetDB.Collection(timeseriesCollName(serverVersion, collName))
@@ -1202,9 +1274,13 @@ func (s *DumpRestoreSuite) TestRestoreTimeseriesCollectionsWithMixedSchema() {
 			s.Require().NoError(targetDB.Collection(collName).Drop(ctx))
 			s.Require().NoError(targetBucketColl.Drop(ctx))
 
+			// The archive holds a timeseries collection's buckets, whose restore writes the
+			// system.buckets.* namespace directly; no assignable role permits that, so this
+			// runs as the anyAction-on-anyResource user.
 			restore, err := getRestoreWithArgsForURI(
+				s.T(),
 				cc.TargetURI,
-				testopts.HarnessAuth(),
+				testopts.OplogReplayAuth(),
 				mongorestore.DropOption,
 				mongorestore.ArchiveOption+"="+file,
 			)
@@ -1294,6 +1370,10 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 			s.T().Logf("Updates canceled: %v", context.Cause(writesCtx))
 		}()
 
+		// The dump covers the whole cluster, so drop admin.system.views first: the backup
+		// role cannot read it once anything created views in admin. See
+		// testutil.DropAdminSystemViews.
+		testutil.DropAdminSystemViews(s.T())
 		s.withArchiveMongodumpForURI(
 			cc.SourceURI,
 			func(archivePath string) {
@@ -1304,8 +1384,9 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 				s.Require().NoError(cc.Target.Database(testName).Drop(ctx))
 
 				restore, err := getRestoreWithArgsForURI(
+					s.T(),
 					cc.TargetURI,
-					testopts.HarnessAuth(),
+					testopts.OplogReplayAuth(),
 					mongorestore.ArchiveOption+"="+archivePath,
 					"-vv",
 					"--oplogReplay",
@@ -1336,8 +1417,21 @@ func (s *DumpRestoreSuite) TestIgnoreMongoDBInternal() {
 }
 
 func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
+	// Under auth the full-cluster dumps below run as the backup role, which cannot read
+	// admin.system.views once anything created views in admin. Standalone drops it first (below);
+	// a mongos refuses to drop any collection in admin, so there is no way to run this as the
+	// backup role on a sharded cluster. The no-auth sharded variants still run it.
+	if testtype.HasTestType(testtype.AuthTestType) {
+		testutil.SkipIfSharded(s.T(), "a full dump exceeds the backup role on a sharded cluster")
+	}
+
 	s.WithCrossCluster(func(cc crossCluster) {
 		ctx := s.Context()
+
+		// The dumps below cover the whole cluster, which includes admin.system.views when
+		// anything has created a view in admin; the backup role cannot read that collection,
+		// so it is dropped first. See testutil.DropAdminSystemViews.
+		testutil.DropAdminSystemViews(s.T())
 
 		allNames := []string{
 			"no-nl",
@@ -1395,8 +1489,9 @@ func (s *DumpRestoreSuite) TestFinalNewlinesInNamespaces() {
 										s.Require().NoError(cc.Target.Database(dbname).Drop(ctx))
 
 										restore, err := getRestoreWithArgsForURI(
+											s.T(),
 											cc.TargetURI,
-											testopts.HarnessAuth(),
+											testopts.RestoreAuth(),
 											mongorestore.DBOption,
 											dbname,
 											mongorestore.ArchiveOption+"="+archivePath,

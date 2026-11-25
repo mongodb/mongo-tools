@@ -82,7 +82,7 @@ func TestMongorestoreShortArchive(t *testing.T) {
 			_, err = file.Seek(0, 0)
 			So(err, ShouldBeNil)
 
-			restore, err := getRestore(testopts.HarnessAuth(), args...)
+			restore, err := getRestore(t, testopts.RestoreAuth(), args...)
 			So(err, ShouldBeNil)
 			defer restore.Close()
 
@@ -118,7 +118,7 @@ func TestMongorestoreArchiveWithOplog(t *testing.T) {
 			OplogReplayOption,
 			DropOption,
 		}
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -140,7 +140,7 @@ func TestMongorestoreBadFormatArchive(t *testing.T) {
 			ArchiveOption + "=" + testBadFormatArchive,
 			DropOption,
 		}
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.RestoreAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 
@@ -177,7 +177,7 @@ func TestReadDumpServerVersionFromArchive(t *testing.T) {
 			// emitted if the restore asks for them.
 			"-vvv",
 		}
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.RestoreAuth(), args...)
 		require.NoError(err)
 		defer restore.Close()
 
@@ -282,7 +282,7 @@ func testRestoreAdminNamespaces(t *testing.T) {
 	withArchiveMongodump(t, func(file string) {
 		testCases.init()
 
-		restore, err := getRestore(testopts.HarnessAuth(), DropOption, ArchiveOption+"="+file)
+		restore, err := getRestore(t, testopts.RestoreAuth(), DropOption, ArchiveOption+"="+file)
 		require.NoError(err)
 		defer restore.Close()
 
@@ -332,6 +332,7 @@ func testRestoreAdminNamespacesAsAtlasProxy(t *testing.T) {
 		testCases.init()
 
 		restore, err := getAtlasProxyRestoreWithArgs(
+			t,
 			DropOption,
 			ArchiveOption+"="+file,
 		)
@@ -415,8 +416,8 @@ func createCollectionWithTestDocument(
 	return collection
 }
 
-func getAtlasProxyRestoreWithArgs(args ...string) (*MongoRestore, error) {
-	restore, err := getRestore(testopts.HarnessAuth(), args...)
+func getAtlasProxyRestoreWithArgs(t *testing.T, args ...string) (*MongoRestore, error) {
+	restore, err := getRestore(t, testopts.RestoreAuth(), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +435,7 @@ func withArchiveMongodump(t *testing.T, testCase func(string), dumpArgs ...strin
 
 func runArchiveMongodump(t *testing.T, file string, dumpArgs ...string) string {
 	require := require.New(t)
-	runMongodumpWithArgs(t, testopts.HarnessAuth(), append(
+	runMongodumpWithArgs(t, testopts.BackupAuth(), append(
 		[]string{ArchiveOption + "=" + file},
 		dumpArgs...,
 	)...)

@@ -49,7 +49,7 @@ func TestMongorestoreTxns(t *testing.T) {
 		t.Fatalf("No server available")
 	}
 
-	restore, err := getRestore(testopts.HarnessAuth())
+	restore, err := getRestore(t, testopts.RestoreAuth())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,10 @@ func TestMongorestoreTxns(t *testing.T) {
 			DropOption,
 			dumpPath,
 		}
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		// Transaction oplogs apply update ops, which the restore role does not grant on
+		// ordinary collections (it grants insert but not update), so this runs as the
+		// anyAction-on-anyResource user the documentation prescribes for oplog replay.
+		restore, err := getRestore(t, testopts.OplogReplayAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 

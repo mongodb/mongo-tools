@@ -29,7 +29,7 @@ func (s *DumpRestoreSuite) testIndexRoundTripFromDumpDir() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropCollection(coll)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore from the dump directory")
 	}, "--db", testDB.Name())
 
@@ -45,7 +45,7 @@ func (s *DumpRestoreSuite) testIndexRoundTripFromBSONFile() {
 		s.dropCollection(coll)
 
 		result := s.runRestore(
-			testopts.HarnessAuth(),
+			testopts.RestoreAuth(),
 			filepath.Join(dir, testDB.Name(), coll.Name()+".bson"),
 		)
 		s.Require().NoError(result.Err, "can restore from the bson file")
@@ -233,7 +233,7 @@ func (s *DumpRestoreSuite) testKeepIndexVersion() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), mongorestore.KeepIndexVersionOption, dir)
+		result := s.runRestore(testopts.RestoreAuth(), mongorestore.KeepIndexVersionOption, dir)
 		s.Require().NoError(result.Err, "can restore with --keepIndexVersion")
 	}, "--db", testDB.Name())
 
@@ -266,7 +266,7 @@ func (s *DumpRestoreSuite) testDefaultIndexVersion() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore without --keepIndexVersion")
 	}, "--db", testDB.Name())
 
@@ -397,7 +397,7 @@ func (s *DumpRestoreSuite) TestOrderedPartialIndex() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropCollection(coll)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore an index with a partialFilterExpression")
 	}, "--db", testDB.Name())
 

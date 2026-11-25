@@ -53,7 +53,7 @@ func TestOplogDumpVectoredInsertsOplog(t *testing.T) {
 
 	ctx := t.Context()
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -176,7 +176,7 @@ func TestOplogDumpCollModIndexUniqueness(t *testing.T) {
 	//nolint:errcheck
 	defer session.Database(testDB).Collection(testCollName).Drop(ctx)
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -341,7 +341,7 @@ func TestOplogDumpBypassDocumentValidation(t *testing.T) {
 	//nolint:errcheck
 	defer session.Database(testDB).Collection(testCollName).Drop(ctx)
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -498,7 +498,7 @@ func TestOplogDumpCollModTTL(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -627,7 +627,7 @@ func TestOplogRollover(t *testing.T) {
 	// Oplog is not available in a standalone topology.
 	testutil.SkipUnlessReplicaSet(t)
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -683,7 +683,7 @@ func TestOplogCheckSurvivesCappedPositionLost(t *testing.T) {
 	// Oplog is not available in a standalone topology.
 	testutil.SkipUnlessReplicaSet(t)
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -741,7 +741,7 @@ func TestOplogCheckReportsPersistentReadError(t *testing.T) {
 	// Oplog is not available in a standalone topology.
 	testutil.SkipUnlessReplicaSet(t)
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -871,7 +871,7 @@ func TestOplogDumpRejectsAdminSystemVersionChange(t *testing.T) {
 func TestOplogDumpFailsOnStandalone(t *testing.T) {
 	testutil.SkipUnlessStandalone(t)
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""
@@ -898,7 +898,7 @@ func TestOplogDumpFailsOnStandalone(t *testing.T) {
 func dumpWithOplogWhilePaused(t *testing.T, modify func()) error {
 	t.Helper()
 
-	md, err := simpleMongoDumpInstance(testopts.HarnessAuth())
+	md, err := simpleMongoDumpInstance(t, testopts.BackupAuth())
 	require.NoError(t, err)
 
 	md.ToolOptions.DB = ""

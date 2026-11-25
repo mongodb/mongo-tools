@@ -162,7 +162,7 @@ func TestIndexGetsSimpleCollation(t *testing.T) {
 			DropOption,
 			dumpDir.Path(),
 		}
-		restore, err := getRestore(testopts.HarnessAuth(), args...)
+		restore, err := getRestore(t, testopts.RestoreAuth(), args...)
 		So(err, ShouldBeNil)
 		defer restore.Close()
 

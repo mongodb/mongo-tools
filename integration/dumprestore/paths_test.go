@@ -36,7 +36,7 @@ func (s *DumpRestoreSuite) TestRestoreSpecialCollectionNames() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore collections with escaped names")
 		s.requireInserted(result, len(specialCollNames))
 	}, "--db", testDB.Name())
@@ -71,18 +71,35 @@ func (s *DumpRestoreSuite) TestArchiveThroughStdout() {
 		s.insertNamespacedDocs(testDB.Collection(collName))
 	}
 
+	// The tools run under their minimum-privilege identities: the backup user for mongodump and
+	// the restore user for mongorestore. The users are ensured here because the tools run as
+	// subprocesses, which cannot create them themselves.
+	testutil.EnsureBackupUser(s.T())
+	testutil.EnsureRestoreUser(s.T())
 	dump := exec.Command(
 		"go",
 		append(
 			[]string{"run", filepath.Join("..", "..", "mongodump", "main")},
-			append(testopts.HarnessToolCLIArgs(), "--archive", "--db", testDB.Name())...,
+			append(
+				testopts.ToolCLIArgs(
+					os.Getenv(testopts.URIEnvVar),
+					testopts.BackupAuth(),
+				),
+				"--archive", "--db", testDB.Name(),
+			)...,
 		)...,
 	)
 	restore := exec.Command(
 		"go",
 		append(
 			[]string{"run", filepath.Join("..", "..", "mongorestore", "main")},
-			append(testopts.HarnessToolCLIArgs(), "--archive", "--drop")...,
+			append(
+				testopts.ToolCLIArgs(
+					os.Getenv(testopts.URIEnvVar),
+					testopts.RestoreAuth(),
+				),
+				"--archive", "--drop",
+			)...,
 		)...,
 	)
 
@@ -174,7 +191,7 @@ func (s *DumpRestoreSuite) TestRestoreDumpWithSymlinks() {
 		"can link a plain file into the top of the dump",
 	)
 
-	result := s.runRestore(testopts.HarnessAuth(), dumpDir)
+	result := s.runRestore(testopts.RestoreAuth(), dumpDir)
 	s.Require().NoError(result.Err, "can restore a dump containing symlinks")
 	s.requireInserted(result, 2)
 

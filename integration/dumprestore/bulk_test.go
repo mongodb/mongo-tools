@@ -43,7 +43,7 @@ func (s *DumpRestoreSuite) TestRestoreLargeBulk() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore documents at the maximum size")
 		s.Assert().EqualValues(largeDocCount, result.Successes, "every document is inserted")
 		s.Assert().EqualValues(0, result.Failures, "no document is rejected")

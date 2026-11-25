@@ -91,7 +91,8 @@ func (s *DumpRestoreSuite) TestOplogReplayFromLocalOplogRS() {
 	defer cleanupEmpty()
 
 	restore, err := getRestoreWithArgs(
-		testopts.HarnessAuth(),
+		s.T(),
+		testopts.OplogReplayAuth(),
 		mongorestore.OplogReplayOption,
 		mongorestore.OplogFileOption,
 		filepath.Join(dumpDir, "local", "oplog.rs.bson"),
@@ -181,7 +182,7 @@ func (s *DumpRestoreSuite) TestDumpOplogSnapshotDuringWrites() {
 				s.dropDB(testDB)
 
 				result := s.runRestore(
-					testopts.HarnessAuth(),
+					testopts.RestoreAuth(),
 					mongorestore.NSIncludeOption,
 					testDB.Name()+".*",
 					dir,

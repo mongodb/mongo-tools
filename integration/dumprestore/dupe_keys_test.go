@@ -67,7 +67,7 @@ func (s *DumpRestoreSuite) assertDuplicateKeyRestoreFillsGaps(
 	s.withBSONMongodump(func(dir string) {
 		s.removeAndMarkDocuments(coll)
 
-		result := s.runRestore(testopts.HarnessAuth(), append(restoreArgs, dir)...)
+		result := s.runRestore(testopts.RestoreAuth(), append(restoreArgs, dir)...)
 		s.Require().NoError(result.Err, "restoring over existing documents succeeds")
 		s.Require().EqualValues(
 			duplicateKeysDocCount,

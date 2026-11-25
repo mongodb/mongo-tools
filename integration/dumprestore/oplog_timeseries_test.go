@@ -244,7 +244,7 @@ func (s *DumpRestoreSuite) assertOplogReplayTimeseriesBucketDiffs(
 		s.dropDB(testDB)
 
 		result := s.runRestore(
-			testopts.HarnessAuth(),
+			testopts.OplogReplayAuth(),
 			mongorestore.OplogReplayOption,
 			mongorestore.OplogFileOption,
 			oplogPath,
@@ -346,7 +346,7 @@ func (s *DumpRestoreSuite) TestOplogReplayTimeseriesBucketCreatedInWindow() {
 		s.dropDB(testDB)
 
 		result := s.runRestore(
-			testopts.HarnessAuth(),
+			testopts.OplogReplayAuth(),
 			mongorestore.OplogReplayOption,
 			mongorestore.OplogFileOption,
 			oplogPath,

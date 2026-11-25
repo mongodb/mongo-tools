@@ -9,10 +9,12 @@ package mongodump
 import (
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/mongodb/mongo-tools/common/log"
 	"github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/common/testopts"
+	"github.com/mongodb/mongo-tools/common/testutil"
 )
 
 // These are shared by unit and integration tests, so they live in an untagged file.
@@ -23,7 +25,8 @@ var (
 	testCollectionNames = []string{"coll1", "coll2", "coll/three"}
 )
 
-func simpleMongoDumpInstance(auth options.Auth) (*MongoDump, error) {
+func simpleMongoDumpInstance(t *testing.T, auth options.Auth) (*MongoDump, error) {
+	testutil.EnsureSharedUser(t, auth)
 	toolOptions, err := testopts.ToolOptions(os.Getenv(testopts.URIEnvVar), auth)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tool options to create a mongodump instance: %w", err)

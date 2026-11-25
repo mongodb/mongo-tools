@@ -42,7 +42,7 @@ func (s *DumpRestoreSuite) testViewsRestoredAsViews() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a dump holding views")
 		s.assertRestoredEveryCity(result)
 	}, "--db", testDB.Name())
@@ -63,11 +63,11 @@ func (s *DumpRestoreSuite) testViewsRestoredTwice() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		first := s.runRestore(testopts.HarnessAuth(), dir)
+		first := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(first.Err, "can restore a dump holding views")
 		s.assertRestoredEveryCity(first)
 
-		second := s.runRestore(testopts.HarnessAuth(), mongorestore.DropOption, dir)
+		second := s.runRestore(testopts.RestoreAuth(), mongorestore.DropOption, dir)
 		s.Require().NoError(second.Err, "can restore the same dump again with --drop")
 
 		// Without --stopOnError a restore whose --drop did not take effect reports no error, just a
@@ -92,7 +92,7 @@ func (s *DumpRestoreSuite) testViewsAsCollections() {
 	s.withBSONMongodump(func(dir string) {
 		s.dropDB(testDB)
 
-		result := s.runRestore(testopts.HarnessAuth(), dir)
+		result := s.runRestore(testopts.RestoreAuth(), dir)
 		s.Require().NoError(result.Err, "can restore a --viewsAsCollections dump")
 		s.assertRestoredEveryCity(result)
 	}, "--db", testDB.Name(), "--viewsAsCollections")
