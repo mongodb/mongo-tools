@@ -50,7 +50,7 @@ func SSLOptionsWithCert(certFile string) commonOpts.SSL {
 }
 
 // URIWithCert returns a URI whose ConnString carries the TLS file settings for the named
-// certificate. Options built by hand rather than by GetToolOptions need this, because a ConnString
+// certificate. Options built by hand rather than by ToolOptions need this, because a ConnString
 // the caller owns is also what lets it override one of those settings afterward.
 func URIWithCert(certFile string) *commonOpts.URI {
 	if !testtype.HasTestType(testtype.SSLTestType) {

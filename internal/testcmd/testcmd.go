@@ -40,7 +40,7 @@ func RunAgainstTestServer(
 ) (string, string, error) {
 	t.Helper()
 
-	return Run(t, binary, append(testopts.GetBareArgs(), args...)...)
+	return Run(t, binary, append(testopts.HarnessToolCLIArgs(), args...)...)
 }
 
 // Rows splits captured output into its non-empty lines, trimmed. The tools that print a table pad

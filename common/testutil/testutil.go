@@ -70,7 +70,7 @@ func GetBareSessionProviderForURI(
 ) (*db.SessionProvider, *options.ToolOptions, error) {
 	t.Helper()
 
-	toolOptions, err := testopts.GetToolOptionsForURI(uri)
+	toolOptions, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 	if err != nil {
 		return nil, nil, fmt.Errorf(
 			"error getting tool options to create a bare session provider: %w",

@@ -29,7 +29,7 @@ var (
 )
 
 func mustGetToolOptions() *options.ToolOptions {
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	if err != nil {
 		panic(fmt.Sprintf("could not get tool options: %v", err))
 	}

@@ -33,7 +33,7 @@ func newOptions() Options {
 // getBasicToolOptions returns a test helper to instantiate the session provider
 // for calls to StreamDocument.
 func getBasicToolOptions() *options.ToolOptions {
-	toolOptions, err := testopts.GetToolOptions()
+	toolOptions, err := testopts.HarnessToolOptions()
 	if err != nil {
 		panic(fmt.Sprintf("could not get tool options: %v", err))
 	}

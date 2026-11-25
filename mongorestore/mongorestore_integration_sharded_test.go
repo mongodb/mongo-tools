@@ -47,7 +47,7 @@ func init() {
 }
 
 func getRestoreWithArgs(additionalArgs ...string) (*MongoRestore, error) {
-	opts, err := ParseOptions(append(testopts.GetBareArgs(), additionalArgs...), "", "")
+	opts, err := ParseOptions(append(testopts.HarnessToolCLIArgs(), additionalArgs...), "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error parsing args: %v", err)
 	}
@@ -1198,7 +1198,7 @@ func TestAutoIndexIdLocalDB(t *testing.T) {
 			//nolint:errcheck
 			defer dbName.Collection("test_auto_idx").Drop(ctx)
 
-			opts, err := ParseOptions(testopts.GetBareArgs(), "", "")
+			opts, err := ParseOptions(testopts.HarnessToolCLIArgs(), "", "")
 			So(err, ShouldBeNil)
 
 			// Set retryWrites to false since it is unsupported on `local` db.
@@ -2985,7 +2985,7 @@ func runBSONMongodumpForCollection(
 func runMongodumpWithArgs(t *testing.T, args ...string) {
 	require := require.New(t)
 	cmd := []string{"go", "run", filepath.Join("..", "mongodump", "main")}
-	cmd = append(cmd, testopts.GetBareArgs()...)
+	cmd = append(cmd, testopts.HarnessToolCLIArgs()...)
 	cmd = append(cmd, args...)
 	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	cmdStr := strings.Join(cmd, " ")

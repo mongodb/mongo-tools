@@ -75,14 +75,14 @@ func (s *DumpRestoreSuite) TestArchiveThroughStdout() {
 		"go",
 		append(
 			[]string{"run", filepath.Join("..", "..", "mongodump", "main")},
-			append(testopts.GetBareArgs(), "--archive", "--db", testDB.Name())...,
+			append(testopts.HarnessToolCLIArgs(), "--archive", "--db", testDB.Name())...,
 		)...,
 	)
 	restore := exec.Command(
 		"go",
 		append(
 			[]string{"run", filepath.Join("..", "..", "mongorestore", "main")},
-			append(testopts.GetBareArgs(), "--archive", "--drop")...,
+			append(testopts.HarnessToolCLIArgs(), "--archive", "--drop")...,
 		)...,
 	)
 

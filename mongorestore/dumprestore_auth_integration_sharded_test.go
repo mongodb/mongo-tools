@@ -1152,7 +1152,7 @@ func readBSONFile(t *testing.T, path string) []bson.D {
 // baseToolOpts returns a fresh set of tool options from the environment.
 func baseToolOpts(t *testing.T) *options.ToolOptions {
 	t.Helper()
-	opts, err := testopts.GetToolOptions()
+	opts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	return opts
 }
@@ -1161,7 +1161,7 @@ func baseToolOpts(t *testing.T) *options.ToolOptions {
 // authentication overridden to use the given username and password.
 func toolOptsForUser(t *testing.T, username, password string) *options.ToolOptions {
 	t.Helper()
-	opts, err := testopts.GetToolOptions()
+	opts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	opts.Auth = &options.Auth{
 		Username: username,
@@ -1175,7 +1175,7 @@ func toolOptsForUser(t *testing.T, username, password string) *options.ToolOptio
 // authentication cleared. Connecting to an auth-required server will fail.
 func toolOptsNoAuth(t *testing.T) *options.ToolOptions {
 	t.Helper()
-	opts, err := testopts.GetToolOptions()
+	opts, err := testopts.HarnessToolOptions()
 	require.NoError(t, err)
 	opts.Auth = &options.Auth{}
 	return opts

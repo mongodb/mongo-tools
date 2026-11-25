@@ -28,7 +28,7 @@ func (s *IntegrationSuite) toolArgsForHosts(
 		// option for it.
 		args = append(args, "--sslAllowInvalidHostnames")
 	}
-	args = append(args, testopts.GetAuthArgs()...)
+	args = append(args, testopts.AuthArgs(testopts.HarnessAuth())...)
 
 	if haveURI {
 		return append(args, "--uri", uri)

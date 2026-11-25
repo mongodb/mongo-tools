@@ -2393,7 +2393,7 @@ func TestBrokenPipe(t *testing.T) {
 
 	args := append(
 		[]string{"run", filepath.Join("..", "mongodump", "main")},
-		testopts.GetBareArgs()...,
+		testopts.HarnessToolCLIArgs()...,
 	)
 	args = append(args, "--db", dbName, "--archive=-")
 	testutil.AssertBrokenPipeHandled(t, exec.Command("go", args...))

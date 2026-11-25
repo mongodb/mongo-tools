@@ -19,7 +19,7 @@ import (
 )
 
 func TestBufferedBulkInserterInserts(t *testing.T) {
-	opts := testopts.MustGetToolOptions(t)
+	opts := testopts.MustHarnessToolOptions(t)
 	provider, err := NewSessionProvider(opts)
 	require.NoError(t, err)
 	require.NotNil(t, provider)

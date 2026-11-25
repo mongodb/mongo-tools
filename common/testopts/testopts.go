@@ -37,13 +37,27 @@ const (
 	URIEnvVar2 = "TOOLS_TESTING_MONGOD2"
 )
 
-func GetToolOptions() (*options.ToolOptions, error) {
-	return GetToolOptionsForURI(os.Getenv(URIEnvVar))
+// MustHarnessToolOptions is HarnessToolOptions for the tests that have nothing left to do if the
+// options cannot be built.
+func MustHarnessToolOptions(t *testing.T) options.ToolOptions {
+	t.Helper()
+
+	opts, err := HarnessToolOptions()
+	require.NoError(t, err, "getting the tool options for the server under test")
+
+	return *opts
 }
 
-// GetToolOptionsForURI builds ToolOptions pointing at the given URI, or at the default
-// localhost:DefaultTestPort when uri is empty.
-func GetToolOptionsForURI(uri string) (*options.ToolOptions, error) {
+// HarnessToolOptions builds ToolOptions for the server the environment names, authenticating as
+// the harness user.
+func HarnessToolOptions() (*options.ToolOptions, error) {
+	return ToolOptions(os.Getenv(URIEnvVar), HarnessAuth())
+}
+
+// ToolOptions builds ToolOptions pointing at the given URI, or at the default
+// localhost:DefaultTestPort when uri is empty, with the authentication identity chosen by the
+// caller.
+func ToolOptions(uri string, auth options.Auth) (*options.ToolOptions, error) {
 	var toolOptions *options.ToolOptions
 	// get ToolOptions from URI or defaults
 	if uri != "" {
@@ -69,12 +83,16 @@ func GetToolOptionsForURI(uri string) (*options.ToolOptions, error) {
 			)
 		}
 
+		// A URI can name its own credentials; the caller's identity wins whenever it has one.
+		if auth.IsSet() {
+			toolOptions.Auth = &auth
+		}
+
 		// ParseArgs does not set this, but tools like mongoimport and mongorestore
 		// dereference it without a nil check.
 		toolOptions.WriteConcern = wcwrapper.Majority()
 	} else {
 		ssl := GetSSLOptions()
-		auth := GetAuthOptions()
 		connection := &options.Connection{
 			Host: "localhost",
 			Port: DefaultTestPort,
@@ -99,28 +117,20 @@ func GetToolOptionsForURI(uri string) (*options.ToolOptions, error) {
 	return toolOptions, nil
 }
 
-// MustGetToolOptions is GetToolOptions for the tests that have nothing left to do if the options
-// cannot be built.
-func MustGetToolOptions(t *testing.T) options.ToolOptions {
-	t.Helper()
-
-	opts, err := GetToolOptions()
-	require.NoError(t, err, "getting the tool options for the server under test")
-
-	return *opts
+// HarnessToolCLIArgs returns the command-line args that point a tool at the server the environment
+// names, authenticating as the harness user.
+func HarnessToolCLIArgs() []string {
+	return ToolCLIArgs(os.Getenv(URIEnvVar), HarnessAuth())
 }
 
-func GetBareArgs() []string {
-	return GetBareArgsForURI(os.Getenv(URIEnvVar))
-}
-
-// GetBareArgsForURI returns the command-line args that point a tool at the given URI, or at the
-// default localhost:DefaultTestPort when uri is empty.
-func GetBareArgsForURI(uri string) []string {
+// ToolCLIArgs returns the command-line args that point a tool at the given URI, or at the default
+// localhost:DefaultTestPort when uri is empty, with the authentication identity chosen by the
+// caller.
+func ToolCLIArgs(uri string, auth options.Auth) []string {
 	args := []string{}
 
 	args = append(args, GetSSLArgs()...)
-	args = append(args, GetAuthArgs()...)
+	args = append(args, AuthArgs(auth)...)
 	if uri != "" {
 		args = append(args, "--uri", uri)
 	} else {

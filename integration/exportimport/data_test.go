@@ -36,7 +36,7 @@ func (s *ExportImportSuite) TestRoundTripBasicData() {
 		_, err := sourceColl.InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 
@@ -59,7 +59,7 @@ func (s *ExportImportSuite) TestRoundTripBasicData() {
 
 		s.Require().NoError(sourceColl.Drop(s.Context()))
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -115,7 +115,7 @@ func (s *ExportImportSuite) TestRoundTripDataTypes() {
 		_, err := sourceColl.InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 
@@ -138,7 +138,7 @@ func (s *ExportImportSuite) TestRoundTripDataTypes() {
 
 		s.Require().NoError(sourceColl.Drop(s.Context()))
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -186,7 +186,7 @@ func (s *ExportImportSuite) TestRoundTripDecimal128() {
 		_, err = sourceColl.InsertOne(s.Context(), testDoc)
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		me, err := mongoexport.New(mongoexport.Options{
@@ -207,7 +207,7 @@ func (s *ExportImportSuite) TestRoundTripDecimal128() {
 
 		s.Require().NoError(sourceColl.Drop(s.Context()))
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -270,7 +270,7 @@ func (s *ExportImportSuite) TestRoundTripViewExport() {
 		s.Require().NoError(err)
 		s.Assert().EqualValues(4, n, "should have 4 cities in California view")
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "citiesCA"}
 
@@ -293,7 +293,7 @@ func (s *ExportImportSuite) TestRoundTripViewExport() {
 
 		s.Require().NoError(sourceDB.Drop(s.Context()))
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "CACities"}
 		mi, err := mongoimport.New(mongoimport.Options{

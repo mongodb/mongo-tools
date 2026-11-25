@@ -298,7 +298,7 @@ func TestMongotopRejectsInvalidOptions(t *testing.T) {
 		// Without a shortened selection timeout this case spends the driver's default 30 seconds
 		// waiting for a server that is never coming.
 		_, stderr, err := testcmd.Run(t, mongotopBinary(t), slices.Concat(
-			testopts.GetSSLArgs(), testopts.GetAuthArgs(),
+			testopts.GetSSLArgs(), testopts.AuthArgs(testopts.HarnessAuth()),
 			[]string{
 				"--host", "localhost", "--port", testcmd.UnreachablePort(t),
 				"--serverSelectionTimeout", "2",
@@ -329,9 +329,9 @@ func TestMongotopRejectsInvalidOptions(t *testing.T) {
 func TestMongotopAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
 
-	// The credentials are supplied here rather than by `GetBareArgs`, which would supply the right
+	// The credentials are supplied here rather than by `HarnessToolCLIArgs`, which would supply the right
 	// password for both cases.
-	auth := testopts.GetAuthOptions()
+	auth := testopts.HarnessAuth()
 	args := slices.Concat(testopts.GetSSLArgs(), []string{
 		"--host", testcmd.ServerHostPort(t),
 		"--authenticationDatabase", auth.Source,

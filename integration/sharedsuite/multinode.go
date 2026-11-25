@@ -227,7 +227,7 @@ func (s *IntegrationSuite) directToolOptions(host string) *options.ToolOptions {
 		[]string{host},
 		url.Values{"directConnection": {"true"}},
 	); ok {
-		opts, err := testopts.GetToolOptionsForURI(uri)
+		opts, err := testopts.ToolOptions(uri, testopts.HarnessAuth())
 		s.Require().NoError(err, "can build tool options for %s", host)
 		if opts.SSL.UseSSL {
 			opts.SSL.SSLAllowInvalidHost = true
@@ -237,7 +237,7 @@ func (s *IntegrationSuite) directToolOptions(host string) *options.ToolOptions {
 		return opts
 	}
 
-	opts, err := testopts.GetToolOptions()
+	opts, err := testopts.HarnessToolOptions()
 	s.Require().NoError(err, "can build tool options")
 
 	// The URI has already been built from the default host and port, so it has to

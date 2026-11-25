@@ -61,7 +61,7 @@ func TestMongostatRowCount(t *testing.T) {
 		// Without a shortened selection timeout this case spends the driver's default 30 seconds
 		// waiting for a server that is never coming.
 		_, stderr, err := testcmd.Run(t, mongostatBinary(t), slices.Concat(
-			testopts.GetSSLArgs(), testopts.GetAuthArgs(),
+			testopts.GetSSLArgs(), testopts.AuthArgs(testopts.HarnessAuth()),
 			[]string{
 				"--host", "localhost",
 				"--port", testcmd.UnreachablePort(t),
@@ -80,7 +80,7 @@ func TestMongostatRowCount(t *testing.T) {
 
 	t.Run("a replica set name that does not match is an error", func(t *testing.T) {
 		_, stderr, err := testcmd.Run(t, mongostatBinary(t), slices.Concat(
-			testopts.GetSSLArgs(), testopts.GetAuthArgs(),
+			testopts.GetSSLArgs(), testopts.AuthArgs(testopts.HarnessAuth()),
 			[]string{
 				"--host", "badreplset/" + testcmd.ServerHostPort(t),
 				"--serverSelectionTimeout", "2",
@@ -367,7 +367,7 @@ func TestMongostatExitsOnSignal(t *testing.T) {
 	}
 
 	// No --rowcount, so it runs until signaled.
-	cmd := exec.Command(mongostatBinary(t), append(testopts.GetBareArgs(), "--noheaders")...)
+	cmd := exec.Command(mongostatBinary(t), append(testopts.HarnessToolCLIArgs(), "--noheaders")...)
 	stdout, err := cmd.StdoutPipe()
 	require.NoError(t, err, "can read mongostat's output")
 	var stderr bytes.Buffer
@@ -424,9 +424,9 @@ func stderrAfterExit(cmd *exec.Cmd, stderr *bytes.Buffer) string {
 func TestMongostatAuth(t *testing.T) {
 	testtype.SkipUnlessTestType(t, testtype.AuthTestType)
 
-	// The credentials are supplied here rather than by GetBareArgs, which would supply the right
+	// The credentials are supplied here rather than by HarnessToolCLIArgs, which would supply the right
 	// password for both cases.
-	auth := testopts.GetAuthOptions()
+	auth := testopts.HarnessAuth()
 	args := slices.Concat(testopts.GetSSLArgs(), []string{
 		"--host", testcmd.ServerHostPort(t),
 		"--authenticationDatabase", auth.Source,
@@ -514,7 +514,10 @@ func runMongostatAgainstServer(
 	args ...string,
 ) (string, string, error) {
 	t.Helper()
-	return testcmd.Run(t, mongostatBinary(t), append(testopts.GetBareArgsForURI(uri), args...)...)
+	return testcmd.Run(
+		t,
+		mongostatBinary(t),
+		append(testopts.ToolCLIArgs(uri, testopts.HarnessAuth()), args...)...)
 }
 
 // buildMongostat builds the tool once for the whole package. Building rather than `go run` keeps

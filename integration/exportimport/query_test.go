@@ -35,7 +35,7 @@ func (s *ExportImportSuite) TestRoundTripLimit() {
 		_, err := sourceColl.InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		me, err := mongoexport.New(mongoexport.Options{
@@ -57,7 +57,7 @@ func (s *ExportImportSuite) TestRoundTripLimit() {
 
 		s.Require().NoError(sourceColl.Drop(s.Context()))
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -177,7 +177,7 @@ func (s *ExportImportSuite) TestRoundTripSortAndSkip() {
 		_, err := sourceColl.InsertMany(s.Context(), docs)
 		s.Require().NoError(err)
 
-		exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+		exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		me, err := mongoexport.New(mongoexport.Options{
@@ -198,7 +198,7 @@ func (s *ExportImportSuite) TestRoundTripSortAndSkip() {
 
 		s.Require().NoError(sourceColl.Drop(s.Context()))
 
-		importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+		importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 		s.Require().NoError(err)
 		importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: collName}
 		mi, err := mongoimport.New(mongoimport.Options{
@@ -237,7 +237,7 @@ func (s *ExportImportSuite) exportAndImportWithQuery(
 		_, err := sourceDB.Collection("source").InsertMany(s.Context(), sourceDocs)
 		s.Require().NoError(err)
 	}
-	exportToolOptions, err := testopts.GetToolOptionsForURI(cc.SourceURI)
+	exportToolOptions, err := testopts.ToolOptions(cc.SourceURI, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	exportToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "source"}
 	me, err := mongoexport.New(mongoexport.Options{
@@ -255,7 +255,7 @@ func (s *ExportImportSuite) exportAndImportWithQuery(
 	s.Require().NoError(err)
 	s.Require().NoError(tmpFile.Close())
 
-	importToolOptions, err := testopts.GetToolOptionsForURI(cc.TargetURI)
+	importToolOptions, err := testopts.ToolOptions(cc.TargetURI, testopts.HarnessAuth())
 	s.Require().NoError(err)
 	importToolOptions.Namespace = &options.Namespace{DB: dbName, Collection: "dest"}
 	mi, err := mongoimport.New(mongoimport.Options{
